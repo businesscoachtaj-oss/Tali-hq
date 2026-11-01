@@ -39,17 +39,30 @@ export async function markBriefRead(id: string) {
   await supabase.from('briefs').update({ read_at: new Date().toISOString() }).eq('id', id);
 }
 
-export type Approval = { id: string; kind: string; title: string; status: string; created_at: string };
+export type Approval = {
+  id: string;
+  kind: string;
+  title: string;
+  status: string;
+  draft: { to?: string | null; body?: string } | null;
+  created_at: string;
+};
 
 export async function pendingApprovals(): Promise<Approval[]> {
   const { data, error } = await supabase
     .from('approvals')
-    .select('id, kind, title, status, created_at')
+    .select('id, kind, title, status, draft, created_at')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
     .limit(20);
   if (error) throw error;
   return (data as Approval[]) ?? [];
+}
+
+// The user's call on a draft: done (they sent it themselves) or rejected (not needed).
+export async function decideApproval(id: string, status: 'done' | 'rejected') {
+  const { error } = await supabase.from('approvals').update({ status, decided_at: new Date().toISOString() }).eq('id', id);
+  if (error) throw error;
 }
 
 export type JournalEntry = {
@@ -123,6 +136,12 @@ export async function currentConversation(): Promise<string> {
   return created.id as string;
 }
 
+export async function newConversation(): Promise<string> {
+  const { data, error } = await supabase.from('conversations').insert({ title: 'Chat with Tali' }).select('id').single();
+  if (error) throw error;
+  return data.id as string;
+}
+
 export async function messages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from('messages')
@@ -135,7 +154,7 @@ export async function messages(conversationId: string): Promise<Message[]> {
 }
 
 export type ChatResult =
-  | { ok: true; reply: string; messageId?: string; remembered: number; remaining: number | null }
+  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
@@ -152,3 +171,53 @@ export async function sendMessage(conversationId: string, text: string): Promise
   }
   return data as ChatResult;
 }
+
+// Permanently deletes the signed-in account and everything Tali knows about them.
+export async function deleteAccount(confirm: string): Promise<{ ok: boolean; message?: string }> {
+  const { data, error } = await supabase.functions.invoke('delete-account', { body: { confirm } });
+  if (error) {
+    try {
+      const body = await (error as any).context?.json?.();
+      if (body?.message) return { ok: false, message: body.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; message?: string };
+}
+
+export type Plan = {
+  id: 'free' | 'hq' | 'pro';
+  name: string;
+  monthly_price_aud: number;
+  credits_month: number;
+  messages_month: number | null;
+  features: string[];
+  sort: number;
+};
+
+export async function plans(): Promise<Plan[]> {
+  const { data, error } = await supabase.from('plans').select('id, name, monthly_price_aud, credits_month, messages_month, features, sort').order('sort');
+  if (error) throw error;
+  return (data as Plan[]) ?? [];
+}
+
+export async function mySubscription(): Promise<{ plan_id: string; status: string; founding_member: boolean; stripe_customer_id: string | null; current_period_end: string | null } | null> {
+  const { data } = await supabase.from('subscriptions').select('plan_id, status, founding_member, stripe_customer_id, current_period_end').maybeSingle();
+  return (data as any) ?? null;
+}
+
+async function invokeForUrl(fn: string, body: Record<string, unknown>): Promise<{ ok: boolean; url?: string; message?: string }> {
+  const { data, error } = await supabase.functions.invoke(fn, { body });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data;
+}
+
+// Web only for now. In the iOS and Android apps, upgrades will go through the stores.
+export const startCheckout = (plan: 'hq' | 'pro', returnUrl: string) => invokeForUrl('create-checkout', { plan, interval: 'month', returnUrl });
+export const openBillingPortal = (returnUrl: string) => invokeForUrl('billing-portal', { returnUrl });

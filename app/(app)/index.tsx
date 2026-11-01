@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { myCredits, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Credits } from '@/lib/data';
 import { Body, Button, Card, Label, TaliSays, Title } from '@/components/ui';
+import { DraftCard } from '@/components/DraftCard';
 import { colours, space } from '@/constants/theme';
 
 function greeting() {
@@ -75,14 +76,11 @@ export default function Today() {
         <Label>Needs you</Label>
         {approvals.length === 0 ? (
           <Card>
-            <Body muted>Nothing waiting for your yes.</Body>
+            <Body muted>Nothing waiting for your yes. Ask me to write a message or follow-up in Talk and it lands here.</Body>
           </Card>
         ) : (
           approvals.map((a) => (
-            <Card key={a.id} style={{ borderLeftWidth: 5, borderLeftColor: colours.orange }}>
-              <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>{a.kind.replace('_', ' ')}</Text>
-              <Body>{a.title}</Body>
-            </Card>
+            <DraftCard key={a.id} item={a} onDecided={(id) => setApprovals((list) => list.filter((x) => x.id !== id))} />
           ))
         )}
 

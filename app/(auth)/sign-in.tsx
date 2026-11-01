@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'expo-router';
-import { Text } from 'react-native';
+import { Platform, Text } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Button, ErrorText, Field, Screen, TaliSays, Title } from '@/components/ui';
 import { colours } from '@/constants/theme';
@@ -25,7 +25,9 @@ export default function SignIn() {
   async function forgot() {
     setError('');
     if (!email.trim()) return setError('Type your email above first, then tap this again.');
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim());
+    // On web the link comes back to this site's reset screen. Native apps use the project's Site URL.
+    const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined;
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), redirectTo ? { redirectTo } : undefined);
     if (err) setError(err.message);
     else setNote('Check your email for a link to set a new password.');
   }

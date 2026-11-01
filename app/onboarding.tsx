@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { Button, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
-import { colours, radius, space } from '@/constants/theme';
-
-const BUSINESS_TYPES = ['Personal trainer', 'Gym or studio', 'Coach or consultant', 'Trades', 'Health and beauty', 'Online business', 'Something else'];
+import { BUSINESS_TYPES } from '@/constants/business';
+import { ChipPicker } from '@/components/ChipPicker';
 
 export default function Onboarding() {
   const { session, profile, refreshProfile } = useAuth();
@@ -51,28 +49,7 @@ export default function Onboarding() {
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
       <Field label="Business name (optional)" value={businessName} onChangeText={setBusinessName} />
       <Label>What kind of business</Label>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md }}>
-        {BUSINESS_TYPES.map((t) => {
-          const on = businessType === t;
-          return (
-            <Pressable
-              key={t}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: on }}
-              onPress={() => setBusinessType(t)}
-              style={{
-                paddingVertical: 9,
-                paddingHorizontal: 14,
-                borderRadius: radius.pill,
-                borderWidth: 1,
-                borderColor: on ? colours.purple : colours.borderStrong,
-                backgroundColor: on ? colours.purple : colours.surface,
-              }}>
-              <Text style={{ color: on ? colours.onPurple : colours.text, fontWeight: '600' }}>{t}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <ChipPicker options={BUSINESS_TYPES} value={businessType || null} onChange={setBusinessType} />
       <Field
         label="Anything I should know? (optional)"
         value={aboutMe}

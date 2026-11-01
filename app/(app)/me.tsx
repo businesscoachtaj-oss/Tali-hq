@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { forgetMemory, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
 import { Body, Button, Card, Label, Screen, Title } from '@/components/ui';
@@ -75,6 +75,7 @@ export default function Me() {
             </>
           )
         ) : null}
+        <Button title="See plans" kind="ghost" onPress={() => router.navigate('/plans')} />
       </Card>
 
       <View style={{ height: space.md }} />
@@ -105,6 +106,7 @@ export default function Me() {
         ) : null}
       </Card>
 
+      <Button title="Settings" onPress={() => router.navigate('/settings')} />
       <Button title="Sign out" kind="ghost" onPress={signOut} />
       <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: space.lg }}>Tali HQ by Totality 360. Made in Australia.</Text>
     </Screen>

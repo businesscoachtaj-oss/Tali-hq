@@ -103,6 +103,14 @@ export function Button({
   );
 }
 
+export function BackLink({ onPress, label = 'Back' }: { onPress: () => void; label?: string }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={12} style={{ alignSelf: 'flex-start', paddingVertical: 6, marginBottom: space.sm }}>
+      <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 15 }}>{'\u2039'} {label}</Text>
+    </Pressable>
+  );
+}
+
 export function TaliSays({ children, pose = 'idle' }: PropsWithChildren<{ pose?: keyof typeof tali }>) {
   return (
     <View style={styles.says}>

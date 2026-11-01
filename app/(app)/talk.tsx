@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { currentConversation, messages as loadMessages, sendMessage, type Message } from '@/lib/data';
+import { currentConversation, messages as loadMessages, newConversation, sendMessage, type Message } from '@/lib/data';
 import { useAuth } from '@/lib/auth';
 import { tali } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
@@ -50,10 +50,25 @@ export default function Talk() {
     setThinking(false);
     if (res.ok) {
       setRows(await loadMessages(conversationId));
-      if (res.remembered > 0) setNotice(res.remembered === 1 ? 'Tali saved 1 thing to remember.' : `Tali saved ${res.remembered} things to remember.`);
+      const bits: string[] = [];
+      if (res.drafted) bits.push(res.drafted === 1 ? 'Draft waiting on Today' : `${res.drafted} drafts waiting on Today`);
+      if (res.remembered > 0) bits.push(res.remembered === 1 ? 'saved 1 thing to remember' : `saved ${res.remembered} things to remember`);
+      if (bits.length) setNotice(bits.join(', ').replace(/^./, (c) => c.toUpperCase()) + '.');
     } else {
       setRows((r) => r.map((m) => (m.id === temp.id ? { ...m, pending: false, failed: true } : m)));
       setNotice(res.message);
+    }
+  }
+
+  async function startNew() {
+    if (thinking || rows.length === 0) return;
+    setNotice('');
+    try {
+      const id = await newConversation();
+      setConversationId(id);
+      setRows([]);
+    } catch (e: any) {
+      setNotice(e?.message ?? 'Could not start a new chat.');
     }
   }
 
@@ -64,10 +79,15 @@ export default function Talk() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>
           <Image source={tali.head} style={{ width: 36, height: 36 }} resizeMode="contain" />
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 17, fontWeight: '800', color: colours.text }}>Tali</Text>
             <Text style={{ fontSize: 12, color: colours.muted }}>{thinking ? 'Thinking...' : 'Your AI teammate'}</Text>
           </View>
+          {!empty ? (
+            <Pressable onPress={startNew} accessibilityRole="button" style={{ borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
+              <Text style={{ fontWeight: '700', fontSize: 13, color: colours.text }}>New chat</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {empty ? (

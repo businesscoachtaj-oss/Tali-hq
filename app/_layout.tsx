@@ -2,6 +2,7 @@
 //   signed out                -> (auth) sign in / sign up
 //   signed in, not onboarded  -> onboarding
 //   signed in, onboarded      -> (app) tabs
+//   opened a reset link       -> reset-password, until they set a new one
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -21,7 +22,7 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { isLoading, session, profile } = useAuth();
+  const { isLoading, session, profile, recovering } = useAuth();
   if (isLoading) return <Loading />;
 
   const signedIn = !!session;
@@ -29,13 +30,16 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colours.bg } }}>
+      <Stack.Protected guard={signedIn && recovering}>
+        <Stack.Screen name="reset-password" />
+      </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !onboarded}>
+      <Stack.Protected guard={signedIn && !recovering && !onboarded}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && onboarded}>
+      <Stack.Protected guard={signedIn && !recovering && onboarded}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
     </Stack>

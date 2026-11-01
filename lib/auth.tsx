@@ -9,6 +9,7 @@ export type Profile = {
   business_type: string | null;
   about_me: string | null;
   timezone: string;
+  brief_time: string;
   onboarded_at: string | null;
 };
 
@@ -18,6 +19,9 @@ type AuthValue = {
   profile: Profile | null;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  // True after an emailed password-reset link signs the user in, until they set a new password.
+  recovering: boolean;
+  endRecovery: () => void;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -28,12 +32,13 @@ export function useAuth() {
   return value;
 }
 
-const PROFILE_COLUMNS = 'id, first_name, business_name, business_type, about_me, timezone, onboarded_at';
+const PROFILE_COLUMNS = 'id, first_name, business_name, business_type, about_me, timezone, brief_time, onboarded_at';
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setLoading] = useState(true);
+  const [recovering, setRecovering] = useState(false);
 
   const loadProfile = useCallback(async (s: Session | null) => {
     if (!s) {
@@ -52,7 +57,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       await loadProfile(data.session);
       if (alive) setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+      if (event === 'SIGNED_OUT') setRecovering(false);
       setSession(s);
       // Supabase warns against awaiting other calls inside this callback.
       setTimeout(() => {
@@ -71,7 +78,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoading, session, profile, refreshProfile, signOut }}>
+    <AuthContext.Provider value={{ isLoading, session, profile, refreshProfile, signOut, recovering, endRecovery: () => setRecovering(false) }}>
       {children}
     </AuthContext.Provider>
   );
