@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { clients as loadClients, deleteClient, saveClient, type Client } from '@/lib/data';
 import { addDays, friendlyDate, FOLLOW_UP_PICKS, isoDate, today } from '@/lib/dates';
 import { ChipPicker } from '@/components/ChipPicker';
@@ -135,6 +135,7 @@ export default function Clients() {
           style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, marginBottom: space.md, color: colours.text }} />
       ) : null}
       <Button title={tab === 'lead' ? 'Add a lead' : 'Add a client'} onPress={() => setDraft(blank(tab))} />
+      <Button title="Invoices" kind="ghost" onPress={() => router.navigate('/invoices')} />
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.md }} />
       {shown.length === 0 ? (

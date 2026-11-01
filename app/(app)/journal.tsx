@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
-import { deleteJournalEntry, journalEntries, saveJournalEntry, type JournalEntry } from '@/lib/data';
-import { Body, Button, Card, ErrorText, Field, Label, Screen, Title } from '@/components/ui';
+import { router, useFocusEffect } from 'expo-router';
+import { deleteJournalEntry, journalEntries, markBriefRead, myCredits, saveJournalEntry, taliJournal, type Brief, type JournalEntry } from '@/lib/data';
+import { isPaid } from '@/lib/plan';
+import { friendlyDate } from '@/lib/dates';
+import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
 const MOODS = ['Rough', 'Meh', 'Okay', 'Good', 'Great'];
@@ -20,10 +22,17 @@ export default function Journal() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [tab, setTab] = useState<'mine' | 'tali'>('mine');
+  const [hers, setHers] = useState<Brief[]>([]);
+  const [paid, setPaid] = useState(false);
+  const [reading, setReading] = useState<Brief | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setEntries(await journalEntries());
+      const [mine, c] = await Promise.all([journalEntries(), myCredits()]);
+      setEntries(mine);
+      setPaid(isPaid(c));
+      setHers(await taliJournal().catch(() => []));
     } catch (e: any) {
       setError(e?.message ?? 'Could not load your journal.');
     }
@@ -70,6 +79,20 @@ export default function Journal() {
       setError(e?.message ?? 'Could not delete.');
     }
     setBusy(false);
+  }
+
+  if (reading) {
+    return (
+      <Screen>
+        <BackLink onPress={() => setReading(null)} label="Tali's journal" />
+        <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>Week ending {friendlyDate(reading.for_date)}</Text>
+        <Title>{reading.content.headline || "Tali's week"}</Title>
+        {(reading.content.paragraphs ?? []).map((p, i) => (
+          <Text key={i} style={{ fontSize: 16, lineHeight: 25, color: colours.text, marginBottom: space.md }}>{p}</Text>
+        ))}
+        <Text style={{ fontSize: 15, color: colours.purpleInk, fontWeight: '700', marginTop: space.sm }}>Tali</Text>
+      </Screen>
+    );
   }
 
   if (draft) {
@@ -127,7 +150,41 @@ export default function Journal() {
 
   return (
     <Screen>
-      <Title sub="Your journal and notes. Tali learns from them unless you keep an entry private.">Journal</Title>
+      <Title sub={tab === 'mine' ? 'Your journal and notes. Tali learns from them unless you keep an entry private.' : 'Every Sunday evening Tali writes up her week working with you.'}>Journal</Title>
+      <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
+        {(['mine', 'tali'] as const).map((k) => (
+          <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
+            style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? colours.surface : 'transparent', alignItems: 'center' }}>
+            <Text style={{ fontWeight: '700', color: tab === k ? colours.text : colours.muted }}>
+              {k === 'mine' ? 'Yours' : "Tali's"}{k === 'tali' && hers.some((h) => !h.read_at) ? ' \u2022' : ''}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {tab === 'tali' ? (
+        <>
+          {!paid ? (
+            <>
+              <TaliSays pose="wave">My weekly journal is part of Tali HQ. Every Sunday I write up what we worked on, what I noticed and what I'm keeping an eye on.</TaliSays>
+              <Button title="See plans" onPress={() => router.navigate('/plans')} />
+            </>
+          ) : hers.length === 0 ? (
+            <TaliSays pose="think">My first entry lands Sunday evening. The more you tell me this week, the better it'll be.</TaliSays>
+          ) : (
+            hers.map((h) => (
+              <Pressable key={h.id} onPress={() => { setReading(h); if (!h.read_at) markBriefRead(h.id).then(load); }}>
+                <Card style={!h.read_at ? { borderLeftWidth: 5, borderLeftColor: colours.purple } : undefined}>
+                  <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>Week ending {friendlyDate(h.for_date)}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text, marginTop: 4 }}>{h.content.headline || "Tali's week"}</Text>
+                  <Text numberOfLines={2} style={{ fontSize: 15, color: colours.muted, marginTop: 4, lineHeight: 21 }}>{(h.content.paragraphs ?? [])[0]}</Text>
+                </Card>
+              </Pressable>
+            ))
+          )}
+          {paid ? <Button title="Night school: pick what Tali studies" kind="ghost" onPress={() => router.navigate('/night-school')} /> : null}
+        </>
+      ) : (
+      <>
       <View style={{ flexDirection: 'row', gap: space.sm }}>
         <View style={{ flex: 1 }}><Button title="New entry" onPress={() => setDraft(blank())} /></View>
         <View style={{ flex: 1 }}><Button title="New note" kind="ghost" onPress={() => setDraft({ ...blank(), kind: 'note' })} /></View>
@@ -153,6 +210,8 @@ export default function Journal() {
             </Card>
           </Pressable>
         ))
+      )}
+      </>
       )}
     </Screen>
   );

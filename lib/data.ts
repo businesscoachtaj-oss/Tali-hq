@@ -20,7 +20,7 @@ export type Brief = {
   kind: 'morning' | 'health' | 'weekly' | 'journal';
   for_date: string;
   title: string | null;
-  content: { headline?: string; lines?: string[] };
+  content: { headline?: string; lines?: string[]; paragraphs?: string[] };
   read_at: string | null;
   created_at: string;
 };
@@ -44,7 +44,7 @@ export type Approval = {
   kind: string;
   title: string;
   status: string;
-  draft: { to?: string | null; body?: string } | null;
+  draft: { to?: string | null; subject?: string; body?: string } | null;
   created_at: string;
 };
 
@@ -154,7 +154,7 @@ export async function messages(conversationId: string): Promise<Message[]> {
 }
 
 export type ChatResult =
-  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; remaining: number | null }
+  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; invoicesDrafted?: number; searched?: number; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
@@ -304,5 +304,184 @@ export async function completeReminder(id: string) {
 
 export async function addReminder(text: string, dueAt: Date) {
   const { error } = await supabase.from('reminders').insert({ text: text.trim(), due_at: dueAt.toISOString() });
+  if (error) throw error;
+}
+
+// ---------- Tali's weekly journal ----------
+export async function taliJournal(limit = 8): Promise<Brief[]> {
+  const { data, error } = await supabase
+    .from('briefs')
+    .select('id, kind, for_date, title, content, read_at, created_at')
+    .eq('kind', 'journal')
+    .order('for_date', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data as Brief[]) ?? [];
+}
+
+// ---------- Business health ----------
+export type HealthItem = { area: string; level: 'amber' | 'red'; text: string };
+export type Health = { status: 'green' | 'amber' | 'red'; items: HealthItem[]; checkedAt: string };
+
+export async function myHealth(): Promise<Health | null> {
+  const { data, error } = await supabase.rpc('my_business_health');
+  if (error) throw error;
+  return (data as Health) ?? null;
+}
+
+// ---------- Invoices ----------
+export type InvoiceItem = { description: string; qty: number; unit_price: number };
+export type Invoice = {
+  id: string;
+  client_id: string | null;
+  client_name: string;
+  client_email: string | null;
+  number: string;
+  issue_date: string;
+  due_date: string;
+  items: InvoiceItem[];
+  gst: boolean;
+  subtotal: number;
+  gst_amount: number;
+  total: number;
+  status: 'draft' | 'sent' | 'paid' | 'void';
+  sent_at: string | null;
+  paid_at: string | null;
+  notes: string;
+  created_by: 'user' | 'tali';
+  created_at: string;
+};
+export type InvoiceSettings = {
+  business_name: string | null;
+  abn: string | null;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+  payment_details: string | null;
+  gst_registered: boolean;
+  default_due_days: number;
+  next_number: number;
+  footer: string | null;
+};
+
+const INVOICE_COLS = 'id, client_id, client_name, client_email, number, issue_date, due_date, items, gst, subtotal, gst_amount, total, status, sent_at, paid_at, notes, created_by, created_at';
+
+export async function invoices(): Promise<Invoice[]> {
+  const { data, error } = await supabase.from('invoices').select(INVOICE_COLS).order('created_at', { ascending: false }).limit(200);
+  if (error) throw error;
+  return ((data as any[]) ?? []).map((r) => ({ ...r, subtotal: Number(r.subtotal), gst_amount: Number(r.gst_amount), total: Number(r.total) }));
+}
+
+export async function saveInvoice(inv: {
+  id?: string;
+  client_id?: string | null;
+  client_name: string;
+  client_email?: string | null;
+  issue_date: string;
+  due_date: string;
+  items: InvoiceItem[];
+  gst: boolean;
+  notes: string;
+  status?: Invoice['status'];
+}): Promise<Invoice> {
+  const row = {
+    client_id: inv.client_id ?? null,
+    client_name: inv.client_name.trim(),
+    client_email: inv.client_email?.trim() || null,
+    issue_date: inv.issue_date,
+    due_date: inv.due_date,
+    items: inv.items.filter((i) => i.description.trim()).map((i) => ({ description: i.description.trim(), qty: Number(i.qty) || 1, unit_price: Number(i.unit_price) || 0 })),
+    gst: inv.gst,
+    notes: inv.notes,
+    ...(inv.status ? { status: inv.status } : {}),
+  };
+  const q = inv.id ? supabase.from('invoices').update(row).eq('id', inv.id) : supabase.from('invoices').insert(row);
+  const { data, error } = await q.select(INVOICE_COLS).single();
+  if (error) throw error;
+  return { ...(data as any), subtotal: Number((data as any).subtotal), gst_amount: Number((data as any).gst_amount), total: Number((data as any).total) };
+}
+
+export async function setInvoiceStatus(id: string, status: Invoice['status']) {
+  const { error } = await supabase.from('invoices').update({ status }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteInvoice(id: string) {
+  const { error } = await supabase.from('invoices').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function invoiceSettings(): Promise<InvoiceSettings | null> {
+  const { data, error } = await supabase
+    .from('invoice_settings')
+    .select('business_name, abn, address, email, phone, payment_details, gst_registered, default_due_days, next_number, footer')
+    .maybeSingle();
+  if (error) throw error;
+  return (data as InvoiceSettings) ?? null;
+}
+
+export async function saveInvoiceSettings(s: Partial<InvoiceSettings>) {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await supabase.from('invoice_settings').upsert({ user_id: u.user?.id, ...s });
+  if (error) throw error;
+}
+
+// ---------- Pro: rules ----------
+export type RuleType = 'quiet_client' | 'overdue_invoice' | 'weekly_reminder' | 'new_lead';
+export type Rule = { id: string; type: RuleType; params: Record<string, any>; enabled: boolean; last_run_at: string | null; runs: number };
+
+export async function rules(): Promise<Rule[]> {
+  const { data, error } = await supabase.from('rules').select('id, type, params, enabled, last_run_at, runs').order('created_at');
+  if (error) throw error;
+  return (data as Rule[]) ?? [];
+}
+
+export async function saveRule(r: { id?: string; type: RuleType; params: Record<string, any>; enabled: boolean }) {
+  const row = { type: r.type, params: r.params, enabled: r.enabled };
+  const { error } = r.id ? await supabase.from('rules').update(row).eq('id', r.id) : await supabase.from('rules').insert(row);
+  if (error) throw error;
+}
+
+export async function deleteRule(id: string) {
+  const { error } = await supabase.from('rules').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ---------- Pro: Tali's email address ----------
+export type InboundEmail = {
+  id: string;
+  from_email: string | null;
+  from_name: string | null;
+  subject: string | null;
+  body_text: string | null;
+  summary: string | null;
+  status: 'new' | 'handled' | 'spam';
+  approval_id: string | null;
+  received_at: string;
+};
+
+export async function myInbox(): Promise<string | null> {
+  const { data } = await supabase.from('tali_inboxes').select('alias').maybeSingle();
+  return (data as any)?.alias ?? null;
+}
+
+export async function claimInbox(): Promise<string> {
+  const { data, error } = await supabase.rpc('claim_tali_inbox');
+  if (error) throw error;
+  return data as string;
+}
+
+export async function inboundEmails(): Promise<InboundEmail[]> {
+  const { data, error } = await supabase
+    .from('inbound_emails')
+    .select('id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at')
+    .order('received_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return (data as InboundEmail[]) ?? [];
+}
+
+export async function setEmailStatus(id: string, status: InboundEmail['status']) {
+  const { error } = await supabase.from('inbound_emails').update({ status }).eq('id', id);
   if (error) throw error;
 }

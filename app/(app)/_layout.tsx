@@ -25,6 +25,10 @@ export default function AppTabs() {
       <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline') }} />
       <Tabs.Screen name="settings" options={{ href: null, title: 'Settings' }} />
       <Tabs.Screen name="plans" options={{ href: null, title: 'Plans' }} />
+      <Tabs.Screen name="invoices" options={{ href: null, title: 'Invoices' }} />
+      <Tabs.Screen name="rules" options={{ href: null, title: 'Rules' }} />
+      <Tabs.Screen name="inbox" options={{ href: null, title: 'Tali email' }} />
+      <Tabs.Screen name="night-school" options={{ href: null, title: 'Night school' }} />
     </Tabs>
   );
 }

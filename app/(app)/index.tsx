@@ -3,7 +3,9 @@ import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { followUpsDue, myCredits, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Client, type Credits, type Reminder } from '@/lib/data';
+import { followUpsDue, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Client, type Credits, type Health, type Reminder } from '@/lib/data';
+import { isPaid } from '@/lib/plan';
+import { HealthCard } from '@/components/HealthCard';
 import { addDays, today } from '@/lib/dates';
 import { DueList } from '@/components/DueList';
 import { AddReminder } from '@/components/AddReminder';
@@ -34,6 +36,7 @@ export default function Today() {
   const [credits, setCredits] = useState<Credits | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [followUps, setFollowUps] = useState<Client[]>([]);
+  const [health, setHealth] = useState<Health | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
 
@@ -47,6 +50,8 @@ export default function Today() {
       setCredits(c);
       setReminders(r);
       setFollowUps(f);
+      // Health checks are part of Tali HQ and Pro (and the trial).
+      setHealth(isPaid(c) ? await myHealth().catch(() => null) : null);
     } catch (e: any) {
       setLoadError(e?.message ?? 'Could not load today.');
     }
@@ -65,7 +70,7 @@ export default function Today() {
   }
 
   const morning = briefs.find((b) => b.kind === 'morning');
-  const others = briefs.filter((b) => b !== morning);
+  const others = briefs.filter((b) => b !== morning && b.kind !== 'journal');
   const trial = trialLine(credits);
 
   return (
@@ -79,6 +84,13 @@ export default function Today() {
           <Card>
             <Body muted>{loadError} Pull down to try again.</Body>
           </Card>
+        ) : null}
+
+        {health ? (
+          <>
+            <Label>Business health</Label>
+            <HealthCard health={health} />
+          </>
         ) : null}
 
         {reminders.length + followUps.length > 0 ? (
