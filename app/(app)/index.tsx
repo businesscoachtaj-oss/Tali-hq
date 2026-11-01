@@ -3,7 +3,10 @@ import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { myCredits, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Credits } from '@/lib/data';
+import { followUpsDue, myCredits, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Client, type Credits, type Reminder } from '@/lib/data';
+import { addDays, today } from '@/lib/dates';
+import { DueList } from '@/components/DueList';
+import { AddReminder } from '@/components/AddReminder';
 import { Body, Button, Card, Label, TaliSays, Title } from '@/components/ui';
 import { DraftCard } from '@/components/DraftCard';
 import { colours, space } from '@/constants/theme';
@@ -29,16 +32,21 @@ export default function Today() {
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [credits, setCredits] = useState<Credits | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [followUps, setFollowUps] = useState<Client[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
     setLoadError('');
     try {
-      const [b, a, c] = await Promise.all([recentBriefs(5), pendingApprovals(), myCredits()]);
+      const endOfToday = addDays(new Date(new Date().setHours(0, 0, 0, 0)), 1).toISOString();
+      const [b, a, c, r, f] = await Promise.all([recentBriefs(5), pendingApprovals(), myCredits(), openReminders(endOfToday), followUpsDue(today())]);
       setBriefs(b);
       setApprovals(a);
       setCredits(c);
+      setReminders(r);
+      setFollowUps(f);
     } catch (e: any) {
       setLoadError(e?.message ?? 'Could not load today.');
     }
@@ -72,6 +80,15 @@ export default function Today() {
             <Body muted>{loadError} Pull down to try again.</Body>
           </Card>
         ) : null}
+
+        {reminders.length + followUps.length > 0 ? (
+          <>
+            <Label>Due today</Label>
+            <DueList reminders={reminders} followUps={followUps} onChange={load} />
+          </>
+        ) : null}
+        <AddReminder onAdded={load} />
+        <View style={{ height: space.sm }} />
 
         <Label>Needs you</Label>
         {approvals.length === 0 ? (

@@ -154,7 +154,7 @@ export async function messages(conversationId: string): Promise<Message[]> {
 }
 
 export type ChatResult =
-  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; remaining: number | null }
+  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
@@ -221,3 +221,88 @@ async function invokeForUrl(fn: string, body: Record<string, unknown>): Promise<
 // Web only for now. In the iOS and Android apps, upgrades will go through the stores.
 export const startCheckout = (plan: 'hq' | 'pro', returnUrl: string) => invokeForUrl('create-checkout', { plan, interval: 'month', returnUrl });
 export const openBillingPortal = (returnUrl: string) => invokeForUrl('billing-portal', { returnUrl });
+
+// ---------- Clients and leads ----------
+export type Client = {
+  id: string;
+  name: string;
+  kind: 'client' | 'lead';
+  status: string;
+  email: string | null;
+  phone: string | null;
+  notes: string;
+  next_follow_up: string | null;
+  last_contact_at: string | null;
+  source: string | null;
+  updated_at: string;
+};
+
+const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, source, updated_at';
+
+export async function clients(): Promise<Client[]> {
+  const { data, error } = await supabase.from('clients').select(CLIENT_COLS).order('name');
+  if (error) throw error;
+  return (data as Client[]) ?? [];
+}
+
+export async function saveClient(c: Partial<Client> & { name: string; kind: 'client' | 'lead'; status: string }) {
+  const row = {
+    name: c.name.trim(),
+    kind: c.kind,
+    status: c.status,
+    email: c.email?.trim() || null,
+    phone: c.phone?.trim() || null,
+    notes: c.notes ?? '',
+    next_follow_up: c.next_follow_up || null,
+    last_contact_at: c.last_contact_at || null,
+  };
+  if (c.id) {
+    const { error } = await supabase.from('clients').update(row).eq('id', c.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('clients').insert({ ...row, source: 'app' });
+    if (error) throw error;
+  }
+}
+
+export async function deleteClient(id: string) {
+  const { error } = await supabase.from('clients').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// Follow-ups due today or overdue, in the user's local date.
+export async function followUpsDue(localDate: string): Promise<Client[]> {
+  const { data, error } = await supabase
+    .from('clients')
+    .select(CLIENT_COLS)
+    .not('next_follow_up', 'is', null)
+    .lte('next_follow_up', localDate)
+    .not('status', 'in', '(lost,past)')
+    .order('next_follow_up');
+  if (error) throw error;
+  return (data as Client[]) ?? [];
+}
+
+// ---------- Reminders ----------
+export type Reminder = { id: string; text: string; due_at: string; done_at: string | null; client_id: string | null; created_by: string };
+
+export async function openReminders(untilIso: string): Promise<Reminder[]> {
+  const { data, error } = await supabase
+    .from('reminders')
+    .select('id, text, due_at, done_at, client_id, created_by')
+    .is('done_at', null)
+    .lte('due_at', untilIso)
+    .order('due_at');
+  if (error) throw error;
+  return (data as Reminder[]) ?? [];
+}
+
+export async function completeReminder(id: string) {
+  const { error } = await supabase.from('reminders').update({ done_at: new Date().toISOString() }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function addReminder(text: string, dueAt: Date) {
+  const { error } = await supabase.from('reminders').insert({ text: text.trim(), due_at: dueAt.toISOString() });
+  if (error) throw error;
+}
