@@ -3,7 +3,7 @@ import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, Text, TextI
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { currentConversation, messages as loadMessages, myCredits, newConversation, sendMessage, type Message } from '@/lib/data';
 import { isPro } from '@/lib/plan';
-import { VoiceButton } from '@/components/VoiceButton';
+import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { TaliThinking } from '@/components/TaliThinking';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { useAuth } from '@/lib/auth';
@@ -147,7 +147,7 @@ export default function Talk() {
                   }}>
                   <Text style={{ color: me ? '#FFFFFF' : colours.text, fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
                   {item.failed ? <Text style={{ color: '#FFB4A8', fontSize: 12, marginTop: 4 }}>Not sent</Text> : null}
-                  {pro && !me && !item.id.startsWith('tmp-') ? <VoiceButton messageId={item.id} onError={setNotice} /> : null}
+                  {VOICE_LIVE && pro && !me && !item.id.startsWith('tmp-') ? <VoiceButton messageId={item.id} onError={setNotice} /> : null}
                 </View>
               );
             }}
