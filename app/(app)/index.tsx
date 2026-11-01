@@ -14,7 +14,7 @@ import { Body, Button, Card, Label, TaliSays, Title } from '@/components/ui';
 import { DraftCard } from '@/components/DraftCard';
 import { AppTour } from '@/components/AppTour';
 import { TOUR_STEPS, finishTour } from '@/lib/tour';
-import { colours, space } from '@/constants/theme';
+import { colours, NO_BOTTOM, space } from '@/constants/theme';
 
 function greeting() {
   const h = new Date().getHours();
@@ -89,7 +89,7 @@ export default function Today() {
   const trial = trialLine(credits);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
       <ScrollView
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>

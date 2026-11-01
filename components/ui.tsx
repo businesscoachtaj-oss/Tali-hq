@@ -12,7 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, NO_BOTTOM, radius, space } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
 
 export const tali = {
@@ -26,7 +26,7 @@ export const tali = {
 export function Screen({ children, scroll = true }: PropsWithChildren<{ scroll?: boolean }>) {
   const body = <View style={styles.inner}>{children}</View>;
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safe} edges={NO_BOTTOM}>
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">{body}</ScrollView> : body}
     </SafeAreaView>
   );

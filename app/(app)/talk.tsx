@@ -8,7 +8,7 @@ import { TaliThinking } from '@/components/TaliThinking';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { useAuth } from '@/lib/auth';
 import { tali } from '@/components/ui';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, NO_BOTTOM, radius, space } from '@/constants/theme';
 
 type Row = Message & { pending?: boolean; failed?: boolean };
 
@@ -89,7 +89,7 @@ export default function Talk() {
   const empty = rows.length === 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>
           <TaliAvatar pose={thinking ? 'head_think' : 'head'} size={36} />
