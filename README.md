@@ -58,6 +58,10 @@ Plans: Free (A$0, 50 messages a month), Tali HQ (A$19.99, 1,000 credits), Pro (A
 npm run build:web   # outputs dist/, vercel.json handles routing
 ```
 
+Installable as a PWA (Add to Home Screen on iPhone, Install on Chrome): `public/index.html` links `public/manifest.json`, Tali's icons (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`), the purple theme colour and the iPhone home screen tags. No service worker on purpose (Expo warns they cache too hard), so updates show on the next open.
+
+Vercel: import the repo once (vercel.com/new). `vercel.json` sets the install and build commands and the `dist` output, and `.env.production` gives the build the public Supabase URL and publishable key, so no environment variables are needed. Every push to main redeploys. After the first deploy, add the site address in Supabase (Authentication, URL Configuration: Site URL and redirect URLs) and as the `APP_URLS` edge function secret for Stripe checkout.
+
 ## Builds
 
 EAS profiles in `eas.json` carry the public Supabase URL and publishable key (EAS builds from git, so `.env` never reaches it). The app icon and splash use Tali's icon art (assets/icon.png).
