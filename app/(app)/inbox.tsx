@@ -146,7 +146,7 @@ export default function Inbox() {
             ) : null}
           </View>
           {shown.length === 0 ? (
-            <Card><Body muted>{showSpam ? 'No spam. Lovely.' : 'Nothing yet. Emails sent to your Tali address show up here.'}</Body></Card>
+            <TaliSays pose="idle">{showSpam ? 'No spam. Lovely.' : 'Nothing yet. Emails sent to your Tali address show up here.'}</TaliSays>
           ) : (
             shown.map((e) => (
               <Pressable key={e.id} onPress={() => setOpen(e)}>

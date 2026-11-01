@@ -403,7 +403,7 @@ export default function Invoices() {
         list.length === 0 ? (
           <TaliSays pose="idle">No invoices yet. Make one here, or tell me in Talk who to bill and what for, and I'll draft it.</TaliSays>
         ) : (
-          <Card><Body muted>{tab === 'paid' ? 'Nothing paid yet.' : 'All paid up. Nice.'}</Body></Card>
+          <TaliSays pose="idle">{tab === 'paid' ? 'Nothing paid yet.' : 'All paid up. Nice.'}</TaliSays>
         )
       ) : (
         shown.map((i) => {

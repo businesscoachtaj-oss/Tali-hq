@@ -194,7 +194,7 @@ export default function Journal() {
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.lg }} />
       {entries.length === 0 ? (
-        <Card><Body muted>Nothing here yet. A few lines a day about what happened and what's on your mind is plenty.</Body></Card>
+        <TaliSays pose="idle">Nothing here yet. A few lines a day about what happened and what's on your mind is plenty, and I'll learn from them.</TaliSays>
       ) : (
         entries.map((e) => (
           <Pressable

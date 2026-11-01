@@ -159,7 +159,7 @@ export default function NightSchoolScreen() {
       <View style={{ height: space.lg }} />
       <Label>What I learnt</Label>
       {notes.length === 0 ? (
-        <Card><Body muted>{ns.topics.length ? 'My first notes show up the morning after my first night.' : 'Add a topic and my notes will land here.'}</Body></Card>
+        <TaliSays pose="think">{ns.topics.length ? 'My first notes show up the morning after my first night.' : 'Add a topic and my notes will land here.'}</TaliSays>
       ) : (
         notes.map((n) => (
           <Pressable key={n.id} onPress={() => { setOpen(n); if (!n.read_at) markNightNoteRead(n.id).then(load); }}>
