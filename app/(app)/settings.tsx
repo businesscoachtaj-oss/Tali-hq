@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { deleteAccount } from '@/lib/data';
+import { enablePush, pushSupported } from '@/lib/push';
 import { BRIEF_TIMES, BUSINESS_TYPES, prettyTime } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title } from '@/components/ui';
@@ -16,6 +17,9 @@ export default function Settings() {
   const [businessType, setBusinessType] = useState<string | null>(profile?.business_type ?? null);
   const [aboutMe, setAboutMe] = useState(profile?.about_me ?? '');
   const [briefTime, setBriefTime] = useState<string>((profile?.brief_time ?? '07:00').slice(0, 5));
+  const [briefPush, setBriefPush] = useState<boolean>(profile?.brief_push ?? true);
+  const [pushNote, setPushNote] = useState('');
+  const [pushBusy, setPushBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -39,12 +43,21 @@ export default function Settings() {
         business_type: businessType,
         about_me: aboutMe.trim() || null,
         brief_time: `${briefTime}:00`,
+        brief_push: briefPush,
       })
       .eq('id', session.user.id);
     setBusy(false);
     if (err) return setError(err.message);
     await refreshProfile();
     setSaved(true);
+  }
+
+  async function turnOnPush() {
+    setPushNote('');
+    setPushBusy(true);
+    const res = await enablePush();
+    setPushBusy(false);
+    setPushNote(res.ok ? "Done. You'll get a nudge when your brief lands." : res.message);
   }
 
   async function removeAccount() {
@@ -80,6 +93,18 @@ export default function Settings() {
       <Text style={{ color: colours.muted, fontSize: 13, marginTop: -4, marginBottom: space.md }}>
         On the Free plan this is when your Friday check-in arrives.
       </Text>
+
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: '700', color: colours.text }}>Notify me when my brief lands</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>A short notification on your phone. Nothing else, ever.</Text>
+        </View>
+        <Switch value={briefPush} onValueChange={setBriefPush} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" />
+      </Card>
+      {pushSupported ? (
+        <Button title="Turn on notifications on this phone" kind="ghost" onPress={turnOnPush} busy={pushBusy} />
+      ) : null}
+      {pushNote ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: 6 }}>{pushNote}</Text> : null}
 
       <ErrorText>{error}</ErrorText>
       {saved ? <Text style={{ color: colours.good, marginTop: 6 }}>Saved.</Text> : null}

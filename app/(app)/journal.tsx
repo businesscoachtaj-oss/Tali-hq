@@ -115,7 +115,7 @@ export default function Journal() {
             <Text style={{ fontWeight: '700', color: colours.text }}>Keep this from Tali</Text>
             <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>When on, Tali never reads or learns from this entry.</Text>
           </View>
-          <Switch value={draft.private_to_tali} onValueChange={(v) => setDraft({ ...draft, private_to_tali: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} />
+          <Switch value={draft.private_to_tali} onValueChange={(v) => setDraft({ ...draft, private_to_tali: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" />
         </Card>
         <ErrorText>{error}</ErrorText>
         <Button title="Save" onPress={save} busy={busy} />

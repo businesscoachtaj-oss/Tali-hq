@@ -35,7 +35,8 @@ module.exports = {
       output: 'single',
       favicon: './assets/favicon.png',
     },
-    plugins: ['expo-router'],
+    plugins: ['expo-router', 'expo-notifications'],
+    // After `eas init`, add: extra: { eas: { projectId: '<id>' } } so push notifications work.
     experiments: {
       typedRoutes: false,
     },

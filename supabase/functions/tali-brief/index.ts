@@ -7,7 +7,7 @@
 //
 // Per user: reserve 1 credit (trial/paid) -> read brief_context -> one Claude call with a forced
 // tool -> insert the brief -> save what it learnt from the journal to that user's private brain ->
-// mark those journal entries learnt. Failures refund and skip that user; the next run retries.
+// mark those journal entries learnt -> push a notification if they asked for one. Failures refund and skip that user; the next run retries.
 //
 // Secrets: ANTHROPIC_API_KEY (required), TALI_MODEL (optional, default claude-haiku-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
@@ -60,6 +60,23 @@ const TOOL = {
     required: ['headline', 'lines', 'remember'],
   },
 };
+
+// Expo push for the brief, only for users who left "Notify me" on. Failures never block the brief.
+async function notify(userId: string, title: string, body: string) {
+  try {
+    const { data: prof } = await admin.from('profiles').select('brief_push').eq('id', userId).maybeSingle();
+    if (prof && prof.brief_push === false) return;
+    const { data: tokens } = await admin.from('push_tokens').select('token').eq('user_id', userId);
+    if (!tokens?.length) return;
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(tokens.map((t: { token: string }) => ({ to: t.token, title, body: body.slice(0, 160), sound: 'default', data: { url: '/' } }))),
+    });
+  } catch (e) {
+    console.warn('push failed', String(e));
+  }
+}
 
 const strip = (s: string) => String(s ?? '').replace(/\s*[–—]\s*/g, ', ').trim();
 
@@ -149,6 +166,7 @@ async function briefOne(row: { user_id: string; kind: 'morning' | 'weekly'; loca
     if (journalIds.length) await admin.rpc('mark_journal_learned', { p_user_id: row.user_id, p_ids: journalIds });
 
     if (usageId) await admin.rpc('chat_finish', { p_usage_id: usageId, p_model: r.model, p_tokens_in: r.tokensIn, p_tokens_out: r.tokensOut });
+    await notify(row.user_id, weekly ? 'Your Friday check-in' : 'Your morning brief', headline);
     await admin.from('job_runs').insert({ user_id: row.user_id, job: row.kind === 'weekly' ? 'weekly_checkin' : 'morning_brief', status: 'ok', summary: headline, finished_at: new Date().toISOString() });
     return { user: row.user_id, ok: true, remembered, learntFromJournal: journalIds.length };
   } catch (e) {
