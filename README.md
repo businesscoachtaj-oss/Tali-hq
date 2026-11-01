@@ -17,6 +17,7 @@ npm run typecheck
 |---|---|
 | Sign in / Sign up / Reset password | Email and password through Supabase Auth. Sign-up starts a 14 day Tali HQ trial (database trigger). Waitlist emails get founding member pricing. |
 | Onboarding | First name, business name and type, a few words about you. Tali reads this before every reply. |
+| Tali sprite | `components/TaliAvatar.tsx`, like Totality's: she bobs, blinks, and full-body Tali fades into another pose every 6 to 8 seconds (peek, wink, look right, curious, cheeky, shy, giggle) for 2 to 3 seconds, then fades back. Used in every Tali speech bubble, Talk's header and empty state, and the thinking row. The extra poses come from Tali's 100 pose set, lined up to the app sprite frame. |
 | First-run tour | Shows once on Today after onboarding, like the Totality apps: Tali walks through Today, Talk, Clients, Journal and Me with a pulsing ring on each tab, then a "You're all set" card. Skip ends it. Saved in `profiles.tour_done_at`. "Show me around again" in Me replays it. |
 | Today | Business health (trial and paid), reminders and follow-ups due, add a reminder, Your day (food estimates, weight, today's session with a Done button), drafts waiting for your yes, the morning brief, trial days left. |
 | Talk | Chat with Tali through `tali-chat` (her head sprite and bouncing dots while she thinks): checks your plan, reads your memories and journal, replies, saves what is worth remembering, and puts anything you ask her to write on Today as a draft. New chat button. |

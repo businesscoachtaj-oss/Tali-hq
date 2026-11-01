@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colours, radius, space } from '@/constants/theme';
+import { TaliAvatar } from '@/components/TaliAvatar';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -114,7 +115,7 @@ export function BackLink({ onPress, label = 'Back' }: { onPress: () => void; lab
 export function TaliSays({ children, pose = 'idle' }: PropsWithChildren<{ pose?: keyof typeof tali }>) {
   return (
     <View style={styles.says}>
-      <Image source={tali[pose]} style={styles.saysImg} resizeMode="contain" accessibilityLabel="Tali" />
+      <TaliAvatar pose={pose} size={64} />
       <View style={styles.bubble}>
         <Text style={styles.body}>{children}</Text>
       </View>

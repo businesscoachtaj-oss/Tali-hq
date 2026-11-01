@@ -5,6 +5,7 @@ import { currentConversation, messages as loadMessages, myCredits, newConversati
 import { isPro } from '@/lib/plan';
 import { VoiceButton } from '@/components/VoiceButton';
 import { TaliThinking } from '@/components/TaliThinking';
+import { TaliAvatar } from '@/components/TaliAvatar';
 import { useAuth } from '@/lib/auth';
 import { tali } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
@@ -91,7 +92,7 @@ export default function Talk() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>
-          <Image source={tali.head} style={{ width: 36, height: 36 }} resizeMode="contain" />
+          <TaliAvatar pose={thinking ? 'head_think' : 'head'} size={36} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 17, fontWeight: '800', color: colours.text }}>Tali</Text>
             <Text style={{ fontSize: 12, color: colours.muted }}>{thinking ? 'Thinking...' : 'Your AI teammate'}</Text>
@@ -105,7 +106,7 @@ export default function Talk() {
 
         {empty ? (
           <View style={{ flex: 1, padding: space.lg, justifyContent: 'center', maxWidth: 640, width: '100%', alignSelf: 'center' }}>
-            <Image source={tali.wave} style={{ width: 90, height: 170, alignSelf: 'center' }} resizeMode="contain" />
+            <TaliAvatar pose="wave" size={100} style={{ alignSelf: 'center' }} />
             <Text style={{ fontSize: 18, fontWeight: '700', color: colours.text, textAlign: 'center', marginTop: space.md }}>
               Hey {profile?.first_name || 'there'}, what are we working on?
             </Text>

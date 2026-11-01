@@ -1,8 +1,8 @@
 // "Tali is thinking" row for Talk: her head sprite beside a chat bubble with
 // three bouncing dots, the same look as the Tali HQ dashboard.
 import { useEffect, useRef } from 'react';
-import { Animated, Image, Platform, Text, View } from 'react-native';
-import { tali } from '@/components/ui';
+import { Animated, Platform, Text, View } from 'react-native';
+import { TaliAvatar } from '@/components/TaliAvatar';
 import { colours } from '@/constants/theme';
 
 export function TaliThinking() {
@@ -26,7 +26,7 @@ export function TaliThinking() {
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 4 }} accessibilityLabel="Tali is thinking">
-      <Image source={tali.head} style={{ width: 34, height: 34 }} resizeMode="contain" />
+      <TaliAvatar pose="head_think" size={34} />
       <View style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.border, borderRadius: 18, borderBottomLeftRadius: 6, paddingVertical: 10, paddingHorizontal: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           {dots.map((d, i) => (
