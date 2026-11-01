@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { currentConversation, messages as loadMessages, myCredits, newConversation, sendMessage, type Message } from '@/lib/data';
 import { isPro } from '@/lib/plan';
 import { VoiceButton } from '@/components/VoiceButton';
+import { TaliThinking } from '@/components/TaliThinking';
 import { useAuth } from '@/lib/auth';
 import { tali } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
@@ -149,7 +150,7 @@ export default function Talk() {
                 </View>
               );
             }}
-            ListFooterComponent={thinking ? <Text style={{ color: colours.muted, fontStyle: 'italic', marginTop: space.sm }}>Tali is thinking...</Text> : null}
+            ListFooterComponent={thinking ? <TaliThinking /> : null}
           />
         )}
 

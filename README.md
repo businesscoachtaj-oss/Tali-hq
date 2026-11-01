@@ -19,7 +19,7 @@ npm run typecheck
 | Onboarding | First name, business name and type, a few words about you. Tali reads this before every reply. |
 | First-run tour | Shows once on Today after onboarding, like the Totality apps: Tali walks through Today, Talk, Clients, Journal and Me with a pulsing ring on each tab, then a "You're all set" card. Skip ends it. Saved in `profiles.tour_done_at`. "Show me around again" in Me replays it. |
 | Today | Business health (trial and paid), reminders and follow-ups due, add a reminder, Your day (food estimates, weight, today's session with a Done button), drafts waiting for your yes, the morning brief, trial days left. |
-| Talk | Chat with Tali through `tali-chat`: checks your plan, reads your memories and journal, replies, saves what is worth remembering, and puts anything you ask her to write on Today as a draft. New chat button. |
+| Talk | Chat with Tali through `tali-chat` (her head sprite and bouncing dots while she thinks): checks your plan, reads your memories and journal, replies, saves what is worth remembering, and puts anything you ask her to write on Today as a draft. New chat button. |
 | Clients | Clients and leads with status, follow-up dates and notes. Tali can add or update people and set reminders when you ask her in Talk. Invoices button. |
 | Invoices (trial and paid) | List with owed and overdue totals, editor with line items and GST, your invoice details (ABN, how to pay), mark sent or paid, Share PDF (share sheet on phones, print to PDF on web). Tali can draft one from Talk. Tali never sends an invoice. |
 | Journal | Yours: entries and notes, "Keep this from Tali" hides an entry from her completely. Tali's: her Sunday journal about the week (trial and paid). |
