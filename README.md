@@ -17,11 +17,17 @@ npm run typecheck
 |---|---|
 | Sign in / Sign up / Reset password | Email and password through Supabase Auth. Sign-up starts a 14 day Tali HQ trial (database trigger). Waitlist emails get founding member pricing. |
 | Onboarding | First name, business name and type, a few words about you. Tali reads this before every reply. |
-| Today | Reminders and client follow-ups due (tick when done), add a reminder, drafts waiting for your yes (Copy, Done, Not needed), the morning brief, trial days left. |
+| Today | Business health (trial and paid), reminders and follow-ups due, add a reminder, Your day (food estimates, weight, today's session with a Done button), drafts waiting for your yes, the morning brief, trial days left. |
 | Talk | Chat with Tali through `tali-chat`: checks your plan, reads your memories and journal, replies, saves what is worth remembering, and puts anything you ask her to write on Today as a draft. New chat button. |
-| Clients | Clients and leads with status, follow-up dates and notes. Tali can add or update people and set reminders when you ask her in Talk. |
-| Journal | Journal entries and notes. "Keep this from Tali" hides an entry from her completely. |
-| Me | Plan and credits left, "What Tali knows about you" with Forget, Settings, Plans, sign out. |
+| Clients | Clients and leads with status, follow-up dates and notes. Tali can add or update people and set reminders when you ask her in Talk. Invoices button. |
+| Invoices (trial and paid) | List with owed and overdue totals, editor with line items and GST, your invoice details (ABN, how to pay), mark sent or paid, Share PDF (share sheet on phones, print to PDF on web). Tali can draft one from Talk. Tali never sends an invoice. |
+| Journal | Yours: entries and notes, "Keep this from Tali" hides an entry from her completely. Tali's: her Sunday journal about the week (trial and paid). |
+| Food and training | Logged by chatting with Tali. Food is her estimate (always shown as "about"), weight history, the weekly plan of day labels she writes, sessions this week and the streak. |
+| Night school (Pro) | Pick up to 3 topics, every night or Mon, Wed and Fri. She researches one between 11pm and 3am with web search and leaves notes with her sources. |
+| Rules (Pro) | Spot quiet clients, never miss a new lead, chase overdue invoices (drafts a reminder for your yes), weekly reminder. Rules only change things inside Tali HQ. |
+| Tali's email (Pro) | Claim an address from your business name. Emails are summed up, spam is flagged and a draft reply lands on Today. Shows "switches on soon" until EXPO_PUBLIC_INBOUND_DOMAIN is set. |
+| Voice (Pro) | Listen under Tali's replies plays her real voice (the Kokoro blend from her videos) through `tali-voice` and `voice-server/`. |
+| Me | Plan and credits left, Tali's jobs menu, "What Tali knows about you" with Forget, Settings, Plans, sign out. |
 | Settings | Edit profile, morning brief time, brief notifications, delete account. |
 | Plans | Free, Tali HQ and Pro with founding member pricing. Stripe checkout on web only. |
 
@@ -29,16 +35,21 @@ npm run typecheck
 
 | Function | What it does | Status |
 |---|---|---|
-| `tali-chat` | One chat turn (credits reserved first, refunded on failure) | Deployed. Needs `ANTHROPIC_API_KEY`. |
-| `tali-brief` | Morning brief (trial/paid) and Friday check-in (Free) at each user's time, learns from new journal entries, sends a push | Deployed, runs every 15 minutes via pg_cron. Needs `ANTHROPIC_API_KEY`. |
+| `tali-chat` | One chat turn (credits reserved first, refunded on failure). Web search on trial and paid (2 credits a search). Drafts, clients, reminders, invoices, food, weight, workouts, training plans | Deployed v5. Needs `ANTHROPIC_API_KEY`. |
+| `tali-brief` | Morning brief (trial/paid), Friday check-in (Free), Tali's Sunday journal (trial/paid), learns from new journal entries, push | Deployed v5, every 15 minutes. Needs `ANTHROPIC_API_KEY`. |
+| `tali-night-school` | Pro night school with web search | Deployed, every 20 minutes (only does work 11pm to 3am local). |
+| `tali-voice` | Pro: MP3 of a reply in Tali's voice, cached in the private `voice` bucket, 1 credit a new clip | Deployed. Needs `TALI_VOICE_URL` and `TALI_VOICE_KEY` (voice-server on Railway). |
+| `inbound-email` | Pro: Resend inbound webhook (Svix verified), summary, spam check and draft reply | Deployed. Needs `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `INBOUND_DOMAIN` and the domain's MX records. |
 | `tali-brain-embed` | Embeddings for memories and meaning search | Deployed, every minute. |
-| pg_cron `tali-reminders` | Pushes due reminders every 5 minutes straight from the database | Live. |
+| pg_cron `tali-reminders`, `tali-health`, `tali-rules` | Reminder pushes (5 min), health nudges (twice a day), Pro rules (hourly) | Live. |
 | `delete-account` | In-app account deletion (owner account protected) | Deployed. |
-| `create-checkout`, `billing-portal`, `stripe-webhook` | Stripe for web | Written, not deployed. Needs Stripe products, prices, the founding coupon and secrets. |
+| `create-checkout`, `billing-portal`, `stripe-webhook` | Stripe for web. Live products Tali HQ (A$19.99) and Pro (A$39.99), coupon TALIHQ_FOUNDING (42.5% off forever), webhook endpoint registered. Price ids are built into `_shared/stripe.ts` | Deployed. Needs `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `APP_URLS` (the web app address). |
 
-Migrations 001 to 011 are in `supabase/migrations/` and applied. Auth email templates are in `supabase/templates/`.
+Migrations 001 to 016 are in `supabase/migrations/` and applied. Auth email templates are in `supabase/templates/`.
 
-Plans: Free (A$0, 50 messages a month), Tali HQ (A$19.99, 1,000 credits), Pro (A$39.99, 3,000 credits). A chat message or a morning brief costs 1 credit.
+Plans: Free (A$0, 50 messages a month), Tali HQ (A$19.99, 1,000 credits), Pro (A$39.99, 3,000 credits, plus night school, voice, Tali's email and rules). A chat message, brief, journal, inbound email or voice clip costs 1 credit; each web search 2 more.
+
+`expo-asset` is pinned to the SDK 54 version with an npm override, because `expo-audio` asks for any version.
 
 ## Web build
 

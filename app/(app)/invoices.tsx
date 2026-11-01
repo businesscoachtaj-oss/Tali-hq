@@ -254,7 +254,7 @@ export default function Invoices() {
             <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Registered for GST</Text>
             <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Adds 10% GST and calls it a tax invoice.</Text>
           </View>
-          <Switch value={s.gst_registered} onValueChange={(v) => set({ gst_registered: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" />
+          <Switch value={s.gst_registered} onValueChange={(v) => set({ gst_registered: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
         </View>
         <Label>Usually due</Label>
         <ChipPicker options={DUE_PICKS.map((p) => p.label)} value={DUE_PICKS.find((p) => p.days === s.default_due_days)?.label ?? null}
@@ -321,8 +321,8 @@ export default function Invoices() {
               <Text style={{ color: colours.muted }}>A$</Text>
               <TextInput value={it.unit_price} editable={!locked} onChangeText={(t) => setItem(n, { unit_price: t.replace(/[^0-9.]/g, '') })} placeholder="0.00" placeholderTextColor={colours.faint}
                 keyboardType="decimal-pad" inputMode="decimal"
-                style={{ flex: 1, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 8, paddingVertical: 6, fontSize: 15, color: colours.text }} />
-              <Text style={{ fontWeight: '700', color: colours.text, minWidth: 80, textAlign: 'right' }}>{money(items[n].qty * items[n].unit_price)}</Text>
+                style={{ width: 90, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 8, paddingVertical: 6, fontSize: 15, color: colours.text }} />
+              <Text style={{ flex: 1, fontWeight: '700', color: colours.text, textAlign: 'right' }} numberOfLines={1}>{money(items[n].qty * items[n].unit_price)}</Text>
             </View>
             {!locked && draft.items.length > 1 ? (
               <Pressable onPress={() => setDraft({ ...draft, items: draft.items.filter((_, i) => i !== n) })} hitSlop={8} style={{ alignSelf: 'flex-end', marginTop: 6 }}>
@@ -339,7 +339,7 @@ export default function Invoices() {
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.md }}>
           <Text style={{ fontSize: 15, color: colours.text }}>Add GST (10%)</Text>
-          <Switch value={draft.gst} disabled={locked} onValueChange={(v) => setDraft({ ...draft, gst: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" />
+          <Switch value={draft.gst} disabled={locked} onValueChange={(v) => setDraft({ ...draft, gst: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
         </View>
 
         <Card style={{ backgroundColor: colours.sunk }}>

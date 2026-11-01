@@ -114,7 +114,7 @@ export default function NightSchoolScreen() {
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Night school is on</Text>
-          <Switch value={ns.enabled} onValueChange={(v) => setNs({ ...ns, enabled: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" />
+          <Switch value={ns.enabled} onValueChange={(v) => setNs({ ...ns, enabled: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
         </View>
       </Card>
 

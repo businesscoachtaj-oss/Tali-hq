@@ -99,7 +99,7 @@ export default function Settings() {
           <Text style={{ fontWeight: '700', color: colours.text }}>Notify me when my brief lands</Text>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>A short notification on your phone. Nothing else, ever.</Text>
         </View>
-        <Switch value={briefPush} onValueChange={setBriefPush} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" />
+        <Switch value={briefPush} onValueChange={setBriefPush} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
       </Card>
       {pushSupported ? (
         <Button title="Turn on notifications on this phone" kind="ghost" onPress={turnOnPush} busy={pushBusy} />

@@ -129,7 +129,7 @@ function RuleCard({
     <Card style={on ? { borderLeftWidth: 5, borderLeftColor: colours.purple } : undefined}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
         <Text style={{ flex: 1, fontSize: 16, fontWeight: '700', color: colours.text }}>{t.title}</Text>
-        <Switch value={on} disabled={busy} onValueChange={(v) => onSave(t.type, params, v, rule?.id)} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" />
+        <Switch value={on} disabled={busy} onValueChange={(v) => onSave(t.type, params, v, rule?.id)} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
       </View>
       <Text style={{ fontSize: 14, color: colours.muted, marginTop: 6, lineHeight: 20 }}>{t.what(params)}</Text>
 
