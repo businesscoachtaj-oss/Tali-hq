@@ -33,4 +33,4 @@ Plans: Free (A$0, 50 messages a month), Tali HQ (A$19.99, 1,000 credits), Pro (A
 
 ## Builds
 
-EAS profiles in `eas.json` carry the public Supabase URL and publishable key (EAS builds from git, so `.env` never reaches it). The app icon and splash are placeholders copied from Totality Nutrition until the Tali HQ art is made.
+EAS profiles in `eas.json` carry the public Supabase URL and publishable key (EAS builds from git, so `.env` never reaches it). The app icon and splash use Tali's icon art (assets/icon.png).

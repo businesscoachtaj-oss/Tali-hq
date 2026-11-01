@@ -10,13 +10,13 @@ module.exports = {
     version: '0.1.0',
     scheme: 'talihq',
     orientation: 'portrait',
-    // Placeholder art copied from Totality Nutrition until the Tali HQ icon is made.
+    // Tali's own icon art (Tali_icon_1024). Swap for a dedicated Tali HQ icon if Taj wants one.
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     splash: {
       image: './assets/splash-icon.png',
       resizeMode: 'contain',
-      backgroundColor: '#F5F3F0',
+      backgroundColor: '#272626',
     },
     ios: {
       supportsTablet: false,
