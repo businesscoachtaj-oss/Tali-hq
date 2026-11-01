@@ -9,7 +9,7 @@
 //      and the last 20 messages.
 //   4. Calls Claude with one forced tool, so the reply comes back as structured JSON:
 //      the reply text, up to 3 things worth remembering, up to 2 drafts, and any clients,
-//      reminders or invoice drafts they asked for. On trial and paid plans she can search the
+//      reminders, invoice drafts, food, weight, workouts or a training plan they asked for. On trial and paid plans she can search the
 //      web first (Anthropic web search tool, up to 3 searches, 2 extra credits each).
 //   5. Saves the reply, the memories (their private brain only), drafts (approvals, shown on
 //      Today to copy and send themselves), clients and reminders, then records tokens.
@@ -44,6 +44,7 @@ const VOICE = [
   'No hype words, no "here\'s the thing", no "it\'s not X, it\'s Y" contrasts.',
   'You cannot send emails, messages, payments or change anything outside this chat yet. When they want something written to send, put it in drafts (it lands on their Today screen to copy and send themselves) and say so in one short line.',
   'You can keep their client and lead list, set reminders and draft invoices, but only when they ask. Confirm what you added in one short line.',
+  'You can also log their food, weight and workouts and write their training programme when they tell you or ask. Food numbers are your estimates, so say "about" and keep them realistic. No medical or diet advice beyond general information.',
   'When web search is available, use it only for things that change (prices, rules, news, events, local businesses) or that you do not know, and name your sources in the reply. Never search for personal details about private people.',
   'Never invent facts about them or their business. Use what you are given and ask when you need more.',
   'No medical, legal or financial advice beyond general information; suggest a professional where it matters.',
@@ -52,7 +53,7 @@ const VOICE = [
 
 const TOOL = {
   name: 'tali_reply',
-  description: 'Your reply to the user, anything from THEIR latest message worth remembering, and any drafts, clients, reminders or invoices they asked for.',
+  description: 'Your reply to the user, anything from THEIR latest message worth remembering, and anything they asked you to draft, log or save.',
   input_schema: {
     type: 'object',
     properties: {
@@ -143,8 +144,68 @@ const TOOL = {
           required: ['client_name', 'items'],
         },
       },
+      food: {
+        type: 'array',
+        maxItems: 8,
+        description:
+          'Only when they tell you what they ate or drank. One item per food. Estimate calories and macros from typical Australian portions. These are shown to them as estimates, so be realistic, not precise. Empty otherwise.',
+        items: {
+          type: 'object',
+          properties: {
+            meal: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snack'] },
+            description: { type: 'string', description: 'Short, for example "2 scrambled eggs on sourdough".' },
+            calories: { type: 'number' },
+            protein_g: { type: 'number' },
+            carbs_g: { type: 'number' },
+            fat_g: { type: 'number' },
+            date: { type: 'string', description: 'YYYY-MM-DD in their timezone, only if it was not today.' },
+          },
+          required: ['meal', 'description', 'calories', 'protein_g', 'carbs_g', 'fat_g'],
+        },
+      },
+      weight: {
+        type: 'array',
+        maxItems: 1,
+        description: 'Only when they tell you their body weight. In kg (convert if they gave pounds). Empty otherwise.',
+        items: { type: 'object', properties: { kg: { type: 'number' }, date: { type: 'string', description: 'YYYY-MM-DD, only if not today.' } }, required: ['kg'] },
+      },
+      workouts: {
+        type: 'array',
+        maxItems: 2,
+        description: 'Only when they tell you they trained or finished a session. Empty otherwise.',
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', description: 'Short, for example "Upper body" or "5km run". Use the day label from their plan when it matches.' },
+            notes: { type: 'string' },
+            date: { type: 'string', description: 'YYYY-MM-DD, only if not today.' },
+          },
+          required: ['label'],
+        },
+      },
+      training_plan: {
+        type: 'array',
+        maxItems: 1,
+        description:
+          'Only when they ask you to write or change their own training programme. A week of days, Monday (1) to Sunday (7), each with a short label like "Upper body", "Lower body", "Run" or "Rest", and notes listing the exercises with sets and reps. Also write the programme out in your reply. Empty otherwise.',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            days: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: { weekday: { type: 'number' }, label: { type: 'string' }, notes: { type: 'string' } },
+                required: ['weekday', 'label'],
+              },
+            },
+          },
+          required: ['name', 'days'],
+        },
+      },
     },
-    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices'],
+    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'weight', 'workouts', 'training_plan'],
   },
 };
 
@@ -155,6 +216,10 @@ type Out = {
   clients?: { name: string; kind?: string; status?: string; notes?: string; next_follow_up?: string }[];
   reminders?: { text: string; due_at: string; client_name?: string }[];
   invoices?: { client_name: string; items: { description: string; qty: number; unit_price: number }[]; due_days?: number; notes?: string }[];
+  food?: { meal: string; description: string; calories: number; protein_g: number; carbs_g: number; fat_g: number; date?: string }[];
+  weight?: { kg: number; date?: string }[];
+  workouts?: { label: string; notes?: string; date?: string }[];
+  training_plan?: { name: string; days: { weekday: number; label: string; notes?: string }[] }[];
 };
 
 // The brain's keyword recall ANDs every word; turn the message into an OR search of its longer words.
@@ -186,7 +251,7 @@ async function callClaude(system: string, messages: Turn[], opts: { web: boolean
           headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
           body: JSON.stringify({
             model: TALI_MODEL,
-            max_tokens: 1500,
+            max_tokens: 2500,
             system,
             tools,
             // With web search on, Claude may search first and then answer through tali_reply.
@@ -278,7 +343,7 @@ Deno.serve(async (req) => {
 
   try {
     if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_API_KEY is not set');
-    const [{ data: ctx }, { data: history }, { data: work }] = await Promise.all([
+    const [{ data: ctx }, { data: history }, { data: work }, { data: life }] = await Promise.all([
       admin.rpc('tali_context', { p_user_id: user.id, p_query: recallQuery(text) }),
       admin
         .from('messages')
@@ -288,6 +353,7 @@ Deno.serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(20),
       admin.rpc('tali_work_context', { p_user_id: user.id }),
+      admin.rpc('life_summary', { p_user_id: user.id }),
     ]);
 
     const tz = ctx?.profile?.timezone || 'Australia/Sydney';
@@ -301,6 +367,7 @@ Deno.serve(async (req) => {
       `Important recent memories: ${JSON.stringify(ctx?.recent ?? [])}`,
       `Their latest journal entries they let you read: ${JSON.stringify(ctx?.journal ?? [])}`,
       `Their clients, leads, follow-ups due, open reminders, unpaid invoices and business health: ${JSON.stringify(work ?? {})}`,
+      `Their food today (your estimates), weight and training this week: ${JSON.stringify(life ?? {})}`,
     ].join('\n\n');
 
     // Oldest first, must start with a user turn and alternate roles.
@@ -404,6 +471,54 @@ Deno.serve(async (req) => {
       if (!error) invoicesDrafted++;
     }
 
+    // Food, weight, workouts and training plan, all dated in their timezone.
+    const localToday = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+    const day = (d?: string) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= localToday ? d : localToday);
+    const num = (v: unknown, max: number) => Math.min(max, Math.max(0, Math.round((Number(v) || 0) * 10) / 10));
+    const foodRows = (result.out.food ?? []).slice(0, 8)
+      .map((f) => ({
+        user_id: user.id,
+        local_date: day(f.date),
+        meal: ['breakfast', 'lunch', 'dinner', 'snack'].includes(f.meal) ? f.meal : 'snack',
+        description: strip(String(f.description ?? '')).slice(0, 200),
+        calories: Math.round(num(f.calories, 5000)),
+        protein_g: num(f.protein_g, 500),
+        carbs_g: num(f.carbs_g, 800),
+        fat_g: num(f.fat_g, 400),
+        estimated: true,
+      }))
+      .filter((f) => f.description);
+    let foodLogged = 0;
+    if (foodRows.length) {
+      const { error } = await admin.from('food_logs').insert(foodRows);
+      if (!error) foodLogged = foodRows.length;
+    }
+    let weightLogged = false;
+    for (const w of (result.out.weight ?? []).slice(0, 1)) {
+      const kg = Math.round(Number(w.kg) * 10) / 10;
+      if (!(kg >= 25 && kg <= 350)) continue;
+      const { error } = await admin.from('weight_logs').upsert({ user_id: user.id, local_date: day(w.date), kg }, { onConflict: 'user_id,local_date' });
+      if (!error) weightLogged = true;
+    }
+    let workoutsLogged = 0;
+    for (const w of (result.out.workouts ?? []).slice(0, 2)) {
+      const label = strip(String(w.label ?? '')).slice(0, 80);
+      if (!label) continue;
+      const { error } = await admin.from('workout_logs').insert({ user_id: user.id, local_date: day(w.date), label, notes: w.notes ? strip(String(w.notes)).slice(0, 500) : '' });
+      if (!error) workoutsLogged++;
+    }
+    let planSaved = false;
+    for (const tp of (result.out.training_plan ?? []).slice(0, 1)) {
+      const days = (Array.isArray(tp.days) ? tp.days : [])
+        .map((d) => ({ weekday: Math.round(Number(d.weekday)), label: strip(String(d.label ?? '')).slice(0, 40), notes: d.notes ? strip(String(d.notes)).slice(0, 600) : '' }))
+        .filter((d) => d.weekday >= 1 && d.weekday <= 7 && d.label)
+        .sort((a, b) => a.weekday - b.weekday)
+        .filter((d, i, arr) => i === 0 || arr[i - 1].weekday !== d.weekday);
+      if (!days.length) continue;
+      const { error } = await admin.from('training_plans').upsert({ user_id: user.id, name: strip(String(tp.name ?? 'My training')).slice(0, 80) || 'My training', days });
+      if (!error) planSaved = true;
+    }
+
     // Each web search costs 2 extra credits on top of the message.
     if (result.searches > 0) {
       await admin.from('usage').insert({ user_id: user.id, feature: 'web_search', credits: 2 * result.searches, model: result.model });
@@ -414,7 +529,7 @@ Deno.serve(async (req) => {
       admin.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId),
     ]);
 
-    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, clientsSaved, remindersSet, invoicesDrafted, searched: result.searches, remaining: Math.max(0, (consume.remaining ?? 0) - 2 * result.searches) });
+    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, clientsSaved, remindersSet, invoicesDrafted, foodLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, remaining: Math.max(0, (consume.remaining ?? 0) - 2 * result.searches) });
   } catch (e) {
     await admin.rpc('chat_refund', { p_usage_id: usageId });
     console.error('tali-chat failed', String(e));

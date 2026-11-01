@@ -3,7 +3,8 @@ import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { followUpsDue, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Client, type Credits, type Health, type Reminder } from '@/lib/data';
+import { followUpsDue, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
+import { YourDayCard } from '@/components/YourDayCard';
 import { isPaid } from '@/lib/plan';
 import { HealthCard } from '@/components/HealthCard';
 import { addDays, today } from '@/lib/dates';
@@ -37,6 +38,7 @@ export default function Today() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [followUps, setFollowUps] = useState<Client[]>([]);
   const [health, setHealth] = useState<Health | null>(null);
+  const [life, setLife] = useState<LifeSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
 
@@ -52,6 +54,7 @@ export default function Today() {
       setFollowUps(f);
       // Health checks are part of Tali HQ and Pro (and the trial).
       setHealth(isPaid(c) ? await myHealth().catch(() => null) : null);
+      setLife(await lifeSummary().catch(() => null));
     } catch (e: any) {
       setLoadError(e?.message ?? 'Could not load today.');
     }
@@ -100,6 +103,13 @@ export default function Today() {
           </>
         ) : null}
         <AddReminder onAdded={load} />
+        {life ? (
+          <>
+            <View style={{ height: space.sm }} />
+            <Label>Your day</Label>
+            <YourDayCard life={life} onTick={() => life.today_session ? logWorkout(today(), life.today_session).then(load) : undefined} />
+          </>
+        ) : null}
         <View style={{ height: space.sm }} />
 
         <Label>Needs you</Label>

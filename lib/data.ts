@@ -154,7 +154,7 @@ export async function messages(conversationId: string): Promise<Message[]> {
 }
 
 export type ChatResult =
-  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; invoicesDrafted?: number; searched?: number; remaining: number | null }
+  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
@@ -528,4 +528,72 @@ export async function taliVoice(messageId: string): Promise<{ ok: true; url: str
     return { ok: false, code: 'network', message: "Couldn't reach Tali. Check your connection." };
   }
   return data;
+}
+
+// ---------- Food and training (logged by chatting with Tali) ----------
+export type LifeSummary = {
+  date: string;
+  food_today: { calories: number; protein_g: number; carbs_g: number; fat_g: number; items: number };
+  weight: { kg: number; date: string } | null;
+  weight_week_ago: number | null;
+  plan_name: string | null;
+  today_session: string | null;
+  today_done: boolean;
+  sessions_planned: number;
+  sessions_done_this_week: number;
+  streak_weeks: number;
+};
+export type FoodLog = { id: string; local_date: string; meal: 'breakfast' | 'lunch' | 'dinner' | 'snack'; description: string; calories: number; protein_g: number; carbs_g: number; fat_g: number };
+export type WeightLog = { id: string; local_date: string; kg: number };
+export type PlanDay = { weekday: number; label: string; notes?: string };
+export type TrainingPlan = { name: string; days: PlanDay[] };
+export type WorkoutLog = { id: string; local_date: string; label: string; notes: string };
+
+export async function lifeSummary(): Promise<LifeSummary | null> {
+  const { data, error } = await supabase.rpc('my_life_summary');
+  if (error) throw error;
+  return (data as LifeSummary) ?? null;
+}
+
+export async function foodOn(localDate: string): Promise<FoodLog[]> {
+  const { data, error } = await supabase
+    .from('food_logs')
+    .select('id, local_date, meal, description, calories, protein_g, carbs_g, fat_g')
+    .eq('local_date', localDate)
+    .order('created_at');
+  if (error) throw error;
+  return ((data as any[]) ?? []).map((f) => ({ ...f, protein_g: Number(f.protein_g), carbs_g: Number(f.carbs_g), fat_g: Number(f.fat_g) }));
+}
+
+export async function deleteFood(id: string) {
+  const { error } = await supabase.from('food_logs').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function weights(limit = 30): Promise<WeightLog[]> {
+  const { data, error } = await supabase.from('weight_logs').select('id, local_date, kg').order('local_date', { ascending: false }).limit(limit);
+  if (error) throw error;
+  return ((data as any[]) ?? []).map((w) => ({ ...w, kg: Number(w.kg) }));
+}
+
+export async function trainingPlan(): Promise<TrainingPlan | null> {
+  const { data, error } = await supabase.from('training_plans').select('name, days').maybeSingle();
+  if (error) throw error;
+  return (data as TrainingPlan) ?? null;
+}
+
+export async function workoutsSince(localDate: string): Promise<WorkoutLog[]> {
+  const { data, error } = await supabase.from('workout_logs').select('id, local_date, label, notes').gte('local_date', localDate).order('local_date', { ascending: false });
+  if (error) throw error;
+  return (data as WorkoutLog[]) ?? [];
+}
+
+export async function logWorkout(localDate: string, label: string) {
+  const { error } = await supabase.from('workout_logs').insert({ local_date: localDate, label });
+  if (error) throw error;
+}
+
+export async function deleteWorkout(id: string) {
+  const { error } = await supabase.from('workout_logs').delete().eq('id', id);
+  if (error) throw error;
 }

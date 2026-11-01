@@ -82,6 +82,7 @@ export default function Me() {
       <View style={{ height: space.md }} />
       <Label>Tali's jobs</Label>
       <Card>
+        <MenuRow title="Food and training" sub="Logged by chatting with Tali" onPress={() => router.navigate('/life')} />
         <MenuRow title="Night school" sub="Pick what Tali studies each night" locked={!isPro(credits)} pro onPress={() => router.navigate('/night-school')} />
         <MenuRow title="Invoices" sub="Make, share and track invoices" locked={!isPaid(credits)} onPress={() => router.navigate('/invoices')} />
         <MenuRow title="Rules" sub="Things Tali handles automatically" locked={!isPro(credits)} pro onPress={() => router.navigate('/rules')} />
