@@ -5,11 +5,11 @@
 // Founding members (subscriptions.founding_member = true) get STRIPE_COUPON_FOUNDING applied forever.
 // The stripe-webhook function writes the result into public.subscriptions.
 //
-// Secrets: STRIPE_SECRET_KEY, STRIPE_PRICE_HQ, STRIPE_PRICE_PRO, optional STRIPE_PRICE_HQ_YEARLY,
-// STRIPE_PRICE_PRO_YEARLY, STRIPE_COUPON_FOUNDING, APP_URLS (comma separated allowed return origins).
+// Secrets: STRIPE_SECRET_KEY, APP_URLS (comma separated allowed return origins). Live prices and the
+// founding coupon are built into _shared/stripe.ts (STRIPE_PRICE_* and STRIPE_COUPON_FOUNDING override them).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
-import { stripe, stripeReady } from '../_shared/stripe.ts';
+import { COUPON_FOUNDING, PRICE_HQ, PRICE_PRO, stripe, stripeReady } from '../_shared/stripe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const cors = {
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   if (!plan) return json({ ok: false, code: 'bad_request', message: 'Pick a plan.' }, 400);
 
   const env = (k: string) => Deno.env.get(k) ?? '';
-  const price = plan === 'hq' ? (yearly ? env('STRIPE_PRICE_HQ_YEARLY') : env('STRIPE_PRICE_HQ')) : yearly ? env('STRIPE_PRICE_PRO_YEARLY') : env('STRIPE_PRICE_PRO');
+  const price = plan === 'hq' ? (yearly ? env('STRIPE_PRICE_HQ_YEARLY') : PRICE_HQ) : yearly ? env('STRIPE_PRICE_PRO_YEARLY') : PRICE_PRO;
   if (!price) return json({ ok: false, code: 'not_ready', message: 'That plan is not open yet.' }, 503);
 
   let origin: string;
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       customer = c.id as string;
       await admin.from('subscriptions').update({ stripe_customer_id: customer }).eq('user_id', user.id);
     }
-    const coupon = sub?.founding_member ? env('STRIPE_COUPON_FOUNDING') : '';
+    const coupon = sub?.founding_member ? COUPON_FOUNDING : '';
     const session = await stripe('POST', 'checkout/sessions', {
       mode: 'subscription',
       customer,

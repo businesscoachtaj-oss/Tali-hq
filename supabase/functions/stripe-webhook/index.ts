@@ -26,6 +26,8 @@ async function syncSubscription(s: any) {
   const userId = s.metadata?.tali_user_id;
   const priceId = s.items?.data?.[0]?.price?.id;
   const plan = planForPrice(priceId);
+  // The Stripe account also runs Totality and Totality Nutrition. Only Tali HQ subscriptions count here.
+  if (!plan && !userId) return;
   let target = userId as string | undefined;
   if (!target && s.customer) {
     const { data } = await admin.from('subscriptions').select('user_id').eq('stripe_customer_id', s.customer).maybeSingle();

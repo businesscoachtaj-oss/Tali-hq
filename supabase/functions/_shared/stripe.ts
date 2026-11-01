@@ -55,11 +55,16 @@ function timingSafeEqual(a: string, b: string) {
   return diff === 0;
 }
 
-// Which plan a Stripe price belongs to. Price ids come from secrets so test and live can differ.
+// Which plan a Stripe price belongs to. Live price ids are built in (created 1 Nov 2026 in the
+// Totality 360 account); secrets can override them, for example for test mode.
+export const PRICE_HQ = Deno.env.get('STRIPE_PRICE_HQ') || 'price_1UWucQPy9YlWBZ02DtSHnFNW';
+export const PRICE_PRO = Deno.env.get('STRIPE_PRICE_PRO') || 'price_1UWucXPy9YlWBZ02uACyStzk';
+export const COUPON_FOUNDING = Deno.env.get('STRIPE_COUPON_FOUNDING') || 'TALIHQ_FOUNDING';
+
 export function planForPrice(priceId: string | undefined | null): 'hq' | 'pro' | null {
   if (!priceId) return null;
-  const hq = [Deno.env.get('STRIPE_PRICE_HQ'), Deno.env.get('STRIPE_PRICE_HQ_YEARLY')].filter(Boolean);
-  const pro = [Deno.env.get('STRIPE_PRICE_PRO'), Deno.env.get('STRIPE_PRICE_PRO_YEARLY')].filter(Boolean);
+  const hq = [PRICE_HQ, Deno.env.get('STRIPE_PRICE_HQ_YEARLY')].filter(Boolean);
+  const pro = [PRICE_PRO, Deno.env.get('STRIPE_PRICE_PRO_YEARLY')].filter(Boolean);
   if (hq.includes(priceId)) return 'hq';
   if (pro.includes(priceId)) return 'pro';
   return null;
