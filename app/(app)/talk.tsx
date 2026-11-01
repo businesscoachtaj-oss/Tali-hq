@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { currentConversation, messages as loadMessages, newConversation, sendMessage, type Message } from '@/lib/data';
+import { currentConversation, messages as loadMessages, myCredits, newConversation, sendMessage, type Message } from '@/lib/data';
+import { isPro } from '@/lib/plan';
+import { VoiceButton } from '@/components/VoiceButton';
 import { useAuth } from '@/lib/auth';
 import { tali } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
@@ -22,6 +24,7 @@ export default function Talk() {
   const [text, setText] = useState('');
   const [thinking, setThinking] = useState(false);
   const [notice, setNotice] = useState('');
+  const [pro, setPro] = useState(false);
   const listRef = useRef<FlatList<Row>>(null);
 
   const load = useCallback(async () => {
@@ -29,6 +32,7 @@ export default function Talk() {
       const id = await currentConversation();
       setConversationId(id);
       setRows(await loadMessages(id));
+      myCredits().then((c) => setPro(isPro(c))).catch(() => {});
     } catch (e: any) {
       setNotice(e?.message ?? 'Could not load the chat.');
     }
@@ -53,6 +57,8 @@ export default function Talk() {
       const bits: string[] = [];
       if (res.drafted) bits.push(res.drafted === 1 ? 'Draft waiting on Today' : `${res.drafted} drafts waiting on Today`);
       if (res.remindersSet) bits.push(res.remindersSet === 1 ? 'reminder set' : `${res.remindersSet} reminders set`);
+      if (res.invoicesDrafted) bits.push('invoice drafted on your Invoices screen');
+      if (res.searched) bits.push(res.searched === 1 ? 'searched the web once' : `searched the web ${res.searched} times`);
       if (res.clientsSaved) bits.push(res.clientsSaved === 1 ? 'client list updated' : `${res.clientsSaved} clients updated`);
       if (res.remembered > 0) bits.push(res.remembered === 1 ? 'saved 1 thing to remember' : `saved ${res.remembered} things to remember`);
       if (bits.length) setNotice(bits.join(', ').replace(/^./, (c) => c.toUpperCase()) + '.');
@@ -135,6 +141,7 @@ export default function Talk() {
                   }}>
                   <Text style={{ color: me ? '#FFFFFF' : colours.text, fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
                   {item.failed ? <Text style={{ color: '#FFB4A8', fontSize: 12, marginTop: 4 }}>Not sent</Text> : null}
+                  {pro && !me && !item.id.startsWith('tmp-') ? <VoiceButton messageId={item.id} onError={setNotice} /> : null}
                 </View>
               );
             }}

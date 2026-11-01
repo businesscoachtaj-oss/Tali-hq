@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { forgetMemory, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
+import { isPaid, isPro } from '@/lib/plan';
 import { Body, Button, Card, Label, Screen, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 
@@ -79,6 +80,15 @@ export default function Me() {
       </Card>
 
       <View style={{ height: space.md }} />
+      <Label>Tali's jobs</Label>
+      <Card>
+        <MenuRow title="Night school" sub="Pick what Tali studies each night" locked={!isPro(credits)} pro onPress={() => router.navigate('/night-school')} />
+        <MenuRow title="Invoices" sub="Make, share and track invoices" locked={!isPaid(credits)} onPress={() => router.navigate('/invoices')} />
+        <MenuRow title="Rules" sub="Things Tali handles automatically" locked={!isPro(credits)} pro onPress={() => router.navigate('/rules')} />
+        <MenuRow title="Tali's email" sub="Her own address for your enquiries" locked={!isPro(credits)} pro last onPress={() => router.navigate('/inbox')} />
+      </Card>
+
+      <View style={{ height: space.md }} />
       <Label>What Tali knows about you</Label>
       <Card>
         <Body muted>
@@ -110,5 +120,24 @@ export default function Me() {
       <Button title="Sign out" kind="ghost" onPress={signOut} />
       <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: space.lg }}>Tali HQ by Totality 360. Made in Australia.</Text>
     </Screen>
+  );
+}
+
+function MenuRow({ title, sub, locked, pro, last, onPress }: { title: string; sub: string; locked?: boolean; pro?: boolean; last?: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button"
+      style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, borderBottomWidth: last ? 0 : 1, borderBottomColor: colours.border }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{title}</Text>
+        <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>{sub}</Text>
+      </View>
+      {locked ? (
+        <Text style={{ fontSize: 11, fontWeight: '800', color: colours.purpleInk, backgroundColor: colours.purpleSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' }}>
+          {pro ? 'PRO' : 'TALI HQ'}
+        </Text>
+      ) : (
+        <Text style={{ fontSize: 20, color: colours.faint }}>{'\u203A'}</Text>
+      )}
+    </Pressable>
   );
 }

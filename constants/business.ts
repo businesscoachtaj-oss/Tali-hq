@@ -9,3 +9,7 @@ export function prettyTime(t: string) {
   const hr = h % 12 === 0 ? 12 : h % 12;
   return `${hr}:${String(m).padStart(2, '0')}${suffix}`;
 }
+
+// Domain for Tali's email addresses (Pro). Empty until the inbound domain is set up in Resend,
+// so the app never shows an address that can't receive mail yet.
+export const INBOUND_DOMAIN = process.env.EXPO_PUBLIC_INBOUND_DOMAIN ?? '';

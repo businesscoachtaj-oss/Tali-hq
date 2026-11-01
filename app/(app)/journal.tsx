@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { deleteJournalEntry, journalEntries, markBriefRead, myCredits, saveJournalEntry, taliJournal, type Brief, type JournalEntry } from '@/lib/data';
-import { isPaid } from '@/lib/plan';
+import { isPaid, isPro } from '@/lib/plan';
 import { friendlyDate } from '@/lib/dates';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
@@ -25,6 +25,7 @@ export default function Journal() {
   const [tab, setTab] = useState<'mine' | 'tali'>('mine');
   const [hers, setHers] = useState<Brief[]>([]);
   const [paid, setPaid] = useState(false);
+  const [pro, setPro] = useState(false);
   const [reading, setReading] = useState<Brief | null>(null);
 
   const load = useCallback(async () => {
@@ -32,6 +33,7 @@ export default function Journal() {
       const [mine, c] = await Promise.all([journalEntries(), myCredits()]);
       setEntries(mine);
       setPaid(isPaid(c));
+      setPro(isPro(c));
       setHers(await taliJournal().catch(() => []));
     } catch (e: any) {
       setError(e?.message ?? 'Could not load your journal.');
@@ -181,7 +183,7 @@ export default function Journal() {
               </Pressable>
             ))
           )}
-          {paid ? <Button title="Night school: pick what Tali studies" kind="ghost" onPress={() => router.navigate('/night-school')} /> : null}
+          {pro ? <Button title="Night school: pick what Tali studies" kind="ghost" onPress={() => router.navigate('/night-school')} /> : null}
         </>
       ) : (
       <>

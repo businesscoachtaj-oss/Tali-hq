@@ -485,3 +485,47 @@ export async function setEmailStatus(id: string, status: InboundEmail['status'])
   const { error } = await supabase.from('inbound_emails').update({ status }).eq('id', id);
   if (error) throw error;
 }
+
+// ---------- Night school ----------
+export type NightSchool = { enabled: boolean; topics: string[]; nights: 'every' | 'three' };
+export type NightNote = { id: string; for_date: string; topic: string; headline: string; learnt: string[]; sources: { title: string; url: string }[]; read_at: string | null };
+
+export async function nightSchool(): Promise<NightSchool | null> {
+  const { data, error } = await supabase.from('night_school').select('enabled, topics, nights').maybeSingle();
+  if (error) throw error;
+  return (data as NightSchool) ?? null;
+}
+
+export async function saveNightSchool(n: NightSchool) {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await supabase.from('night_school').upsert({ user_id: u.user?.id, enabled: n.enabled, topics: n.topics, nights: n.nights });
+  if (error) throw error;
+}
+
+export async function nightNotes(limit = 20): Promise<NightNote[]> {
+  const { data, error } = await supabase
+    .from('night_school_notes')
+    .select('id, for_date, topic, headline, learnt, sources, read_at')
+    .order('for_date', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data as NightNote[]) ?? [];
+}
+
+export async function markNightNoteRead(id: string) {
+  await supabase.from('night_school_notes').update({ read_at: new Date().toISOString() }).eq('id', id);
+}
+
+// ---------- Pro: Tali's voice ----------
+// Returns a short-lived link to an MP3 of Tali reading that reply in her own voice.
+export async function taliVoice(messageId: string): Promise<{ ok: true; url: string } | { ok: false; code: string; message: string }> {
+  const { data, error } = await supabase.functions.invoke('tali-voice', { body: { messageId } });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code ?? 'error', message: b.message };
+    } catch {}
+    return { ok: false, code: 'network', message: "Couldn't reach Tali. Check your connection." };
+  }
+  return data;
+}
