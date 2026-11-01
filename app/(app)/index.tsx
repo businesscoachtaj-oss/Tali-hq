@@ -3,7 +3,7 @@ import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { followUpsDue, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
+import { calendarToday, followUpsDue, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
 import { YourDayCard } from '@/components/YourDayCard';
 import { isPaid } from '@/lib/plan';
 import { HealthCard } from '@/components/HealthCard';
@@ -53,6 +53,7 @@ export default function Today() {
   const [life, setLife] = useState<LifeSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [calendar, setCalendar] = useState<CalendarToday | null>(null);
 
   const load = useCallback(async () => {
     setLoadError('');
@@ -67,6 +68,8 @@ export default function Today() {
       // Health checks are part of Tali HQ and Pro (and the trial).
       setHealth(isPaid(c) ? await myHealth().catch(() => null) : null);
       setLife(await lifeSummary().catch(() => null));
+      // Google Calendar, when connected: today's events and free gaps.
+      if (isPaid(c)) calendarToday().then((cal) => setCalendar(cal?.connected ? cal : null)).catch(() => setCalendar(null));
     } catch (e: any) {
       setLoadError(e?.message ?? 'Could not load today.');
     }
@@ -115,6 +118,13 @@ export default function Today() {
           </>
         ) : null}
         <AddReminder onAdded={load} />
+        {calendar?.connected ? (
+          <>
+            <View style={{ height: space.sm }} />
+            <Label>Your calendar</Label>
+            <CalendarCard cal={calendar} />
+          </>
+        ) : null}
         {life ? (
           <>
             <View style={{ height: space.sm }} />
@@ -174,5 +184,31 @@ export default function Today() {
       </ScrollView>
       {showTour ? <AppTour steps={TOUR_STEPS} onDone={closeTour} firstName={profile?.first_name} /> : null}
     </SafeAreaView>
+  );
+}
+
+// Today's events from their Google Calendar (read only here; booking happens from Tali's drafts on Today).
+function CalendarCard({ cal }: { cal: CalendarToday }) {
+  const todayWord = new Date().toLocaleDateString('en-AU', { weekday: 'short' });
+  const events = (cal.events ?? []).filter((e) => e.when.startsWith(todayWord) || e.when === 'all day');
+  const later = (cal.events ?? []).length - events.length;
+  return (
+    <Card>
+      {cal.error ? <Text style={{ color: colours.muted, fontSize: 14 }}>{cal.error}</Text> : null}
+      {!cal.error && events.length === 0 ? <Text style={{ color: colours.muted, fontSize: 14 }}>Nothing in your calendar today.</Text> : null}
+      {events.map((e, i) => (
+        <View key={i} style={{ flexDirection: 'row', gap: space.md, paddingVertical: 6, borderBottomWidth: i === events.length - 1 ? 0 : 1, borderBottomColor: colours.border }}>
+          <Text style={{ width: 118, fontSize: 13, color: colours.muted, fontWeight: '700' }}>{e.when.replace(/^\w{3} /, '')}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>{e.title}</Text>
+            {e.location ? <Text style={{ fontSize: 12, color: colours.muted }}>{e.location}</Text> : null}
+          </View>
+        </View>
+      ))}
+      {cal.free_today?.length ? (
+        <Text style={{ fontSize: 13, color: colours.purpleInk, marginTop: space.sm, lineHeight: 19 }}>Free: {cal.free_today.map((g) => g.replace(/\w{3} /g, '')).join(', ')}</Text>
+      ) : null}
+      {later > 0 ? <Text style={{ fontSize: 12, color: colours.faint, marginTop: 4 }}>{later} more tomorrow. Ask me in Talk to book something.</Text> : null}
+    </Card>
   );
 }

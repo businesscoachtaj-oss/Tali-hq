@@ -44,7 +44,7 @@ export type Approval = {
   kind: string;
   title: string;
   status: string;
-  draft: { to?: string | null; subject?: string; body?: string; action?: string; invoice_id?: string; email?: string | null } | null;
+  draft: { to?: string | null; to_name?: string | null; subject?: string; body?: string; action?: string; invoice_id?: string; email?: string | null; email_id?: string | null; summary?: string | null; title?: string; start?: string; end?: string; attendee_email?: string | null; location?: string | null; link?: string | null } | null;
   created_at: string;
 };
 
@@ -461,6 +461,9 @@ export type InboundEmail = {
   status: 'new' | 'handled' | 'spam';
   approval_id: string | null;
   received_at: string;
+  source: 'tali_inbox' | 'gmail';
+  category: 'needs_you' | 'fyi' | 'spam' | null;
+  snippet: string | null;
 };
 
 export async function myInbox(): Promise<string | null> {
@@ -477,9 +480,9 @@ export async function claimInbox(): Promise<string> {
 export async function inboundEmails(): Promise<InboundEmail[]> {
   const { data, error } = await supabase
     .from('inbound_emails')
-    .select('id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at')
+    .select('id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at, source, category, snippet')
     .order('received_at', { ascending: false })
-    .limit(50);
+    .limit(80);
   if (error) throw error;
   return (data as InboundEmail[]) ?? [];
 }
@@ -627,3 +630,40 @@ export const startStripeConnect = (returnUrl: string) => stripeCall({ action: 'c
 export const disconnectStripe = () => stripeCall({ action: 'disconnect' });
 // Creates the invoice in their Stripe and emails it to the client. Only ever called from their tap.
 export const sendInvoiceWithStripe = (invoiceId: string) => stripeCall({ action: 'send', invoiceId });
+
+// ---------- Google: Gmail and Google Calendar, one sign-in ----------
+export type GoogleConnection = { google_email: string; scopes: string[]; last_mail_sync_at: string | null; last_error: string | null; connected_at: string };
+
+export async function googleConnection(): Promise<GoogleConnection | null> {
+  const { data, error } = await supabase.from('google_connections').select('google_email, scopes, last_mail_sync_at, last_error, connected_at').maybeSingle();
+  if (error) throw error;
+  return (data as GoogleConnection | null) ?? null;
+}
+
+export type CalendarToday = {
+  connected: boolean;
+  account?: string;
+  events?: { title: string; when: string; location: string | null; attendees: string[] }[];
+  free_today?: string[];
+  error?: string;
+};
+
+async function googleCall(body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; url?: string | null; code?: string; link?: string | null } & Partial<CalendarToday>> {
+  const { data, error } = await supabase.functions.invoke('google-connect', { body });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; url?: string | null };
+}
+
+// Returns Google's consent page to open; Google sends them back to /settings?google=connected.
+export const startGoogleConnect = (returnUrl: string, what: 'both' | 'calendar' = 'both') => googleCall({ action: 'connect', returnUrl, what });
+export const disconnectGoogle = () => googleCall({ action: 'disconnect' });
+// Only ever called from their tap on Today.
+export const sendEmailApproval = (approvalId: string) => googleCall({ action: 'send', approvalId });
+export const bookEventApproval = (approvalId: string) => googleCall({ action: 'book', approvalId });
+export const calendarToday = () => googleCall({ action: 'calendar' }) as Promise<CalendarToday & { ok: boolean }>;

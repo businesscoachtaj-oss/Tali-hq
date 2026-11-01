@@ -7,6 +7,7 @@ import { deleteAccount } from '@/lib/data';
 import { enablePush, pushSupported } from '@/lib/push';
 import { BRIEF_TIMES, BUSINESS_TYPES, prettyTime } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
+import { GoogleConnectCard } from '@/components/GoogleConnectCard';
 import { StripeConnectCard } from '@/components/StripeConnectCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
@@ -112,7 +113,12 @@ export default function Settings() {
       <Button title="Save" onPress={save} busy={busy} />
 
       <View style={{ height: space.xl }} />
-      <Label>Payments</Label>
+      <Label>Connections</Label>
+      <Text style={{ color: colours.muted, fontSize: 13, marginTop: -4, marginBottom: space.md, lineHeight: 19 }}>
+        Connect the apps you already use. Tali reads what she needs and drafts the rest. Nothing goes out without your yes.
+      </Text>
+      <GoogleConnectCard />
+      <View style={{ height: space.md }} />
       <StripeConnectCard />
 
       <View style={{ height: space.xxl }} />

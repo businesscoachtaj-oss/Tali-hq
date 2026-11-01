@@ -87,7 +87,8 @@ export default function Me() {
         <MenuRow title="Night school" sub="Pick what Tali studies each night" locked={!isPro(credits)} pro onPress={() => router.navigate('/night-school')} />
         <MenuRow title="Invoices" sub="Make, share and track invoices" locked={!isPaid(credits)} onPress={() => router.navigate('/invoices')} />
         <MenuRow title="Rules" sub="Things Tali handles automatically" locked={!isPro(credits)} pro onPress={() => router.navigate('/rules')} />
-        <MenuRow title="Tali's email" sub="Her own address for your enquiries" locked={!isPro(credits)} pro last onPress={() => router.navigate('/inbox')} />
+        <MenuRow title="Email" sub="Your Gmail sorted, replies drafted. Her own address on Pro" locked={!isPaid(credits)} onPress={() => router.navigate('/inbox')} />
+        <MenuRow title="Connections" sub="Google and Stripe" locked={!isPaid(credits)} last onPress={() => router.navigate('/settings')} />
       </Card>
 
       <View style={{ height: space.md }} />
