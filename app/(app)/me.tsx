@@ -4,13 +4,14 @@ import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { forgetMemory, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
+import { resetTour } from '@/lib/tour';
 import { Body, Button, Card, Label, Screen, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 
 const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Tali HQ', pro: 'Tali HQ Pro' };
 
 export default function Me() {
-  const { profile, session, signOut } = useAuth();
+  const { profile, session, signOut, refreshProfile } = useAuth();
   const [credits, setCredits] = useState<Credits | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [showAll, setShowAll] = useState(false);
@@ -118,6 +119,20 @@ export default function Me() {
       </Card>
 
       <Button title="Settings" onPress={() => router.navigate('/settings')} />
+      <Button
+        title="Show me around again"
+        kind="ghost"
+        onPress={async () => {
+          if (!session) return;
+          try {
+            await resetTour(session.user.id);
+            await refreshProfile();
+            router.navigate('/');
+          } catch (e: any) {
+            setError(e?.message ?? 'Could not restart the tour.');
+          }
+        }}
+      />
       <Button title="Sign out" kind="ghost" onPress={signOut} />
       <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: space.lg }}>Tali HQ by Totality 360. Made in Australia.</Text>
     </Screen>

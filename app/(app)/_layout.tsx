@@ -1,11 +1,24 @@
+import { useRef } from 'react';
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { registerTab } from '@/lib/tourTabPositions';
 import { colours } from '@/constants/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-function icon(name: IconName) {
-  return ({ color, size }: { color: string; size: number }) => <Ionicons name={name} color={color} size={size} />;
+// Each icon registers itself so the first-run tour can ring the right tab.
+function TabIcon({ name, color, size, index }: { name: IconName; color: string; size: number; index: number }) {
+  const ref = useRef<View>(null);
+  return (
+    <View ref={ref} onLayout={() => registerTab(index, ref)}>
+      <Ionicons name={name} color={color} size={size} />
+    </View>
+  );
+}
+
+function icon(name: IconName, index: number) {
+  return ({ color, size }: { color: string; size: number }) => <TabIcon name={name} color={color} size={size} index={index} />;
 }
 
 export default function AppTabs() {
@@ -18,11 +31,11 @@ export default function AppTabs() {
         tabBarStyle: { backgroundColor: colours.surface, borderTopColor: colours.border },
         sceneStyle: { backgroundColor: colours.bg },
       }}>
-      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline') }} />
-      <Tabs.Screen name="talk" options={{ title: 'Talk', tabBarIcon: icon('chatbubble-ellipses-outline') }} />
-      <Tabs.Screen name="clients" options={{ title: 'Clients', tabBarIcon: icon('people-outline') }} />
-      <Tabs.Screen name="journal" options={{ title: 'Journal', tabBarIcon: icon('book-outline') }} />
-      <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline') }} />
+      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 0) }} />
+      <Tabs.Screen name="talk" options={{ title: 'Talk', tabBarIcon: icon('chatbubble-ellipses-outline', 1) }} />
+      <Tabs.Screen name="clients" options={{ title: 'Clients', tabBarIcon: icon('people-outline', 2) }} />
+      <Tabs.Screen name="journal" options={{ title: 'Journal', tabBarIcon: icon('book-outline', 3) }} />
+      <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline', 4) }} />
       <Tabs.Screen name="settings" options={{ href: null, title: 'Settings' }} />
       <Tabs.Screen name="plans" options={{ href: null, title: 'Plans' }} />
       <Tabs.Screen name="invoices" options={{ href: null, title: 'Invoices' }} />

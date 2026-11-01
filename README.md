@@ -17,6 +17,7 @@ npm run typecheck
 |---|---|
 | Sign in / Sign up / Reset password | Email and password through Supabase Auth. Sign-up starts a 14 day Tali HQ trial (database trigger). Waitlist emails get founding member pricing. |
 | Onboarding | First name, business name and type, a few words about you. Tali reads this before every reply. |
+| First-run tour | Shows once on Today after onboarding, like the Totality apps: Tali walks through Today, Talk, Clients, Journal and Me with a pulsing ring on each tab, then a "You're all set" card. Skip ends it. Saved in `profiles.tour_done_at`. "Show me around again" in Me replays it. |
 | Today | Business health (trial and paid), reminders and follow-ups due, add a reminder, Your day (food estimates, weight, today's session with a Done button), drafts waiting for your yes, the morning brief, trial days left. |
 | Talk | Chat with Tali through `tali-chat`: checks your plan, reads your memories and journal, replies, saves what is worth remembering, and puts anything you ask her to write on Today as a draft. New chat button. |
 | Clients | Clients and leads with status, follow-up dates and notes. Tali can add or update people and set reminders when you ask her in Talk. Invoices button. |
@@ -27,7 +28,7 @@ npm run typecheck
 | Rules (Pro) | Spot quiet clients, never miss a new lead, chase overdue invoices (drafts a reminder for your yes), weekly reminder. Rules only change things inside Tali HQ. |
 | Tali's email (Pro) | Claim an address from your business name. Emails are summed up, spam is flagged and a draft reply lands on Today. Shows "switches on soon" until EXPO_PUBLIC_INBOUND_DOMAIN is set. |
 | Voice (Pro) | Listen under Tali's replies plays her real voice (the Kokoro blend from her videos) through `tali-voice` and `voice-server/`. |
-| Me | Plan and credits left, Tali's jobs menu, "What Tali knows about you" with Forget, Settings, Plans, sign out. |
+| Me | Plan and credits left, Tali's jobs menu, "What Tali knows about you" with Forget, Settings, Show me around again, Plans, sign out. |
 | Settings | Edit profile, morning brief time, brief notifications, delete account. |
 | Plans | Free, Tali HQ and Pro with founding member pricing. Stripe checkout on web only. |
 

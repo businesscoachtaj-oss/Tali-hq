@@ -12,6 +12,8 @@ import { DueList } from '@/components/DueList';
 import { AddReminder } from '@/components/AddReminder';
 import { Body, Button, Card, Label, TaliSays, Title } from '@/components/ui';
 import { DraftCard } from '@/components/DraftCard';
+import { AppTour } from '@/components/AppTour';
+import { TOUR_STEPS, finishTour } from '@/lib/tour';
 import { colours, space } from '@/constants/theme';
 
 function greeting() {
@@ -31,7 +33,17 @@ function trialLine(c: Credits | null) {
 }
 
 export default function Today() {
-  const { profile } = useAuth();
+  const { profile, session, refreshProfile } = useAuth();
+  // First-run tour, shown once until finished or skipped (and again from Me).
+  const [tourClosed, setTourClosed] = useState(false);
+  const showTour = !!profile && !profile.tour_done_at && !tourClosed;
+
+  async function closeTour() {
+    setTourClosed(true);
+    if (session) await finishTour(session.user.id).catch(() => {});
+    await refreshProfile();
+    setTourClosed(false);
+  }
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [credits, setCredits] = useState<Credits | null>(null);
@@ -160,6 +172,7 @@ export default function Today() {
 
         <Button title="Talk to Tali" onPress={() => router.navigate('/talk')} />
       </ScrollView>
+      {showTour ? <AppTour steps={TOUR_STEPS} onDone={closeTour} firstName={profile?.first_name} /> : null}
     </SafeAreaView>
   );
 }

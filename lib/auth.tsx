@@ -12,6 +12,7 @@ export type Profile = {
   brief_time: string;
   brief_push: boolean;
   onboarded_at: string | null;
+  tour_done_at: string | null;
 };
 
 type AuthValue = {
@@ -33,7 +34,7 @@ export function useAuth() {
   return value;
 }
 
-const PROFILE_COLUMNS = 'id, first_name, business_name, business_type, about_me, timezone, brief_time, brief_push, onboarded_at';
+const PROFILE_COLUMNS = 'id, first_name, business_name, business_type, about_me, timezone, brief_time, brief_push, onboarded_at, tour_done_at';
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
