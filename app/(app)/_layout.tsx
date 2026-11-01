@@ -1,0 +1,27 @@
+import { Tabs } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { colours } from '@/constants/theme';
+
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function icon(name: IconName) {
+  return ({ color, size }: { color: string; size: number }) => <Ionicons name={name} color={color} size={size} />;
+}
+
+export default function AppTabs() {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colours.purple,
+        tabBarInactiveTintColor: colours.faint,
+        tabBarStyle: { backgroundColor: colours.surface, borderTopColor: colours.border },
+        sceneStyle: { backgroundColor: colours.bg },
+      }}>
+      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline') }} />
+      <Tabs.Screen name="talk" options={{ title: 'Talk', tabBarIcon: icon('chatbubble-ellipses-outline') }} />
+      <Tabs.Screen name="journal" options={{ title: 'Journal', tabBarIcon: icon('book-outline') }} />
+      <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline') }} />
+    </Tabs>
+  );
+}

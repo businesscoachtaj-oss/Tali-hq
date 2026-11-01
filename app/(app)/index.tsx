@@ -1,0 +1,128 @@
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useFocusEffect } from 'expo-router';
+import { useAuth } from '@/lib/auth';
+import { myCredits, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type Credits } from '@/lib/data';
+import { Body, Button, Card, Label, TaliSays, Title } from '@/components/ui';
+import { colours, space } from '@/constants/theme';
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Morning';
+  if (h < 17) return 'Afternoon';
+  return 'Evening';
+}
+
+function trialLine(c: Credits | null) {
+  if (!c) return null;
+  if (c.status === 'trialing' && c.trialEndsAt) {
+    const days = Math.max(0, Math.ceil((new Date(c.trialEndsAt).getTime() - Date.now()) / 86400000));
+    return `${days} day${days === 1 ? '' : 's'} left of your Tali HQ trial`;
+  }
+  return null;
+}
+
+export default function Today() {
+  const { profile } = useAuth();
+  const [briefs, setBriefs] = useState<Brief[]>([]);
+  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [credits, setCredits] = useState<Credits | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoadError('');
+    try {
+      const [b, a, c] = await Promise.all([recentBriefs(5), pendingApprovals(), myCredits()]);
+      setBriefs(b);
+      setApprovals(a);
+      setCredits(c);
+    } catch (e: any) {
+      setLoadError(e?.message ?? 'Could not load today.');
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
+
+  const morning = briefs.find((b) => b.kind === 'morning');
+  const others = briefs.filter((b) => b !== morning);
+  const trial = trialLine(credits);
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={['top', 'left', 'right']}>
+      <ScrollView
+        contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
+        <Title sub={trial ?? undefined}>{`${greeting()}, ${profile?.first_name || 'mate'}`}</Title>
+
+        {loadError ? (
+          <Card>
+            <Body muted>{loadError} Pull down to try again.</Body>
+          </Card>
+        ) : null}
+
+        <Label>Needs you</Label>
+        {approvals.length === 0 ? (
+          <Card>
+            <Body muted>Nothing waiting for your yes.</Body>
+          </Card>
+        ) : (
+          approvals.map((a) => (
+            <Card key={a.id} style={{ borderLeftWidth: 5, borderLeftColor: colours.orange }}>
+              <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>{a.kind.replace('_', ' ')}</Text>
+              <Body>{a.title}</Body>
+            </Card>
+          ))
+        )}
+
+        <View style={{ height: space.md }} />
+        <Label>Your morning brief</Label>
+        {morning ? (
+          <Card>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text, marginBottom: 6 }}>
+              {morning.content.headline || morning.title || 'Your brief'}
+            </Text>
+            {(morning.content.lines ?? []).map((l, i) => (
+              <Text key={i} style={{ fontSize: 15, lineHeight: 22, color: colours.text, marginTop: 4 }}>
+                {'•'} {l}
+              </Text>
+            ))}
+            {!morning.read_at ? (
+              <Button title="Got it" kind="ghost" onPress={() => markBriefRead(morning.id).then(load)} />
+            ) : null}
+          </Card>
+        ) : (
+          <TaliSays pose="think">
+            Your first morning brief lands tomorrow. Until then, tell me about your business in Talk or jot something in your journal and I'll start learning.
+          </TaliSays>
+        )}
+
+        {others.length ? (
+          <>
+            <View style={{ height: space.md }} />
+            <Label>Earlier</Label>
+            {others.map((b) => (
+              <Card key={b.id}>
+                <Text style={{ fontSize: 12, color: colours.muted }}>{b.for_date}</Text>
+                <Body>{b.content.headline || b.title || b.kind}</Body>
+              </Card>
+            ))}
+          </>
+        ) : null}
+
+        <Button title="Talk to Tali" onPress={() => router.navigate('/talk')} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
