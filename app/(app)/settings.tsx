@@ -7,6 +7,7 @@ import { deleteAccount } from '@/lib/data';
 import { enablePush, pushSupported } from '@/lib/push';
 import { BRIEF_TIMES, BUSINESS_TYPES, prettyTime } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
+import { StripeConnectCard } from '@/components/StripeConnectCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 
@@ -109,6 +110,10 @@ export default function Settings() {
       <ErrorText>{error}</ErrorText>
       {saved ? <Text style={{ color: colours.good, marginTop: 6 }}>Saved.</Text> : null}
       <Button title="Save" onPress={save} busy={busy} />
+
+      <View style={{ height: space.xl }} />
+      <Label>Payments</Label>
+      <StripeConnectCard />
 
       <View style={{ height: space.xxl }} />
       <Label>Danger zone</Label>

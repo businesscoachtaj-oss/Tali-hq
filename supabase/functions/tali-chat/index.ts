@@ -347,7 +347,7 @@ Deno.serve(async (req) => {
 
   try {
     if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_API_KEY is not set');
-    const [{ data: ctx }, { data: history }, { data: work }, { data: life }] = await Promise.all([
+    const [{ data: ctx }, { data: history }, { data: work }, { data: life }, { data: stripeConn }] = await Promise.all([
       admin.rpc('tali_context', { p_user_id: user.id, p_query: recallQuery(text) }),
       admin
         .from('messages')
@@ -358,6 +358,7 @@ Deno.serve(async (req) => {
         .limit(20),
       admin.rpc('tali_work_context', { p_user_id: user.id }),
       admin.rpc('life_summary', { p_user_id: user.id }),
+      admin.from('stripe_connections').select('business_name').eq('user_id', user.id).maybeSingle(),
     ]);
 
     const tz = ctx?.profile?.timezone || 'Australia/Sydney';
@@ -372,6 +373,9 @@ Deno.serve(async (req) => {
       `Their latest journal entries they let you read: ${JSON.stringify(ctx?.journal ?? [])}`,
       `Their clients, leads, follow-ups due, open reminders, unpaid invoices and business health: ${JSON.stringify(work ?? {})}`,
       `Their food today (your estimates), weight and training this week: ${JSON.stringify(life ?? {})}`,
+      stripeConn
+        ? 'Their own Stripe is connected. When you draft an invoice it lands on their Today screen with a "Send with Stripe" button: one tap and Stripe emails it to the client with a pay by card link, and it marks itself paid here. You never send it yourself. If the client has no email on their list, tell them to add it on the invoice first.'
+        : 'Their Stripe is not connected, so invoices you draft wait on their Invoices screen for them to share as a PDF. If they ask about sending invoices or card payments, tell them they can connect their Stripe in Settings, Payments.',
     ].join('\n\n');
 
     // Oldest first, must start with a user turn and alternate roles.

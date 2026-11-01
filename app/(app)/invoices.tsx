@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import {
@@ -10,7 +10,9 @@ import {
   myCredits,
   saveInvoice,
   saveInvoiceSettings,
+  sendInvoiceWithStripe,
   setInvoiceStatus,
+  stripeConnection,
   type Client,
   type Credits,
   type Invoice,
@@ -51,6 +53,8 @@ type Draft = {
   gst: boolean;
   notes: string;
   created_by?: 'user' | 'tali';
+  stripe_url?: string | null;
+  stripe_invoice_id?: string | null;
 };
 
 const blankItem = () => ({ description: '', qty: '1', unit_price: '' });
@@ -70,6 +74,8 @@ export default function Invoices() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [stripeOn, setStripeOn] = useState(false);
+  const [sentNote, setSentNote] = useState('');
 
   const load = useCallback(async () => {
     setError('');
@@ -77,7 +83,8 @@ export default function Invoices() {
       const c = await myCredits();
       setCredits(c);
       if (!isPaid(c)) return;
-      const [inv, ppl, s] = await Promise.all([loadInvoices(), loadClients(), invoiceSettings()]);
+      const [inv, ppl, s, conn] = await Promise.all([loadInvoices(), loadClients(), invoiceSettings(), stripeConnection().catch(() => null)]);
+      setStripeOn(!!conn);
       setList(inv);
       setPeople(ppl.filter((p) => p.kind === 'client'));
       setSettings(s);
@@ -132,6 +139,8 @@ export default function Invoices() {
       gst: i.gst,
       notes: i.notes,
       created_by: i.created_by,
+      stripe_url: i.stripe_url,
+      stripe_invoice_id: i.stripe_invoice_id,
     });
   }
 
@@ -192,6 +201,24 @@ export default function Invoices() {
       setError(e?.message ?? 'Could not update.');
     }
     setBusy(false);
+  }
+
+  // Sends through their own Stripe: saves first, then Stripe emails it with a pay link.
+  async function sendStripe() {
+    if (!draft) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.client_email.trim())) return setError(`Add ${draft.client_name.trim() || 'their'}'s email first so Stripe knows where to send it.`);
+    const s = await save();
+    if (!s) return;
+    setBusy(true);
+    const res = await sendInvoiceWithStripe(s.id);
+    setBusy(false);
+    if (!res.ok) {
+      setDraft((d) => (d ? { ...d, id: s.id, number: s.number } : d));
+      return setError(res.message ?? 'Could not send.');
+    }
+    await load();
+    setDraft(null);
+    setSentNote(`Sent ${s.number} to ${s.client_email}. It'll mark itself paid when they pay. 🙌`);
   }
 
   async function remove() {
@@ -353,8 +380,17 @@ export default function Invoices() {
 
         <ErrorText>{error}</ErrorText>
         {!locked ? <Button title={draft.status === 'draft' ? 'Save draft' : 'Save changes'} onPress={() => saveAndClose()} busy={busy} /> : null}
+        {stripeOn && draft.status === 'draft' ? (
+          <>
+            <Button title="Send with Stripe" onPress={sendStripe} busy={busy} />
+            <Text style={{ color: colours.muted, fontSize: 12, marginTop: 2, marginBottom: space.md, textAlign: 'center', lineHeight: 17 }}>
+              {draft.client_email.trim() ? `To ${draft.client_email.trim()}. ` : 'Add their email above first. '}Stripe emails it with a pay by card link, paid straight to you.
+            </Text>
+          </>
+        ) : null}
+        {draft.stripe_url ? <Button title="View it in Stripe" kind="ghost" onPress={() => Linking.openURL(draft.stripe_url as string)} /> : null}
         <Button title="Share PDF" kind="ghost" onPress={share} disabled={busy} />
-        {draft.status === 'draft' ? <Button title="Mark as sent" kind="ghost" onPress={() => mark('sent')} disabled={busy} /> : null}
+        {draft.status === 'draft' ? <Button title={stripeOn ? 'Mark as sent (I sent it myself)' : 'Mark as sent'} kind="ghost" onPress={() => mark('sent')} disabled={busy} /> : null}
         {draft.status === 'sent' ? <Button title="Mark as paid" kind="ghost" onPress={() => mark('paid')} disabled={busy} /> : null}
         {draft.status === 'paid' ? <Button title="Not paid after all" kind="ghost" onPress={() => mark('sent')} disabled={busy} /> : null}
         {draft.status === 'sent' ? <Button title="Void this invoice" kind="danger" onPress={() => mark('void')} disabled={busy} /> : null}
@@ -362,7 +398,9 @@ export default function Invoices() {
           <Button title={confirmDelete ? 'Tap again to delete' : 'Delete'} kind="danger" onPress={remove} disabled={busy} />
         ) : null}
         <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.md, lineHeight: 19 }}>
-          Share the PDF by email or message yourself. Tali never sends an invoice for you.
+          {stripeOn
+            ? 'Nothing goes out until you tap Send. Or share the PDF yourself if you prefer.'
+            : 'Share the PDF by email or message yourself, or connect your Stripe in Settings and I can send it for you when you tap Send.'}
         </Text>
       </Screen>
     );
@@ -373,6 +411,15 @@ export default function Invoices() {
     <Screen>
       <BackLink onPress={() => router.navigate('/clients')} label="Clients" />
       <Title sub="Or just tell Tali: invoice Jordan for 4 PT sessions at $80.">Invoices</Title>
+      {sentNote ? <Text style={{ color: colours.good, fontWeight: '700', marginBottom: space.md, lineHeight: 20 }}>{sentNote}</Text> : null}
+      {!stripeOn ? (
+        <Pressable onPress={() => router.navigate('/settings')} accessibilityRole="button">
+          <Card style={{ backgroundColor: colours.purpleSoft, borderColor: colours.purpleSoft }}>
+            <Text style={{ color: colours.purpleInk, fontWeight: '700' }}>Connect your Stripe and I'll send these for you</Text>
+            <Text style={{ color: colours.purpleInk, fontSize: 13, marginTop: 2 }}>With a pay by card link, and they mark themselves paid. Settings, Payments.</Text>
+          </Card>
+        </Pressable>
+      ) : null}
 
       {list.length ? (
         <Card>

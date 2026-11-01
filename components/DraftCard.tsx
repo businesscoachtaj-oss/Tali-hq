@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { decideApproval, type Approval } from '@/lib/data';
+import { router } from 'expo-router';
+import { decideApproval, sendInvoiceWithStripe, type Approval } from '@/lib/data';
 import { Card } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
@@ -22,6 +23,22 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const body = item.draft?.body ?? '';
+  // Tali's invoice drafts when the business has Stripe connected: Send emails it through their Stripe.
+  const stripeSend = item.kind === 'invoice' && item.draft?.action === 'stripe_send' && item.draft?.invoice_id;
+  const [sent, setSent] = useState(false);
+
+  async function sendStripe() {
+    setBusy(true);
+    setError('');
+    const res = await sendInvoiceWithStripe(String(item.draft?.invoice_id));
+    if (!res.ok) {
+      setError(res.message ?? 'Could not send.');
+      setBusy(false);
+      return;
+    }
+    setSent(true);
+    setTimeout(() => onDecided(item.id), 1600);
+  }
 
   async function copy() {
     try {
@@ -49,7 +66,7 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   return (
     <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.orange }}>
       <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>
-        {KIND_LABEL[item.kind] ?? 'Draft'}
+        {stripeSend ? 'Invoice' : KIND_LABEL[item.kind] ?? 'Draft'}
         {item.draft?.to ? ` · to ${item.draft.to}` : ''}
       </Text>
       <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text, marginTop: 2 }}>{item.title}</Text>
@@ -64,10 +81,20 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
         </Pressable>
       ) : null}
       {error ? <Text style={{ color: colours.danger, fontSize: 13, marginTop: 6 }}>{error}</Text> : null}
+      {sent ? <Text style={{ color: colours.good, fontWeight: '700', marginTop: space.sm }}>Sent through Stripe 🙌</Text> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.md }}>
-        {body ? <Chip label={copied ? 'Copied' : 'Copy'} primary onPress={copy} disabled={busy} /> : null}
-        <Chip label="Done, I sent it" onPress={() => decide('done')} disabled={busy} />
-        <Chip label="Not needed" ghost onPress={() => decide('rejected')} disabled={busy} />
+        {stripeSend ? (
+          <>
+            {item.draft?.email ? <Chip label={busy ? 'Sending...' : 'Send with Stripe'} primary onPress={sendStripe} disabled={busy || sent} /> : null}
+            <Chip label={item.draft?.email ? 'Check it first' : 'Add their email'} onPress={() => router.navigate('/invoices')} disabled={busy} />
+          </>
+        ) : (
+          <>
+            {body ? <Chip label={copied ? 'Copied' : 'Copy'} primary onPress={copy} disabled={busy} /> : null}
+            <Chip label="Done, I sent it" onPress={() => decide('done')} disabled={busy} />
+          </>
+        )}
+        <Chip label="Not needed" ghost onPress={() => decide('rejected')} disabled={busy || sent} />
       </View>
     </Card>
   );

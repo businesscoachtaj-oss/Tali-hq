@@ -44,7 +44,7 @@ export type Approval = {
   kind: string;
   title: string;
   status: string;
-  draft: { to?: string | null; subject?: string; body?: string } | null;
+  draft: { to?: string | null; subject?: string; body?: string; action?: string; invoice_id?: string; email?: string | null } | null;
   created_at: string;
 };
 
@@ -350,6 +350,9 @@ export type Invoice = {
   notes: string;
   created_by: 'user' | 'tali';
   created_at: string;
+  stripe_invoice_id: string | null;
+  stripe_url: string | null;
+  paid_via: 'stripe' | 'manual' | null;
 };
 export type InvoiceSettings = {
   business_name: string | null;
@@ -364,7 +367,7 @@ export type InvoiceSettings = {
   footer: string | null;
 };
 
-const INVOICE_COLS = 'id, client_id, client_name, client_email, number, issue_date, due_date, items, gst, subtotal, gst_amount, total, status, sent_at, paid_at, notes, created_by, created_at';
+const INVOICE_COLS = 'id, client_id, client_name, client_email, number, issue_date, due_date, items, gst, subtotal, gst_amount, total, status, sent_at, paid_at, notes, created_by, created_at, stripe_invoice_id, stripe_url, paid_via';
 
 export async function invoices(): Promise<Invoice[]> {
   const { data, error } = await supabase.from('invoices').select(INVOICE_COLS).order('created_at', { ascending: false }).limit(200);
@@ -597,3 +600,30 @@ export async function deleteWorkout(id: string) {
   const { error } = await supabase.from('workout_logs').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ---------- Stripe: businesses connect their own Stripe so Tali can send invoices through it ----------
+export type StripeConnection = { account_id: string; business_name: string | null; livemode: boolean; connected_at: string };
+
+export async function stripeConnection(): Promise<StripeConnection | null> {
+  const { data, error } = await supabase.from('stripe_connections').select('account_id, business_name, livemode, connected_at').maybeSingle();
+  if (error) throw error;
+  return (data as StripeConnection | null) ?? null;
+}
+
+async function stripeCall(body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; url?: string | null; code?: string }> {
+  const { data, error } = await supabase.functions.invoke('stripe-invoices', { body });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; url?: string | null };
+}
+
+// Returns the Stripe page to open; Stripe sends them back to /settings?stripe=connected.
+export const startStripeConnect = (returnUrl: string) => stripeCall({ action: 'connect', returnUrl });
+export const disconnectStripe = () => stripeCall({ action: 'disconnect' });
+// Creates the invoice in their Stripe and emails it to the client. Only ever called from their tap.
+export const sendInvoiceWithStripe = (invoiceId: string) => stripeCall({ action: 'send', invoiceId });
