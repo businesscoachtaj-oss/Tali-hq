@@ -145,7 +145,7 @@ export default function Life() {
       <View style={{ height: space.md }} />
       <Label>Weight</Label>
       {wts.length === 0 ? (
-        <Card><Body muted>Tell Tali your weight whenever you weigh in, like "82.4 this morning".</Body></Card>
+        <TaliSays pose="idle">Tell me your weight whenever you weigh in, like "82.4 this morning", and I'll track the trend here.</TaliSays>
       ) : (
         <Card>
           <Text style={{ fontSize: 22, fontWeight: '800', color: colours.text }}>{wts[0].kg} kg</Text>
