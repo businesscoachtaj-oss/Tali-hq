@@ -1,5 +1,6 @@
-// Tali as a living sprite, like in Totality and Totality Nutrition: she bobs
-// gently and blinks now and then. Full-body Tali also slips into a different
+// Tali as a living sprite, like in Totality and Totality Nutrition. Her head
+// (Talk) bobs gently and blinks. Full-body Tali stands still (Taj: the fades
+// look nicer that way), blinks now and then, and slips into a different
 // pose every 7 seconds or so (peek, wink, giggle...) for a couple of seconds
 // and smoothly fades back. The extra poses come from Tali's 100 pose set,
 // lined up to the same frame as the app sprites so the fade has no jump.
@@ -54,9 +55,10 @@ export function TaliAvatar({
   const canBlink = pose === 'idle' || pose === 'head';
   const useExtras = animate && extras && !isHead && pose !== 'celebrate';
 
-  // Gentle bob and sway.
+  // Gentle bob and sway, head only.
+  const bobs = animate && isHead;
   useEffect(() => {
-    if (!animate) return;
+    if (!bobs) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(bob, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
@@ -65,7 +67,7 @@ export function TaliAvatar({
     );
     loop.start();
     return () => loop.stop();
-  }, [animate, bob]);
+  }, [bobs, bob]);
 
   // Blink every few seconds.
   useEffect(() => {
@@ -124,7 +126,7 @@ export function TaliAvatar({
   const img = { width: size, height, position: 'absolute' as const, top: 0, left: 0 };
 
   return (
-    <Animated.View style={[{ width: size, height, transform: animate ? [{ translateY }, { rotate }] : [] }, style]} accessibilityLabel="Tali">
+    <Animated.View style={[{ width: size, height, transform: bobs ? [{ translateY }, { rotate }] : [] }, style]} accessibilityLabel="Tali">
       <Animated.Image source={SRC[base]} style={[img, useExtras ? { opacity: fade.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) } : null]} resizeMode="contain" />
       {useExtras && extra ? <Animated.Image source={SRC[extra]} style={[img, { opacity: fade }]} resizeMode="contain" /> : null}
     </Animated.View>
