@@ -1,4 +1,4 @@
-// Google (Gmail and Calendar) helpers for Tali HQ edge functions. Plain fetch, no SDK.
+// Google (Calendar, and Gmail for Tali HQ) helpers. Copied from Tali HQ; keep the two in step.
 // Secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (one OAuth web client, shared with Totality).
 // Tokens live in public.google_connections (server only). Every call refreshes the access
 // token when it is within a minute of expiring.
@@ -25,6 +25,8 @@ export type GoogleConnection = {
   calendar_id: string;
   mail_sync_after: string | null;
   last_mail_sync_at: string | null;
+  last_error?: string | null;
+  timezone?: string;
 };
 
 export class GoogleError extends Error {
@@ -280,4 +282,47 @@ export async function gmailSend(admin: SupabaseClient, conn: GoogleConnection, m
   const body: any = { raw };
   if (msg.thread_id) body.threadId = msg.thread_id;
   return gapi<{ id: string; threadId: string }>(admin, conn, 'POST', 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send', body);
+}
+
+// ---------- Calendar: busy blocks and event upkeep (Totality) ----------
+// Busy intervals for one local day, from Google's free/busy. Only start and end come back, never titles.
+export async function calendarBusy(admin: SupabaseClient, conn: GoogleConnection, dateYmd: string, tz: string): Promise<{ start: string; end: string }[]> {
+  const offset = tzOffsetString(tz, new Date(`${dateYmd}T12:00:00Z`));
+  const timeMin = `${dateYmd}T00:00:00${offset}`;
+  const timeMax = `${dateYmd}T23:59:59${offset}`;
+  const data = await gapi<{ calendars?: Record<string, { busy?: { start: string; end: string }[] }> }>(admin, conn, 'POST', 'https://www.googleapis.com/calendar/v3/freeBusy', {
+    timeMin,
+    timeMax,
+    timeZone: tz,
+    items: [{ id: conn.calendar_id || 'primary' }],
+  });
+  const cal = data.calendars?.[conn.calendar_id || 'primary'] ?? Object.values(data.calendars ?? {})[0];
+  return (cal?.busy ?? []).map((b) => ({ start: b.start, end: b.end }));
+}
+
+export function tzOffsetString(tz: string, at: Date) {
+  const s = new Intl.DateTimeFormat('en-AU', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(at).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+00:00';
+  const m = s.match(/([+-])(\d{2}):(\d{2})/);
+  return m ? `${m[1]}${m[2]}:${m[3]}` : '+00:00';
+}
+
+export async function calendarUpdate(admin: SupabaseClient, conn: GoogleConnection, eventId: string, ev: { title: string; start: string; end: string; description?: string | null; location?: string | null }, tz: string) {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(conn.calendar_id || 'primary')}/events/${encodeURIComponent(eventId)}`;
+  return gapi<{ id: string }>(admin, conn, 'PATCH', url, {
+    summary: ev.title.slice(0, 200),
+    start: { dateTime: ev.start, timeZone: tz },
+    end: { dateTime: ev.end, timeZone: tz },
+    description: ev.description || undefined,
+    location: ev.location || undefined,
+    status: 'confirmed',
+  });
+}
+
+export async function calendarDelete(admin: SupabaseClient, conn: GoogleConnection, eventId: string) {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(conn.calendar_id || 'primary')}/events/${encodeURIComponent(eventId)}`;
+  try {
+    await gapi(admin, conn, 'DELETE', url);
+  } catch (e) {
+    if (!(e instanceof GoogleError && (e.status === 404 || e.status === 410))) throw e;
+  }
 }
