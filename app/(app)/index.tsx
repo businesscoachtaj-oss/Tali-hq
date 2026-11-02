@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -11,6 +11,7 @@ import { addDays, today } from '@/lib/dates';
 import { DueList } from '@/components/DueList';
 import { AddReminder } from '@/components/AddReminder';
 import { Body, Button, Card, Label, TaliSays, Title } from '@/components/ui';
+import { TaliAvatar } from '@/components/TaliAvatar';
 import { DraftCard } from '@/components/DraftCard';
 import { AppTour } from '@/components/AppTour';
 import { TOUR_STEPS, finishTour } from '@/lib/tour';
@@ -98,6 +99,14 @@ export default function Today() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
         <Title sub={trial ?? undefined}>{`${greeting()}, ${profile?.first_name || 'mate'}`}</Title>
 
+        {/* ADDED (3 Nov 2026): Tali reads the page for you. */}
+        <View style={q.hello}>
+          <TaliAvatar pose="idle" size={64} />
+          <View style={q.bubble}>
+            <Text style={q.bubbleText}>{helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health })}</Text>
+          </View>
+        </View>
+
         {loadError ? (
           <Card>
             <Body muted>{loadError} Pull down to try again.</Body>
@@ -111,12 +120,14 @@ export default function Today() {
           </>
         ) : null}
 
+        <Label>Due today</Label>
         {reminders.length + followUps.length > 0 ? (
-          <>
-            <Label>Due today</Label>
-            <DueList reminders={reminders} followUps={followUps} onChange={load} />
-          </>
-        ) : null}
+          <DueList reminders={reminders} followUps={followUps} onChange={load} />
+        ) : (
+          <Card>
+            <Body muted>Nothing due. Add a reminder and I'll nudge you when it's time.</Body>
+          </Card>
+        )}
         <AddReminder onAdded={load} />
         {calendar?.connected ? (
           <>
@@ -180,7 +191,6 @@ export default function Today() {
           </>
         ) : null}
 
-        <Button title="Talk to Tali" onPress={() => router.navigate('/talk')} />
       </ScrollView>
       {showTour ? <AppTour steps={TOUR_STEPS} onDone={closeTour} firstName={profile?.first_name} /> : null}
     </SafeAreaView>
@@ -212,3 +222,20 @@ function CalendarCard({ cal }: { cal: CalendarToday }) {
     </Card>
   );
 }
+
+// One line from Tali that reads Today for you.
+function helloLine({ morning, reminders, approvals, health }: { morning?: Brief; reminders: number; approvals: number; health: Health | null }) {
+  const bits: string[] = [];
+  if (reminders) bits.push(`${reminders} thing${reminders === 1 ? '' : 's'} due today`);
+  if (approvals) bits.push(`${approvals} draft${approvals === 1 ? '' : 's'} waiting for your yes`);
+  if (health && health.status !== 'green') bits.push('a couple of things worth a look in your business health');
+  if (bits.length) return `Morning. You've got ${bits.join(', ')}. Your brief's below.`;
+  if (morning) return "Quiet one today. Nothing due, nothing waiting. Your brief's below if you want the detail.";
+  return "Nothing on yet. Tell me about your business in Talk and I'll have a brief for you tomorrow.";
+}
+
+const q = StyleSheet.create({
+  hello: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: -space.sm, marginBottom: space.lg },
+  bubble: { flex: 1, backgroundColor: colours.purpleSoft, borderRadius: 16, borderBottomLeftRadius: 4, padding: space.md },
+  bubbleText: { color: colours.purpleInk, fontSize: 15, lineHeight: 21 },
+});
