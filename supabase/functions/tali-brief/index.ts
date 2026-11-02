@@ -15,6 +15,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { calendarSummary, loadConnection } from '../_shared/google.ts';
+import { pushUser } from '../_shared/push.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -87,19 +88,9 @@ const JOURNAL_TOOL = {
 
 // Expo push for the brief, only for users who left "Notify me" on. Failures never block the brief.
 async function notify(userId: string, title: string, body: string, url = '/') {
-  try {
-    const { data: prof } = await admin.from('profiles').select('brief_push').eq('id', userId).maybeSingle();
-    if (prof && prof.brief_push === false) return;
-    const { data: tokens } = await admin.from('push_tokens').select('token').eq('user_id', userId);
-    if (!tokens?.length) return;
-    await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(tokens.map((t: { token: string }) => ({ to: t.token, title, body: body.slice(0, 160), sound: 'default', data: { url } }))),
-    });
-  } catch (e) {
-    console.warn('push failed', String(e));
-  }
+  const { data: prof } = await admin.from('profiles').select('brief_push').eq('id', userId).maybeSingle();
+  if (prof && prof.brief_push === false) return;
+  await pushUser(admin, userId, { title, body, url });
 }
 
 const strip = (s: string) => String(s ?? '').replace(/\s*[\u2013\u2014]\s*/g, ', ').trim();

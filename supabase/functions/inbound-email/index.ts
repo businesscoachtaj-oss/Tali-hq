@@ -13,6 +13,7 @@
 // tali.totality360.com.au), ANTHROPIC_API_KEY, optional TALI_MODEL.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { pushUser } from '../_shared/push.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
@@ -127,17 +128,7 @@ async function claude(system: string, user: string) {
 }
 
 async function notify(userId: string, title: string, body: string) {
-  try {
-    const { data: tokens } = await admin.from('push_tokens').select('token').eq('user_id', userId);
-    if (!tokens?.length) return;
-    await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(tokens.map((t: { token: string }) => ({ to: t.token, title, body: body.slice(0, 160), sound: 'default', data: { url: '/' } }))),
-    });
-  } catch (e) {
-    console.warn('push failed', String(e));
-  }
+  await pushUser(admin, userId, { title, body, url: '/' });
 }
 
 Deno.serve(async (req) => {

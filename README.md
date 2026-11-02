@@ -68,3 +68,6 @@ Vercel: import the repo once (vercel.com/new). `vercel.json` sets the install an
 ## Builds
 
 EAS profiles in `eas.json` carry the public Supabase URL and publishable key (EAS builds from git, so `.env` never reaches it). The app icon and splash use Tali's icon art (assets/icon.png).
+
+### Notifications (2 Nov 2026)
+Push reaches every device a user has. Phone builds use Expo push tokens. The web app and PWA use standard web push: `public/sw.js` is the service worker, the VAPID key pair is generated once by the `push-send` function and kept in `public.web_push_keys` (server only), and the app reads the public key through `vapid_public_key()`. On iPhone, web push only works once Tali HQ is added to the Home Screen. Every sender (brief, Gmail sort, Tali's email, Stripe invoices, reminders, health checks) goes through `_shared/push.ts` or `public.push_user()`.

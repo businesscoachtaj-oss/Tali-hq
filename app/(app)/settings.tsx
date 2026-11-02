@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { deleteAccount } from '@/lib/data';
-import { enablePush, pushSupported } from '@/lib/push';
+import { enablePush, pushSupported, sendTestPush } from '@/lib/push';
 import { BRIEF_TIMES, BUSINESS_TYPES, prettyTime } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
 import { GoogleConnectCard } from '@/components/GoogleConnectCard';
@@ -58,8 +58,14 @@ export default function Settings() {
     setPushNote('');
     setPushBusy(true);
     const res = await enablePush();
+    if (!res.ok) {
+      setPushBusy(false);
+      return setPushNote(res.message);
+    }
+    // Prove it works straight away.
+    const test = await sendTestPush();
     setPushBusy(false);
-    setPushNote(res.ok ? "Done. You'll get a nudge when your brief lands." : res.message);
+    setPushNote(test.ok ? "Done. A test just went to this device, and you'll get a nudge when your brief lands." : "Done. You'll get a nudge when your brief lands.");
   }
 
   async function removeAccount() {
@@ -99,12 +105,12 @@ export default function Settings() {
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
         <View style={{ flex: 1 }}>
           <Text style={{ fontWeight: '700', color: colours.text }}>Notify me when my brief lands</Text>
-          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>A short notification on your phone. Nothing else, ever.</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>A short notification when your brief lands, an email needs you, a reminder is due or a health check turns amber. Nothing else, ever.</Text>
         </View>
         <Switch value={briefPush} onValueChange={setBriefPush} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
       </Card>
       {pushSupported ? (
-        <Button title="Turn on notifications on this phone" kind="ghost" onPress={turnOnPush} busy={pushBusy} />
+        <Button title="Turn on notifications on this device" kind="ghost" onPress={turnOnPush} busy={pushBusy} />
       ) : null}
       {pushNote ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: 6 }}>{pushNote}</Text> : null}
 
