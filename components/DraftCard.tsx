@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { bookEventApproval, decideApproval, sendEmailApproval, sendFromTaliAddress, sendInvoiceWithStripe, type Approval } from '@/lib/data';
+import { bookEventApproval, decideApproval, editDraft, sendEmailApproval, sendFromTaliAddress, sendInvoiceWithStripe, type Approval } from '@/lib/data';
 import { INBOUND_DOMAIN } from '@/constants/business';
 import { Card } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
@@ -24,7 +24,31 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const body = item.draft?.body ?? '';
+  // Talk back to the draft: Tali rewrites it in place (1 credit).
+  const [body, setBody] = useState<string>(item.draft?.body ?? '');
+  const [subject, setSubject] = useState<string | null>(item.draft?.subject ?? null);
+  const [tweak, setTweak] = useState(false);
+  const [tweakText, setTweakText] = useState('');
+  const [editing, setEditing] = useState('');
+  const [editNote, setEditNote] = useState('');
+  const editable = !!body && item.draft?.action !== 'calendar_create' && item.draft?.action !== 'stripe_send';
+
+  async function rework(instruction: string) {
+    const ins = instruction.trim();
+    if (!ins || editing) return;
+    setError('');
+    setEditNote('');
+    setEditing(ins);
+    const res = await editDraft(item.id, ins);
+    setEditing('');
+    if (!res.ok) return setError(res.message);
+    setBody(res.body);
+    if (res.subject) setSubject(res.subject);
+    setOpen(true);
+    setTweak(false);
+    setTweakText('');
+    setEditNote('Reworked. Have a read before you send it.');
+  }
   // Tali's invoice drafts when the business has Stripe connected: Send emails it through their Stripe.
   const stripeSend = item.kind === 'invoice' && item.draft?.action === 'stripe_send' && item.draft?.invoice_id;
   // Google connected: emails send from their Gmail, bookings go into their Google Calendar, on their tap.
@@ -121,7 +145,7 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
       </Text>
       <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text, marginTop: 2 }}>{item.title}</Text>
       {gmailSend && item.draft?.summary ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>They said: {item.draft.summary}</Text> : null}
-      {(gmailSend || taliSend) && item.draft?.subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {item.draft.subject}</Text> : null}
+      {(gmailSend || taliSend) && subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {subject}</Text> : null}
       {body ? (
         <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel={open ? 'Hide draft' : 'Show draft'}>
           <View style={{ marginTop: space.sm, backgroundColor: colours.sunk, borderRadius: 12, padding: space.md }}>
@@ -131,6 +155,33 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
             {!open ? <Text style={{ fontSize: 12, color: colours.purpleInk, fontWeight: '700', marginTop: 4 }}>Show all</Text> : null}
           </View>
         </Pressable>
+      ) : null}
+      {editable && !sent ? (
+        <View style={{ marginTop: space.sm }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700' }}>Tali, make it</Text>
+            <Mini label="shorter" active={editing === 'shorter'} onPress={() => rework('shorter')} disabled={!!editing} />
+            <Mini label="warmer" active={editing === 'warmer'} onPress={() => rework('warmer')} disabled={!!editing} />
+            <Mini label="more formal" active={editing === 'formal'} onPress={() => rework('formal')} disabled={!!editing} />
+            <Mini label={tweak ? 'cancel' : 'something else...'} onPress={() => setTweak(!tweak)} disabled={!!editing} />
+          </View>
+          {tweak ? (
+            <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.sm, alignItems: 'center' }}>
+              <TextInput
+                value={tweakText}
+                onChangeText={setTweakText}
+                placeholder='For example "say Thursday 6am works"'
+                placeholderTextColor={colours.faint}
+                onSubmitEditing={() => rework(tweakText)}
+                returnKeyType="send"
+                style={{ flex: 1, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colours.text, backgroundColor: colours.surface }}
+              />
+              <Chip label={editing && editing !== 'shorter' && editing !== 'warmer' && editing !== 'formal' ? 'Working...' : 'Go'} primary onPress={() => rework(tweakText)} disabled={!!editing || !tweakText.trim()} />
+            </View>
+          ) : null}
+          {editing ? <Text style={{ fontSize: 12, color: colours.purpleInk, marginTop: 6 }}>Tali is reworking it...</Text> : null}
+          {editNote && !editing ? <Text style={{ fontSize: 12, color: colours.good, marginTop: 6 }}>{editNote}</Text> : null}
+        </View>
       ) : null}
       {error ? <Text style={{ color: colours.danger, fontSize: 13, marginTop: 6 }}>{error}</Text> : null}
       {sent ? <Text style={{ color: colours.good, fontWeight: '700', marginTop: space.sm }}>{sentNote || 'Sent through Stripe 🙌'}</Text> : null}
@@ -179,6 +230,17 @@ function Chip({ label, onPress, primary, ghost, disabled }: { label: string; onP
         opacity: disabled ? 0.5 : 1,
       }}>
       <Text style={{ fontWeight: '700', fontSize: 13, color: primary ? colours.onPurple : ghost ? colours.muted : colours.text }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function Mini({ label, onPress, active, disabled }: { label: string; onPress: () => void; active?: boolean; disabled?: boolean }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={disabled ? undefined : onPress}
+      style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: active ? colours.purple : colours.purpleSoft, opacity: disabled && !active ? 0.5 : 1 }}>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: active ? colours.onPurple : colours.purpleInk }}>{label}</Text>
     </Pressable>
   );
 }

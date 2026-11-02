@@ -71,3 +71,6 @@ EAS profiles in `eas.json` carry the public Supabase URL and publishable key (EA
 
 ### Notifications (2 Nov 2026)
 Push reaches every device a user has. Phone builds use Expo push tokens. The web app and PWA use standard web push: `public/sw.js` is the service worker, the VAPID key pair is generated once by the `push-send` function and kept in `public.web_push_keys` (server only), and the app reads the public key through `vapid_public_key()`. On iPhone, web push only works once Tali HQ is added to the Home Screen. Every sender (brief, Gmail sort, Tali's email, Stripe invoices, reminders, health checks) goes through `_shared/push.ts` or `public.push_user()`.
+
+### Talk back to a draft, and Share to Tali (2 Nov 2026)
+On any draft card on Today: "Tali, make it shorter / warmer / more formal / something else..." sends the instruction to `tali-draft-edit`, which rewrites the draft in place (1 credit, old text kept in `draft.previous`). Calendar bookings and Stripe invoices are not editable this way. The PWA is also a share target (`share_target` in `public/manifest.json`): on Android, Share from any app and pick Tali HQ, and the text or link lands in Talk's composer for the user to send. iPhone does not offer web share targets.

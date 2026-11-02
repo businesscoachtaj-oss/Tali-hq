@@ -724,3 +724,20 @@ export async function founderStats(): Promise<FounderStats> {
   if (error) throw error;
   return data as FounderStats;
 }
+
+// ---------- Talk back to a draft (2 Nov 2026) ----------
+// instruction: 'shorter' | 'warmer' | 'formal' | 'casual' or anything in the user's words.
+export async function editDraft(approvalId: string, instruction: string): Promise<{ ok: true; body: string; subject: string | null } | { ok: false; message: string }> {
+  const { data, error } = await supabase.functions.invoke('tali-draft-edit', { body: { approvalId, instruction } });
+  if (error) {
+    const ctx = (error as any)?.context;
+    try {
+      const j = ctx && typeof ctx.json === 'function' ? await ctx.json() : null;
+      return { ok: false, message: j?.message ?? "I couldn't rework that one just now." };
+    } catch {
+      return { ok: false, message: "I couldn't rework that one just now." };
+    }
+  }
+  if (!data?.ok) return { ok: false, message: data?.message ?? "I couldn't rework that one just now." };
+  return { ok: true, body: String(data.body ?? ''), subject: data.subject ?? null };
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
 import { currentConversation, messages as loadMessages, myCredits, newConversation, sendMessage, type Message } from '@/lib/data';
 import { isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
@@ -28,6 +29,21 @@ export default function Talk() {
   const [notice, setNotice] = useState('');
   const [pro, setPro] = useState(false);
   const listRef = useRef<FlatList<Row>>(null);
+  const inputRef = useRef<TextInput>(null);
+  // Share to Tali (2 Nov 2026): the PWA is a share target, so a text, DM screenshot caption or link
+  // shared from another app lands here as ?text=&title=&url=. It goes into the composer for the
+  // user to add a word to and send; nothing is sent on its own.
+  const params = useLocalSearchParams<{ text?: string; title?: string; url?: string }>();
+  useEffect(() => {
+    const shared = [params.title, params.text, params.url].map((v) => (Array.isArray(v) ? v[0] : v)).filter((v) => v && String(v).trim());
+    if (!shared.length) return;
+    const unique = Array.from(new Set(shared.map(String)));
+    setText(`Someone sent me this. What should I do with it?\n\n${unique.join('\n')}`);
+    setNotice('Shared with Tali. Add a word if you like, then send.');
+    setTimeout(() => inputRef.current?.focus(), 300);
+    // Clear the params so a refresh does not re-fill the box.
+    router.setParams({ text: undefined, title: undefined, url: undefined } as any);
+  }, [params.text, params.title, params.url]);
 
   const load = useCallback(async () => {
     try {
@@ -159,6 +175,7 @@ export default function Talk() {
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, borderTopWidth: 1, borderTopColor: colours.border, backgroundColor: colours.surface }}>
           <TextInput
+            ref={inputRef}
             value={text}
             onChangeText={setText}
             placeholder="Message Tali"
