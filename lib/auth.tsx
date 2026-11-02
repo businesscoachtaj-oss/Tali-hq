@@ -19,6 +19,9 @@ type AuthValue = {
   isLoading: boolean;
   session: Session | null;
   profile: Profile | null;
+  // True once the profile for the current session has loaded (or there is no session). Until then the
+  // root layout shows a loader, so signing in never flashes onboarding before the profile arrives.
+  profileReady: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
   // True after an emailed password-reset link signs the user in, until they set a new password.
@@ -41,14 +44,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [recovering, setRecovering] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   const loadProfile = useCallback(async (s: Session | null) => {
     if (!s) {
       setProfile(null);
+      setLoadedFor(null);
       return;
     }
     const { data } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', s.user.id).maybeSingle();
     setProfile((data as Profile | null) ?? null);
+    setLoadedFor(s.user.id);
   }, []);
 
   useEffect(() => {
@@ -80,7 +86,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoading, session, profile, refreshProfile, signOut, recovering, endRecovery: () => setRecovering(false) }}>
+    <AuthContext.Provider value={{ isLoading, session, profile, profileReady: !session || loadedFor === session.user.id, refreshProfile, signOut, recovering, endRecovery: () => setRecovering(false) }}>
       {children}
     </AuthContext.Provider>
   );
