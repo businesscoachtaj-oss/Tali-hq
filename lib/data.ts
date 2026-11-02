@@ -17,7 +17,7 @@ export async function myCredits(): Promise<Credits | null> {
 
 export type Brief = {
   id: string;
-  kind: 'morning' | 'health' | 'weekly' | 'journal';
+  kind: 'morning' | 'health' | 'weekly' | 'journal' | 'patterns';
   for_date: string;
   title: string | null;
   content: { headline?: string; lines?: string[]; paragraphs?: string[] };
@@ -218,7 +218,7 @@ export async function messages(conversationId: string): Promise<Message[]> {
 }
 
 export type ChatResult =
-  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; remaining: number | null }
+  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; goalsSaved?: number; decisionsLogged?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and

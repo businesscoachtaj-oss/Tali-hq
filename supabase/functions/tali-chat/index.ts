@@ -50,6 +50,7 @@ const VOICE = [
   'No hype words, no "here\'s the thing", no "it\'s not X, it\'s Y" contrasts.',
   'You never send, book or pay for anything yourself. Everything you write to go out lands on their Today screen and waits for their tap. When they want a text or social message written, put it in drafts (they copy and send it). When their Google is connected and they want an email sent, put it in emails (Today gets a "Send from Gmail" button). When their calendar is connected and they want something booked, put it in events (Today gets a "Book it" button, and the invite goes to the attendee when they tap it). Say what is waiting on Today in one short line. If Google is not connected and they ask for either, draft it anyway as a draft and mention they can connect Google in Settings.',
   'You can keep their client and lead list, set reminders and draft invoices, but only when they ask. Confirm what you added in one short line.',
+  'You hold them to their goals: when they set one or report progress, save it in goals and name where they are against it. When they state a decision they have made, record it in decisions with their reasoning; never record your own suggestions or things they are only considering. Their three commitments for the week and their last shutdown are in their rhythm data, so refer to them when it helps.',
   'You can also log their food, weight and workouts and write their training programme when they tell you or ask. Food numbers are your estimates, so say "about" and keep them realistic. No medical or diet advice beyond general information.',
   'When web search is available, use it only for things that change (prices, rules, news, events, local businesses) or that you do not know, and name your sources in the reply. Never search for personal details about private people.',
   'Never invent facts about them or their business. Use what you are given and ask when you need more.',
@@ -225,6 +226,40 @@ const TOOL = {
           required: ['title', 'start', 'end'],
         },
       },
+      goals: {
+        type: 'array',
+        maxItems: 2,
+        description:
+          'Only when they set a goal, change one, or tell you progress on one (for example "I want 5 more clients by February", "I\'m at 3 of the 5 now", "drop the Instagram goal"). Matched by title to their active goals (given to you in their rhythm data), so reuse the existing title exactly when updating. Numbers only, no currency symbols. Empty otherwise.',
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'Short, for example "5 more regular clients". Reuse the existing title to update.' },
+            target_number: { type: 'number' },
+            current_number: { type: 'number', description: 'Where they are now, when they told you.' },
+            unit: { type: 'string', description: 'For example "clients", "A$", "kg", "posts".' },
+            due_date: { type: 'string', description: 'YYYY-MM-DD in their timezone, if they gave one.' },
+            status: { type: 'string', enum: ['active', 'done', 'dropped'] },
+            notes: { type: 'string' },
+          },
+          required: ['title'],
+        },
+      },
+      decisions: {
+        type: 'array',
+        maxItems: 3,
+        description:
+          'Only when THEY state a decision they have made in this message ("I\'ve decided", "we\'re going to", "from January I will"). Never for suggestions you made, options discussed, or things they are still weighing up. Empty otherwise.',
+        items: {
+          type: 'object',
+          properties: {
+            decision: { type: 'string', description: 'The decision in their words, one line, no trailing full stop.' },
+            reasoning: { type: 'string', description: 'Their reasoning as they gave it. Empty string if they gave none; never invent one.' },
+            date: { type: 'string', description: 'YYYY-MM-DD only if they said when they decided; otherwise omit.' },
+          },
+          required: ['decision', 'reasoning'],
+        },
+      },
       training_plan: {
         type: 'array',
         maxItems: 1,
@@ -247,7 +282,7 @@ const TOOL = {
         },
       },
     },
-    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'weight', 'workouts', 'emails', 'events', 'training_plan'],
+    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'weight', 'workouts', 'emails', 'events', 'goals', 'decisions', 'training_plan'],
   },
 };
 
@@ -263,6 +298,8 @@ type Out = {
   workouts?: { label: string; notes?: string; date?: string }[];
   emails?: { to: string; to_name?: string; subject: string; body: string; reply_to_email_id?: string }[];
   events?: { title: string; start: string; end: string; attendee_email?: string; location?: string; description?: string }[];
+  goals?: { title: string; target_number?: number; current_number?: number; unit?: string; due_date?: string; status?: string; notes?: string }[];
+  decisions?: { decision: string; reasoning?: string; date?: string }[];
   training_plan?: { name: string; days: { weekday: number; label: string; notes?: string }[] }[];
 };
 
@@ -398,7 +435,7 @@ Deno.serve(async (req) => {
 
   try {
     if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_API_KEY is not set');
-    const [{ data: ctx }, { data: history }, { data: work }, { data: life }, { data: stripeConn }] = await Promise.all([
+    const [{ data: ctx }, { data: history }, { data: work }, { data: life }, { data: stripeConn }, { data: rhythm }] = await Promise.all([
       admin.rpc('tali_context', { p_user_id: user.id, p_query: recallQuery(text) }),
       admin
         .from('messages')
@@ -410,6 +447,7 @@ Deno.serve(async (req) => {
       admin.rpc('tali_work_context', { p_user_id: user.id }),
       admin.rpc('life_summary', { p_user_id: user.id }),
       admin.from('stripe_connections').select('business_name').eq('user_id', user.id).maybeSingle(),
+      admin.rpc('tali_rhythm_context', { p_user_id: user.id }),
     ]);
     const tzEarly = ctx?.profile?.timezone || 'Australia/Sydney';
     // Google first, Outlook (Microsoft 365) as the twin. Whichever is connected feeds the calendar and mail.
@@ -452,6 +490,7 @@ Deno.serve(async (req) => {
       `Their latest journal entries they let you read: ${JSON.stringify(ctx?.journal ?? [])}`,
       `Their clients, leads, follow-ups due, open reminders, unpaid invoices and business health: ${JSON.stringify(work ?? {})}`,
       `Their food today (your estimates), weight and training this week: ${JSON.stringify(life ?? {})}`,
+      `Their active goals, this week's three commitments, recent decisions and last shutdown (data): ${JSON.stringify(rhythm ?? {})}`,
       google
         ? `Their Google is connected (${google.google_email}): ${google.scopes.includes('gmail') ? 'Gmail' : ''}${google.scopes.length === 2 ? ' and ' : ''}${google.scopes.includes('calendar') ? 'Google Calendar' : ''}.`
         : microsoft
@@ -615,6 +654,42 @@ Deno.serve(async (req) => {
       if (!error) remindersSet++;
     }
 
+    // Goals (HQ and up) and decisions (every plan), 3 Nov 2026. Both are side effects of the chat, no extra credits.
+    let goalsSaved = 0;
+    if (consume.plan !== 'free') {
+      for (const g of (result.out.goals ?? []).slice(0, 2)) {
+        const title = strip(String(g.title ?? '').trim()).slice(0, 120);
+        if (!title) continue;
+        const numOrNull = (v: unknown) => (v === undefined || v === null || v === '' || isNaN(Number(v)) ? null : Number(v));
+        const { error } = await admin.rpc('tali_save_goal', {
+          p_user_id: user.id,
+          p_title: title,
+          p_target: numOrNull(g.target_number),
+          p_current: numOrNull(g.current_number),
+          p_unit: g.unit ? strip(String(g.unit)).slice(0, 20) : null,
+          p_due: /^\d{4}-\d{2}-\d{2}$/.test(String(g.due_date ?? '')) ? g.due_date : null,
+          p_status: ['active', 'done', 'dropped'].includes(String(g.status)) ? g.status : null,
+          p_notes: g.notes ? strip(String(g.notes)).slice(0, 1000) : null,
+        });
+        if (!error) goalsSaved++;
+      }
+    }
+    let decisionsLogged = 0;
+    const decisionRows = (result.out.decisions ?? [])
+      .filter((d) => typeof d?.decision === 'string' && d.decision.trim().length >= 3)
+      .slice(0, 3)
+      .map((d) => ({
+        user_id: user.id,
+        decision: strip(String(d.decision).trim()).slice(0, 400),
+        reasoning: strip(String(d.reasoning ?? '').trim()).slice(0, 2000) || null,
+        ...(typeof d.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? { decided_at: d.date } : {}),
+        source_ref: `messages/${userMsg.id}`,
+      }));
+    if (decisionRows.length) {
+      const { error } = await admin.from('decisions').insert(decisionRows);
+      if (!error) decisionsLogged = decisionRows.length;
+    }
+
     let invoicesDrafted = 0;
     for (const inv of (result.out.invoices ?? []).slice(0, 1)) {
       const clientName = strip(String(inv.client_name ?? '').trim()).slice(0, 120);
@@ -691,7 +766,7 @@ Deno.serve(async (req) => {
       admin.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId),
     ]);
 
-    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, invoicesDrafted, foodLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, remaining: Math.max(0, (consume.remaining ?? 0) - 2 * result.searches) });
+    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, remaining: Math.max(0, (consume.remaining ?? 0) - 2 * result.searches) });
   } catch (e) {
     await admin.rpc('chat_refund', { p_usage_id: usageId });
     console.error('tali-chat failed', String(e));

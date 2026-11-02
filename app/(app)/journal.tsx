@@ -4,6 +4,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { deleteJournalEntry, journalEntries, markBriefRead, myCredits, saveJournalEntry, taliJournal, type Brief, type JournalEntry } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { friendlyDate } from '@/lib/dates';
+import { recentPatterns, type PatternsBrief } from '@/lib/patterns';
+import { PatternsCard } from '@/components/PatternsCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
@@ -24,6 +26,8 @@ export default function Journal() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [tab, setTab] = useState<'mine' | 'tali'>('mine');
   const [hers, setHers] = useState<Brief[]>([]);
+  // Patterns (Pro, 3 Nov 2026): Tali's monthly patterns sit on her tab too, above the journal.
+  const [patterns, setPatterns] = useState<PatternsBrief[]>([]);
   const [paid, setPaid] = useState(false);
   const [pro, setPro] = useState(false);
   const [reading, setReading] = useState<Brief | null>(null);
@@ -35,6 +39,7 @@ export default function Journal() {
       setPaid(isPaid(c));
       setPro(isPro(c));
       setHers(await taliJournal().catch(() => []));
+      setPatterns(isPro(c) ? await recentPatterns(3).catch(() => []) : []);
     } catch (e: any) {
       setError(e?.message ?? 'Could not load your journal.');
     }
@@ -170,7 +175,15 @@ export default function Journal() {
               <TaliSays pose="wave">My weekly journal is part of Tali HQ. Every Sunday I write up what we worked on, what I noticed and what I'm keeping an eye on.</TaliSays>
               <Button title="See plans" onPress={() => router.navigate('/plans')} />
             </>
-          ) : hers.length === 0 ? (
+          ) : null}
+          {paid && patterns.length ? (
+            <>
+              <Label>Patterns</Label>
+              {patterns.map((p) => <PatternsCard key={p.id} brief={p} compact onRead={load} />)}
+              <Label>Her journal</Label>
+            </>
+          ) : null}
+          {!paid ? null : hers.length === 0 ? (
             <TaliSays pose="think">My first entry lands Sunday evening. The more you tell me this week, the better it'll be.</TaliSays>
           ) : (
             hers.map((h) => (

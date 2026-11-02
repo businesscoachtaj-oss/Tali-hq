@@ -6,6 +6,7 @@ import { forgetMemory, myCredits, myMemories, type Credits, type Memory } from '
 import { isPaid, isPro } from '@/lib/plan';
 import { resetTour } from '@/lib/tour';
 import { Body, Button, Card, Label, Screen, Title } from '@/components/ui';
+import { PatternsRow } from '@/components/PatternsCard';
 import { colours, space } from '@/constants/theme';
 import { FOUNDER_USER_ID } from '@/constants/business';
 
@@ -88,11 +89,18 @@ export default function Me() {
         <MenuRow title="Sleep" sub="Rain, noise, ocean and more with a timer that fades out" onPress={() => router.navigate('/sleep')} />
         <MenuRow title="Night school" sub="Pick what Tali studies each night" locked={!isPro(credits)} pro onPress={() => router.navigate('/night-school')} />
         <MenuRow title="Invoices" sub="Make, share and track invoices" locked={!isPaid(credits)} onPress={() => router.navigate('/invoices')} />
+        <MenuRow title="Money" sub="Cash in, owed, overdue, going out and runway" locked={!isPaid(credits)} onPress={() => router.navigate('/money')} />
+        <MenuRow title="Decisions" sub="What you decided and why. Ask Tali if it still holds" onPress={() => router.navigate('/decisions')} />
+        <MenuRow title="People" sub="What Tali knows about each client, and a nudge before you meet" locked={!isPaid(credits)} onPress={() => router.navigate('/clients')} />
         <MenuRow title="Rules" sub="Things Tali handles automatically" locked={!isPro(credits)} pro onPress={() => router.navigate('/rules')} />
         <MenuRow title="Email" sub="Your Gmail sorted, replies drafted. Her own address on Pro" locked={!isPaid(credits)} onPress={() => router.navigate('/inbox')} />
         <MenuRow title="Connections" sub="Google and Stripe" locked={!isPaid(credits)} last={session?.user.id !== FOUNDER_USER_ID} onPress={() => router.navigate('/settings')} />
         {session?.user.id === FOUNDER_USER_ID ? <MenuRow title="Founder" sub="Sign-ups, conversions, credits and cost. Only you see this" last onPress={() => router.navigate('/founder')} /> : null}
       </Card>
+
+      <View style={{ height: space.md }} />
+      {/* Patterns (Pro, 3 Nov 2026): last run and Run now; Free and HQ see the one line with Plans. */}
+      <PatternsRow credits={credits} />
 
       <View style={{ height: space.md }} />
       <Label>What Tali knows about you</Label>

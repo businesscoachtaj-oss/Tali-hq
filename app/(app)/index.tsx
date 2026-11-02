@@ -5,7 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { anyCalendarToday, followUpsDue, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
 import { YourDayCard } from '@/components/YourDayCard';
-import { isPaid } from '@/lib/plan';
+import { isPaid, isPro } from '@/lib/plan';
 import { HealthCard } from '@/components/HealthCard';
 import { addDays, today } from '@/lib/dates';
 import { DueList } from '@/components/DueList';
@@ -16,6 +16,15 @@ import { DraftCard } from '@/components/DraftCard';
 import { AppTour } from '@/components/AppTour';
 import { TOUR_STEPS, finishTour } from '@/lib/tour';
 import { colours, NO_BOTTOM, space } from '@/constants/theme';
+// The owner's rhythm (3 Nov 2026): shutdown, week, goals, money, meetings, decisions, patterns.
+import { ShutdownCard } from '@/components/ShutdownCard';
+import { WeekCard } from '@/components/WeekCard';
+import { GoalsCard } from '@/components/GoalsCard';
+import { MoneyCard } from '@/components/MoneyCard';
+import { MeetingNudge } from '@/components/MeetingNudge';
+import { DecisionsCard } from '@/components/DecisionsCard';
+import { PatternsCard } from '@/components/PatternsCard';
+import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 
 function greeting() {
   const h = new Date().getHours();
@@ -55,6 +64,7 @@ export default function Today() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [calendar, setCalendar] = useState<CalendarToday | null>(null);
+  const [patterns, setPatterns] = useState<PatternsBrief | null>(null);
 
   const load = useCallback(async () => {
     setLoadError('');
@@ -69,6 +79,7 @@ export default function Today() {
       // Health checks are part of Tali HQ and Pro (and the trial).
       setHealth(isPaid(c) ? await myHealth().catch(() => null) : null);
       setLife(await lifeSummary().catch(() => null));
+      setPatterns(isPro(c) ? await patternsThisMonth().catch(() => null) : null);
       // Google Calendar, when connected: today's events and free gaps.
       if (isPaid(c)) anyCalendarToday().then((cal) => setCalendar(cal?.connected ? cal : null)).catch(() => setCalendar(null));
     } catch (e: any) {
@@ -89,7 +100,7 @@ export default function Today() {
   }
 
   const morning = briefs.find((b) => b.kind === 'morning');
-  const others = briefs.filter((b) => b !== morning && b.kind !== 'journal');
+  const others = briefs.filter((b) => b !== morning && b.kind !== 'journal' && (b.kind as string) !== 'patterns');
   const trial = trialLine(credits);
 
   return (
@@ -113,12 +124,16 @@ export default function Today() {
           </Card>
         ) : null}
 
+        <MeetingNudge credits={credits} calendar={calendar} />
+
         {health ? (
           <>
             <Label>Business health</Label>
             <HealthCard health={health} />
           </>
         ) : null}
+        <Label>Money</Label>
+        <MoneyCard credits={credits} />
 
         <Label>Due today</Label>
         {reminders.length + followUps.length > 0 ? (
@@ -129,6 +144,7 @@ export default function Today() {
           </Card>
         )}
         <AddReminder onAdded={load} />
+        <ShutdownCard />
         {calendar?.connected ? (
           <>
             <View style={{ height: space.sm }} />
@@ -136,6 +152,7 @@ export default function Today() {
             <CalendarCard cal={calendar} />
           </>
         ) : null}
+        <WeekCard credits={credits} />
         {life ? (
           <>
             <View style={{ height: space.sm }} />
@@ -143,6 +160,7 @@ export default function Today() {
             <YourDayCard life={life} onTick={() => life.today_session ? logWorkout(today(), life.today_session).then(load) : undefined} />
           </>
         ) : null}
+        <GoalsCard credits={credits} />
         <View style={{ height: space.sm }} />
 
         <Label>Needs you</Label>
@@ -177,6 +195,17 @@ export default function Today() {
             Your first morning brief lands tomorrow. Until then, tell me about your business in Talk or jot something in your journal and I'll start learning.
           </TaliSays>
         )}
+
+        {patterns ? (
+          <>
+            <View style={{ height: space.md }} />
+            <Label>Tali noticed</Label>
+            <PatternsCard brief={patterns} onRead={load} />
+          </>
+        ) : null}
+        <View style={{ height: space.md }} />
+        <Label>Decisions</Label>
+        <DecisionsCard />
 
         {others.length ? (
           <>

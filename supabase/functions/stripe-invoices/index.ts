@@ -9,6 +9,7 @@
 //   POST {action:'disconnect'}           signed in: unlinks their Stripe
 //   POST {action:'send', invoiceId}      signed in: creates the invoice in their Stripe, finalises and emails it
 //   POST {action:'sync'}                 pg_cron every 15 min (x-tali-key): marks paid or void, pushes a note
+//   POST {action:'money'}                signed in: cash in this month and available balance, read only (3 Nov 2026)
 //
 // verify_jwt is off (Stripe's redirect and the cron call carry no Supabase JWT); signed-in actions
 // check the JWT themselves. Secrets: STRIPE_SECRET_KEY, STRIPE_CONNECT_CLIENT_ID, APP_URLS.
@@ -179,6 +180,65 @@ async function send(userId: string, invoiceId: string) {
   }
 }
 
+// ---------- Money picture (3 Nov 2026) ----------
+// Read only. Cash in this month = charges that succeeded in their connected Stripe since the first
+// of the month (their timezone), minus refunds. Plus the available balance for the runway line.
+// Nothing here creates, sends or changes anything in Stripe.
+function monthStartEpoch(tz: string) {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-AU', { timeZone: tz, year: 'numeric', month: '2-digit' }).formatToParts(now);
+  const y = Number(parts.find((p) => p.type === 'year')?.value ?? now.getUTCFullYear());
+  const m = Number(parts.find((p) => p.type === 'month')?.value ?? now.getUTCMonth() + 1);
+  const guess = Date.UTC(y, m - 1, 1, 0, 0, 0);
+  // Offset of that timezone at the first of the month, so midnight local becomes the right UTC instant.
+  const local = new Date(new Date(guess).toLocaleString('en-US', { timeZone: tz }));
+  const offsetMs = local.getTime() - guess;
+  return Math.floor((guess - offsetMs) / 1000);
+}
+
+async function moneyPicture(userId: string) {
+  if (!(await isPaid(userId))) return fail('no_access', 'The money picture is part of Tali HQ and Pro.', 402);
+  const { data: conn } = await admin.from('stripe_connections').select('account_id').eq('user_id', userId).maybeSingle();
+  if (!conn || !stripeReady()) return json({ ok: true, connected: false });
+  const { data: prof } = await admin.from('profiles').select('timezone').eq('id', userId).maybeSingle();
+  const tz = prof?.timezone || 'Australia/Sydney';
+  const since = monthStartEpoch(tz);
+  const acct = conn.account_id;
+  try {
+    let cents = 0;
+    let count = 0;
+    let after: string | undefined;
+    for (let page = 0; page < 10; page++) {
+      const res = await stripe('GET', 'charges', { limit: 100, created: { gte: since }, ...(after ? { starting_after: after } : {}) }, acct);
+      for (const c of res?.data ?? []) {
+        if (c.status !== 'succeeded' || !c.paid) continue;
+        cents += Number(c.amount || 0) - Number(c.amount_refunded || 0);
+        count++;
+      }
+      if (!res?.has_more || !res.data?.length) break;
+      after = res.data[res.data.length - 1].id;
+    }
+    let available: number | null = null;
+    let currency = 'aud';
+    try {
+      const bal = await stripe('GET', 'balance', {}, acct);
+      const rows: { amount: number; currency: string }[] = bal?.available ?? [];
+      const aud = rows.find((r) => r.currency === 'aud') ?? rows[0];
+      if (aud) {
+        available = Number(aud.amount || 0) / 100;
+        currency = aud.currency;
+      }
+    } catch (e) {
+      console.warn('balance read failed', String(e));
+    }
+    return json({ ok: true, connected: true, cash_in: cents / 100, charges: count, available, currency, since: new Date(since * 1000).toISOString() });
+  } catch (e) {
+    console.error('stripe money failed', String(e));
+    const msg = String(e).replace(/^Error:\s*/, '');
+    return fail('stripe_error', `Stripe said no: ${msg.replace(/^Stripe \d+:\s*/, '').slice(0, 200)}`, 502);
+  }
+}
+
 // ---------- Sync (cron) ----------
 async function sync() {
   if (!stripeReady()) return json({ ok: false, error: 'STRIPE_SECRET_KEY is not set' }, 503);
@@ -239,5 +299,6 @@ Deno.serve(async (req) => {
   if (body.action === 'connect') return startConnect(user.id, String(body.returnUrl ?? ''));
   if (body.action === 'disconnect') return disconnect(user.id);
   if (body.action === 'send') return send(user.id, String(body.invoiceId ?? ''));
+  if (body.action === 'money') return moneyPicture(user.id);
   return fail('bad_request', 'Unknown action.');
 });

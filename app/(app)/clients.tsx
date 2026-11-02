@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { clients as loadClients, deleteClient, saveClient, type Client } from '@/lib/data';
 import { addDays, friendlyDate, FOLLOW_UP_PICKS, isoDate, today } from '@/lib/dates';
 import { ChipPicker } from '@/components/ChipPicker';
@@ -25,6 +25,11 @@ export default function Clients() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // ADDED (3 Nov 2026): the person screen's Edit button opens /clients?edit=<id>.
+  const params = useLocalSearchParams<{ edit?: string }>();
+  const editId = Array.isArray(params.edit) ? params.edit[0] : params.edit;
+
+  const toDraft = (c: Client): Draft => ({ id: c.id, name: c.name, kind: c.kind, status: c.status, email: c.email ?? '', phone: c.phone ?? '', notes: c.notes, next_follow_up: c.next_follow_up, last_contact_at: c.last_contact_at });
 
   const load = useCallback(async () => {
     try {
@@ -33,6 +38,14 @@ export default function Clients() {
       setError(e?.message ?? 'Could not load your list.');
     }
   }, []);
+
+  useEffect(() => {
+    if (!editId) return;
+    const c = list.find((x) => x.id === editId);
+    if (!c) return;
+    setDraft(toDraft(c));
+    router.setParams({ edit: undefined } as any);
+  }, [editId, list]);
 
   useFocusEffect(
     useCallback(() => {
@@ -89,7 +102,7 @@ export default function Clients() {
     return (
       <Screen>
         <BackLink onPress={() => { setDraft(null); setConfirmDelete(false); setError(''); }} />
-        <Title>{draft.id ? draft.name || 'Edit' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
+        <Title sub={draft.id ? 'Tap the name on the list to see what Tali knows about them.' : undefined}>{draft.id ? draft.name || 'Edit' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
         <ChipPicker options={['client', 'lead'] as const} value={draft.kind} label={(k) => (k === 'lead' ? 'Lead' : 'Client')}
           onChange={(k) => setDraft({ ...draft, kind: k, status: k === 'lead' ? 'new' : 'active' })} />
         <Field label="Name" value={draft.name} onChangeText={(t) => setDraft({ ...draft, name: t })} maxLength={120} />
@@ -148,7 +161,7 @@ export default function Clients() {
         shown.map((c) => {
           const due = c.next_follow_up && c.next_follow_up <= today();
           return (
-            <Pressable key={c.id} onPress={() => setDraft({ id: c.id, name: c.name, kind: c.kind, status: c.status, email: c.email ?? '', phone: c.phone ?? '', notes: c.notes, next_follow_up: c.next_follow_up, last_contact_at: c.last_contact_at })}>
+            <Pressable key={c.id} onPress={() => router.navigate({ pathname: '/person', params: { id: c.id } } as any)} accessibilityRole="button">
               <Card style={due ? { borderLeftWidth: 5, borderLeftColor: colours.orange } : undefined}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
                   <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text, flex: 1 }} numberOfLines={1}>{c.name}</Text>

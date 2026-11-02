@@ -3,8 +3,10 @@ import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { currentConversation, deleteConversation, listConversations, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
-import { isPro } from '@/lib/plan';
+import { isPaid, isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
+import { MicButton } from '@/components/MicButton';
+import { useVoiceNote, voiceMinutesLeftLine, VOICE_NOTES_ON } from '@/lib/voiceNotes';
 import { TaliThinking } from '@/components/TaliThinking';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { useAuth } from '@/lib/auth';
@@ -29,6 +31,11 @@ export default function Talk() {
   const [thinking, setThinking] = useState(false);
   const [notice, setNotice] = useState('');
   const [pro, setPro] = useState(false);
+  const [plan, setPlan] = useState<'free' | 'hq' | 'pro' | null>(null);
+  // Voice notes (3 Nov 2026): the mic in the composer. Tap to record, tap to stop, the words land in the box.
+  const onVoiceText = useCallback((t: string) => setText((cur) => (cur.trim() ? `${cur.trim()} ${t}` : t)), []);
+  const voice = useVoiceNote({ onText: onVoiceText, onNotice: setNotice, plan });
+  const voiceHint = !VOICE_NOTES_ON ? null : voice.recording ? 'Recording. Tap the red dot to stop, 3 minutes tops.' : voice.busy ? null : voiceMinutesLeftLine(voice.secondsLeft);
   // Chat history (3 Nov 2026): the sheet with every chat; open, rename, pin, delete.
   const [historyOpen, setHistoryOpen] = useState(false);
   // Photos and files (3 Nov 2026): what is attached to the message being written, already uploaded.
@@ -66,7 +73,15 @@ export default function Talk() {
   // Share to Tali (2 Nov 2026): the PWA is a share target, so a text, DM screenshot caption or link
   // shared from another app lands here as ?text=&title=&url=. It goes into the composer for the
   // user to add a word to and send; nothing is sent on its own.
-  const params = useLocalSearchParams<{ text?: string; title?: string; url?: string }>();
+  const params = useLocalSearchParams<{ text?: string; title?: string; url?: string; ask?: string }>();
+  // Ask Tali (3 Nov 2026): other screens open Talk with a ready question in the box.
+  useEffect(() => {
+    const ask = Array.isArray(params.ask) ? params.ask[0] : params.ask;
+    if (!ask || !String(ask).trim()) return;
+    setText(String(ask));
+    setTimeout(() => inputRef.current?.focus(), 300);
+    router.setParams({ ask: undefined } as any);
+  }, [params.ask]);
   useEffect(() => {
     const shared = [params.title, params.text, params.url].map((v) => (Array.isArray(v) ? v[0] : v)).filter((v) => v && String(v).trim());
     if (!shared.length) return;
@@ -83,7 +98,7 @@ export default function Talk() {
       const id = await currentConversation();
       setConversationId(id);
       setRows(await loadMessages(id));
-      myCredits().then((c) => setPro(isPro(c))).catch(() => {});
+      myCredits().then((c) => { setPro(isPro(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); }).catch(() => {});
     } catch (e: any) {
       setNotice(e?.message ?? 'Could not load the chat.');
     }
@@ -117,6 +132,8 @@ export default function Talk() {
       if (res.planSaved) bits.push('training plan saved');
       if (res.searched) bits.push(res.searched === 1 ? 'searched the web once' : `searched the web ${res.searched} times`);
       if (res.clientsSaved) bits.push(res.clientsSaved === 1 ? 'client list updated' : `${res.clientsSaved} clients updated`);
+      if (res.goalsSaved) bits.push(res.goalsSaved === 1 ? 'goal updated' : `${res.goalsSaved} goals updated`);
+      if (res.decisionsLogged) bits.push(res.decisionsLogged === 1 ? 'decision logged' : `${res.decisionsLogged} decisions logged`);
       if (res.remembered > 0) bits.push(res.remembered === 1 ? 'saved 1 thing to remember' : `saved ${res.remembered} things to remember`);
       if (bits.length) setNotice(bits.join(', ').replace(/^./, (c) => c.toUpperCase()) + '.');
     } else {
@@ -284,7 +301,10 @@ export default function Talk() {
             <Text style={{ alignSelf: 'center', fontSize: 11, color: colours.faint }}>+1 credit for the files</Text>
           </View>
         ) : null}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, borderTopWidth: pending.length ? 0 : 1, borderTopColor: colours.border, backgroundColor: colours.surface }}>
+        {voiceHint ? (
+          <Text style={{ color: voice.recording ? colours.danger : colours.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: space.lg, paddingTop: 6, backgroundColor: colours.surface, borderTopWidth: pending.length ? 0 : 1, borderTopColor: colours.border }}>{voiceHint}</Text>
+        ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, borderTopWidth: pending.length || voiceHint ? 0 : 1, borderTopColor: colours.border, backgroundColor: colours.surface }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Attach a photo or file"
@@ -303,6 +323,7 @@ export default function Talk() {
             maxLength={2000}
             style={{ flex: 1, maxHeight: 140, minHeight: 44, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 22, paddingHorizontal: 14, paddingTop: 11, paddingBottom: 11, fontSize: 16, color: colours.text, backgroundColor: colours.bg }}
           />
+          {VOICE_NOTES_ON ? <MicButton recording={voice.recording} busy={voice.busy} seconds={voice.seconds} onPress={voice.toggle} disabled={thinking || uploading} /> : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Send"
