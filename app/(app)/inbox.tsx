@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useFocusEffect } from 'expo-router';
-import { claimInbox, googleConnection, inboundEmails, myCredits, myInbox, setEmailStatus, type GoogleConnection, type InboundEmail } from '@/lib/data';
+import { claimInbox, googleConnection, inboundEmails, microsoftConnection, myCredits, myInbox, setEmailStatus, type GoogleConnection, type InboundEmail, type MicrosoftConnection } from '@/lib/data';
 import { friendlyTime } from '@/lib/dates';
 import { isPaid, isPro } from '@/lib/plan';
 import { INBOUND_DOMAIN } from '@/constants/business';
@@ -19,6 +19,7 @@ export default function Inbox() {
   const [paid, setPaid] = useState<boolean | null>(null);
   const [pro, setPro] = useState(false);
   const [google, setGoogle] = useState<GoogleConnection | null>(null);
+  const [microsoft, setMicrosoft] = useState<MicrosoftConnection | null>(null);
   const [alias, setAlias] = useState<string | null>(null);
   const [emails, setEmails] = useState<InboundEmail[]>([]);
   const [open, setOpen] = useState<InboundEmail | null>(null);
@@ -35,8 +36,9 @@ export default function Inbox() {
       setPaid(isPaid(c));
       setPro(isPro(c));
       if (!isPaid(c)) return;
-      const [g, a, list] = await Promise.all([googleConnection().catch(() => null), isPro(c) ? myInbox() : Promise.resolve(null), inboundEmails()]);
+      const [g, ms, a, list] = await Promise.all([googleConnection().catch(() => null), microsoftConnection().catch(() => null), isPro(c) ? myInbox() : Promise.resolve(null), inboundEmails()]);
       setGoogle(g);
+      setMicrosoft(ms);
       setAlias(a);
       setEmails(list);
     } catch (e: any) {
@@ -50,7 +52,10 @@ export default function Inbox() {
     }, [load]),
   );
 
-  const gmailOn = !!google?.scopes.includes('gmail');
+  // Outlook (2 Nov 2026) shows in the same sorted list as Gmail.
+  const outlookOn = !!microsoft?.scopes.includes('mail');
+  const gmailOn = !!google?.scopes.includes('gmail') || outlookOn;
+  const mailAccount = google?.scopes.includes('gmail') ? google.google_email : microsoft?.ms_email;
   const address = alias && INBOUND_DOMAIN ? `${alias}@${INBOUND_DOMAIN}` : null;
 
   async function claim() {
@@ -93,19 +98,20 @@ export default function Inbox() {
   }
 
   if (open) {
-    const isGmail = open.source === 'gmail';
+    const isGmail = open.source === 'gmail' || open.source === 'outlook';
+    const providerName = open.source === 'outlook' ? 'Outlook' : 'Gmail';
     return (
       <Screen>
         <BackLink onPress={() => setOpen(null)} label="Email" />
         <Text style={{ fontSize: 12, color: colours.muted }}>
           {friendlyTime(open.received_at)}
-          {isGmail ? ' · Gmail' : " · Tali's address"}
+          {isGmail ? ` · ${providerName}` : " · Tali's address"}
         </Text>
         <Title sub={open.from_name ? `${open.from_name} <${open.from_email}>` : open.from_email ?? undefined}>{open.subject || '(no subject)'}</Title>
         {open.summary ? <TaliSays pose="idle">{open.summary}</TaliSays> : null}
         {open.approval_id && open.status !== 'handled' ? (
           <Card style={{ backgroundColor: colours.purpleSoft, borderColor: colours.purpleSoft }}>
-            <Body>{isGmail ? 'I drafted a reply. It\'s waiting on Today with a "Send from Gmail" button.' : "I drafted a reply. It's waiting on Today for you to check, copy and send."}</Body>
+            <Body>{isGmail ? `I drafted a reply. It's waiting on Today with a "Send from ${providerName}" button.` : "I drafted a reply. It's waiting on Today for you to check, copy and send."}</Body>
             <Button title="Go to Today" kind="ghost" onPress={() => router.navigate('/')} />
           </Card>
         ) : null}
@@ -114,20 +120,20 @@ export default function Inbox() {
         <Card><Text style={{ fontSize: 15, lineHeight: 22, color: colours.text }}>{open.body_text || open.snippet || 'No text in this one.'}</Text></Card>
         {open.status !== 'handled' ? <Button title="Done with this one" onPress={() => mark(open, 'handled')} /> : null}
         {open.status !== 'spam' ? <Button title="It's junk" kind="ghost" onPress={() => mark(open, 'spam')} /> : <Button title="Not junk" kind="ghost" onPress={() => mark(open, 'new')} />}
-        {isGmail ? <Text style={{ fontSize: 12, color: colours.faint, marginTop: space.sm, lineHeight: 17 }}>This only changes how it shows here. Your Gmail is never moved or deleted.</Text> : null}
+        {isGmail ? <Text style={{ fontSize: 12, color: colours.faint, marginTop: space.sm, lineHeight: 17 }}>This only changes how it shows here. Your {providerName} is never moved or deleted.</Text> : null}
       </Screen>
     );
   }
 
   // Gmail list, sorted by Tali.
-  const gmail = emails.filter((e) => e.source === 'gmail');
+  const gmail = emails.filter((e) => e.source === 'gmail' || e.source === 'outlook');
   const bucket = (e: InboundEmail): Tab => (e.status === 'spam' || e.category === 'spam' ? 'spam' : e.category === 'needs_you' ? 'needs_you' : 'fyi');
   const counts = { needs_you: 0, fyi: 0, spam: 0 } as Record<Tab, number>;
   for (const e of gmail) counts[bucket(e)]++;
   const gmailShown = gmail.filter((e) => bucket(e) === tab);
 
   // Tali's own address list.
-  const own = emails.filter((e) => e.source !== 'gmail');
+  const own = emails.filter((e) => e.source === 'tali_inbox');
   const ownShown = own.filter((e) => (showSpam ? e.status === 'spam' : e.status !== 'spam'));
   const ownSpam = own.filter((e) => e.status === 'spam').length;
 
@@ -152,7 +158,7 @@ export default function Inbox() {
   return (
     <Screen>
       <BackLink onPress={() => router.navigate('/me')} />
-      <Title sub={gmailOn ? `${google?.google_email}. I sort what comes in and draft replies. Nothing is sent until you tap it on Today.` : 'Connect your Gmail and I\'ll sort it for you. On Pro I get my own address for enquiries too.'}>Email</Title>
+      <Title sub={gmailOn ? `${mailAccount}. I sort what comes in and draft replies. Nothing is sent until you tap it on Today.` : 'Connect your Gmail or Outlook and I\'ll sort it for you. On Pro I get my own address for enquiries too.'}>Email</Title>
       <ErrorText>{error}</ErrorText>
 
       {gmailOn ? (
@@ -176,7 +182,7 @@ export default function Inbox() {
               {tab === 'needs_you'
                 ? gmail.length
                   ? 'Nothing needs you right now. Nice.'
-                  : google?.last_mail_sync_at
+                  : google?.last_mail_sync_at || microsoft?.last_mail_sync_at
                     ? 'Nothing new since you connected. I check every 10 minutes.'
                     : 'Just connected. I\'ll have your first lot sorted within 10 minutes, and I only read mail from now on.'
                 : tab === 'fyi'
@@ -189,9 +195,9 @@ export default function Inbox() {
         </>
       ) : (
         <Card>
-          <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>Connect your Gmail</Text>
+          <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>Connect your Gmail or Outlook</Text>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
-            One sign-in with Google. I only read new mail from the moment you connect, never delete or move anything, and every reply waits for your tap.
+            One sign-in with Google or Microsoft. I only read new mail from the moment you connect, never delete or move anything, and every reply waits for your tap.
           </Text>
           <Button title="Connect in Settings" onPress={() => router.navigate('/settings')} />
         </Card>

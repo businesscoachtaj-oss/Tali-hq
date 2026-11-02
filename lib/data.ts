@@ -463,7 +463,7 @@ export type InboundEmail = {
   status: 'new' | 'handled' | 'spam';
   approval_id: string | null;
   received_at: string;
-  source: 'tali_inbox' | 'gmail';
+  source: 'tali_inbox' | 'gmail' | 'outlook';
   category: 'needs_you' | 'fyi' | 'spam' | null;
   snippet: string | null;
 };
@@ -740,4 +740,39 @@ export async function editDraft(approvalId: string, instruction: string): Promis
   }
   if (!data?.ok) return { ok: false, message: data?.message ?? "I couldn't rework that one just now." };
   return { ok: true, body: String(data.body ?? ''), subject: data.subject ?? null };
+}
+
+// ---------- Microsoft 365 / Outlook (2 Nov 2026), the twin of the Google helpers ----------
+export type MicrosoftConnection = { ms_email: string; scopes: string[]; last_mail_sync_at: string | null; last_error: string | null; connected_at: string };
+
+export async function microsoftConnection(): Promise<MicrosoftConnection | null> {
+  const { data, error } = await supabase.from('microsoft_connections').select('ms_email, scopes, last_mail_sync_at, last_error, connected_at').maybeSingle();
+  if (error) throw error;
+  return (data as MicrosoftConnection | null) ?? null;
+}
+
+async function msCall(body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; url?: string | null; code?: string; link?: string | null } & Partial<CalendarToday>> {
+  const { data, error } = await supabase.functions.invoke('ms-connect', { body });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; url?: string | null };
+}
+
+export const startMicrosoftConnect = (returnUrl: string, what: 'both' | 'calendar' = 'both') => msCall({ action: 'connect', returnUrl, what });
+export const disconnectMicrosoft = () => msCall({ action: 'disconnect' });
+export const sendOutlookApproval = (approvalId: string) => msCall({ action: 'send', approvalId });
+export const bookOutlookApproval = (approvalId: string) => msCall({ action: 'book', approvalId });
+export const outlookCalendarToday = () => msCall({ action: 'calendar' }) as Promise<CalendarToday & { ok: boolean }>;
+
+// Whichever calendar is connected (Google first, then Outlook), for Today.
+export async function anyCalendarToday(): Promise<(CalendarToday & { ok: boolean }) | null> {
+  const g = await calendarToday().catch(() => null);
+  if (g?.connected) return g;
+  const m = await outlookCalendarToday().catch(() => null);
+  return m?.connected ? m : g ?? m;
 }

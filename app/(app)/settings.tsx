@@ -8,6 +8,7 @@ import { enablePush, pushSupported, sendTestPush } from '@/lib/push';
 import { BRIEF_TIMES, BUSINESS_TYPES, prettyTime } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
 import { GoogleConnectCard } from '@/components/GoogleConnectCard';
+import { MicrosoftConnectCard } from '@/components/MicrosoftConnectCard';
 import { StripeConnectCard } from '@/components/StripeConnectCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
@@ -124,6 +125,8 @@ export default function Settings() {
         Connect the apps you already use. Tali reads what she needs and drafts the rest. Nothing goes out without your yes.
       </Text>
       <GoogleConnectCard />
+      <View style={{ height: space.md }} />
+      <MicrosoftConnectCard />
       <View style={{ height: space.md }} />
       <StripeConnectCard />
 

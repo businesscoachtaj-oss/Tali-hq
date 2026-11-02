@@ -3,7 +3,7 @@ import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { calendarToday, followUpsDue, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
+import { anyCalendarToday, followUpsDue, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
 import { YourDayCard } from '@/components/YourDayCard';
 import { isPaid } from '@/lib/plan';
 import { HealthCard } from '@/components/HealthCard';
@@ -69,7 +69,7 @@ export default function Today() {
       setHealth(isPaid(c) ? await myHealth().catch(() => null) : null);
       setLife(await lifeSummary().catch(() => null));
       // Google Calendar, when connected: today's events and free gaps.
-      if (isPaid(c)) calendarToday().then((cal) => setCalendar(cal?.connected ? cal : null)).catch(() => setCalendar(null));
+      if (isPaid(c)) anyCalendarToday().then((cal) => setCalendar(cal?.connected ? cal : null)).catch(() => setCalendar(null));
     } catch (e: any) {
       setLoadError(e?.message ?? 'Could not load today.');
     }

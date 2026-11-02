@@ -15,6 +15,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { calendarSummary, loadConnection } from '../_shared/google.ts';
+import { calendarSummary as msCalendarSummary, loadConnection as loadMsConnection } from '../_shared/microsoft.ts';
 import { pushUser } from '../_shared/push.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
@@ -187,21 +188,22 @@ async function briefOne(row: { user_id: string; kind: string; local_date: string
     // Google, when connected: today's calendar with free gaps, and the last day of sorted Gmail.
     let google: Record<string, unknown> | null = null;
     const conn = await loadConnection(admin, row.user_id);
-    if (conn) {
-      google = { account: conn.google_email };
-      if (conn.scopes.includes('calendar')) {
+    const ms = conn ? null : await loadMsConnection(admin, row.user_id);
+    if (conn || ms) {
+      google = { account: conn?.google_email ?? ms?.ms_email, provider: conn ? 'Google' : 'Microsoft 365 (Outlook)' };
+      if (conn?.scopes.includes('calendar') || ms?.scopes.includes('calendar')) {
         try {
-          google.calendar = await calendarSummary(admin, conn, ctx?.profile?.timezone || 'Australia/Sydney');
+          google.calendar = conn ? await calendarSummary(admin, conn, ctx?.profile?.timezone || 'Australia/Sydney') : await msCalendarSummary(admin, ms!, ctx?.profile?.timezone || 'Australia/Sydney');
         } catch (e) {
           console.warn('brief calendar failed', String(e));
         }
       }
-      if (conn.scopes.includes('gmail')) {
+      if (conn?.scopes.includes('gmail') || ms?.scopes.includes('mail')) {
         const { data: mail } = await admin
           .from('inbound_emails')
           .select('from_name, from_email, subject, summary, category, status, received_at')
           .eq('user_id', row.user_id)
-          .eq('source', 'gmail')
+          .in('source', ['gmail', 'outlook'])
           .neq('category', 'spam')
           .gte('received_at', new Date(Date.now() - 24 * 3600_000).toISOString())
           .order('received_at', { ascending: false })

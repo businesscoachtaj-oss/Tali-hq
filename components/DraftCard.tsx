@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { bookEventApproval, decideApproval, editDraft, sendEmailApproval, sendFromTaliAddress, sendInvoiceWithStripe, type Approval } from '@/lib/data';
+import { bookEventApproval, bookOutlookApproval, decideApproval, editDraft, sendEmailApproval, sendFromTaliAddress, sendInvoiceWithStripe, sendOutlookApproval, type Approval } from '@/lib/data';
 import { INBOUND_DOMAIN } from '@/constants/business';
 import { Card } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
@@ -31,7 +31,7 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   const [tweakText, setTweakText] = useState('');
   const [editing, setEditing] = useState('');
   const [editNote, setEditNote] = useState('');
-  const editable = !!body && item.draft?.action !== 'calendar_create' && item.draft?.action !== 'stripe_send';
+  const editable = !!body && !['calendar_create', 'outlook_calendar_create', 'stripe_send'].includes(item.draft?.action ?? '');
 
   async function rework(instruction: string) {
     const ins = instruction.trim();
@@ -54,6 +54,9 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   // Google connected: emails send from their Gmail, bookings go into their Google Calendar, on their tap.
   const gmailSend = item.draft?.action === 'gmail_send';
   const calendarBook = item.draft?.action === 'calendar_create';
+  // Microsoft 365 twins (2 Nov 2026).
+  const outlookSend = item.draft?.action === 'outlook_send';
+  const outlookBook = item.draft?.action === 'outlook_calendar_create';
   // A reply to email that came in to their own Tali address (Pro): Send goes out from that address.
   const taliSend = !item.draft?.action && typeof item.draft?.from === 'string' && item.draft.from.startsWith('email/') && !!item.draft?.to;
   const [sent, setSent] = useState(false);
@@ -87,10 +90,24 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
     setTimeout(() => onDecided(item.id), 1600);
   }
 
+  async function sendOutlook() {
+    setBusy(true);
+    setError('');
+    const res = await sendOutlookApproval(item.id);
+    if (!res.ok) {
+      setError(res.message ?? 'Could not send.');
+      setBusy(false);
+      return;
+    }
+    setSentNote(`Sent from your Outlook to ${item.draft?.to} 🙌`);
+    setSent(true);
+    setTimeout(() => onDecided(item.id), 1600);
+  }
+
   async function book() {
     setBusy(true);
     setError('');
-    const res = await bookEventApproval(item.id);
+    const res = await (outlookBook ? bookOutlookApproval(item.id) : bookEventApproval(item.id));
     if (!res.ok) {
       setError(res.message ?? 'Could not book that.');
       setBusy(false);
@@ -140,12 +157,12 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   return (
     <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.orange }}>
       <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>
-        {stripeSend ? 'Invoice' : gmailSend ? 'Email from your Gmail' : calendarBook ? 'Calendar invite' : taliSend ? 'Email to your Tali address' : KIND_LABEL[item.kind] ?? 'Draft'}
+        {stripeSend ? 'Invoice' : gmailSend ? 'Email from your Gmail' : outlookSend ? 'Email from your Outlook' : calendarBook || outlookBook ? 'Calendar invite' : taliSend ? 'Email to your Tali address' : KIND_LABEL[item.kind] ?? 'Draft'}
         {item.draft?.to ? ` · to ${item.draft.to_name ?? item.draft.to}` : ''}
       </Text>
       <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text, marginTop: 2 }}>{item.title}</Text>
-      {gmailSend && item.draft?.summary ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>They said: {item.draft.summary}</Text> : null}
-      {(gmailSend || taliSend) && subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {subject}</Text> : null}
+      {(gmailSend || outlookSend) && item.draft?.summary ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>They said: {item.draft.summary}</Text> : null}
+      {(gmailSend || outlookSend || taliSend) && subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {subject}</Text> : null}
       {body ? (
         <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel={open ? 'Hide draft' : 'Show draft'}>
           <View style={{ marginTop: space.sm, backgroundColor: colours.sunk, borderRadius: 12, padding: space.md }}>
@@ -196,7 +213,12 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
             <Chip label={busy ? 'Sending...' : 'Send from Gmail'} primary onPress={sendGmail} disabled={busy || sent} />
             {body ? <Chip label={copied ? 'Copied' : 'Copy instead'} onPress={copy} disabled={busy} /> : null}
           </>
-        ) : calendarBook ? (
+        ) : outlookSend ? (
+          <>
+            <Chip label={busy ? 'Sending...' : 'Send from Outlook'} primary onPress={sendOutlook} disabled={busy || sent} />
+            {body ? <Chip label={copied ? 'Copied' : 'Copy instead'} onPress={copy} disabled={busy} /> : null}
+          </>
+        ) : calendarBook || outlookBook ? (
           <Chip label={busy ? 'Booking...' : 'Book it'} primary onPress={book} disabled={busy || sent} />
         ) : taliSend ? (
           <>
