@@ -1,11 +1,11 @@
-// Sleep (2 Nov 2026). Pick a sound or two, set a timer, Tali fades it out. Its own dark
+// Sleep (2 Nov 2026). Pick a sound or two from seven categories, set a timer, Tali fades it out. Its own dark
 // purple and blue look, on purpose: the rest of the app is for the day, this is for bed.
 // Engine and prefs live in lib/sleep.ts so sound keeps going if you leave the screen.
 import { useEffect, useRef, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { MAX_PICKS, SOUNDS, TIMERS, extend, fadeFactor, loadPrefs, pause, resume, setFade, setLevel, setTimer, setVolume, start, stop, timeLeft, togglePick, useSleep, type SoundId } from '@/lib/sleep';
+import { CATEGORIES, MAX_PICKS, SOUNDS, TIMERS, extend, fadeFactor, loadPrefs, pause, resume, setFade, setLevel, setTimer, setVolume, soundsIn, start, stop, timeLeft, togglePick, useSleep, type CategoryId, type SoundId } from '@/lib/sleep';
 
 const ink = '#EEE9FF';
 const muted = 'rgba(238,233,255,0.68)';
@@ -41,6 +41,7 @@ function Bar({ value, onChange }: { value: number; onChange: (v: number) => void
 export default function Sleep() {
   const st = useSleep();
   const [dim, setDim] = useState(false);
+  const [cat, setCat] = useState<CategoryId>('noise');
   const dimTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -150,8 +151,26 @@ export default function Sleep() {
         <Text style={s.sub}>Pick a sound or two, set the timer, and Tali fades it out once you're under.</Text>
 
         <Text style={s.label}>Sounds</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cats} style={{ marginHorizontal: -20 }}>
+          {CATEGORIES.map((c) => {
+            const on = c.id === cat;
+            const count = st.picks.filter((p) => SOUNDS.find((x) => x.id === p.id)?.category === c.id).length;
+            return (
+              <Pressable key={c.id} onPress={() => setCat(c.id)} style={[s.chip, on && s.chipOn]} accessibilityRole="tab" accessibilityState={{ selected: on }}>
+                <Text style={[s.chipText, on && { color: '#1B1340' }]}>
+                  {c.emoji} {c.name}
+                </Text>
+                {count ? (
+                  <View style={[s.badge, on && { backgroundColor: '#1B1340' }]}>
+                    <Text style={[s.badgeText, on && { color: accent }]}>{count}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
         <View style={s.grid}>
-          {SOUNDS.map((snd) => {
+          {soundsIn(cat).map((snd) => {
             const on = st.picks.some((p) => p.id === snd.id);
             const full = !on && st.picks.length >= MAX_PICKS;
             return (
@@ -168,6 +187,9 @@ export default function Sleep() {
             );
           })}
         </View>
+        <Text style={s.picked}>
+          {st.picks.length ? `Picked: ${st.picks.map((p) => SOUNDS.find((x) => x.id === p.id)?.name).filter(Boolean).join(' + ')}` : `Pick up to ${MAX_PICKS} sounds from any category`}
+        </Text>
         {st.picks.length === 2 ? (
           <View style={s.mixBox}>
             <Text style={s.mixTitle}>Mix</Text>
@@ -219,6 +241,10 @@ const s = StyleSheet.create({
   h1: { fontSize: 30, fontWeight: '800', color: ink, marginTop: 14, marginBottom: 2 },
   sub: { color: muted, fontSize: 14, lineHeight: 20, marginBottom: 6 },
   label: { fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', color: faint, fontWeight: '800', marginTop: 18, marginBottom: 8 },
+  cats: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 12 },
+  badge: { marginLeft: 6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { color: '#1B1340', fontSize: 11, fontWeight: '800' },
+  picked: { color: muted, fontSize: 12, marginTop: 10 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tile: { width: '48%', flexGrow: 1, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 18, padding: 14, minHeight: 92 },
   tileOn: { backgroundColor: 'rgba(185,166,255,0.22)', borderColor: 'rgba(185,166,255,0.6)' },
@@ -228,7 +254,7 @@ const s = StyleSheet.create({
   mixBox: { marginTop: 12, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 16, padding: 14 },
   mixTitle: { color: faint, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: line, backgroundColor: glass },
+  chip: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: line, backgroundColor: glass },
   chipOn: { backgroundColor: accent, borderColor: accent },
   chipText: { color: ink, fontSize: 13, fontWeight: '700' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 16, padding: 14, marginTop: 12 },

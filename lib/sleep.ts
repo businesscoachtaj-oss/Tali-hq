@@ -1,24 +1,88 @@
-// Sleep sounds (2 Nov 2026). Everything runs on the phone: the eight loops are bundled with
-// the app (made with code, tools/make_sounds.py, so nothing is licensed), play through
-// expo-audio, and keep going with the screen locked on iOS and Android. No credits, no server.
+// Sleep sounds (2 Nov 2026). Everything runs on the phone: 35 seamless loops (Pixabay Content
+// Licence, re-encoded as AAC) are hosted with the web app under public/sounds and streamed from
+// there (relative path on web, SOUNDS_BASE on native), play through expo-audio, and keep going
+// with the screen locked on iOS and Android. No credits, no server.
 // The engine lives at module level so it survives leaving the screen; the screen just renders it.
 import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import { SOUNDS_BASE } from '@/constants/business';
 
-export type SoundId = 'brown_noise' | 'pink_noise' | 'white_noise' | 'rain_tin_roof' | 'mountain_wind' | 'ocean' | 'campfire' | 'night_bush';
+export type CategoryId = 'noise' | 'rain' | 'wind' | 'water' | 'fire' | 'night' | 'hum';
 
-export const SOUNDS: { id: SoundId; name: string; sub: string; emoji: string; source: number }[] = [
-  { id: 'brown_noise', name: 'Brown noise', sub: 'Deep and steady', emoji: '🟤', source: require('@/assets/sounds/brown_noise.m4a') },
-  { id: 'pink_noise', name: 'Pink noise', sub: 'Soft, like distant surf', emoji: '🩷', source: require('@/assets/sounds/pink_noise.m4a') },
-  { id: 'rain_tin_roof', name: 'Rain on a tin roof', sub: 'Gentle, no thunder', emoji: '🌧️', source: require('@/assets/sounds/rain_tin_roof.m4a') },
-  { id: 'mountain_wind', name: 'Mountain wind', sub: 'High country at night', emoji: '🏔️', source: require('@/assets/sounds/mountain_wind.m4a') },
-  { id: 'ocean', name: 'Ocean', sub: 'Slow waves on sand', emoji: '🌊', source: require('@/assets/sounds/ocean.m4a') },
-  { id: 'campfire', name: 'Campfire', sub: 'Crackle, no voices', emoji: '🔥', source: require('@/assets/sounds/campfire.m4a') },
-  { id: 'night_bush', name: 'Night bush', sub: 'Crickets and a creek', emoji: '🦗', source: require('@/assets/sounds/night_bush.m4a') },
-  { id: 'white_noise', name: 'White noise', sub: 'Flat and even', emoji: '⚪', source: require('@/assets/sounds/white_noise.m4a') },
+export const CATEGORIES: { id: CategoryId; name: string; emoji: string }[] = [
+  { id: 'noise', name: 'Noise', emoji: '🟤' },
+  { id: 'rain', name: 'Rain', emoji: '🌧️' },
+  { id: 'wind', name: 'Wind', emoji: '🌬️' },
+  { id: 'water', name: 'Water', emoji: '🌊' },
+  { id: 'fire', name: 'Fire', emoji: '🔥' },
+  { id: 'night', name: 'Night', emoji: '🦗' },
+  { id: 'hum', name: 'Hum', emoji: '🌀' },
 ];
+
+export type SoundId =
+  | 'noise_brown' | 'noise_soft_brown' | 'noise_deep' | 'noise_pink' | 'noise_white'
+  | 'rain_tin_roof' | 'rain_storm' | 'rain_light' | 'rain_heavy' | 'rain_window'
+  | 'wind_mountain' | 'wind_trees' | 'wind_gusty' | 'wind_cold' | 'wind_breeze'
+  | 'water_ocean' | 'water_beach' | 'water_creek' | 'water_river' | 'water_lake'
+  | 'fire_campfire' | 'fire_fireplace' | 'fire_crackling' | 'fire_bonfire' | 'fire_by_the_sea'
+  | 'night_crickets' | 'night_frogs_crickets' | 'night_frogs' | 'night_forest' | 'night_curlew'
+  | 'hum_ceiling_fan' | 'hum_box_fan' | 'hum_aircon' | 'hum_train' | 'hum_plane';
+
+export type Sound = { id: SoundId; category: CategoryId; name: string; sub: string; emoji: string; source: { uri: string } };
+
+/** Web uses the relative path (same deploy); phones stream from the web deploy. */
+export function soundUri(id: SoundId) {
+  return Platform.OS === 'web' ? `/sounds/${id}.m4a` : `${SOUNDS_BASE}/${id}.m4a`;
+}
+
+function snd(id: SoundId, category: CategoryId, name: string, sub: string, emoji: string): Sound {
+  return { id, category, name, sub, emoji, source: { uri: soundUri(id) } };
+}
+
+export const SOUNDS: Sound[] = [
+  snd('noise_brown', 'noise', 'Brown noise', 'Deep and steady', '🟤'),
+  snd('noise_soft_brown', 'noise', 'Soft brown', 'Rounder, quieter top end', '🤎'),
+  snd('noise_deep', 'noise', 'Deep hum', 'Low and far away', '🟣'),
+  snd('noise_pink', 'noise', 'Pink noise', 'Soft, like distant surf', '🩷'),
+  snd('noise_white', 'noise', 'White noise', 'Flat and even', '⚪'),
+  snd('rain_tin_roof', 'rain', 'Tin roof', 'Steady rain on iron', '🏠'),
+  snd('rain_storm', 'rain', 'Thunderstorm', 'Rain with distant thunder', '⛈️'),
+  snd('rain_light', 'rain', 'Light rain', 'A soft drizzle', '🌦️'),
+  snd('rain_heavy', 'rain', 'Heavy rain', 'A proper downpour', '🌧️'),
+  snd('rain_window', 'rain', 'On the window', 'Drops on glass, inside and warm', '🪟'),
+  snd('wind_mountain', 'wind', 'Mountain wind', 'High country at night', '🏔️'),
+  snd('wind_trees', 'wind', 'Through the trees', 'Leaves and branches', '🌳'),
+  snd('wind_gusty', 'wind', 'Gusty', 'Comes and goes', '💨'),
+  snd('wind_cold', 'wind', 'Cold night', 'Thin and whistling', '🧊'),
+  snd('wind_breeze', 'wind', 'Gentle breeze', 'Barely there', '🍃'),
+  snd('water_ocean', 'water', 'Ocean', 'Slow waves rolling in', '🌊'),
+  snd('water_beach', 'water', 'Beach', 'Waves washing up on sand', '🏖️'),
+  snd('water_creek', 'water', 'Creek', 'Small water over stones', '🪨'),
+  snd('water_river', 'water', 'River', 'Wide and moving', '🏞️'),
+  snd('water_lake', 'water', 'Lake', 'Still water lapping', '🛶'),
+  snd('fire_campfire', 'fire', 'Campfire', 'Crackle, no voices', '🔥'),
+  snd('fire_fireplace', 'fire', 'Fireplace', 'Indoors, low and warm', '🧱'),
+  snd('fire_crackling', 'fire', 'Crackling', 'Snaps and pops', '✨'),
+  snd('fire_bonfire', 'fire', 'Bonfire', 'Big and roaring', '🎇'),
+  snd('fire_by_the_sea', 'fire', 'By the sea', 'Fire with waves behind it', '🌅'),
+  snd('night_crickets', 'night', 'Crickets', 'A warm night outside', '🦗'),
+  snd('night_frogs_crickets', 'night', 'Frogs and crickets', 'Near the water after dark', '🐸'),
+  snd('night_frogs', 'night', 'Frogs', 'A chorus by the pond', '🐸'),
+  snd('night_forest', 'night', 'Night forest', 'Bush sounds after dark', '🌲'),
+  snd('night_curlew', 'night', 'Curlew', 'The bush curlew calling', '🦉'),
+  snd('hum_ceiling_fan', 'hum', 'Ceiling fan', 'Slow and even', '🌀'),
+  snd('hum_box_fan', 'hum', 'Box fan', 'Steady whirr', '🪭'),
+  snd('hum_aircon', 'hum', 'Air con', 'Cool room hum', '❄️'),
+  snd('hum_train', 'hum', 'Train', 'Rolling along the rails', '🚆'),
+  snd('hum_plane', 'hum', 'Plane cabin', 'Cruising altitude', '✈️'),
+];
+
+/** Sounds in one category, in catalogue order. */
+export function soundsIn(category: CategoryId) {
+  return SOUNDS.filter((s) => s.category === category);
+}
 
 export const TIMERS: { label: string; minutes: number | null }[] = [
   { label: '15 min', minutes: 15 },
@@ -44,7 +108,7 @@ export type SleepState = {
   now: number;
 };
 
-let state: SleepState = { picks: [{ id: 'brown_noise', level: 0.6 }, { id: 'rain_tin_roof', level: 0.4 }], timerMinutes: 45, fade: true, volume: 0.6, status: 'idle', endsAt: null, now: Date.now() };
+let state: SleepState = { picks: [{ id: 'noise_brown', level: 0.6 }, { id: 'rain_tin_roof', level: 0.4 }], timerMinutes: 45, fade: true, volume: 0.6, status: 'idle', endsAt: null, now: Date.now() };
 const players = new Map<SoundId, AudioPlayer>();
 const listeners = new Set<() => void>();
 let tick: ReturnType<typeof setInterval> | null = null;
