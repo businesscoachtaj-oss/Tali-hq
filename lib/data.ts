@@ -125,7 +125,45 @@ export async function forgetMemory(id: string): Promise<boolean> {
   return data === true;
 }
 
-export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string };
+// Photos and files in Talk (3 Nov 2026). `path` is the file in the private chat-uploads bucket;
+// `url` is a signed link filled in when messages load (good for an hour).
+export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string };
+export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null };
+export const MAX_ATTACHMENTS = 4;
+export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+// Uploads one file for a chat and returns the attachment to send with the message.
+export async function uploadAttachment(conversationId: string, file: { blob: Blob; name: string; mime: string }): Promise<Attachment> {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) throw new Error('Not signed in');
+  const isPdf = file.mime === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (!isPdf && !file.mime.startsWith('image/')) throw new Error('Photos and PDFs only for now.');
+  if (file.blob.size > MAX_FILE_BYTES) throw new Error(`${file.name} is over 10 MB.`);
+  const ext = isPdf ? 'pdf' : file.mime === 'image/png' ? 'png' : file.mime === 'image/webp' ? 'webp' : file.mime === 'image/gif' ? 'gif' : 'jpg';
+  const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const path = `${uid}/${conversationId}/${id}.${ext}`;
+  const { error } = await supabase.storage.from('chat-uploads').upload(path, file.blob, { contentType: isPdf ? 'application/pdf' : file.mime, upsert: false });
+  if (error) throw error;
+  return { kind: isPdf ? 'pdf' : 'image', path, name: file.name.slice(0, 80), size: file.blob.size };
+}
+
+async function signAttachments(rows: Message[]): Promise<Message[]> {
+  const paths = rows.flatMap((m) => (m.attachments ?? []).map((a) => a.path)).filter(Boolean);
+  if (!paths.length) return rows;
+  const { data } = await supabase.storage.from('chat-uploads').createSignedUrls(Array.from(new Set(paths)), 3600);
+  const urls = new Map((Array.isArray(data) ? data : []).map((d) => [d.path, d.signedUrl]));
+  return rows.map((m) => (m.attachments?.length ? { ...m, attachments: m.attachments.map((a) => ({ ...a, url: urls.get(a.path) ?? a.url })) } : m));
+}
+
+async function removeChatFiles(conversationId: string) {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) return;
+  const folder = `${uid}/${conversationId}`;
+  const { data: files } = await supabase.storage.from('chat-uploads').list(folder, { limit: 1000 });
+  if (files?.length) await supabase.storage.from('chat-uploads').remove(files.map((f) => `${folder}/${f.name}`));
+}
 
 // Chat history (3 Nov 2026): many chats, pinned first. Titles come from the first message
 // unless the user renames the chat.
@@ -148,6 +186,7 @@ export async function pinConversation(id: string, pinned: boolean) {
 }
 
 export async function deleteConversation(id: string) {
+  await removeChatFiles(id).catch(() => {});
   const { error } = await supabase.from('conversations').delete().eq('id', id);
   if (error) throw error;
 }
@@ -170,12 +209,12 @@ export async function newConversation(): Promise<string> {
 export async function messages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from('messages')
-    .select('id, role, content, created_at')
+    .select('id, role, content, created_at, attachments')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
     .limit(200);
   if (error) throw error;
-  return (data as Message[]) ?? [];
+  return signAttachments((data as Message[]) ?? []);
 }
 
 export type ChatResult =
@@ -184,8 +223,9 @@ export type ChatResult =
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
 // remembers anything worth keeping in this user's private brain.
-export async function sendMessage(conversationId: string, text: string): Promise<ChatResult> {
-  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text } });
+export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = []): Promise<ChatResult> {
+  const files = attachments.map(({ kind, path, name, size }) => ({ kind, path, name, size }));
+  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text, attachments: files } });
   if (error) {
     // Non-2xx answers still carry our JSON body with a friendly message.
     try {

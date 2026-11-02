@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { currentConversation, deleteConversation, listConversations, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type ConversationRow, type Message } from '@/lib/data';
+import { currentConversation, deleteConversation, listConversations, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
 import { isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { TaliThinking } from '@/components/TaliThinking';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { useAuth } from '@/lib/auth';
+import { pickFiles, type PickedFile } from '@/lib/pickFiles';
 import { tali } from '@/components/ui';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
 
@@ -30,6 +31,36 @@ export default function Talk() {
   const [pro, setPro] = useState(false);
   // Chat history (3 Nov 2026): the sheet with every chat; open, rename, pin, delete.
   const [historyOpen, setHistoryOpen] = useState(false);
+  // Photos and files (3 Nov 2026): what is attached to the message being written, already uploaded.
+  const [pending, setPending] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  async function attach(source: 'photo' | 'camera' | 'file') {
+    setPickerOpen(false);
+    if (!conversationId || uploading) return;
+    const room = MAX_ATTACHMENTS - pending.length;
+    if (room <= 0) { setNotice(`Up to ${MAX_ATTACHMENTS} files a message.`); return; }
+    let files: PickedFile[] = [];
+    try {
+      files = await pickFiles(source, room);
+    } catch (e: any) {
+      setNotice(e?.message ?? 'Could not open that.');
+      return;
+    }
+    if (!files.length) return;
+    setUploading(true);
+    setNotice('');
+    for (const f of files) {
+      try {
+        const a = await uploadAttachment(conversationId, f);
+        setPending((p) => [...p, { ...a, url: f.previewUrl }]);
+      } catch (e: any) {
+        setNotice(e?.message ?? `Could not upload ${f.name}.`);
+      }
+    }
+    setUploading(false);
+  }
   const listRef = useRef<FlatList<Row>>(null);
   const inputRef = useRef<TextInput>(null);
   // Share to Tali (2 Nov 2026): the PWA is a share target, so a text, DM screenshot caption or link
@@ -64,13 +95,15 @@ export default function Talk() {
 
   async function send(raw?: string) {
     const body = (raw ?? text).trim();
-    if (!body || !conversationId || thinking) return;
+    const files = raw ? [] : pending;
+    if ((!body && !files.length) || !conversationId || thinking || uploading) return;
     setText('');
+    setPending([]);
     setNotice('');
-    const temp: Row = { id: `tmp-${Date.now()}`, role: 'user', content: body, created_at: new Date().toISOString(), pending: true };
+    const temp: Row = { id: `tmp-${Date.now()}`, role: 'user', content: body, created_at: new Date().toISOString(), pending: true, attachments: files };
     setRows((r) => [...r, temp]);
     setThinking(true);
-    const res = await sendMessage(conversationId, body);
+    const res = await sendMessage(conversationId, body, files);
     setThinking(false);
     if (res.ok) {
       setRows(await loadMessages(conversationId));
@@ -88,6 +121,7 @@ export default function Talk() {
       if (bits.length) setNotice(bits.join(', ').replace(/^./, (c) => c.toUpperCase()) + '.');
     } else {
       setRows((r) => r.map((m) => (m.id === temp.id ? { ...m, pending: false, failed: true } : m)));
+      if (files.length) setPending(files);
       setNotice(res.message);
     }
   }
@@ -145,6 +179,19 @@ export default function Talk() {
           ) : null}
         </View>
 
+        <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
+          <Pressable style={{ flex: 1, backgroundColor: 'rgba(20,16,30,0.45)' }} onPress={() => setPickerOpen(false)} accessibilityLabel="Close" />
+          <View style={{ backgroundColor: colours.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: space.lg, paddingBottom: 36, gap: space.sm }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: colours.text, marginBottom: 4 }}>Send Tali something</Text>
+            {([['photo', 'Choose a photo'], ['camera', 'Take a photo'], ['file', 'Pick a PDF or file']] as const).map(([k, label]) => (
+              <Pressable key={k} onPress={() => attach(k)} accessibilityRole="button" style={{ backgroundColor: colours.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: 'rgba(39,38,38,0.04)', ...elevation.card }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>{label}</Text>
+              </Pressable>
+            ))}
+            <Text style={{ fontSize: 12, color: colours.muted, marginTop: 4 }}>Photos and PDFs, up to {MAX_ATTACHMENTS} a message, 10 MB each. One extra credit per message with files.</Text>
+          </View>
+        </Modal>
+
         <ChatHistory
           visible={historyOpen}
           currentId={conversationId}
@@ -196,7 +243,24 @@ export default function Talk() {
                     opacity: item.pending ? 0.7 : 1,
                     ...(me ? null : elevation.card),
                   }}>
-                  <Text style={{ color: me ? '#FFFFFF' : colours.text, fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
+                  {item.attachments?.length ? (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: item.content ? 8 : 0 }}>
+                      {item.attachments.map((a, i) => a.kind === 'image' ? (
+                        <Pressable key={i} onPress={() => a.url && Linking.openURL(a.url)} accessibilityRole="imagebutton" accessibilityLabel={`Open ${a.name}`}>
+                          <Image source={{ uri: a.url }} style={{ width: 150, height: 150, borderRadius: 12, backgroundColor: colours.sunk }} resizeMode="cover" />
+                        </Pressable>
+                      ) : (
+                        <Pressable key={i} onPress={() => a.url && Linking.openURL(a.url)} accessibilityRole="button" accessibilityLabel={`Open ${a.name}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: me ? 'rgba(255,255,255,0.12)' : colours.sunk, borderRadius: 12, padding: 10, maxWidth: 220 }}>
+                          <View style={{ width: 34, height: 40, borderRadius: 6, backgroundColor: colours.danger, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>PDF</Text></View>
+                          <View style={{ flex: 1 }}>
+                            <Text numberOfLines={1} style={{ color: me ? '#fff' : colours.text, fontSize: 13, fontWeight: '700' }}>{a.name}</Text>
+                            {a.size ? <Text style={{ color: me ? 'rgba(255,255,255,0.7)' : colours.muted, fontSize: 11 }}>{Math.round(a.size / 1024)} KB</Text> : null}
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                  {item.content ? <Text style={{ color: me ? '#FFFFFF' : colours.text, fontSize: 15, lineHeight: 22 }}>{item.content}</Text> : null}
                   {item.failed ? <Text style={{ color: '#FFB4A8', fontSize: 12, marginTop: 4 }}>Not sent</Text> : null}
                   {VOICE_LIVE && pro && !me && !item.id.startsWith('tmp-') ? <VoiceButton messageId={item.id} onError={setNotice} /> : null}
                 </View>
@@ -208,7 +272,27 @@ export default function Talk() {
 
         {notice ? <Text style={{ color: colours.muted, fontSize: 13, textAlign: 'center', paddingHorizontal: space.lg, paddingBottom: 6 }}>{notice}</Text> : null}
 
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, borderTopWidth: 1, borderTopColor: colours.border, backgroundColor: colours.surface }}>
+        {pending.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: colours.surface, borderTopWidth: 1, borderTopColor: colours.border }}>
+            {pending.map((a, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colours.sunk, borderRadius: 12, padding: 6, paddingRight: 8 }}>
+                {a.kind === 'image' ? <Image source={{ uri: a.url }} style={{ width: 44, height: 44, borderRadius: 8 }} /> : <View style={{ width: 34, height: 44, borderRadius: 6, backgroundColor: colours.danger, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>PDF</Text></View>}
+                <Text numberOfLines={1} style={{ maxWidth: 110, fontSize: 12, color: colours.text, fontWeight: '600' }}>{a.name}</Text>
+                <Pressable onPress={() => setPending((p) => p.filter((_, j) => j !== i))} hitSlop={8} accessibilityLabel={`Remove ${a.name}`}><Text style={{ color: colours.muted, fontWeight: '800' }}>{'✕'}</Text></Pressable>
+              </View>
+            ))}
+            <Text style={{ alignSelf: 'center', fontSize: 11, color: colours.faint }}>+1 credit for the files</Text>
+          </View>
+        ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, borderTopWidth: pending.length ? 0 : 1, borderTopColor: colours.border, backgroundColor: colours.surface }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Attach a photo or file"
+            onPress={() => (Platform.OS === 'web' ? attach('file') : setPickerOpen(true))}
+            disabled={uploading}
+            style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colours.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: colours.bg }}>
+            <Text style={{ fontSize: 20, color: colours.muted }}>{uploading ? '…' : '+'}</Text>
+          </Pressable>
           <TextInput
             ref={inputRef}
             value={text}
@@ -223,8 +307,8 @@ export default function Talk() {
             accessibilityRole="button"
             accessibilityLabel="Send"
             onPress={() => send()}
-            disabled={thinking || !text.trim()}
-            style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', opacity: thinking || !text.trim() ? 0.5 : 1, ...elevation.button(colours.purple) }}>
+            disabled={thinking || uploading || (!text.trim() && !pending.length)}
+            style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', opacity: thinking || uploading || (!text.trim() && !pending.length) ? 0.5 : 1, ...elevation.button(colours.purple) }}>
             <Text style={{ color: colours.onPurple, fontWeight: '700', fontSize: 15 }}>Send</Text>
           </Pressable>
         </View>
