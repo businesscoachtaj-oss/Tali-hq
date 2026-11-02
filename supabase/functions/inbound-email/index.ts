@@ -17,7 +17,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const WEBHOOK_SECRET = Deno.env.get('RESEND_WEBHOOK_SECRET') ?? '';
-const INBOUND_DOMAIN = (Deno.env.get('INBOUND_DOMAIN') ?? '').toLowerCase();
+const INBOUND_DOMAIN = (Deno.env.get('INBOUND_DOMAIN') || 'tali.totality360.com.au').toLowerCase();
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const TALI_MODEL = Deno.env.get('TALI_MODEL') ?? 'claude-haiku-5-5';
 

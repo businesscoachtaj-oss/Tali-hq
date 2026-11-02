@@ -12,4 +12,4 @@ export function prettyTime(t: string) {
 
 // Domain for Tali's email addresses (Pro). Empty until the inbound domain is set up in Resend,
 // so the app never shows an address that can't receive mail yet.
-export const INBOUND_DOMAIN = process.env.EXPO_PUBLIC_INBOUND_DOMAIN ?? '';
+export const INBOUND_DOMAIN = process.env.EXPO_PUBLIC_INBOUND_DOMAIN || 'tali.totality360.com.au';
