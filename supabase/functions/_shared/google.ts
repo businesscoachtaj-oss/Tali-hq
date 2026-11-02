@@ -4,8 +4,9 @@
 // token when it is within a minute of expiring.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4';
 
-export const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
-export const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
+// trim(): a pasted secret can carry a trailing newline, which Google rejects as invalid_client (2 Nov 2026).
+export const GOOGLE_CLIENT_ID = (Deno.env.get('GOOGLE_CLIENT_ID') ?? '').trim();
+export const GOOGLE_CLIENT_SECRET = (Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '').trim();
 export const googleReady = () => GOOGLE_CLIENT_ID.length > 0 && GOOGLE_CLIENT_SECRET.length > 0;
 
 // What each scope set asks Google for. 'both' is the Tali HQ default; Totality asks for calendar only.
