@@ -35,7 +35,7 @@ module.exports = {
       output: 'single',
       favicon: './assets/favicon.png',
     },
-    plugins: ['expo-router', 'expo-notifications'],
+    plugins: ['expo-router', 'expo-notifications', ['expo-audio', { enableBackgroundPlayback: true, microphonePermission: false, recordAudioAndroid: false }]],
     extra: {
       eas: { projectId: '4fcc84f2-1512-4bdb-a354-80b468efd453' },
     },
