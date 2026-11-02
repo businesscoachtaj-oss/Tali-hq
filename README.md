@@ -51,7 +51,7 @@ npm run typecheck
 
 Migrations 001 to 016 are in `supabase/migrations/` and applied. Auth email templates are in `supabase/templates/`.
 
-Plans: Free (A$0, 50 messages a month), Tali HQ (A$19.99, 1,000 credits), Pro (A$39.99, 3,000 credits, plus night school, voice, Tali's email and rules). A chat message, brief, journal, inbound email or voice clip costs 1 credit; each web search 2 more.
+Plans: Free (A$0, 150 messages a month), Tali HQ (A$19.99, 1,000 credits), Pro (A$39.99, 3,000 credits, plus night school, voice, Tali's email and rules). A chat message, brief, journal, inbound email or voice clip costs 1 credit; each web search 2 more.
 
 `expo-asset` is pinned to the SDK 54 version with an npm override, because `expo-audio` asks for any version.
 
