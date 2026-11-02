@@ -683,3 +683,44 @@ export async function sendFromTaliAddress(approvalId: string): Promise<{ ok: boo
   return data as { ok: boolean; from?: string };
 }
 export const calendarToday = () => googleCall({ action: 'calendar' }) as Promise<CalendarToday & { ok: boolean }>;
+
+// ---------- Founder stats (Taj only, 2 Nov 2026) ----------
+export type FounderStats = {
+  accounts: number;
+  onboarded: number;
+  signups_7d: number;
+  signups_30d: number;
+  by_plan: Record<string, number>;
+  trialing: number;
+  trials_ending_7d: number;
+  paid_active: number;
+  paid_hq: number;
+  paid_pro: number;
+  founding: number;
+  trial_expired_unpaid: number;
+  waitlist_founding_emails: number;
+  google_connected: number;
+  stripe_connected: number;
+  push_devices: number;
+  push_web: number;
+  tali_addresses: number;
+  month: {
+    credits: number;
+    tokens_in: number;
+    tokens_out: number;
+    active_users: number;
+    by_feature: Record<string, number>;
+    chats_today: number;
+    emails_sorted: number;
+    approvals_done: number;
+    approvals_pending: number;
+  };
+  top_users: { first_name: string | null; business_name: string | null; plan_id: string | null; status: string | null; credits: number; tokens_in: number; tokens_out: number }[];
+  generated_at: string;
+};
+
+export async function founderStats(): Promise<FounderStats> {
+  const { data, error } = await supabase.rpc('founder_stats');
+  if (error) throw error;
+  return data as FounderStats;
+}

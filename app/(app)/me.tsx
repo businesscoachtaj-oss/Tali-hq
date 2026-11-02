@@ -7,6 +7,7 @@ import { isPaid, isPro } from '@/lib/plan';
 import { resetTour } from '@/lib/tour';
 import { Body, Button, Card, Label, Screen, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
+import { FOUNDER_USER_ID } from '@/constants/business';
 
 const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Tali HQ', pro: 'Tali HQ Pro' };
 
@@ -88,7 +89,8 @@ export default function Me() {
         <MenuRow title="Invoices" sub="Make, share and track invoices" locked={!isPaid(credits)} onPress={() => router.navigate('/invoices')} />
         <MenuRow title="Rules" sub="Things Tali handles automatically" locked={!isPro(credits)} pro onPress={() => router.navigate('/rules')} />
         <MenuRow title="Email" sub="Your Gmail sorted, replies drafted. Her own address on Pro" locked={!isPaid(credits)} onPress={() => router.navigate('/inbox')} />
-        <MenuRow title="Connections" sub="Google and Stripe" locked={!isPaid(credits)} last onPress={() => router.navigate('/settings')} />
+        <MenuRow title="Connections" sub="Google and Stripe" locked={!isPaid(credits)} last={session?.user.id !== FOUNDER_USER_ID} onPress={() => router.navigate('/settings')} />
+        {session?.user.id === FOUNDER_USER_ID ? <MenuRow title="Founder" sub="Sign-ups, conversions, credits and cost. Only you see this" last onPress={() => router.navigate('/founder')} /> : null}
       </Card>
 
       <View style={{ height: space.md }} />

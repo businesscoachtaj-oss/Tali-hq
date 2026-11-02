@@ -13,3 +13,6 @@ export function prettyTime(t: string) {
 // Domain for Tali's email addresses (Pro). Empty until the inbound domain is set up in Resend,
 // so the app never shows an address that can't receive mail yet.
 export const INBOUND_DOMAIN = process.env.EXPO_PUBLIC_INBOUND_DOMAIN || 'tali.totality360.com.au';
+
+// Taj's account. The Founder screen (Me) only shows for this user, and founder_stats() only answers it.
+export const FOUNDER_USER_ID = 'e89ca9de-a86e-4dd6-8094-bc518566352e';
