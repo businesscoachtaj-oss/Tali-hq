@@ -62,12 +62,15 @@ function timingSafeEqual(a: string, b: string) {
 // Totality 360 account); secrets can override them, for example for test mode.
 export const PRICE_HQ = Deno.env.get('STRIPE_PRICE_HQ') || 'price_1UWucQPy9YlWBZ02DtSHnFNW';
 export const PRICE_PRO = Deno.env.get('STRIPE_PRICE_PRO') || 'price_1UWucXPy9YlWBZ02uACyStzk';
+// Yearly prices (created 2 Nov 2026): 15% off twelve months of the monthly price.
+export const PRICE_HQ_YEARLY = Deno.env.get('STRIPE_PRICE_HQ_YEARLY') || 'price_1UXB4HPy9YlWBZ02pW7k1ubh';
+export const PRICE_PRO_YEARLY = Deno.env.get('STRIPE_PRICE_PRO_YEARLY') || 'price_1UXB4JPy9YlWBZ02mazh3HDd';
 export const COUPON_FOUNDING = Deno.env.get('STRIPE_COUPON_FOUNDING') || 'TALIHQ_FOUNDING';
 
 export function planForPrice(priceId: string | undefined | null): 'hq' | 'pro' | null {
   if (!priceId) return null;
-  const hq = [PRICE_HQ, Deno.env.get('STRIPE_PRICE_HQ_YEARLY')].filter(Boolean);
-  const pro = [PRICE_PRO, Deno.env.get('STRIPE_PRICE_PRO_YEARLY')].filter(Boolean);
+  const hq = [PRICE_HQ, PRICE_HQ_YEARLY];
+  const pro = [PRICE_PRO, PRICE_PRO_YEARLY];
   if (hq.includes(priceId)) return 'hq';
   if (pro.includes(priceId)) return 'pro';
   return null;

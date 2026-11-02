@@ -189,6 +189,7 @@ export type Plan = {
   id: 'free' | 'hq' | 'pro';
   name: string;
   monthly_price_aud: number;
+  yearly_price_aud: number | null;
   credits_month: number;
   messages_month: number | null;
   features: string[];
@@ -196,7 +197,7 @@ export type Plan = {
 };
 
 export async function plans(): Promise<Plan[]> {
-  const { data, error } = await supabase.from('plans').select('id, name, monthly_price_aud, credits_month, messages_month, features, sort').order('sort');
+  const { data, error } = await supabase.from('plans').select('id, name, monthly_price_aud, yearly_price_aud, credits_month, messages_month, features, sort').order('sort');
   if (error) throw error;
   return (data as Plan[]) ?? [];
 }
@@ -219,7 +220,8 @@ async function invokeForUrl(fn: string, body: Record<string, unknown>): Promise<
 }
 
 // Web only for now. In the iOS and Android apps, upgrades will go through the stores.
-export const startCheckout = (plan: 'hq' | 'pro', returnUrl: string) => invokeForUrl('create-checkout', { plan, interval: 'month', returnUrl });
+export const startCheckout = (plan: 'hq' | 'pro', returnUrl: string, interval: 'month' | 'year' = 'month') =>
+  invokeForUrl('create-checkout', { plan, interval, returnUrl });
 export const openBillingPortal = (returnUrl: string) => invokeForUrl('billing-portal', { returnUrl });
 
 // ---------- Clients and leads ----------
