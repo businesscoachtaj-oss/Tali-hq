@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { bookEventApproval, decideApproval, sendEmailApproval, sendInvoiceWithStripe, type Approval } from '@/lib/data';
+import { bookEventApproval, decideApproval, sendEmailApproval, sendFromTaliAddress, sendInvoiceWithStripe, type Approval } from '@/lib/data';
+import { INBOUND_DOMAIN } from '@/constants/business';
 import { Card } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
@@ -29,6 +30,8 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   // Google connected: emails send from their Gmail, bookings go into their Google Calendar, on their tap.
   const gmailSend = item.draft?.action === 'gmail_send';
   const calendarBook = item.draft?.action === 'calendar_create';
+  // A reply to email that came in to their own Tali address (Pro): Send goes out from that address.
+  const taliSend = !item.draft?.action && typeof item.draft?.from === 'string' && item.draft.from.startsWith('email/') && !!item.draft?.to;
   const [sent, setSent] = useState(false);
   const [sentNote, setSentNote] = useState('');
 
@@ -42,6 +45,20 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
       return;
     }
     setSentNote(`Sent from your Gmail to ${item.draft?.to} 🙌`);
+    setSent(true);
+    setTimeout(() => onDecided(item.id), 1600);
+  }
+
+  async function sendTali() {
+    setBusy(true);
+    setError('');
+    const res = await sendFromTaliAddress(item.id);
+    if (!res.ok) {
+      setError(res.message ?? 'Could not send.');
+      setBusy(false);
+      return;
+    }
+    setSentNote(`Sent from ${res.from ?? `your @${INBOUND_DOMAIN} address`} to ${item.draft?.to} 🙌`);
     setSent(true);
     setTimeout(() => onDecided(item.id), 1600);
   }
@@ -99,12 +116,12 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   return (
     <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.orange }}>
       <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>
-        {stripeSend ? 'Invoice' : gmailSend ? 'Email from your Gmail' : calendarBook ? 'Calendar invite' : KIND_LABEL[item.kind] ?? 'Draft'}
+        {stripeSend ? 'Invoice' : gmailSend ? 'Email from your Gmail' : calendarBook ? 'Calendar invite' : taliSend ? 'Email to your Tali address' : KIND_LABEL[item.kind] ?? 'Draft'}
         {item.draft?.to ? ` · to ${item.draft.to_name ?? item.draft.to}` : ''}
       </Text>
       <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text, marginTop: 2 }}>{item.title}</Text>
       {gmailSend && item.draft?.summary ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>They said: {item.draft.summary}</Text> : null}
-      {gmailSend && item.draft?.subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {item.draft.subject}</Text> : null}
+      {(gmailSend || taliSend) && item.draft?.subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {item.draft.subject}</Text> : null}
       {body ? (
         <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel={open ? 'Hide draft' : 'Show draft'}>
           <View style={{ marginTop: space.sm, backgroundColor: colours.sunk, borderRadius: 12, padding: space.md }}>
@@ -130,6 +147,11 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
           </>
         ) : calendarBook ? (
           <Chip label={busy ? 'Booking...' : 'Book it'} primary onPress={book} disabled={busy || sent} />
+        ) : taliSend ? (
+          <>
+            <Chip label={busy ? 'Sending...' : 'Send from my Tali address'} primary onPress={sendTali} disabled={busy || sent} />
+            {body ? <Chip label={copied ? 'Copied' : 'Copy instead'} onPress={copy} disabled={busy} /> : null}
+          </>
         ) : (
           <>
             {body ? <Chip label={copied ? 'Copied' : 'Copy'} primary onPress={copy} disabled={busy} /> : null}

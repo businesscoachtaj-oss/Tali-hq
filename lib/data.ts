@@ -44,7 +44,7 @@ export type Approval = {
   kind: string;
   title: string;
   status: string;
-  draft: { to?: string | null; to_name?: string | null; subject?: string; body?: string; action?: string; invoice_id?: string; email?: string | null; email_id?: string | null; summary?: string | null; title?: string; start?: string; end?: string; attendee_email?: string | null; location?: string | null; link?: string | null } | null;
+  draft: { to?: string | null; to_name?: string | null; from?: string; subject?: string; body?: string; action?: string; invoice_id?: string; email?: string | null; email_id?: string | null; summary?: string | null; title?: string; start?: string; end?: string; attendee_email?: string | null; location?: string | null; link?: string | null } | null;
   created_at: string;
 };
 
@@ -668,4 +668,18 @@ export const disconnectGoogle = () => googleCall({ action: 'disconnect' });
 // Only ever called from their tap on Today.
 export const sendEmailApproval = (approvalId: string) => googleCall({ action: 'send', approvalId });
 export const bookEventApproval = (approvalId: string) => googleCall({ action: 'book', approvalId });
+
+// ADDED (2 Nov 2026): a reply to email that arrived at their own Tali address (Pro) sends from
+// that address through Resend. Only ever called from their tap on Today.
+export async function sendFromTaliAddress(approvalId: string): Promise<{ ok: boolean; message?: string; code?: string; from?: string }> {
+  const { data, error } = await supabase.functions.invoke('tali-send', { body: { approvalId } });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; from?: string };
+}
 export const calendarToday = () => googleCall({ action: 'calendar' }) as Promise<CalendarToday & { ok: boolean }>;
