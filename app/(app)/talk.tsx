@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { currentConversation, messages as loadMessages, myCredits, newConversation, sendMessage, type Message } from '@/lib/data';
+import { currentConversation, deleteConversation, listConversations, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type ConversationRow, type Message } from '@/lib/data';
 import { isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { TaliThinking } from '@/components/TaliThinking';
@@ -28,6 +28,8 @@ export default function Talk() {
   const [thinking, setThinking] = useState(false);
   const [notice, setNotice] = useState('');
   const [pro, setPro] = useState(false);
+  // Chat history (3 Nov 2026): the sheet with every chat; open, rename, pin, delete.
+  const [historyOpen, setHistoryOpen] = useState(false);
   const listRef = useRef<FlatList<Row>>(null);
   const inputRef = useRef<TextInput>(null);
   // Share to Tali (2 Nov 2026): the PWA is a share target, so a text, DM screenshot caption or link
@@ -102,6 +104,26 @@ export default function Talk() {
     }
   }
 
+  async function openChat(id: string) {
+    setHistoryOpen(false);
+    if (id === conversationId) return;
+    setNotice('');
+    try {
+      setConversationId(id);
+      setRows(await loadMessages(id));
+    } catch (e: any) {
+      setNotice(e?.message ?? 'Could not open that chat.');
+    }
+  }
+
+  async function chatDeleted(id: string) {
+    if (id !== conversationId) return;
+    // The open chat went: fall back to the latest one, or a fresh one.
+    const next = await currentConversation();
+    setConversationId(next);
+    setRows(await loadMessages(next));
+  }
+
   const empty = rows.length === 0;
 
   return (
@@ -113,12 +135,24 @@ export default function Talk() {
             <Text style={{ fontSize: 17, fontWeight: '800', color: colours.text }}>Tali</Text>
             <Text style={{ fontSize: 12, color: colours.muted }}>{thinking ? 'Thinking...' : 'Your AI teammate'}</Text>
           </View>
+          <Pressable onPress={() => setHistoryOpen(true)} accessibilityRole="button" accessibilityLabel="Your chats" style={{ borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
+            <Text style={{ fontWeight: '700', fontSize: 13, color: colours.text }}>Chats</Text>
+          </Pressable>
           {!empty ? (
             <Pressable onPress={startNew} accessibilityRole="button" style={{ borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
               <Text style={{ fontWeight: '700', fontSize: 13, color: colours.text }}>New chat</Text>
             </Pressable>
           ) : null}
         </View>
+
+        <ChatHistory
+          visible={historyOpen}
+          currentId={conversationId}
+          onClose={() => setHistoryOpen(false)}
+          onOpen={openChat}
+          onNew={() => { setHistoryOpen(false); void startNew(); }}
+          onDeleted={chatDeleted}
+        />
 
         {empty ? (
           <View style={{ flex: 1, padding: space.lg, justifyContent: 'center', maxWidth: 640, width: '100%', alignSelf: 'center' }}>
@@ -196,5 +230,154 @@ export default function Talk() {
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+// The history sheet: pinned chats first, then newest. Long press a chat for rename, pin and delete.
+function ChatHistory({ visible, currentId, onClose, onOpen, onNew, onDeleted }: {
+  visible: boolean; currentId: string | null; onClose: () => void; onOpen: (id: string) => void; onNew: () => void; onDeleted: (id: string) => void;
+}) {
+  const [chats, setChats] = useState<ConversationRow[]>([]);
+  const [error, setError] = useState('');
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      setChats(await listConversations());
+      setError('');
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not load your chats.');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (visible) { setMenuFor(null); setRenaming(null); setConfirmDelete(null); void refresh(); }
+  }, [visible, refresh]);
+
+  async function saveRename(id: string) {
+    const title = draft.trim();
+    setRenaming(null);
+    if (!title) return;
+    setChats((c) => c.map((x) => (x.id === id ? { ...x, title } : x)));
+    try { await renameConversation(id, title); } catch (e: any) { setError(e?.message ?? 'Could not rename.'); }
+    void refresh();
+  }
+
+  async function togglePin(row: ConversationRow) {
+    setMenuFor(null);
+    setChats((c) => c.map((x) => (x.id === row.id ? { ...x, pinned: !row.pinned } : x)));
+    try { await pinConversation(row.id, !row.pinned); } catch (e: any) { setError(e?.message ?? 'Could not pin.'); }
+    void refresh();
+  }
+
+  async function remove(id: string) {
+    setConfirmDelete(null); setMenuFor(null);
+    setChats((c) => c.filter((x) => x.id !== id));
+    try { await deleteConversation(id); await onDeleted(id); } catch (e: any) { setError(e?.message ?? 'Could not delete.'); }
+    void refresh();
+  }
+
+  const when = (iso: string) => {
+    const d = new Date(iso); const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    if (sameDay) return d.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+    const days = Math.round((now.setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 86400000);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return d.toLocaleDateString('en-AU', { weekday: 'long' });
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  };
+
+  const pinned = chats.filter((c) => c.pinned);
+  const rest = chats.filter((c) => !c.pinned);
+  const Section = ({ title, items }: { title: string; items: ConversationRow[] }) => items.length === 0 ? null : (
+    <View style={{ marginBottom: space.md }}>
+      <Text style={{ fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', color: colours.faint, fontWeight: '800', marginBottom: 6, marginLeft: 4 }}>{title}</Text>
+      <View style={{ backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: 'rgba(39,38,38,0.04)', overflow: 'hidden', ...elevation.card }}>
+        {items.map((c, i) => {
+          const open = c.id === currentId; const menu = menuFor === c.id;
+          return (
+            <View key={c.id} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
+              <Pressable
+                onPress={() => (menu ? setMenuFor(null) : onOpen(c.id))}
+                onLongPress={() => { setMenuFor(menu ? null : c.id); setConfirmDelete(null); }}
+                delayLongPress={350}
+                accessibilityRole="button"
+                style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: 12, paddingHorizontal: space.md, backgroundColor: open ? colours.purpleSoft : 'transparent' }}>
+                <View style={{ flex: 1 }}>
+                  {renaming === c.id ? (
+                    <TextInput
+                      autoFocus
+                      value={draft}
+                      onChangeText={setDraft}
+                      onSubmitEditing={() => saveRename(c.id)}
+                      onBlur={() => saveRename(c.id)}
+                      maxLength={80}
+                      style={{ fontSize: 15, fontWeight: '700', color: colours.text, borderBottomWidth: 1, borderBottomColor: colours.purple, paddingVertical: 2 }}
+                    />
+                  ) : (
+                    <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>{c.pinned ? '📌 ' : ''}{c.title}</Text>
+                  )}
+                  <Text numberOfLines={1} style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>{c.last_message || 'No messages yet'}</Text>
+                </View>
+                <Text style={{ fontSize: 12, color: colours.faint }}>{when(c.updated_at)}</Text>
+                <Pressable onPress={() => { setMenuFor(menu ? null : c.id); setConfirmDelete(null); }} hitSlop={10} accessibilityRole="button" accessibilityLabel="Chat options" style={{ paddingHorizontal: 4 }}>
+                  <Text style={{ fontSize: 18, color: colours.muted, fontWeight: '800' }}>{'⋯'}</Text>
+                </Pressable>
+              </Pressable>
+              {menu ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingHorizontal: space.md, paddingBottom: 12, backgroundColor: open ? colours.purpleSoft : 'transparent' }}>
+                  {confirmDelete === c.id ? (
+                    <>
+                      <Text style={{ alignSelf: 'center', fontSize: 13, color: colours.text }}>Delete this chat for good?</Text>
+                      <Chip label="Delete" danger onPress={() => remove(c.id)} />
+                      <Chip label="Keep" onPress={() => setConfirmDelete(null)} />
+                    </>
+                  ) : (
+                    <>
+                      <Chip label="Rename" onPress={() => { setDraft(c.title); setRenaming(c.id); setMenuFor(null); }} />
+                      <Chip label={c.pinned ? 'Unpin' : 'Pin'} onPress={() => togglePin(c)} />
+                      <Chip label="Delete" danger onPress={() => setConfirmDelete(c.id)} />
+                    </>
+                  )}
+                </View>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: 'rgba(20,16,30,0.45)' }} onPress={onClose} accessibilityLabel="Close" />
+      <View style={{ backgroundColor: colours.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '82%', paddingTop: 10 }}>
+        <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colours.borderStrong, alignSelf: 'center', marginBottom: 8 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingBottom: space.sm }}>
+          <Text style={{ flex: 1, fontSize: 20, fontWeight: '800', color: colours.text }}>Your chats</Text>
+          <Pressable onPress={onNew} accessibilityRole="button" style={{ backgroundColor: colours.purple, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, ...elevation.button(colours.purple) }}>
+            <Text style={{ color: colours.onPurple, fontWeight: '700', fontSize: 13 }}>New chat</Text>
+          </Pressable>
+        </View>
+        <Text style={{ fontSize: 12, color: colours.muted, paddingHorizontal: space.lg, marginBottom: space.md }}>Tap to open. Hold a chat, or tap its dots, to rename, pin or delete it. Tali remembers you across all of them.</Text>
+        {error ? <Text style={{ color: colours.danger, fontSize: 13, paddingHorizontal: space.lg, marginBottom: space.sm }}>{error}</Text> : null}
+        <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+          {chats.length === 0 && !error ? <Text style={{ color: colours.muted, fontSize: 14, textAlign: 'center', paddingVertical: space.xl }}>No chats yet.</Text> : null}
+          <Section title="Pinned" items={pinned} />
+          <Section title={pinned.length ? 'Everything else' : 'Recent'} items={rest} />
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+function Chip({ label, onPress, danger }: { label: string; onPress: () => void; danger?: boolean }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={{ borderWidth: 1, borderColor: danger ? colours.danger : colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: colours.surface }}>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: danger ? colours.danger : colours.text }}>{label}</Text>
+    </Pressable>
   );
 }

@@ -127,7 +127,32 @@ export async function forgetMemory(id: string): Promise<boolean> {
 
 export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string };
 
-// One running conversation for now; threads come later.
+// Chat history (3 Nov 2026): many chats, pinned first. Titles come from the first message
+// unless the user renames the chat.
+export type ConversationRow = { id: string; title: string; pinned: boolean; updated_at: string; last_message: string | null; message_count: number };
+
+export async function listConversations(): Promise<ConversationRow[]> {
+  const { data, error } = await supabase.rpc('my_conversations');
+  if (error) throw error;
+  return (data ?? []) as ConversationRow[];
+}
+
+export async function renameConversation(id: string, title: string) {
+  const { error } = await supabase.from('conversations').update({ title: title.trim().slice(0, 80), title_set_by_user: true }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function pinConversation(id: string, pinned: boolean) {
+  const { error } = await supabase.from('conversations').update({ pinned }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteConversation(id: string) {
+  const { error } = await supabase.from('conversations').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// The most recent chat (the one Talk opens by default).
 export async function currentConversation(): Promise<string> {
   const { data } = await supabase.from('conversations').select('id').order('updated_at', { ascending: false }).limit(1).maybeSingle();
   if (data?.id) return data.id as string;
