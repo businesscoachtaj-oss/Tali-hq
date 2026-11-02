@@ -4,7 +4,7 @@ import { addReminder } from '@/lib/data';
 import { addDays } from '@/lib/dates';
 import { ChipPicker } from '@/components/ChipPicker';
 import { Button } from '@/components/ui';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, elevation, radius, space } from '@/constants/theme';
 
 const WHEN = ['In an hour', 'This arvo', 'Tomorrow 9am', 'Monday 9am', 'Next week'] as const;
 type When = (typeof WHEN)[number];
@@ -52,7 +52,7 @@ export function AddReminder({ onAdded }: { onAdded: () => void }) {
     );
   }
   return (
-    <View style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.border, borderRadius: 18, padding: space.lg, marginBottom: space.md }}>
+    <View style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: 'rgba(39,38,38,0.04)', borderRadius: 18, padding: space.lg, marginBottom: space.md, ...elevation.card }}>
       <TextInput value={text} onChangeText={setText} placeholder="Chase Jordan about his invoice" placeholderTextColor={colours.faint} maxLength={300} autoFocus
         style={{ borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 14, paddingVertical: 11, fontSize: 16, color: colours.text, marginBottom: space.md }} />
       <ChipPicker options={WHEN} value={when} onChange={setWhen} />

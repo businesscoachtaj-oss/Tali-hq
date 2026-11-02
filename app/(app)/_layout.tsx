@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { registerTab } from '@/lib/tourTabPositions';
-import { colours } from '@/constants/theme';
+import { colours, elevation } from '@/constants/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -28,7 +28,7 @@ export default function AppTabs() {
         headerShown: false,
         tabBarActiveTintColor: colours.purple,
         tabBarInactiveTintColor: colours.faint,
-        tabBarStyle: { backgroundColor: colours.surface, borderTopColor: colours.border },
+        tabBarStyle: { backgroundColor: colours.surface, borderTopColor: colours.border, ...elevation.tabBar },
         sceneStyle: { backgroundColor: colours.bg },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 0) }} />

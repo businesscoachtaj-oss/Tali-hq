@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Platform, Text, View } from 'react-native';
 import { TaliAvatar } from '@/components/TaliAvatar';
-import { colours } from '@/constants/theme';
+import { colours, elevation } from '@/constants/theme';
 
 export function TaliThinking() {
   const dots = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
@@ -27,7 +27,7 @@ export function TaliThinking() {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 4 }} accessibilityLabel="Tali is thinking">
       <TaliAvatar pose="head_think" size={34} />
-      <View style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.border, borderRadius: 18, borderBottomLeftRadius: 6, paddingVertical: 10, paddingHorizontal: 14 }}>
+      <View style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: 'rgba(39,38,38,0.04)', borderRadius: 18, borderBottomLeftRadius: 6, paddingVertical: 10, paddingHorizontal: 14, ...elevation.card }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           {dots.map((d, i) => (
             <Animated.View

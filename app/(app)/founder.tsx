@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { founderStats, type FounderStats } from '@/lib/data';
 import { BackLink, Body, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, elevation, radius, space } from '@/constants/theme';
 
 // Claude Haiku list price, US$ per million tokens. Only used for the estimate on this screen.
 const USD_IN_PER_M = 1;
@@ -139,7 +139,7 @@ export default function Founder() {
 
 function Tile({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
   return (
-    <View style={{ flexBasis: '48%', flexGrow: 1, backgroundColor: accent ? colours.purpleSoft : colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: accent ? colours.purpleSoft : colours.border, padding: space.lg }}>
+    <View style={{ flexBasis: '48%', flexGrow: 1, backgroundColor: accent ? colours.purpleSoft : colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: accent ? colours.purpleSoft : 'rgba(39,38,38,0.04)', padding: space.lg, ...(accent ? elevation.tile : elevation.card) }}>
       <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</Text>
       <Text style={{ color: accent ? colours.purpleInk : colours.text, fontSize: 28, fontWeight: '800', marginTop: 4 }}>{value}</Text>
       {sub ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>{sub}</Text> : null}

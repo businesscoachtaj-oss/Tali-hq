@@ -9,7 +9,7 @@ import { TaliThinking } from '@/components/TaliThinking';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { useAuth } from '@/lib/auth';
 import { tali } from '@/components/ui';
-import { colours, NO_BOTTOM, radius, space } from '@/constants/theme';
+import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
 
 type Row = Message & { pending?: boolean; failed?: boolean };
 
@@ -153,13 +153,14 @@ export default function Talk() {
                     maxWidth: '86%',
                     backgroundColor: me ? colours.text : colours.surface,
                     borderWidth: me ? 0 : 1,
-                    borderColor: colours.border,
+                    borderColor: 'rgba(39,38,38,0.04)',
                     borderRadius: 18,
                     borderBottomRightRadius: me ? 6 : 18,
                     borderBottomLeftRadius: me ? 18 : 6,
                     paddingVertical: 10,
                     paddingHorizontal: 14,
                     opacity: item.pending ? 0.7 : 1,
+                    ...(me ? null : elevation.card),
                   }}>
                   <Text style={{ color: me ? '#FFFFFF' : colours.text, fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
                   {item.failed ? <Text style={{ color: '#FFB4A8', fontSize: 12, marginTop: 4 }}>Not sent</Text> : null}
@@ -189,7 +190,7 @@ export default function Talk() {
             accessibilityLabel="Send"
             onPress={() => send()}
             disabled={thinking || !text.trim()}
-            style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', opacity: thinking || !text.trim() ? 0.5 : 1 }}>
+            style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', opacity: thinking || !text.trim() ? 0.5 : 1, ...elevation.button(colours.purple) }}>
             <Text style={{ color: colours.onPurple, fontWeight: '700', fontSize: 15 }}>Send</Text>
           </Pressable>
         </View>

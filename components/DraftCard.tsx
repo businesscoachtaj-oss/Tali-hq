@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { bookEventApproval, bookOutlookApproval, decideApproval, editDraft, sendEmailApproval, sendFromTaliAddress, sendInvoiceWithStripe, sendOutlookApproval, type Approval } from '@/lib/data';
 import { INBOUND_DOMAIN } from '@/constants/business';
 import { Card } from '@/components/ui';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, elevation, radius, space } from '@/constants/theme';
 
 const KIND_LABEL: Record<string, string> = {
   message: 'Message',
@@ -165,7 +165,7 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
       {(gmailSend || outlookSend || taliSend) && subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {subject}</Text> : null}
       {body ? (
         <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel={open ? 'Hide draft' : 'Show draft'}>
-          <View style={{ marginTop: space.sm, backgroundColor: colours.sunk, borderRadius: 12, padding: space.md }}>
+          <View style={{ marginTop: space.sm, backgroundColor: colours.sunk, borderRadius: 12, padding: space.md, ...elevation.tile }}>
             <Text selectable numberOfLines={open ? undefined : 3} style={{ fontSize: 14, lineHeight: 21, color: colours.text }}>
               {body}
             </Text>
@@ -250,6 +250,7 @@ function Chip({ label, onPress, primary, ghost, disabled }: { label: string; onP
         borderColor: primary ? colours.purple : ghost ? 'transparent' : colours.borderStrong,
         backgroundColor: primary ? colours.purple : 'transparent',
         opacity: disabled ? 0.5 : 1,
+        ...(primary ? elevation.button(colours.purple) : null),
       }}>
       <Text style={{ fontWeight: '700', fontSize: 13, color: primary ? colours.onPurple : ghost ? colours.muted : colours.text }}>{label}</Text>
     </Pressable>

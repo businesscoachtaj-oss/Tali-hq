@@ -12,7 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colours, NO_BOTTOM, radius, space } from '@/constants/theme';
+import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
 
 export const tali = {
@@ -83,8 +83,8 @@ export function Button({
       onPress={off ? undefined : onPress}
       style={({ pressed }) => [
         styles.btn,
-        kind === 'primary' && { backgroundColor: colours.purple, borderColor: colours.purple },
-        kind === 'danger' && { borderColor: colours.danger },
+        kind === 'primary' && { backgroundColor: colours.purple, borderColor: colours.purple, ...elevation.button(colours.purple) },
+        kind === 'danger' && { borderColor: colours.danger, ...elevation.button(colours.danger) },
         off && { opacity: 0.55 },
         pressed && !off && { opacity: 0.85 },
       ]}>
@@ -144,11 +144,12 @@ const styles = StyleSheet.create({
   sub: { fontSize: 15, color: colours.muted, marginTop: space.xs, lineHeight: 21 },
   card: {
     backgroundColor: colours.surface,
-    borderColor: colours.border,
+    borderColor: 'rgba(39,38,38,0.04)',
     borderWidth: 1,
     borderRadius: radius.card,
     padding: space.lg,
     marginBottom: space.md,
+    ...elevation.card,
   },
   body: { fontSize: 15, lineHeight: 22, color: colours.text },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: colours.muted, marginBottom: 6 },
