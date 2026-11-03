@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -15,6 +15,7 @@ import { TaliAvatar } from '@/components/TaliAvatar';
 import { DraftCard } from '@/components/DraftCard';
 import { AppTour } from '@/components/AppTour';
 import { TOUR_STEPS, finishTour } from '@/lib/tour';
+import { registerTarget, setTourScroller } from '@/lib/tourTargets';
 import { colours, NO_BOTTOM, space } from '@/constants/theme';
 // The owner's rhythm (3 Nov 2026): shutdown, week, goals, money, meetings, decisions, patterns.
 import { ShutdownCard } from '@/components/ShutdownCard';
@@ -54,6 +55,24 @@ export default function Today() {
   // First-run tour, shown once until finished or skipped (and again from Me).
   const [tourClosed, setTourClosed] = useState(false);
   const showTour = !!profile && !profile.tour_done_at && !tourClosed;
+  // Spots the tour points at, and a scroller so it can bring each one into view.
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const heroRef = useRef<View>(null);
+  const yesRef = useRef<View>(null);
+  const dueRef = useRef<View>(null);
+  const glanceRef = useRef<View>(null);
+  useEffect(() => {
+    registerTarget('hero', heroRef);
+    registerTarget('yes', yesRef);
+    registerTarget('due', dueRef);
+    registerTarget('glance', glanceRef);
+    setTourScroller(
+      (targetY, wantedY) => scrollRef.current?.scrollTo({ y: Math.max(0, scrollY.current + targetY - wantedY), animated: true }),
+      () => scrollRef.current?.scrollTo({ y: 0, animated: true }),
+    );
+    return () => setTourScroller(null);
+  }, []);
 
   async function closeTour() {
     setTourClosed(true);
@@ -120,8 +139,12 @@ export default function Today() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
       <ScrollView
+        ref={scrollRef}
+        onScroll={(e) => (scrollY.current = e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
+        <View ref={heroRef} collapsable={false}>
         <TodayHero
           greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
           sub={trial}
@@ -129,6 +152,7 @@ export default function Today() {
           briefLabel={morning ? (briefOpen ? 'Hide your brief' : 'Read your brief') : null}
           onBrief={() => setBriefOpen((o) => !o)}
         />
+        </View>
 
         {morning && briefOpen ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => markBriefRead(morning.id).then(load)} />
@@ -137,7 +161,7 @@ export default function Today() {
         <MeetingNudge credits={credits} calendar={calendar} compact />
 
         {approvals.length ? (
-          <>
+          <View ref={yesRef} collapsable={false}>
             <Label>Needs your yes</Label>
             <FoldList
               folds={approvals.map((a) => ({
@@ -148,9 +172,10 @@ export default function Today() {
               }))}
             />
             <View style={{ height: space.sm }} />
-          </>
+          </View>
         ) : null}
 
+        <View ref={dueRef} collapsable={false}>
         <Label>Due today</Label>
         {reminders.length + followUps.length > 0 ? (
           <DueList reminders={reminders} followUps={followUps} onChange={load} />
@@ -160,12 +185,15 @@ export default function Today() {
           </Card>
         )}
         <AddReminder onAdded={load} />
+        </View>
 
         <ShutdownCard />
 
         <View style={{ height: space.md }} />
+        <View ref={glanceRef} collapsable={false}>
         <Label>At a glance</Label>
         <GlanceGrid tiles={glanceTiles({ credits, money, health, week, goals })} />
+        </View>
 
         {(() => {
           const folds = moreFolds({ calendar, life, patterns, lastDecision, others, onTick: () => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined), onPatternsRead: load });

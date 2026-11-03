@@ -1,0 +1,13 @@
+# OTA publish to the production channel (JavaScript-only changes).
+# Runs when triggered by hand on expo.dev, or when the ota-publish branch is pushed.
+name: Publish OTA update
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ['ota-publish']
+jobs:
+  update:
+    type: update
+    params:
+      channel: production
+      message: "First OTA channel for Tali HQ"

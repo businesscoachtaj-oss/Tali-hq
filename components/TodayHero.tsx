@@ -1,15 +1,20 @@
 // Today's top card (3 Nov 2026). Replaces the plain greeting and Tali's
 // bubble with one card: the greeting, Tali reading the page for you, and Tali's level.
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { taliLevel, type Level } from '@/lib/level';
+import { registerTarget } from '@/lib/tourTargets';
 import { colours, elevation, space } from '@/constants/theme';
 
 export function TodayHero({ greeting, sub, hello, briefLabel, onBrief }: { greeting: string; sub?: string | null; hello: string; briefLabel?: string | null; onBrief?: () => void }) {
   const [level, setLevel] = useState<Level | null>(null);
+  const levelRef = useRef<View>(null);
+  useEffect(() => {
+    registerTarget('level', levelRef);
+  }, []);
   useFocusEffect(
     useCallback(() => {
       taliLevel().then(setLevel).catch(() => setLevel(null));
@@ -34,7 +39,7 @@ export function TodayHero({ greeting, sub, hello, briefLabel, onBrief }: { greet
       </View>
 
       {level ? (
-        <View style={h.level} accessible accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}>
+        <View ref={levelRef} collapsable={false} style={h.level} accessible accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}>
           <View style={h.levelTop}>
             <View style={h.badge}>
               <Text style={h.badgeNum}>{level.level}</Text>
