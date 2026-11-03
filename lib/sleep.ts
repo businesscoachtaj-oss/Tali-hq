@@ -119,6 +119,12 @@ const SEAM_GUARD = 0.35; // seconds either side of a restart that stay fully mut
 const SEAM_FADE = 5; // seconds to fade a copy in or out around its restart (a quarter of the loop at most)
 const MIX_TICK_MS = 50; // fine volume steps, so the fades themselves never click
 let lastSecond = 0;
+// iPhone and iPad Safari ignore volume on web audio, so two copies would just play doubled. There
+// the web app keeps one plain loop, as before. The native iOS app controls volume and is not affected.
+const WEB_NO_VOLUME =
+  Platform.OS === 'web' &&
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1));
 
 /** 0 at a copy's restart point, 1 once it is SEAM_GUARD + SEAM_FADE seconds away from it. */
 function seamGain(t: number, d: number) {
@@ -140,6 +146,7 @@ function spread(v: Voice, d: number) {
 }
 
 function voiceGains(v: Voice) {
+  if (WEB_NO_VOLUME) return [1, 0];
   const d = finite(v.a.duration);
   // Until copy B is confirmed half a loop away, play copy A alone (a plain loop, as before).
   if (!v.offset || !usable(d) || spread(v, d) < 0.25) return [1, 0];
@@ -151,6 +158,7 @@ function voiceGains(v: Voice) {
 
 /** Park copy B half a loop away from copy A, and keep checking it stayed there. */
 function alignVoice(v: Voice) {
+  if (WEB_NO_VOLUME) return;
   const d = finite(v.a.duration);
   if (!usable(d)) return;
   if (spread(v, d) >= 0.25) {
@@ -308,7 +316,7 @@ function ensurePlayers() {
     players.set(p.id, v);
     if (state.status === 'playing') {
       v.a.play();
-      v.b.play();
+      if (!WEB_NO_VOLUME) v.b.play();
     }
   }
   applyVolumes();
@@ -326,7 +334,7 @@ export async function start() {
   let first = true;
   for (const v of players.values()) {
     v.a.play();
-    v.b.play();
+    if (!WEB_NO_VOLUME) v.b.play();
     if (first && Platform.OS !== 'web') {
       try {
         const names = state.picks.map((p) => SOUNDS.find((s) => s.id === p.id)?.name).filter(Boolean).join(' + ');
@@ -350,7 +358,7 @@ export function pause() {
 export function resume() {
   for (const v of players.values()) {
     v.a.play();
-    v.b.play();
+    if (!WEB_NO_VOLUME) v.b.play();
   }
   set({ status: 'playing' });
 }
