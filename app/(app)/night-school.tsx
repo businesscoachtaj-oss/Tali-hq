@@ -5,7 +5,7 @@ import { markNightNoteRead, myCredits, nightNotes, nightSchool, saveNightSchool,
 import { friendlyDate } from '@/lib/dates';
 import { isPro } from '@/lib/plan';
 import { ChipPicker } from '@/components/ChipPicker';
-import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
 const IDEAS = ['Instagram for my business', 'Getting more Google reviews', 'Pricing my services', 'Keeping clients longer', 'Small business tax basics'];
@@ -159,7 +159,7 @@ export default function NightSchoolScreen() {
       <View style={{ height: space.lg }} />
       <Label>What I learnt</Label>
       {notes.length === 0 ? (
-        <Card><Body muted>{ns.topics.length ? 'My first notes show up the morning after my first night.' : 'Add a topic and my notes will land here.'}</Body></Card>
+        <Hint>{ns.topics.length ? 'Her first notes show up the morning after her first night.' : 'Add a topic and her notes land here.'}</Hint>
       ) : (
         notes.map((n) => (
           <Pressable key={n.id} onPress={() => { setOpen(n); if (!n.read_at) markNightNoteRead(n.id).then(load); }}>

@@ -22,8 +22,9 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { isLoading, session, profile, recovering } = useAuth();
-  if (isLoading) return <Loading />;
+  const { isLoading, session, profile, profileReady, recovering } = useAuth();
+  // Wait for the signed-in user's profile too, or onboarding flashes up for a moment after sign in.
+  if (isLoading || !profileReady) return <Loading />;
 
   const signedIn = !!session;
   const onboarded = !!profile?.onboarded_at;

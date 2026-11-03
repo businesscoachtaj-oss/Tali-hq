@@ -4,6 +4,9 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import { taliVoice } from '@/lib/data';
 import { colours } from '@/constants/theme';
 
+// Voice is coming soon: the voice server isn't hosted yet. Flip to true once TALI_VOICE_URL is set.
+export const VOICE_LIVE = false;
+
 // One clip plays at a time across the whole chat.
 let current: { player: AudioPlayer; stop: () => void } | null = null;
 

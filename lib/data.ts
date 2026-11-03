@@ -17,7 +17,7 @@ export async function myCredits(): Promise<Credits | null> {
 
 export type Brief = {
   id: string;
-  kind: 'morning' | 'health' | 'weekly' | 'journal';
+  kind: 'morning' | 'health' | 'weekly' | 'journal' | 'patterns';
   for_date: string;
   title: string | null;
   content: { headline?: string; lines?: string[]; paragraphs?: string[] };
@@ -44,7 +44,7 @@ export type Approval = {
   kind: string;
   title: string;
   status: string;
-  draft: { to?: string | null; subject?: string; body?: string } | null;
+  draft: { to?: string | null; to_name?: string | null; from?: string; subject?: string; body?: string; action?: string; invoice_id?: string; email?: string | null; email_id?: string | null; summary?: string | null; title?: string; start?: string; end?: string; attendee_email?: string | null; location?: string | null; link?: string | null } | null;
   created_at: string;
 };
 
@@ -125,9 +125,73 @@ export async function forgetMemory(id: string): Promise<boolean> {
   return data === true;
 }
 
-export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string };
+// Photos and files in Talk (3 Nov 2026). `path` is the file in the private chat-uploads bucket;
+// `url` is a signed link filled in when messages load (good for an hour).
+export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string };
+export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null };
+export const MAX_ATTACHMENTS = 4;
+export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
-// One running conversation for now; threads come later.
+// Uploads one file for a chat and returns the attachment to send with the message.
+export async function uploadAttachment(conversationId: string, file: { blob: Blob; name: string; mime: string }): Promise<Attachment> {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) throw new Error('Not signed in');
+  const isPdf = file.mime === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (!isPdf && !file.mime.startsWith('image/')) throw new Error('Photos and PDFs only for now.');
+  if (file.blob.size > MAX_FILE_BYTES) throw new Error(`${file.name} is over 10 MB.`);
+  const ext = isPdf ? 'pdf' : file.mime === 'image/png' ? 'png' : file.mime === 'image/webp' ? 'webp' : file.mime === 'image/gif' ? 'gif' : 'jpg';
+  const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const path = `${uid}/${conversationId}/${id}.${ext}`;
+  const { error } = await supabase.storage.from('chat-uploads').upload(path, file.blob, { contentType: isPdf ? 'application/pdf' : file.mime, upsert: false });
+  if (error) throw error;
+  return { kind: isPdf ? 'pdf' : 'image', path, name: file.name.slice(0, 80), size: file.blob.size };
+}
+
+async function signAttachments(rows: Message[]): Promise<Message[]> {
+  const paths = rows.flatMap((m) => (m.attachments ?? []).map((a) => a.path)).filter(Boolean);
+  if (!paths.length) return rows;
+  const { data } = await supabase.storage.from('chat-uploads').createSignedUrls(Array.from(new Set(paths)), 3600);
+  const urls = new Map((Array.isArray(data) ? data : []).map((d) => [d.path, d.signedUrl]));
+  return rows.map((m) => (m.attachments?.length ? { ...m, attachments: m.attachments.map((a) => ({ ...a, url: urls.get(a.path) ?? a.url })) } : m));
+}
+
+async function removeChatFiles(conversationId: string) {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) return;
+  const folder = `${uid}/${conversationId}`;
+  const { data: files } = await supabase.storage.from('chat-uploads').list(folder, { limit: 1000 });
+  if (files?.length) await supabase.storage.from('chat-uploads').remove(files.map((f) => `${folder}/${f.name}`));
+}
+
+// Chat history (3 Nov 2026): many chats, pinned first. Titles come from the first message
+// unless the user renames the chat.
+export type ConversationRow = { id: string; title: string; pinned: boolean; updated_at: string; last_message: string | null; message_count: number };
+
+export async function listConversations(): Promise<ConversationRow[]> {
+  const { data, error } = await supabase.rpc('my_conversations');
+  if (error) throw error;
+  return (data ?? []) as ConversationRow[];
+}
+
+export async function renameConversation(id: string, title: string) {
+  const { error } = await supabase.from('conversations').update({ title: title.trim().slice(0, 80), title_set_by_user: true }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function pinConversation(id: string, pinned: boolean) {
+  const { error } = await supabase.from('conversations').update({ pinned }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteConversation(id: string) {
+  await removeChatFiles(id).catch(() => {});
+  const { error } = await supabase.from('conversations').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// The most recent chat (the one Talk opens by default).
 export async function currentConversation(): Promise<string> {
   const { data } = await supabase.from('conversations').select('id').order('updated_at', { ascending: false }).limit(1).maybeSingle();
   if (data?.id) return data.id as string;
@@ -145,22 +209,23 @@ export async function newConversation(): Promise<string> {
 export async function messages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from('messages')
-    .select('id, role, content, created_at')
+    .select('id, role, content, created_at, attachments')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
     .limit(200);
   if (error) throw error;
-  return (data as Message[]) ?? [];
+  return signAttachments((data as Message[]) ?? []);
 }
 
 export type ChatResult =
-  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; remaining: number | null }
+  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; goalsSaved?: number; decisionsLogged?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
 // remembers anything worth keeping in this user's private brain.
-export async function sendMessage(conversationId: string, text: string): Promise<ChatResult> {
-  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text } });
+export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = []): Promise<ChatResult> {
+  const files = attachments.map(({ kind, path, name, size }) => ({ kind, path, name, size }));
+  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text, attachments: files } });
   if (error) {
     // Non-2xx answers still carry our JSON body with a friendly message.
     try {
@@ -189,6 +254,7 @@ export type Plan = {
   id: 'free' | 'hq' | 'pro';
   name: string;
   monthly_price_aud: number;
+  yearly_price_aud: number | null;
   credits_month: number;
   messages_month: number | null;
   features: string[];
@@ -196,7 +262,7 @@ export type Plan = {
 };
 
 export async function plans(): Promise<Plan[]> {
-  const { data, error } = await supabase.from('plans').select('id, name, monthly_price_aud, credits_month, messages_month, features, sort').order('sort');
+  const { data, error } = await supabase.from('plans').select('id, name, monthly_price_aud, yearly_price_aud, credits_month, messages_month, features, sort').order('sort');
   if (error) throw error;
   return (data as Plan[]) ?? [];
 }
@@ -219,7 +285,8 @@ async function invokeForUrl(fn: string, body: Record<string, unknown>): Promise<
 }
 
 // Web only for now. In the iOS and Android apps, upgrades will go through the stores.
-export const startCheckout = (plan: 'hq' | 'pro', returnUrl: string) => invokeForUrl('create-checkout', { plan, interval: 'month', returnUrl });
+export const startCheckout = (plan: 'hq' | 'pro', returnUrl: string, interval: 'month' | 'year' = 'month') =>
+  invokeForUrl('create-checkout', { plan, interval, returnUrl });
 export const openBillingPortal = (returnUrl: string) => invokeForUrl('billing-portal', { returnUrl });
 
 // ---------- Clients and leads ----------
@@ -350,6 +417,9 @@ export type Invoice = {
   notes: string;
   created_by: 'user' | 'tali';
   created_at: string;
+  stripe_invoice_id: string | null;
+  stripe_url: string | null;
+  paid_via: 'stripe' | 'manual' | null;
 };
 export type InvoiceSettings = {
   business_name: string | null;
@@ -364,7 +434,7 @@ export type InvoiceSettings = {
   footer: string | null;
 };
 
-const INVOICE_COLS = 'id, client_id, client_name, client_email, number, issue_date, due_date, items, gst, subtotal, gst_amount, total, status, sent_at, paid_at, notes, created_by, created_at';
+const INVOICE_COLS = 'id, client_id, client_name, client_email, number, issue_date, due_date, items, gst, subtotal, gst_amount, total, status, sent_at, paid_at, notes, created_by, created_at, stripe_invoice_id, stripe_url, paid_via';
 
 export async function invoices(): Promise<Invoice[]> {
   const { data, error } = await supabase.from('invoices').select(INVOICE_COLS).order('created_at', { ascending: false }).limit(200);
@@ -458,6 +528,9 @@ export type InboundEmail = {
   status: 'new' | 'handled' | 'spam';
   approval_id: string | null;
   received_at: string;
+  source: 'tali_inbox' | 'gmail' | 'outlook';
+  category: 'needs_you' | 'fyi' | 'spam' | null;
+  snippet: string | null;
 };
 
 export async function myInbox(): Promise<string | null> {
@@ -474,9 +547,9 @@ export async function claimInbox(): Promise<string> {
 export async function inboundEmails(): Promise<InboundEmail[]> {
   const { data, error } = await supabase
     .from('inbound_emails')
-    .select('id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at')
+    .select('id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at, source, category, snippet')
     .order('received_at', { ascending: false })
-    .limit(50);
+    .limit(80);
   if (error) throw error;
   return (data as InboundEmail[]) ?? [];
 }
@@ -596,4 +669,175 @@ export async function logWorkout(localDate: string, label: string) {
 export async function deleteWorkout(id: string) {
   const { error } = await supabase.from('workout_logs').delete().eq('id', id);
   if (error) throw error;
+}
+
+// ---------- Stripe: businesses connect their own Stripe so Tali can send invoices through it ----------
+export type StripeConnection = { account_id: string; business_name: string | null; livemode: boolean; connected_at: string };
+
+export async function stripeConnection(): Promise<StripeConnection | null> {
+  const { data, error } = await supabase.from('stripe_connections').select('account_id, business_name, livemode, connected_at').maybeSingle();
+  if (error) throw error;
+  return (data as StripeConnection | null) ?? null;
+}
+
+async function stripeCall(body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; url?: string | null; code?: string }> {
+  const { data, error } = await supabase.functions.invoke('stripe-invoices', { body });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; url?: string | null };
+}
+
+// Returns the Stripe page to open; Stripe sends them back to /settings?stripe=connected.
+export const startStripeConnect = (returnUrl: string) => stripeCall({ action: 'connect', returnUrl });
+export const disconnectStripe = () => stripeCall({ action: 'disconnect' });
+// Creates the invoice in their Stripe and emails it to the client. Only ever called from their tap.
+export const sendInvoiceWithStripe = (invoiceId: string) => stripeCall({ action: 'send', invoiceId });
+
+// ---------- Google: Gmail and Google Calendar, one sign-in ----------
+export type GoogleConnection = { google_email: string; scopes: string[]; last_mail_sync_at: string | null; last_error: string | null; connected_at: string };
+
+export async function googleConnection(): Promise<GoogleConnection | null> {
+  const { data, error } = await supabase.from('google_connections').select('google_email, scopes, last_mail_sync_at, last_error, connected_at').maybeSingle();
+  if (error) throw error;
+  return (data as GoogleConnection | null) ?? null;
+}
+
+export type CalendarToday = {
+  connected: boolean;
+  account?: string;
+  events?: { title: string; when: string; location: string | null; attendees: string[] }[];
+  free_today?: string[];
+  error?: string;
+};
+
+async function googleCall(body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; url?: string | null; code?: string; link?: string | null } & Partial<CalendarToday>> {
+  const { data, error } = await supabase.functions.invoke('google-connect', { body });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; url?: string | null };
+}
+
+// Returns Google's consent page to open; Google sends them back to /settings?google=connected.
+export const startGoogleConnect = (returnUrl: string, what: 'both' | 'calendar' = 'both') => googleCall({ action: 'connect', returnUrl, what });
+export const disconnectGoogle = () => googleCall({ action: 'disconnect' });
+// Only ever called from their tap on Today.
+export const sendEmailApproval = (approvalId: string) => googleCall({ action: 'send', approvalId });
+export const bookEventApproval = (approvalId: string) => googleCall({ action: 'book', approvalId });
+
+// ADDED (2 Nov 2026): a reply to email that arrived at their own Tali address (Pro) sends from
+// that address through Resend. Only ever called from their tap on Today.
+export async function sendFromTaliAddress(approvalId: string): Promise<{ ok: boolean; message?: string; code?: string; from?: string }> {
+  const { data, error } = await supabase.functions.invoke('tali-send', { body: { approvalId } });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; from?: string };
+}
+export const calendarToday = () => googleCall({ action: 'calendar' }) as Promise<CalendarToday & { ok: boolean }>;
+
+// ---------- Founder stats (Taj only, 2 Nov 2026) ----------
+export type FounderStats = {
+  accounts: number;
+  onboarded: number;
+  signups_7d: number;
+  signups_30d: number;
+  by_plan: Record<string, number>;
+  trialing: number;
+  trials_ending_7d: number;
+  paid_active: number;
+  paid_hq: number;
+  paid_pro: number;
+  founding: number;
+  trial_expired_unpaid: number;
+  waitlist_founding_emails: number;
+  google_connected: number;
+  stripe_connected: number;
+  push_devices: number;
+  push_web: number;
+  tali_addresses: number;
+  month: {
+    credits: number;
+    tokens_in: number;
+    tokens_out: number;
+    active_users: number;
+    by_feature: Record<string, number>;
+    chats_today: number;
+    emails_sorted: number;
+    approvals_done: number;
+    approvals_pending: number;
+  };
+  top_users: { first_name: string | null; business_name: string | null; plan_id: string | null; status: string | null; credits: number; tokens_in: number; tokens_out: number }[];
+  generated_at: string;
+};
+
+export async function founderStats(): Promise<FounderStats> {
+  const { data, error } = await supabase.rpc('founder_stats');
+  if (error) throw error;
+  return data as FounderStats;
+}
+
+// ---------- Talk back to a draft (2 Nov 2026) ----------
+// instruction: 'shorter' | 'warmer' | 'formal' | 'casual' or anything in the user's words.
+export async function editDraft(approvalId: string, instruction: string): Promise<{ ok: true; body: string; subject: string | null } | { ok: false; message: string }> {
+  const { data, error } = await supabase.functions.invoke('tali-draft-edit', { body: { approvalId, instruction } });
+  if (error) {
+    const ctx = (error as any)?.context;
+    try {
+      const j = ctx && typeof ctx.json === 'function' ? await ctx.json() : null;
+      return { ok: false, message: j?.message ?? "I couldn't rework that one just now." };
+    } catch {
+      return { ok: false, message: "I couldn't rework that one just now." };
+    }
+  }
+  if (!data?.ok) return { ok: false, message: data?.message ?? "I couldn't rework that one just now." };
+  return { ok: true, body: String(data.body ?? ''), subject: data.subject ?? null };
+}
+
+// ---------- Microsoft 365 / Outlook (2 Nov 2026), the twin of the Google helpers ----------
+export type MicrosoftConnection = { ms_email: string; scopes: string[]; last_mail_sync_at: string | null; last_error: string | null; connected_at: string };
+
+export async function microsoftConnection(): Promise<MicrosoftConnection | null> {
+  const { data, error } = await supabase.from('microsoft_connections').select('ms_email, scopes, last_mail_sync_at, last_error, connected_at').maybeSingle();
+  if (error) throw error;
+  return (data as MicrosoftConnection | null) ?? null;
+}
+
+async function msCall(body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; url?: string | null; code?: string; link?: string | null } & Partial<CalendarToday>> {
+  const { data, error } = await supabase.functions.invoke('ms-connect', { body });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, code: b.code, message: b.message };
+    } catch {}
+    return { ok: false, message: "Couldn't reach the server. Try again." };
+  }
+  return data as { ok: boolean; url?: string | null };
+}
+
+export const startMicrosoftConnect = (returnUrl: string, what: 'both' | 'calendar' = 'both') => msCall({ action: 'connect', returnUrl, what });
+export const disconnectMicrosoft = () => msCall({ action: 'disconnect' });
+export const sendOutlookApproval = (approvalId: string) => msCall({ action: 'send', approvalId });
+export const bookOutlookApproval = (approvalId: string) => msCall({ action: 'book', approvalId });
+export const outlookCalendarToday = () => msCall({ action: 'calendar' }) as Promise<CalendarToday & { ok: boolean }>;
+
+// Whichever calendar is connected (Google first, then Outlook), for Today.
+export async function anyCalendarToday(): Promise<(CalendarToday & { ok: boolean }) | null> {
+  const g = await calendarToday().catch(() => null);
+  if (g?.connected) return g;
+  const m = await outlookCalendarToday().catch(() => null);
+  return m?.connected ? m : g ?? m;
 }

@@ -44,7 +44,7 @@ export default function SignUp() {
 
   return (
     <Screen>
-      <Title sub="14 days of Tali HQ free. No card needed.">Make your account</Title>
+      <Title sub="7 days of Tali HQ free. No card needed.">Make your account</Title>
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
       <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" inputMode="email" />
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />

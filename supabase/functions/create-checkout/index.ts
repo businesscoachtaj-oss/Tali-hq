@@ -9,7 +9,7 @@
 // founding coupon are built into _shared/stripe.ts (STRIPE_PRICE_* and STRIPE_COUPON_FOUNDING override them).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
-import { COUPON_FOUNDING, PRICE_HQ, PRICE_PRO, stripe, stripeReady } from '../_shared/stripe.ts';
+import { COUPON_FOUNDING, PRICE_HQ, PRICE_HQ_YEARLY, PRICE_PRO, PRICE_PRO_YEARLY, stripe, stripeReady } from '../_shared/stripe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const cors = {
@@ -35,8 +35,7 @@ Deno.serve(async (req) => {
   const yearly = body.interval === 'year';
   if (!plan) return json({ ok: false, code: 'bad_request', message: 'Pick a plan.' }, 400);
 
-  const env = (k: string) => Deno.env.get(k) ?? '';
-  const price = plan === 'hq' ? (yearly ? env('STRIPE_PRICE_HQ_YEARLY') : PRICE_HQ) : yearly ? env('STRIPE_PRICE_PRO_YEARLY') : PRICE_PRO;
+  const price = plan === 'hq' ? (yearly ? PRICE_HQ_YEARLY : PRICE_HQ) : yearly ? PRICE_PRO_YEARLY : PRICE_PRO;
   if (!price) return json({ ok: false, code: 'not_ready', message: 'That plan is not open yet.' }, 503);
 
   let origin: string;

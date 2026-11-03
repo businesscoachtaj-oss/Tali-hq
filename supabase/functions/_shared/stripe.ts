@@ -1,5 +1,5 @@
 // Small Stripe helpers for Tali HQ edge functions (plain fetch, no SDK).
-// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET.
+// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_CONNECT_CLIENT_ID (Connect OAuth, ca_...).
 
 const KEY = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 
@@ -16,10 +16,13 @@ function form(params: Record<string, unknown>, prefix = '', out = new URLSearchP
   return out;
 }
 
-export async function stripe<T = any>(method: 'GET' | 'POST', path: string, params: Record<string, unknown> = {}): Promise<T> {
+// `account` acts on a business's connected Stripe account (Stripe-Account header).
+export async function stripe<T = any>(method: 'GET' | 'POST' | 'DELETE', path: string, params: Record<string, unknown> = {}, account?: string): Promise<T> {
   const url = new URL(`https://api.stripe.com/v1/${path}`);
-  const init: RequestInit = { method, headers: { Authorization: `Bearer ${KEY}` } };
-  if (method === 'GET') form(params).forEach((v, k) => url.searchParams.append(k, v));
+  const headers: Record<string, string> = { Authorization: `Bearer ${KEY}` };
+  if (account) headers['Stripe-Account'] = account;
+  const init: RequestInit = { method, headers };
+  if (method !== 'POST') form(params).forEach((v, k) => url.searchParams.append(k, v));
   else {
     init.body = form(params);
     (init.headers as Record<string, string>)['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -59,13 +62,30 @@ function timingSafeEqual(a: string, b: string) {
 // Totality 360 account); secrets can override them, for example for test mode.
 export const PRICE_HQ = Deno.env.get('STRIPE_PRICE_HQ') || 'price_1UWucQPy9YlWBZ02DtSHnFNW';
 export const PRICE_PRO = Deno.env.get('STRIPE_PRICE_PRO') || 'price_1UWucXPy9YlWBZ02uACyStzk';
+// Yearly prices (created 2 Nov 2026): 15% off twelve months of the monthly price.
+export const PRICE_HQ_YEARLY = Deno.env.get('STRIPE_PRICE_HQ_YEARLY') || 'price_1UXB4HPy9YlWBZ02pW7k1ubh';
+export const PRICE_PRO_YEARLY = Deno.env.get('STRIPE_PRICE_PRO_YEARLY') || 'price_1UXB4JPy9YlWBZ02mazh3HDd';
 export const COUPON_FOUNDING = Deno.env.get('STRIPE_COUPON_FOUNDING') || 'TALIHQ_FOUNDING';
 
 export function planForPrice(priceId: string | undefined | null): 'hq' | 'pro' | null {
   if (!priceId) return null;
-  const hq = [PRICE_HQ, Deno.env.get('STRIPE_PRICE_HQ_YEARLY')].filter(Boolean);
-  const pro = [PRICE_PRO, Deno.env.get('STRIPE_PRICE_PRO_YEARLY')].filter(Boolean);
+  const hq = [PRICE_HQ, PRICE_HQ_YEARLY];
+  const pro = [PRICE_PRO, PRICE_PRO_YEARLY];
   if (hq.includes(priceId)) return 'hq';
   if (pro.includes(priceId)) return 'pro';
   return null;
+}
+
+// Stripe Connect OAuth (Standard accounts): businesses link the Stripe account they already have.
+export const CONNECT_CLIENT_ID = Deno.env.get('STRIPE_CONNECT_CLIENT_ID') ?? '';
+
+export async function connectOAuth<T = any>(path: 'token' | 'deauthorize', params: Record<string, string>): Promise<T> {
+  const res = await fetch(`https://connect.stripe.com/oauth/${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(params),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Stripe OAuth ${res.status}: ${data?.error_description ?? data?.error ?? 'error'}`);
+  return data as T;
 }

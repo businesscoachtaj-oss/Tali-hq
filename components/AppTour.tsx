@@ -7,7 +7,7 @@ import { Animated, Dimensions, Image, Modal, Platform, Pressable, StatusBar, Sty
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { measureTabNow, type TabPos } from '@/lib/tourTabPositions';
 import { tali } from '@/components/ui';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, elevation, radius, space } from '@/constants/theme';
 
 export type TourStep = {
   title: string;
@@ -182,14 +182,14 @@ const styles = StyleSheet.create({
   counter: { fontSize: 12, color: colours.purple, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 },
   cardTitle: { fontSize: 17, fontWeight: '800', color: colours.text },
   cardBody: { fontSize: 15, color: colours.muted, lineHeight: 22, marginBottom: space.lg },
-  primaryBtn: { backgroundColor: colours.purple, borderRadius: radius.input, paddingVertical: 12, paddingHorizontal: space.xl, alignItems: 'center' },
+  primaryBtn: { backgroundColor: colours.purple, borderRadius: radius.input, paddingVertical: 12, paddingHorizontal: space.xl, alignItems: 'center', ...elevation.button(colours.purple) },
   primaryBtnText: { color: colours.onPurple, fontSize: 15, fontWeight: '800' },
   backBtn: { borderRadius: radius.input, paddingVertical: 12, paddingHorizontal: space.lg, alignItems: 'center', borderWidth: 1, borderColor: colours.borderStrong },
   backBtnText: { color: colours.text, fontSize: 15, fontWeight: '700' },
-  celebrateCard: { backgroundColor: colours.surface, borderRadius: 22, padding: space.xl, alignItems: 'center', width: '100%', maxWidth: 340 },
+  celebrateCard: { backgroundColor: colours.surface, borderRadius: 22, padding: space.xl, alignItems: 'center', width: '100%', maxWidth: 340, ...elevation.card },
   celebrateTitle: { fontSize: 22, fontWeight: '800', color: colours.text, textAlign: 'center', marginBottom: 4 },
   celebrateSub: { fontSize: 14, color: colours.muted, textAlign: 'center', marginBottom: space.lg },
-  firstCard: { backgroundColor: colours.purpleSoft, borderRadius: radius.input, padding: space.md, width: '100%', marginBottom: space.lg },
+  firstCard: { backgroundColor: colours.purpleSoft, borderRadius: radius.input, padding: space.md, width: '100%', marginBottom: space.lg, ...elevation.tile },
   bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, marginBottom: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
   bulletText: { flex: 1, fontSize: 14, color: colours.text, lineHeight: 20 },

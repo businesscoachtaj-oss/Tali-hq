@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import type { LifeSummary } from '@/lib/data';
 import { Card } from '@/components/ui';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, elevation, radius, space } from '@/constants/theme';
 
 // Today's food (Tali's estimates), today's session and the week, all logged by chatting with Tali.
 export function YourDayCard({ life, onTick }: { life: LifeSummary; onTick: () => void }) {
@@ -52,7 +52,7 @@ export function YourDayCard({ life, onTick }: { life: LifeSummary; onTick: () =>
             </View>
             {life.today_session && !life.today_done ? (
               <Pressable onPress={onTick} accessibilityRole="button" hitSlop={8}
-                style={{ backgroundColor: colours.purple, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 }}>
+                style={{ backgroundColor: colours.purple, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, ...elevation.button(colours.purple) }}>
                 <Text style={{ color: colours.onPurple, fontWeight: '700' }}>Done</Text>
               </Pressable>
             ) : life.today_done ? (

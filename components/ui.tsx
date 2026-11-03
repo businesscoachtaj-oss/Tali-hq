@@ -12,7 +12,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
+import { TaliAvatar } from '@/components/TaliAvatar';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -25,7 +26,7 @@ export const tali = {
 export function Screen({ children, scroll = true }: PropsWithChildren<{ scroll?: boolean }>) {
   const body = <View style={styles.inner}>{children}</View>;
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safe} edges={NO_BOTTOM}>
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -82,8 +83,8 @@ export function Button({
       onPress={off ? undefined : onPress}
       style={({ pressed }) => [
         styles.btn,
-        kind === 'primary' && { backgroundColor: colours.purple, borderColor: colours.purple },
-        kind === 'danger' && { borderColor: colours.danger },
+        kind === 'primary' && { backgroundColor: colours.purple, borderColor: colours.purple, ...elevation.button(colours.purple) },
+        kind === 'danger' && { borderColor: colours.danger, ...elevation.button(colours.danger) },
         off && { opacity: 0.55 },
         pressed && !off && { opacity: 0.85 },
       ]}>
@@ -114,7 +115,7 @@ export function BackLink({ onPress, label = 'Back' }: { onPress: () => void; lab
 export function TaliSays({ children, pose = 'idle' }: PropsWithChildren<{ pose?: keyof typeof tali }>) {
   return (
     <View style={styles.says}>
-      <Image source={tali[pose]} style={styles.saysImg} resizeMode="contain" accessibilityLabel="Tali" />
+      <TaliAvatar pose={pose} size={64} />
       <View style={styles.bubble}>
         <Text style={styles.body}>{children}</Text>
       </View>
@@ -143,11 +144,12 @@ const styles = StyleSheet.create({
   sub: { fontSize: 15, color: colours.muted, marginTop: space.xs, lineHeight: 21 },
   card: {
     backgroundColor: colours.surface,
-    borderColor: colours.border,
+    borderColor: 'rgba(39,38,38,0.04)',
     borderWidth: 1,
     borderRadius: radius.card,
     padding: space.lg,
     marginBottom: space.md,
+    ...elevation.card,
   },
   body: { fontSize: 15, lineHeight: 22, color: colours.text },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: colours.muted, marginBottom: 6 },
@@ -184,3 +186,12 @@ const styles = StyleSheet.create({
   },
   error: { color: colours.danger, fontSize: 14, marginTop: space.sm },
 });
+
+// A quiet empty-state line for a section, so Tali only speaks once per screen (3 Nov 2026).
+export function Hint({ children }: PropsWithChildren) {
+  return (
+    <Card style={{ backgroundColor: colours.sunk, paddingVertical: space.md }}>
+      <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20 }}>{children}</Text>
+    </Card>
+  );
+}
