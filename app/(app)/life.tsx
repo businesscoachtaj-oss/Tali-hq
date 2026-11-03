@@ -97,12 +97,21 @@ export default function Life() {
 
   const totals = food.reduce((t, f) => ({ cal: t.cal + f.calories, p: t.p + f.protein_g, c: t.c + f.carbs_g, fat: t.fat + f.fat_g }), { cal: 0, p: 0, c: 0, fat: 0 });
   const todayWeekday = ((new Date().getDay() + 6) % 7) + 1;
+  const hasPlan = !!plan && plan.days.length > 0;
+  const tali = !food.length && !wts.length && !hasPlan
+    ? "Just tell me in Talk what you ate, what you weigh or how you trained, and I'll keep it all here. Rough is fine, I'll estimate."
+    : food.length
+      ? `About ${Math.round(totals.cal).toLocaleString('en-AU')} cal and ${Math.round(totals.p)}g protein ${date === today() ? 'so far today' : 'that day'}.`
+      : "Tell me what you've eaten and I'll add it up.";
 
   return (
     <Screen>
       <BackLink onPress={() => router.navigate('/')} label="Today" />
       <Title sub="Logged by chatting with Tali. Tell her what you ate, what you weigh or that you trained.">Food and training</Title>
       <ErrorText>{error}</ErrorText>
+
+      {/* One Tali for the page (3 Nov 2026, Taj: three Talis was a lot). Sections below use plain hints. */}
+      <TaliSays pose="idle">{tali}</TaliSays>
 
       {/* ---------- Food ---------- */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -113,6 +122,7 @@ export default function Life() {
           <Pressable onPress={() => shift(1)} hitSlop={10} disabled={date >= today()}><Text style={[arrow, date >= today() && { color: colours.border }]}>{'›'}</Text></Pressable>
         </View>
       </View>
+      {food.length ? (
       <Card style={{ backgroundColor: colours.sunk }}>
         <Text style={{ fontSize: 22, fontWeight: '800', color: colours.text }}>about {Math.round(totals.cal).toLocaleString('en-AU')} cal</Text>
         <Text style={{ color: colours.muted, marginTop: 2 }}>
@@ -120,8 +130,9 @@ export default function Life() {
         </Text>
         <Text style={{ fontSize: 11, color: colours.faint, marginTop: 6 }}>Tali's estimates from what you told her, not exact.</Text>
       </Card>
+      ) : null}
       {food.length === 0 ? (
-        <TaliSays pose="idle">{date === today() ? 'Nothing logged yet today. Just tell me in Talk, like "two eggs on toast and a flat white".' : 'Nothing logged that day.'}</TaliSays>
+        <Hint>{date === today() ? 'Nothing logged yet today. Try "two eggs on toast and a flat white" in Talk.' : 'Nothing logged that day.'}</Hint>
       ) : (
         MEALS.filter((m) => food.some((f) => f.meal === m)).map((m) => (
           <Card key={m} style={{ paddingVertical: space.md }}>
@@ -145,7 +156,7 @@ export default function Life() {
       <View style={{ height: space.md }} />
       <Label>Weight</Label>
       {wts.length === 0 ? (
-        <TaliSays pose="idle">Tell me your weight whenever you weigh in, like "82.4 this morning", and I'll track the trend here.</TaliSays>
+        <Hint>Nothing yet. Try "82.4 this morning" in Talk and the trend shows here.</Hint>
       ) : (
         <Card>
           <Text style={{ fontSize: 22, fontWeight: '800', color: colours.text }}>{wts[0].kg} kg</Text>
@@ -158,7 +169,7 @@ export default function Life() {
       <View style={{ height: space.md }} />
       <Label>{plan?.name || 'Training'}</Label>
       {!plan || plan.days.length === 0 ? (
-        <TaliSays pose="think">No plan yet. Ask me in Talk, like "write me a 3 day full body programme" and I'll set it up here.</TaliSays>
+        <Hint>No plan yet. Try "write me a 3 day full body programme" in Talk.</Hint>
       ) : (
         <>
           <Card>
@@ -222,3 +233,12 @@ function WeightBars({ data }: { data: WeightLog[] }) {
 }
 
 const arrow = { fontSize: 22, fontWeight: '700' as const, color: colours.purple };
+
+// A quiet empty-state line for a section, so Tali only appears once on the page.
+function Hint({ children }: { children: string }) {
+  return (
+    <Card style={{ backgroundColor: colours.sunk, paddingVertical: space.md }}>
+      <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20 }}>{children}</Text>
+    </Card>
+  );
+}
