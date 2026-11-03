@@ -19,7 +19,7 @@ npm run typecheck
 | Sign in / Sign up / Reset password | Email and password through Supabase Auth. Sign-up starts a 7 day Tali HQ trial (14 days before 2 Nov 2026) (database trigger). Waitlist emails get founding member pricing. |
 | Onboarding | First name, business name and type, a few words about you. Tali reads this before every reply. |
 | Tali sprite | `components/TaliAvatar.tsx`, like Totality's: her head bobs and blinks; full-body Tali stands still, blinks, and fades into another pose every 6 to 8 seconds (peek, wink, look right, curious, cheeky, shy, giggle) for 2 to 3 seconds, then fades back. Used in every Tali speech bubble, Talk's header and empty state, and the thinking row. The extra poses come from Tali's 100 pose set, lined up to the app sprite frame. |
-| First-run tour | Shows once on Today after onboarding, like the Totality apps: Tali walks through Today, Talk, Clients, Journal and Me with a pulsing ring on each tab, then a "You're all set" card. Skip ends it. Saved in `profiles.tour_done_at`. "Show me around again" in Me replays it. |
+| First-run tour | Shows once on Today after onboarding. Rewritten 3 Nov 2026: 11 steps that point at real spots on Today (the hero and brief, Tali's level, Needs your yes, Due today, At a glance) with a rounded highlight, then the Talk, Clients, Journal and Me tabs with a ring, then a "You're all set" card. Tali is on every card and there is a Back button. Steps in `lib/tour.ts`; a screen registers spots with `registerTarget` from `lib/tourTargets.ts` and the tour scrolls them into view. Skip ends it. Saved in `profiles.tour_done_at`. "Show me around again" in Me replays it. |
 | Today | Business health (trial and paid), reminders and follow-ups due, add a reminder, Your day (food estimates, weight, today's session with a Done button), drafts waiting for your yes, the morning brief, trial days left. |
 | Talk | Chat with Tali through `tali-chat` (her head sprite and bouncing dots while she thinks): checks your plan, reads your memories and journal, replies, saves what is worth remembering, and puts anything you ask her to write on Today as a draft. New chat button. |
 | Clients | Clients and leads with status, follow-up dates and notes. Tali can add or update people and set reminders when you ask her in Talk. Invoices button. |
@@ -65,6 +65,10 @@ npm run build:web   # outputs dist/, vercel.json handles routing
 Installable as a PWA (Add to Home Screen on iPhone, Install on Chrome): `public/index.html` links `public/manifest.json`, Tali's icons (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`), the purple theme colour and the iPhone home screen tags. No service worker on purpose (Expo warns they cache too hard), so updates show on the next open.
 
 Vercel: import the repo once (vercel.com/new). `vercel.json` sets the install and build commands and the `dist` output, and `.env.production` gives the build the public Supabase URL and publishable key, so no environment variables are needed. Every push to main redeploys. After the first deploy, add the site address in Supabase (Authentication, URL Configuration: Site URL and redirect URLs) and as the `APP_URLS` edge function secret for Stripe checkout.
+
+## OTA updates
+
+Set up 3 Nov 2026, the same way as Totality and Nutrition: `expo-updates`, `runtimeVersion: { policy: 'appVersion' }` and `updates.url` in `app.config.js`, and `.eas/workflows/publish-update.yml`. The first store build after that commit is the one that turns OTA on (earlier builds have no `expo-updates` and never check). From then on a JavaScript-only change goes out by pushing to the `ota-publish` branch, which runs the workflow and publishes to the production channel; a build only picks up updates for its own app version, so don't bump `version` for an OTA.
 
 ## Builds
 
