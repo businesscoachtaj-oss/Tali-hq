@@ -6,7 +6,7 @@ import { claimInbox, googleConnection, inboundEmails, microsoftConnection, myCre
 import { friendlyTime } from '@/lib/dates';
 import { isPaid, isPro } from '@/lib/plan';
 import { INBOUND_DOMAIN } from '@/constants/business';
-import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
 // Email: two sources in one place.
@@ -209,7 +209,7 @@ export default function Inbox() {
           <Label>Tali's own address</Label>
           {!alias ? (
             <>
-              <TaliSays pose="wave">Want your own Tali address for enquiries? I'll make one from your business name. Put it on your website and I'll sum up each enquiry and draft a reply.</TaliSays>
+              <Hint>Get Tali her own address for enquiries, made from your business name. Put it on your website and she sums up each enquiry and drafts a reply.</Hint>
               <Button title="Get my address" onPress={claim} busy={busy} />
             </>
           ) : address ? (

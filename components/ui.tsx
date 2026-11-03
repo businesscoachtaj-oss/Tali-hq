@@ -186,3 +186,12 @@ const styles = StyleSheet.create({
   },
   error: { color: colours.danger, fontSize: 14, marginTop: space.sm },
 });
+
+// A quiet empty-state line for a section, so Tali only speaks once per screen (3 Nov 2026).
+export function Hint({ children }: PropsWithChildren) {
+  return (
+    <Card style={{ backgroundColor: colours.sunk, paddingVertical: space.md }}>
+      <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20 }}>{children}</Text>
+    </Card>
+  );
+}
