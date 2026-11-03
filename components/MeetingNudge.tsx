@@ -15,8 +15,10 @@ import { colours, space } from '@/constants/theme';
 
 type Row = MeetingMatch & { memories: Memory[] };
 
-export function MeetingNudge({ credits, calendar }: { credits: Credits | null; calendar: CalendarToday | null }) {
+export function MeetingNudge({ credits, calendar, compact }: { credits: Credits | null; calendar: CalendarToday | null; compact?: boolean }) {
   const [rows, setRows] = useState<Row[]>([]);
+  // compact (Today mockup, 3 Nov 2026): one line per meeting, tap to see what Tali knows.
+  const [open, setOpen] = useState<string | null>(null);
   const paid = isPaid(credits);
 
   const load = useCallback(async () => {
@@ -40,6 +42,19 @@ export function MeetingNudge({ credits, calendar }: { credits: Credits | null; c
   return (
     <>
       {rows.map((r) => (
+        compact && open !== r.client.id ? (
+          <Pressable key={r.client.id} onPress={() => setOpen(r.client.id)} accessibilityRole="button" accessibilityState={{ expanded: false }}>
+            <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.purple, paddingVertical: space.md }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                <TaliAvatar pose="head" size={30} />
+                <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: colours.text }} numberOfLines={1}>
+                  Meeting {r.client.name.split(' ')[0]} at {r.time}
+                </Text>
+                <Text style={{ fontSize: 13, color: colours.purple, fontWeight: '700' }}>What I know {'›'}</Text>
+              </View>
+            </Card>
+          </Pressable>
+        ) : (
         <Pressable key={r.client.id} onPress={() => router.navigate({ pathname: '/person', params: { id: r.client.id } } as any)} accessibilityRole="button">
           <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.purple }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
@@ -64,6 +79,7 @@ export function MeetingNudge({ credits, calendar }: { credits: Credits | null; c
             <Text style={{ fontSize: 13, color: colours.purple, fontWeight: '700', marginTop: space.md }}>Everything on {r.client.name.split(' ')[0]} {'›'}</Text>
           </Card>
         </Pressable>
+        )
       ))}
     </>
   );

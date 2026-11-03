@@ -8,7 +8,7 @@ import { TaliAvatar } from '@/components/TaliAvatar';
 import { taliLevel, type Level } from '@/lib/level';
 import { colours, elevation, space } from '@/constants/theme';
 
-export function TodayHero({ greeting, sub, hello }: { greeting: string; sub?: string | null; hello: string }) {
+export function TodayHero({ greeting, sub, hello, briefLabel, onBrief }: { greeting: string; sub?: string | null; hello: string; briefLabel?: string | null; onBrief?: () => void }) {
   const [level, setLevel] = useState<Level | null>(null);
   useFocusEffect(
     useCallback(() => {
@@ -25,6 +25,11 @@ export function TodayHero({ greeting, sub, hello }: { greeting: string; sub?: st
         <TaliAvatar pose="idle" size={58} />
         <View style={h.bubble}>
           <Text style={h.bubbleText}>{hello}</Text>
+          {briefLabel && onBrief ? (
+            <Pressable onPress={onBrief} accessibilityRole="button" style={h.briefLink}>
+              <Text style={h.briefLinkText}>{briefLabel} {'›'}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -57,6 +62,8 @@ const h = StyleSheet.create({
   hello: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: space.sm },
   bubble: { flex: 1, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 16, borderBottomLeftRadius: 4, padding: space.md },
   bubbleText: { color: '#FFFFFF', fontSize: 15, lineHeight: 21 },
+  briefLink: { alignSelf: 'flex-start', marginTop: space.sm, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  briefLinkText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   level: { marginTop: space.md, backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 16, padding: space.md },
   levelTop: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   badge: { width: 36, height: 36, borderRadius: 18, backgroundColor: colours.orange, alignItems: 'center', justifyContent: 'center', ...elevation.button(colours.orange) },

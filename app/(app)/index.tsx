@@ -124,9 +124,15 @@ export default function Today() {
           greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
           sub={trial}
           hello={helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health })}
+          briefLabel={morning ? (briefOpen ? 'Hide your brief' : 'Read your brief') : null}
+          onBrief={() => setBriefOpen((o) => !o)}
         />
 
-        <MeetingNudge credits={credits} calendar={calendar} />
+        {morning && briefOpen ? (
+          <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => markBriefRead(morning.id).then(load)} />
+        ) : null}
+
+        <MeetingNudge credits={credits} calendar={calendar} compact />
 
         {approvals.length ? (
           <>
@@ -153,16 +159,6 @@ export default function Today() {
         )}
         <AddReminder onAdded={load} />
 
-        <View style={{ height: space.md }} />
-        <Label>Your morning brief</Label>
-        {morning ? (
-          <BriefCard brief={morning} open={briefOpen} onToggle={() => setBriefOpen((o) => !o)} onRead={() => markBriefRead(morning.id).then(load)} />
-        ) : (
-          <TaliSays pose="think">
-            Your first morning brief lands tomorrow. Until then, tell me about your business in Talk and I'll start learning.
-          </TaliSays>
-        )}
-
         <ShutdownCard />
 
         <View style={{ height: space.md }} />
@@ -174,8 +170,7 @@ export default function Today() {
           return folds.length ? (
             <>
               <View style={{ height: space.lg }} />
-              <Label>More from Tali</Label>
-              <FoldList folds={folds} />
+              <FoldList folds={[{ key: 'more', title: 'More from Tali', hint: folds.map((f) => f.title).join(', '), body: <FoldList folds={folds} /> }]} />
             </>
           ) : null;
         })()}
@@ -224,8 +219,8 @@ function helloLine({ morning, reminders, approvals, health }: { morning?: Brief;
   if (reminders) bits.push(`${reminders} thing${reminders === 1 ? '' : 's'} due today`);
   if (approvals) bits.push(`${approvals} draft${approvals === 1 ? '' : 's'} waiting for your yes`);
   if (health && health.status !== 'green') bits.push('a couple of things worth a look in your business health');
-  if (bits.length) return `You've got ${bits.join(', ')}. Your brief's below.`;
-  if (morning) return "Quiet one today. Nothing due, nothing waiting. Your brief's below if you want the detail.";
+  if (bits.length) return `You've got ${bits.join(', ')}.`;
+  if (morning) return "Quiet one today. Nothing due, nothing waiting.";
   return "Nothing on yet. Tell me about your business in Talk and I'll have a brief for you tomorrow.";
 }
 
@@ -243,9 +238,9 @@ function BriefCard({ brief, open, onToggle, onRead }: { brief: Brief; open: bool
         </Text>
       ))}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.md }}>
-        {lines.length > 3 ? (
+        {open || lines.length > 3 ? (
           <Pressable onPress={onToggle} accessibilityRole="button">
-            <Text style={{ fontSize: 14, fontWeight: '700', color: colours.purple }}>{open ? 'Show less' : `Show all ${lines.length}`}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: colours.purple }}>{open ? 'Close' : `Show all ${lines.length}`}</Text>
           </Pressable>
         ) : <View />}
         {!brief.read_at ? (
