@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { taliLevel, type Level } from '@/lib/level';
 import { colours, elevation, space } from '@/constants/theme';
@@ -34,7 +34,7 @@ export function TodayHero({ greeting, sub, hello, briefLabel, onBrief }: { greet
       </View>
 
       {level ? (
-        <Pressable onPress={() => router.navigate('/me')} accessibilityRole="button" style={h.level}>
+        <View style={h.level} accessible accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}>
           <View style={h.levelTop}>
             <View style={h.badge}>
               <Text style={h.badgeNum}>{level.level}</Text>
@@ -49,7 +49,7 @@ export function TodayHero({ greeting, sub, hello, briefLabel, onBrief }: { greet
             <LinearGradient colors={[colours.orange, '#F6B04C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[h.fill, { width: `${Math.max(4, Math.round(level.progress * 100))}%` }]} />
           </View>
           {level.next ? <Text style={h.next}>{level.toNext} XP to {level.next}</Text> : null}
-        </Pressable>
+        </View>
       ) : null}
     </LinearGradient>
   );
