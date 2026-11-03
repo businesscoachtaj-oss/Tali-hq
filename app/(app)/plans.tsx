@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { myCredits, mySubscription, openBillingPortal, plans as loadPlans, startCheckout, type Credits, type Plan } from '@/lib/data';
-import { BackLink, Body, Button, Card, ErrorText, Screen, Title } from '@/components/ui';
+import { BackLink, Button, Card, ErrorText, Screen, Title } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
+
+const APP_WEB_URL = 'https://tali-hq.vercel.app';
 
 const FOUNDING_OFF = 0.425; // founding members: 42.5% off for life
 
@@ -38,21 +40,26 @@ export default function Plans() {
   const paying = !!sub?.stripe_customer_id && sub.status !== 'canceled' && sub.plan_id !== 'free';
   const founding = !!sub?.founding_member;
 
+  // Phones open Stripe in the browser, the same way Totality does (3 Nov 2026). Stripe sends them
+  // back to the web app afterwards; the plan updates here next time this screen is opened.
+  const returnUrl = web ? window.location.href : `${APP_WEB_URL}/plans`;
+  const open = (url: string) => (web ? window.location.assign(url) : Linking.openURL(url));
+
   async function go(plan: 'hq' | 'pro') {
     setError('');
     setBusy(plan);
-    const res = await startCheckout(plan, window.location.href, yearly ? 'year' : 'month');
+    const res = await startCheckout(plan, returnUrl, yearly ? 'year' : 'month');
     setBusy(null);
-    if (res.ok && res.url) window.location.assign(res.url);
+    if (res.ok && res.url) open(res.url);
     else setError(res.message ?? 'Could not start checkout.');
   }
 
   async function manage() {
     setError('');
     setBusy('portal');
-    const res = await openBillingPortal(window.location.href);
+    const res = await openBillingPortal(returnUrl);
     setBusy(null);
-    if (res.ok && res.url) window.location.assign(res.url);
+    if (res.ok && res.url) open(res.url);
     else setError(res.message ?? 'Could not open billing.');
   }
 
@@ -112,7 +119,7 @@ export default function Plans() {
                 </Text>
               ))}
             </View>
-            {web && p.id !== 'free' && !paying ? (
+            {p.id !== 'free' && !paying ? (
               <Button title={trialHere ? `Keep ${p.name} after my trial` : `Choose ${p.name}`} onPress={() => go(p.id as 'hq' | 'pro')} busy={busy === p.id} disabled={!!busy} kind={p.id === 'hq' ? 'primary' : 'ghost'} />
             ) : null}
           </Card>
@@ -120,14 +127,10 @@ export default function Plans() {
       })}
 
       <ErrorText>{error}</ErrorText>
-      {web && paying ? <Button title="Manage billing" onPress={manage} busy={busy === 'portal'} /> : null}
-      {!web ? (
-        <Body muted>Upgrading inside the app is coming soon. Your trial and everything Tali learns carry over.</Body>
-      ) : (
-        <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 18 }}>
-          Prices in Australian dollars. Cancel any time from Manage billing. Credits reset each month, on yearly plans too.
-        </Text>
-      )}
+      {paying ? <Button title="Manage billing" onPress={manage} busy={busy === 'portal'} /> : null}
+      <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 18 }}>
+        Prices in Australian dollars. Cancel any time from Manage billing. Credits reset each month, on yearly plans too.
+      </Text>
     </Screen>
   );
 }

@@ -7,7 +7,7 @@ module.exports = {
     owner: 'livewellpt',
     name: 'Tali HQ',
     slug: 'tali-hq',
-    version: '0.1.0',
+    version: '1.0.0',
     scheme: 'talihq',
     orientation: 'portrait',
     // Tali's own icon art (Tali_icon_1024). Swap for a dedicated Tali HQ icon if Taj wants one.
