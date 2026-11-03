@@ -22,7 +22,7 @@ export function TodayHero({ greeting, sub, hello, briefLabel, onBrief }: { greet
       {sub ? <Text style={h.sub}>{sub}</Text> : null}
 
       <View style={h.hello}>
-        <TaliAvatar pose="idle" size={58} />
+        <TaliAvatar pose="idle" size={84} />
         <View style={h.bubble}>
           <Text style={h.bubbleText}>{hello}</Text>
           {briefLabel && onBrief ? (

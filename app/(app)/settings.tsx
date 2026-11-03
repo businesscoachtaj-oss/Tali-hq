@@ -11,6 +11,7 @@ import { ChipPicker } from '@/components/ChipPicker';
 import { GoogleConnectCard } from '@/components/GoogleConnectCard';
 import { MicrosoftConnectCard } from '@/components/MicrosoftConnectCard';
 import { StripeConnectCard } from '@/components/StripeConnectCard';
+import { TaliAddressCard } from '@/components/TaliAddressCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 
@@ -169,6 +170,8 @@ export default function Settings() {
       <MicrosoftConnectCard />
       <View style={{ height: space.md }} />
       <StripeConnectCard />
+      <View style={{ height: space.md }} />
+      <TaliAddressCard />
 
       <View style={{ height: space.xxl }} />
       <Label>Danger zone</Label>

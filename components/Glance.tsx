@@ -17,27 +17,66 @@ export function GlanceGrid({ tiles }: { tiles: Tile[] }) {
   const openTile = tiles.find((t) => t.key === open);
   return (
     <View>
-      <View style={g.grid}>
-        {tiles.map((t) => {
-          const on = t.key === open;
+      <View style={{ gap: space.sm }}>
+        {pairs(tiles).map((row, ri) => (
+          <View key={ri} style={g.grid}>
+            {row.map((t) => {
+              const on = t.key === open;
+              return (
+                <Pressable
+                  key={t.key}
+                  onPress={() => setOpen(on ? null : t.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: on }}
+                  style={[g.tile, on && g.tileOn]}>
+                  <View style={g.tileTop}>
+                    <View style={[g.dot, { backgroundColor: toneColour(t.tone) }]} />
+                    <Text style={[g.label, on && { color: colours.purpleInk }]}>{t.label}</Text>
+                  </View>
+                  <Text style={g.value} numberOfLines={1}>{t.value}</Text>
+                  {t.hint ? <Text style={g.hint} numberOfLines={1}>{t.hint}</Text> : null}
+                </Pressable>
+              );
+            })}
+            {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+          </View>
+        ))}
+      </View>
+      {openTile ? <View style={{ marginTop: space.sm }}>{openTile.body}</View> : null}
+    </View>
+  );
+}
+
+// Two tiles a row, so an odd one out keeps its size instead of stretching across.
+function pairs<T>(list: T[]): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += 2) out.push(list.slice(i, i + 2));
+  return out;
+}
+
+// A row of chips; tapping one shows its card underneath. One level only, no cards inside cards.
+export function ChipPicker({ items }: { items: Fold[] }) {
+  const [open, setOpen] = useState<string | null>(null);
+  if (!items.length) return null;
+  const cur = items.find((f) => f.key === open);
+  return (
+    <View>
+      <View style={g.chips}>
+        {items.map((f) => {
+          const on = f.key === open;
           return (
-            <Pressable
-              key={t.key}
-              onPress={() => setOpen(on ? null : t.key)}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: on }}
-              style={[g.tile, on && g.tileOn]}>
-              <View style={g.tileTop}>
-                <View style={[g.dot, { backgroundColor: toneColour(t.tone) }]} />
-                <Text style={[g.label, on && { color: colours.purpleInk }]}>{t.label}</Text>
-              </View>
-              <Text style={g.value} numberOfLines={1}>{t.value}</Text>
-              {t.hint ? <Text style={g.hint} numberOfLines={1}>{t.hint}</Text> : null}
+            <Pressable key={f.key} onPress={() => setOpen(on ? null : f.key)} accessibilityRole="button" accessibilityState={{ expanded: on }} style={[g.chip, on && g.chipOn]}>
+              <Text style={[g.chipText, on && { color: colours.onPurple }]}>{f.title}</Text>
             </Pressable>
           );
         })}
       </View>
-      {openTile ? <View style={{ marginTop: space.sm }}>{openTile.body}</View> : null}
+      {cur ? (
+        <View style={{ marginTop: space.sm }}>
+          {cur.hint ? <Text style={g.chipHint}>{cur.hint}</Text> : null}
+          {cur.body}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -69,10 +108,9 @@ export function FoldList({ folds }: { folds: Fold[] }) {
 }
 
 const g = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  grid: { flexDirection: 'row', gap: space.sm },
   tile: {
-    flexBasis: '47%',
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: colours.surface,
     borderRadius: 16,
     padding: space.md,
@@ -86,6 +124,11 @@ const g = StyleSheet.create({
   label: { fontSize: 12, fontWeight: '800', color: colours.muted, letterSpacing: 0.6, textTransform: 'uppercase' },
   value: { fontSize: 20, fontWeight: '800', color: colours.text, marginTop: 6, letterSpacing: -0.3 },
   hint: { fontSize: 12, color: colours.muted, marginTop: 2 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  chip: { backgroundColor: colours.surface, borderRadius: 999, paddingVertical: 9, paddingHorizontal: 14, borderWidth: 1, borderColor: colours.border, ...elevation.tile },
+  chipOn: { backgroundColor: colours.purple, borderColor: colours.purple },
+  chipText: { fontSize: 14, fontWeight: '700', color: colours.text },
+  chipHint: { fontSize: 13, color: colours.muted, marginBottom: space.sm, marginLeft: 2 },
   list: { backgroundColor: colours.surface, borderRadius: radius.card, ...elevation.card, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: space.lg, gap: space.md },
   rowBorder: { borderTopWidth: 1, borderTopColor: colours.border },

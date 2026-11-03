@@ -21,7 +21,7 @@ import { ShutdownCard } from '@/components/ShutdownCard';
 import { useWeekCard, WeekCardView } from '@/components/WeekCard';
 import { useGoalsCard, GoalsCardView } from '@/components/GoalsCard';
 import { MoneyCard } from '@/components/MoneyCard';
-import { GlanceGrid, FoldList, type Tile, type Fold } from '@/components/Glance';
+import { GlanceGrid, FoldList, ChipPicker, type Tile, type Fold } from '@/components/Glance';
 import { loadMoneyPicture, money0, runwayLabel, type MoneyPicture } from '@/lib/money';
 import { decisions as loadDecisions, type Decision } from '@/lib/decisions';
 import { Pressable } from 'react-native';
@@ -42,7 +42,9 @@ function trialLine(c: Credits | null) {
   if (!c) return null;
   if (c.status === 'trialing' && c.trialEndsAt) {
     const days = Math.max(0, Math.ceil((new Date(c.trialEndsAt).getTime() - Date.now()) / 86400000));
-    return `${days} day${days === 1 ? '' : 's'} left of your Tali HQ trial`;
+    // Only worth saying in the last month (founding and comped trials can run for a year or more).
+    if (days > 30) return null;
+    return `${days} day${days === 1 ? '' : 's'} left of your ${c.plan === 'pro' ? 'Tali HQ Pro' : 'Tali HQ'} trial`;
   }
   return null;
 }
@@ -170,7 +172,8 @@ export default function Today() {
           return folds.length ? (
             <>
               <View style={{ height: space.lg }} />
-              <FoldList folds={[{ key: 'more', title: 'More from Tali', hint: folds.map((f) => f.title).join(', '), body: <FoldList folds={folds} /> }]} />
+              <Label>More from Tali</Label>
+              <ChipPicker items={folds} />
             </>
           ) : null;
         })()}
@@ -256,7 +259,7 @@ function BriefCard({ brief, open, onToggle, onRead }: { brief: Brief; open: bool
 // Four tiles. Each shows one number; tapping opens the full card underneath.
 function glanceTiles({ credits, money, health, week, goals }: { credits: Credits | null; money: MoneyPicture | null; health: Health | null; week: ReturnType<typeof useWeekCard>; goals: import('@/lib/rhythm').Goal[] }): Tile[] {
   const tiles: Tile[] = [];
-  if (money) {
+  if (money && (money.cashIn > 0 || money.owed > 0 || money.overdue > 0 || money.runwayWeeks !== null)) {
     const runway = runwayLabel(money.runwayWeeks);
     tiles.push({
       key: 'money',
@@ -310,7 +313,7 @@ function moreFolds({ calendar, life, patterns, lastDecision, others, onTick, onP
   if (calendar?.connected) {
     const todayWord = new Date().toLocaleDateString('en-AU', { weekday: 'short' });
     const n = (calendar.events ?? []).filter((e) => e.when.startsWith(todayWord) || e.when === 'all day').length;
-    folds.push({ key: 'cal', title: 'Your calendar', hint: n ? `${n} thing${n === 1 ? '' : 's'} on today` : 'Nothing booked today', body: <CalendarCard cal={calendar} /> });
+    folds.push({ key: 'cal', title: 'Calendar', hint: n ? `${n} thing${n === 1 ? '' : 's'} on today` : 'Nothing booked today', body: <CalendarCard cal={calendar} /> });
   }
   if (life) folds.push({ key: 'day', title: 'Your day', hint: life.today_session ? `Training: ${life.today_session}` : 'Food, training and weight', body: <YourDayCard life={life} onTick={onTick} /> });
   if (patterns) folds.push({ key: 'patterns', title: 'Tali noticed', hint: patterns.content?.patterns?.[0]?.pattern ?? 'This month\'s patterns', body: <PatternsCard brief={patterns} onRead={onPatternsRead} /> });
@@ -318,7 +321,7 @@ function moreFolds({ calendar, life, patterns, lastDecision, others, onTick, onP
   if (others.length)
     folds.push({
       key: 'earlier',
-      title: 'Earlier from Tali',
+      title: 'Earlier notes',
       hint: `${others.length} older note${others.length === 1 ? '' : 's'}`,
       body: (
         <>
