@@ -2,10 +2,14 @@
 // A dark overlay with one card per step, Tali on each card, and a pulsing
 // purple ring over the bottom tab the step is about. Skip ends it straight
 // away. The last step opens a celebration card, then onDone().
+// 3 Nov 2026: a step can also point at a named spot on the screen (`target`,
+// see lib/tourTargets.ts). Today scrolls it into view, it gets a rounded
+// highlight instead of a ring, and the card sits just under or over it.
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Image, Modal, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { measureTabNow, type TabPos } from '@/lib/tourTabPositions';
+import { bringTargetIntoView, scrollTourToTop, type Rect } from '@/lib/tourTargets';
 import { tali } from '@/components/ui';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
@@ -14,18 +18,23 @@ export type TourStep = {
   body: string;
   pose: keyof typeof tali;
   tab?: number; // index into the bottom tabs, see lib/tourTabPositions.ts
+  target?: string; // a spot registered with registerTarget, see lib/tourTargets.ts
 };
 
 const RING = 56;
+const PAD = 8; // breathing room around a highlighted target
+const CARD_H = 250; // rough card height, for choosing above or below a target
 const { height: SCREEN_H } = Dimensions.get('window');
 
 export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDone: () => void; firstName?: string | null }) {
   const [i, setI] = useState(0);
   const [celebrate, setCelebrate] = useState(false);
   const [tabPos, setTabPos] = useState<TabPos | null>(null);
+  const [rect, setRect] = useState<Rect | null>(null);
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
   const overlayRef = useRef<View>(null);
   const pulse = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
 
   const step = steps[i];
   const last = i === steps.length - 1;
@@ -45,6 +54,26 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
       clearTimeout(t);
     };
   }, [i, step?.tab]);
+
+  // For a target step, scroll it near the top and measure it. A target that is
+  // not on screen (say, nothing waiting on your yes yet) just shows the card.
+  useEffect(() => {
+    let cancelled = false;
+    setRect(null);
+    if (!step?.target) {
+      scrollTourToTop();
+      return;
+    }
+    const t = setTimeout(() => {
+      bringTargetIntoView(step.target as string, insets.top + 72).then((r) => {
+        if (!cancelled && r) setRect(r);
+      });
+    }, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [i, step?.target, insets.top]);
 
   useEffect(() => {
     pulse.setValue(0);
@@ -94,7 +123,16 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
 
   if (!step) return null;
 
-  const cardPos = step.tab !== undefined ? { bottom: 110 } : { top: SCREEN_H * 0.22 };
+  // Where the card goes: under a highlighted target when there is room, over it
+  // when there isn't, above the tab bar for tab steps, and mid-screen otherwise.
+  const box = rect ? { left: rect.x - origin.x - PAD, top: rect.y - origin.y + androidOffset - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 } : null;
+  const cardPos = box
+    ? box.top + box.height + 16 + CARD_H < SCREEN_H - 24
+      ? { top: box.top + box.height + 16 }
+      : { bottom: SCREEN_H - box.top + 16 }
+    : step.tab !== undefined
+      ? { bottom: 110 }
+      : { top: SCREEN_H * 0.22 };
   const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] });
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0] });
 
@@ -104,6 +142,7 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
         ref={overlayRef}
         onLayout={() => overlayRef.current?.measureInWindow((x, y) => setOrigin({ x, y }))}
         style={styles.overlay}>
+        {box ? <View pointerEvents="none" style={[styles.box, box]} /> : null}
         {tabPos ? (
           <>
             <View
@@ -161,6 +200,7 @@ const styles = StyleSheet.create({
   centreOverlay: { flex: 1, backgroundColor: 'rgba(20,12,24,0.6)', justifyContent: 'center', alignItems: 'center', padding: space.xl },
   ring: { position: 'absolute', width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3, borderColor: '#C9A2DC', zIndex: 200 },
   ringSolid: { position: 'absolute', width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3, borderColor: colours.purple, backgroundColor: 'rgba(255,255,255,0.12)', zIndex: 199 },
+  box: { position: 'absolute', borderRadius: 26, borderWidth: 3, borderColor: '#C9A2DC', backgroundColor: 'rgba(255,255,255,0.10)', zIndex: 199 },
   skip: { position: 'absolute', top: 16, right: 20, zIndex: 10, padding: 6 },
   skipText: { color: '#E9DDEF', fontSize: 14, fontWeight: '700' },
   card: {
