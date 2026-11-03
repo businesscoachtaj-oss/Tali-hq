@@ -51,8 +51,16 @@ export async function bringTargetIntoView(name: string, wantedWindowY: number): 
   if (!first) return null;
   if (scroller && Math.abs(first.y - wantedWindowY) > 8) {
     scroller(first.y, wantedWindowY);
-    await new Promise((r) => setTimeout(r, 420));
-    return (await measureTarget(name)) ?? first;
+    // Wait for the scroll to settle: measure until two readings agree.
+    let last = first;
+    for (let i = 0; i < 6; i++) {
+      await new Promise((r) => setTimeout(r, 180));
+      const next = await measureTarget(name);
+      if (!next) break;
+      if (Math.abs(next.y - last.y) < 1 && i > 0) return next;
+      last = next;
+    }
+    return last;
   }
   return first;
 }

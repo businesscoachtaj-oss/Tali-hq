@@ -126,10 +126,14 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
   // Where the card goes: under a highlighted target when there is room, over it
   // when there isn't, above the tab bar for tab steps, and mid-screen otherwise.
   const box = rect ? { left: rect.x - origin.x - PAD, top: rect.y - origin.y + androidOffset - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 } : null;
+  // Under the target if it fits, over it if that fits, otherwise pinned above
+  // the tab bar (a tall target like a grid then peeks out above the card).
   const cardPos = box
     ? box.top + box.height + 16 + CARD_H < SCREEN_H - 24
       ? { top: box.top + box.height + 16 }
-      : { bottom: SCREEN_H - box.top + 16 }
+      : box.top - 16 - CARD_H > insets.top + 40
+        ? { bottom: SCREEN_H - box.top + 16 }
+        : { bottom: 110 }
     : step.tab !== undefined
       ? { bottom: 110 }
       : { top: SCREEN_H * 0.22 };
@@ -164,7 +168,7 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
           </>
         ) : null}
 
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, zIndex: 300 }}>
           <Pressable accessibilityRole="button" onPress={onDone} style={styles.skip} hitSlop={10}>
             <Text style={styles.skipText}>Skip tour</Text>
           </Pressable>
@@ -205,6 +209,7 @@ const styles = StyleSheet.create({
   skipText: { color: '#E9DDEF', fontSize: 14, fontWeight: '700' },
   card: {
     position: 'absolute',
+    zIndex: 300, // above the target box when they overlap
     alignSelf: 'center',
     width: '88%',
     maxWidth: 360,

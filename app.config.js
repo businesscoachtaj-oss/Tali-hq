@@ -44,6 +44,14 @@ module.exports = {
     extra: {
       eas: { projectId: '4fcc84f2-1512-4bdb-a354-80b468efd453' },
     },
+    // Over-the-air updates (3 Nov 2026), same setup as Totality and Nutrition. JavaScript-only
+    // changes go out with the publish-update workflow (push to ota-publish) and reach installed
+    // apps without a store build. runtimeVersion follows the app version, so an update only
+    // goes to builds of the same version. The first build after this is the one that turns it on.
+    runtimeVersion: { policy: 'appVersion' },
+    updates: {
+      url: 'https://u.expo.dev/4fcc84f2-1512-4bdb-a354-80b468efd453',
+    },
     experiments: {
       typedRoutes: false,
     },
