@@ -1,6 +1,6 @@
-// Tali's level (MOCKUP, 3 Nov 2026, not shipped). Tali earns XP from what she has actually
-// learnt and done for this user, so the level is a picture of how well she knows the business.
-// Counts come from one RPC, my_tali_level() (not written yet), and the maths lives here.
+// Tali's level (3 Nov 2026). XP comes from what Tali has learnt and done for this user (memories,
+// night school, jobs) and what they have put in (journal entries, chats). Counts come from one RPC,
+// my_tali_level() (migration 036), and the maths lives here.
 import { supabase } from './supabase';
 
 export type LevelCounts = { memories: number; night_school: number; journal: number; jobs_done: number; chats_learnt: number };

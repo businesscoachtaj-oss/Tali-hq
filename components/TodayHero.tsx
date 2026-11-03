@@ -1,4 +1,4 @@
-// Today's top card (MOCKUP, 3 Nov 2026, not shipped). Replaces the plain greeting and Tali's
+// Today's top card (3 Nov 2026). Replaces the plain greeting and Tali's
 // bubble with one card: the greeting, Tali reading the page for you, and Tali's level.
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';

@@ -1,4 +1,4 @@
-// Today, decluttered (MOCKUP, 3 Nov 2026, not shipped). Two pieces that let Today stay short:
+// Today, decluttered (3 Nov 2026). Two pieces that let Today stay short:
 // GlanceGrid, four small tiles (money, health, week, goals) where tapping one opens its full
 // card underneath, and FoldList, a quiet list of "more from Tali" rows that open in place.
 // Nothing here loads data; Today passes in what it already has.

@@ -90,3 +90,7 @@ Schema in migrations 034 and 035 (035 also lets `shutdown` through `chat_try_con
 - **Weekly review** (trial, HQ, Pro, 3 credits): `app/(app)/review.tsx`, Today card `components/WeekCard.tsx` (this week's three with tick boxes, review prompt on the review day until done; Free sees a line and a Plans button). Edge function `tali-review` reviews the week ending the day before the review day (Monday to Sunday for a Sunday review), saves to `reviews`, and the app saves the three commitments for the following Monday. Settings: review day and time.
 - **Goals** (trial, HQ, Pro, no credits): `app/(app)/goals.tsx`, Today card `components/GoalsCard.tsx`. Add, edit, update the number, done or dropped, "Ask Tali" opens Talk prefilled. Tali can save goals from chat through `tali_save_goal`.
 - App helpers in `lib/rhythm.ts`.
+
+## Today, calmer, with Tali's level (3 Nov 2026)
+- Today is now: Tali's card (greeting, her line, "Read your brief", Tali's level), a one-line meeting nudge, drafts as tap-to-open rows, due today, the evening shutdown card, four "at a glance" tiles (money, health, this week, goals) and one "More from Tali" row for calendar, your day, patterns, decisions and older notes.
+- Tali's level: XP from active memories (2), night school nights (15), journal entries (3), jobs done (1) and chats (2). Nine levels from New starter to Chief of staff (`lib/level.ts`). Counts come from `my_tali_level()` (migration 036).

@@ -17,7 +17,7 @@ type Row = MeetingMatch & { memories: Memory[] };
 
 export function MeetingNudge({ credits, calendar, compact }: { credits: Credits | null; calendar: CalendarToday | null; compact?: boolean }) {
   const [rows, setRows] = useState<Row[]>([]);
-  // compact (Today mockup, 3 Nov 2026): one line per meeting, tap to see what Tali knows.
+  // compact (Today, 3 Nov 2026): one line per meeting, tap to see what Tali knows.
   const [open, setOpen] = useState<string | null>(null);
   const paid = isPaid(credits);
 
