@@ -25,6 +25,12 @@
       body {
         overflow: hidden;
       }
+      /* Big desktop screens (27 inch monitors, Macs set to "More space"):
+         scale the app up so the text and pictures aren't tiny. */
+      @media (min-width: 1680px) { html { zoom: 1.125; } }
+      @media (min-width: 1920px) { html { zoom: 1.25; } }
+      @media (min-width: 2240px) { html { zoom: 1.4; } }
+      @media (min-width: 2560px) { html { zoom: 1.6; } }
       /* These styles make the root element full-height */
       #root {
         display: flex;
