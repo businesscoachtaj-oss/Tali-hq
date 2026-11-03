@@ -24,6 +24,7 @@ import { MoneyCard } from '@/components/MoneyCard';
 import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
+import { TodayHero } from '@/components/TodayHero';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 
 function greeting() {
@@ -108,15 +109,11 @@ export default function Today() {
       <ScrollView
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
-        <Title sub={trial ?? undefined}>{`${greeting()}, ${profile?.first_name || 'mate'}`}</Title>
-
-        {/* ADDED (3 Nov 2026): Tali reads the page for you. */}
-        <View style={q.hello}>
-          <TaliAvatar pose="idle" size={64} />
-          <View style={q.bubble}>
-            <Text style={q.bubbleText}>{helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health })}</Text>
-          </View>
-        </View>
+        <TodayHero
+          greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
+          sub={trial}
+          hello={helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health })}
+        />
 
         {loadError ? (
           <Card>
