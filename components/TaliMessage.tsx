@@ -197,9 +197,9 @@ export function TaliMessage({ content }: { content: string }) {
           case 'callout':
             return (
               <View key={i} style={{ flexDirection: 'row', gap: 10, backgroundColor: colours.sunk, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 }}>
-                <View style={{ width: 3, borderRadius: 2, backgroundColor: b.label === 'Next step' ? colours.orange : colours.purple }} />
+                <View style={{ width: 3, borderRadius: 2, backgroundColor: colours.purple }} />
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: b.label === 'Next step' ? '#B65F00' : colours.purple }}>{b.label.toUpperCase()}</Text>
+                  <Text style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: colours.purple }}>{b.label.toUpperCase()}</Text>
                   <Inline text={b.text} style={body} />
                 </View>
               </View>
