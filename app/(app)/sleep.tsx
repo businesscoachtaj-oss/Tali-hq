@@ -3,46 +3,18 @@
 // Engine and prefs live in lib/sleep.ts so sound keeps going if you leave the screen.
 // 3 Nov 2026: night sky look to match the mockup (gradient sky, stars, glowing orb, gradient button), and the
 // player's back button now goes to the sound picker while playing instead of leaving the screen.
+// 4 Nov 2026: Tali's sign off no longer promises a brief (Free has none); the sky lives in NightSky.tsx.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { CATEGORIES, MAX_PICKS, SOUNDS, TIMERS, extend, fadeFactor, loadPrefs, pause, resume, setFade, setLevel, setTimer, setVolume, soundsIn, start, stop, timeLeft, togglePick, useSleep, type CategoryId, type SoundId } from '@/lib/sleep';
+import { Sky, night } from '@/components/NightSky';
+import { CATEGORIES, MAX_PICKS, SOUNDS, TIMERS, extend, fadeFactor, loadPrefs, pause, preview, resume, setFade, setLevel, setTimer, setVolume, soundsIn, start, stop, stopPreview, timeLeft, togglePick, useSleep, type CategoryId, type SoundId } from '@/lib/sleep';
 
-const ink = '#EEE9FF';
-const muted = 'rgba(238,233,255,0.68)';
-const faint = 'rgba(238,233,255,0.42)';
-const glass = 'rgba(255,255,255,0.08)';
-const line = 'rgba(255,255,255,0.14)';
-const accent = '#B9A6FF';
-const accent2 = '#7FD1FF';
-const SKY = ['#2A1F4F', '#1B2450', '#0E1633'] as const;
+// 4 Nov 2026: the sky, stars and palette moved to components/NightSky.tsx so Today can use them too.
+const { ink, muted, faint, glass, line, accent, accent2 } = night;
 const DIM_AFTER_MS = 20_000;
-
-// A fixed scatter of small stars, the same every time so the screen does not twinkle on every render.
-function makeStars(n: number, seed: number) {
-  let s = seed;
-  const rnd = () => ((s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296);
-  return Array.from({ length: n }, () => ({ x: rnd() * 100, y: rnd() * 100, r: rnd() < 0.25 ? 3 : 2, o: 0.25 + rnd() * 0.5 }));
-}
-const STARS = makeStars(70, 7);
-
-function Sky({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: SKY[1] }}>
-      <LinearGradient colors={dark ? ['#05070F', '#05070F'] : [...SKY]} style={StyleSheet.absoluteFill} />
-      {dark ? null : (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          {STARS.map((st, i) => (
-            <View key={i} style={{ position: 'absolute', left: `${st.x}%`, top: `${st.y}%`, width: st.r, height: st.r, borderRadius: st.r / 2, backgroundColor: '#fff', opacity: st.o }} />
-          ))}
-        </View>
-      )}
-      {children}
-    </View>
-  );
-}
 
 function Bar({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const width = useRef(1);
@@ -76,6 +48,8 @@ export default function Sleep() {
 
   useEffect(() => {
     void loadPrefs();
+    // A preview is only ever a taste; don't let one carry on after leaving the screen.
+    return () => stopPreview();
   }, []);
 
   // Dim the screen after a while when playing. Any tap brings it back.
@@ -171,7 +145,7 @@ export default function Sleep() {
                 </Text>
                 <View style={s.taliRow}>
                   <View style={s.bubble}>
-                    <Text style={s.bubbleText}>G'night 😊 Your brief will be ready in the morning.</Text>
+                    <Text style={s.bubbleText}>G'night 😊 I'll be here in the morning.</Text>
                   </View>
                   <Image source={require('@/assets/tali/tali_idle.png')} style={{ width: 54, height: 54 }} resizeMode="contain" />
                 </View>
@@ -240,12 +214,21 @@ export default function Sleep() {
                       <Text style={{ color: '#1B1340', fontWeight: '900', fontSize: 12 }}>✓</Text>
                     </View>
                   ) : null}
+                  <Pressable
+                    onPress={() => void preview(snd.id)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={st.previewId === snd.id ? `Stop hearing ${snd.name}` : `Hear ${snd.name}`}
+                    style={[s.hear, st.previewId === snd.id && s.hearOn]}>
+                    <Text style={[s.hearText, st.previewId === snd.id && { color: '#1B1340' }]}>{st.previewId === snd.id ? '■' : '▶'}</Text>
+                  </Pressable>
                 </Pressable>
               );
             })}
           </View>
           <Text style={s.picked}>
             {st.picks.length ? `Picked: ${names.join(' + ')}` : `Pick up to ${MAX_PICKS} sounds from any category`}
+            {'. '}Tap ▶ on a tile for a five second listen.
           </Text>
           {st.picks.length === 2 ? (
             <View style={s.mixBox}>
@@ -316,8 +299,11 @@ const s = StyleSheet.create({
   tile: { width: '48%', flexGrow: 1, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 18, padding: 14, minHeight: 92, overflow: 'hidden' },
   tileOn: { borderColor: 'rgba(185,166,255,0.6)' },
   tileName: { color: ink, fontSize: 15, fontWeight: '700', marginTop: 8 },
-  tileSub: { color: muted, fontSize: 12, marginTop: 2 },
+  tileSub: { color: muted, fontSize: 12, marginTop: 2, paddingRight: 30 },
   chk: { position: 'absolute', top: 10, right: 10, width: 20, height: 20, borderRadius: 10, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' },
+  hear: { position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, borderRadius: 14, backgroundColor: glass, borderWidth: 1, borderColor: line, alignItems: 'center', justifyContent: 'center' },
+  hearOn: { backgroundColor: accent2, borderColor: accent2 },
+  hearText: { color: ink, fontSize: 11, fontWeight: '800' },
   mixBox: { marginTop: 12, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 16, padding: 14 },
   mixTitle: { color: faint, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
