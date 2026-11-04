@@ -1,7 +1,7 @@
 // Founder screen (Taj only, 2 Nov 2026): how Tali HQ is going. Reached from Me when the signed-in
 // user is FOUNDER_USER_ID; founder_stats() refuses anyone else.
 import { useCallback, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { founderStats, type FounderStats } from '@/lib/data';
 import { BackLink, Body, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
@@ -76,6 +76,13 @@ export default function Founder() {
             <Tile label="Trial to paid" value={`${conversion}%`} sub={s.trial_expired_unpaid ? `${n(s.trial_expired_unpaid)} trials lapsed unpaid` : 'no lapsed trials'} />
             <Tile label="Monthly revenue" value={aud(mrr)} sub={`${n(s.founding)} founding members`} accent />
           </View>
+          <Pressable onPress={() => router.navigate('/founder-users')} accessibilityRole="button" style={{ marginTop: space.sm, backgroundColor: colours.surface, borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: space.lg, flexDirection: 'row', alignItems: 'center', ...elevation.card }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>See every account</Text>
+              <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Who signed up, their plan, trial and how much they use Tali</Text>
+            </View>
+            <Text style={{ fontSize: 22, color: colours.faint, fontWeight: '600' }}>{'›'}</Text>
+          </Pressable>
 
           <View style={{ height: space.lg }} />
           <Label>Connected</Label>
