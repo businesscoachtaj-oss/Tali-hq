@@ -92,6 +92,9 @@ export default function Plans() {
       {list.map((p) => {
         const current = credits?.plan === p.id && (p.id !== 'hq' || credits?.status !== 'trialing');
         const trialHere = p.id === 'hq' && credits?.status === 'trialing';
+        // Matches create-checkout: Stripe waits for the trial end only when 48 hours or more are left.
+        const trialEnd = trialHere && credits?.trialEndsAt ? new Date(credits.trialEndsAt) : null;
+        const deferred = !!trialEnd && trialEnd.getTime() - Date.now() >= 48 * 3600 * 1000 + 10 * 60 * 1000;
         const yearPrice = yearly && p.yearly_price_aud ? p.yearly_price_aud : null;
         const full = yearPrice ?? p.monthly_price_aud;
         const price = founding && full > 0 ? full * (1 - FOUNDING_OFF) : full;
@@ -135,6 +138,13 @@ export default function Plans() {
                 </Text>
                 <Button title="Switch to Pro in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
               </>
+            ) : null}
+            {trialHere && !paying && trialEnd ? (
+              <Text style={{ color: colours.muted, fontSize: 13, marginTop: 6 }}>
+                {deferred
+                  ? `You won't be charged until ${trialEnd.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}.`
+                  : 'Your trial ends within 2 days, so billing starts today.'}
+              </Text>
             ) : null}
           </Card>
         );

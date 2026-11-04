@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   }
   if (!ALLOWED.includes(origin)) return json({ ok: false, code: 'bad_request', message: 'Bad return address.' }, 400);
 
-  const { data: sub } = await admin.from('subscriptions').select('plan_id, status, founding_member, stripe_customer_id, stripe_subscription_id').eq('user_id', user.id).maybeSingle();
+  const { data: sub } = await admin.from('subscriptions').select('plan_id, status, trial_ends_at, founding_member, stripe_customer_id, stripe_subscription_id').eq('user_id', user.id).maybeSingle();
   if (sub?.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(sub.status)) {
     return json({ ok: false, code: 'already_subscribed', message: 'You already have a plan. Manage it from Me.' }, 409);
   }
@@ -59,13 +59,18 @@ Deno.serve(async (req) => {
       await admin.from('subscriptions').update({ stripe_customer_id: customer }).eq('user_id', user.id);
     }
     const coupon = sub?.founding_member ? COUPON_FOUNDING : '';
+    // Still on the free trial: Stripe holds the first charge until the trial ends (5 Nov 2026).
+    // Stripe needs trial_end at least 48 hours away, so with under 48 hours (plus a small margin)
+    // left on the trial, there is no Stripe trial and the first charge happens now at checkout.
+    const trialEndMs = sub?.status === 'trialing' && sub?.trial_ends_at ? new Date(sub.trial_ends_at).getTime() : 0;
+    const trialEnd = trialEndMs - Date.now() >= 48 * 3600 * 1000 + 10 * 60 * 1000 ? Math.floor(trialEndMs / 1000) : null;
     const session = await stripe('POST', 'checkout/sessions', {
       mode: 'subscription',
       customer,
       client_reference_id: user.id,
       line_items: [{ price, quantity: 1 }],
       ...(coupon ? { discounts: [{ coupon }] } : { allow_promotion_codes: true }),
-      subscription_data: { metadata: { tali_user_id: user.id, plan } },
+      subscription_data: { metadata: { tali_user_id: user.id, plan }, ...(trialEnd ? { trial_end: trialEnd } : {}) },
       metadata: { tali_user_id: user.id, plan },
       success_url: `${origin}/me?upgraded=1`,
       cancel_url: `${origin}/plans`,
