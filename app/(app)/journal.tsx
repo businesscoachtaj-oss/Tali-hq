@@ -6,7 +6,7 @@ import { isPaid, isPro } from '@/lib/plan';
 import { friendlyDate } from '@/lib/dates';
 import { recentPatterns, type PatternsBrief } from '@/lib/patterns';
 import { PatternsCard } from '@/components/PatternsCard';
-import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, useConfirm } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
 const MOODS = ['Rough', 'Meh', 'Okay', 'Good', 'Great'];
@@ -21,6 +21,9 @@ function when(iso: string) {
 export default function Journal() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  // 4 Nov 2026: what the editor opened with, so Cancel and Back can tell if anything changed.
+  const [opened, setOpened] = useState<Draft | null>(null);
+  const { armed, confirm } = useConfirm();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -51,6 +54,29 @@ export default function Journal() {
     }, [load]),
   );
 
+  // Open the editor and remember the starting point.
+  function openDraft(d: Draft) {
+    setOpened(d);
+    setDraft(d);
+    setConfirmDelete(false);
+    setError('');
+  }
+
+  function closeEditor() {
+    setDraft(null);
+    setOpened(null);
+    setConfirmDelete(false);
+    setError('');
+  }
+
+  // Unsaved changes get a two-tap confirm; a clean editor just closes.
+  function cancel() {
+    if (dirty) confirm('discard', closeEditor);
+    else closeEditor();
+  }
+
+  const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(opened);
+
   async function save() {
     if (!draft) return;
     setError('');
@@ -65,7 +91,7 @@ export default function Journal() {
         mood: draft.kind === 'journal' ? draft.mood : null,
         private_to_tali: draft.private_to_tali,
       });
-      setDraft(null);
+      closeEditor();
       await load();
     } catch (e: any) {
       setError(e?.message ?? 'Could not save.');
@@ -79,8 +105,7 @@ export default function Journal() {
     setBusy(true);
     try {
       await deleteJournalEntry(draft.id);
-      setDraft(null);
-      setConfirmDelete(false);
+      closeEditor();
       await load();
     } catch (e: any) {
       setError(e?.message ?? 'Could not delete.');
@@ -105,6 +130,7 @@ export default function Journal() {
   if (draft) {
     return (
       <Screen>
+        <BackLink onPress={cancel} label={armed === 'discard' ? 'Sure?' : 'Back'} />
         <Title>{draft.id ? 'Edit entry' : draft.kind === 'note' ? 'New note' : 'New journal entry'}</Title>
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
           {(['journal', 'note'] as const).map((k) => (
@@ -149,14 +175,14 @@ export default function Journal() {
         </Card>
         <ErrorText>{error}</ErrorText>
         <Button title="Save" onPress={save} busy={busy} />
-        <Button title="Cancel" kind="ghost" onPress={() => { setDraft(null); setConfirmDelete(false); setError(''); }} />
+        <Button title={armed === 'discard' ? 'Sure?' : dirty ? 'Discard changes?' : 'Cancel'} kind="ghost" onPress={cancel} />
         {draft.id ? <Button title={confirmDelete ? 'Tap again to delete for good' : 'Delete'} kind="danger" onPress={remove} disabled={busy} /> : null}
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen onRefresh={load}>
       <Title sub={tab === 'mine' ? 'Your journal and notes. Tali learns from them unless you keep an entry private.' : 'Every Sunday evening Tali writes up her week working with you.'}>Journal</Title>
       <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
         {(['mine', 'tali'] as const).map((k) => (
@@ -201,8 +227,8 @@ export default function Journal() {
       ) : (
       <>
       <View style={{ flexDirection: 'row', gap: space.sm }}>
-        <View style={{ flex: 1 }}><Button title="New entry" onPress={() => setDraft(blank())} /></View>
-        <View style={{ flex: 1 }}><Button title="New note" kind="ghost" onPress={() => setDraft({ ...blank(), kind: 'note' })} /></View>
+        <View style={{ flex: 1 }}><Button title="New entry" onPress={() => openDraft(blank())} /></View>
+        <View style={{ flex: 1 }}><Button title="New note" kind="ghost" onPress={() => openDraft({ ...blank(), kind: 'note' })} /></View>
       </View>
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.lg }} />
@@ -212,7 +238,7 @@ export default function Journal() {
         entries.map((e) => (
           <Pressable
             key={e.id}
-            onPress={() => setDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali })}>
+            onPress={() => openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali })}>
             <Card>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
                 <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>
