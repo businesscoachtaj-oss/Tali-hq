@@ -19,6 +19,13 @@ const WHEN = [
   { label: 'Last month', days: -30 },
 ] as const;
 
+// 4 Nov 2026: a typed date has to be YYYY-MM-DD and a real day (so 2026-02-31 is out).
+function validDate(s: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T12:00:00`);
+  return !Number.isNaN(d.getTime()) && isoDate(d) === s;
+}
+
 export default function Decisions() {
   const [credits, setCredits] = useState<Credits | null>(null);
   const [list, setList] = useState<Decision[]>([]);
@@ -51,9 +58,10 @@ export default function Decisions() {
     if (!draft) return;
     setError('');
     if (!draft.decision.trim()) return setError('What did you decide?');
+    if (!validDate(draft.decided_at.trim())) return setError("I can't read that date. Use the format 2026-11-04.");
     setBusy(true);
     try {
-      await saveDecision(draft);
+      await saveDecision({ ...draft, decided_at: draft.decided_at.trim() });
       setDraft(null);
       await load();
     } catch (e: any) {
@@ -75,6 +83,12 @@ export default function Decisions() {
       setError(e?.message ?? 'Could not delete.');
     }
     setBusy(false);
+  }
+
+  function edit(d: Decision) {
+    setConfirmDelete(false);
+    setError('');
+    setDraft({ id: d.id, decision: d.decision, reasoning: d.reasoning ?? '', decided_at: d.decided_at });
   }
 
   function askWhy(d: Decision) {
@@ -103,7 +117,7 @@ export default function Decisions() {
   }
 
   return (
-    <Screen>
+    <Screen onRefresh={load}>
       <BackLink onPress={() => router.navigate('/me')} />
       <Title sub="What you decided and why, so you stop relitigating it. Tali reads this too.">Decisions</Title>
       <Button title="Log a decision" onPress={() => setDraft({ decision: '', reasoning: '', decided_at: today() })} />
@@ -121,10 +135,12 @@ export default function Decisions() {
         <TaliSays pose="idle">No decisions logged yet. Next time you settle something, put it here with the why. Or tell me in Talk, "I've decided to..." and I'll log it.</TaliSays>
       ) : (
         list.map((d) => (
-          <Card key={d.id}>
+          // 4 Nov 2026: the whole card opens the editor, not just the small Edit link.
+          <Pressable key={d.id} onPress={() => edit(d)} accessibilityRole="button" accessibilityLabel={`Edit decision: ${d.decision}`}>
+          <Card>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
               <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700' }}>{friendlyDate(d.decided_at)}{d.source_ref?.startsWith('messages/') ? ' · from Talk' : ''}</Text>
-              <Pressable onPress={() => { setConfirmDelete(false); setDraft({ id: d.id, decision: d.decision, reasoning: d.reasoning ?? '', decided_at: d.decided_at }); }} accessibilityRole="button" hitSlop={8}>
+              <Pressable onPress={() => edit(d)} accessibilityRole="button" hitSlop={8}>
                 <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 13 }}>Edit</Text>
               </Pressable>
             </View>
@@ -136,6 +152,7 @@ export default function Decisions() {
               <Text style={{ color: paid ? colours.purpleInk : colours.faint, fontWeight: '700', fontSize: 13 }}>Ask Tali why{paid ? '' : ' · Tali HQ'}</Text>
             </Pressable>
           </Card>
+          </Pressable>
         ))
       )}
       {!paid && list.length ? <Body muted>Logging is free. Ask Tali why is part of Tali HQ.</Body> : null}
