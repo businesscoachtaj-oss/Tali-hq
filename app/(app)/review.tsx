@@ -1,6 +1,6 @@
 // Weekly review (3 Nov 2026). Tali HQ and Pro (and the trial), 3 credits. Tali pulls the week
 // together section by section, then you set your three for next week. Past weeks at the bottom.
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -26,6 +26,10 @@ export default function ReviewScreen() {
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // 4 Nov 2026: Tali's suggestions only fill the three while they're still empty, so a tab switch
+  // doesn't wipe what you were typing.
+  const threeRef = useRef(three);
+  threeRef.current = three;
 
   const load = useCallback(async () => {
     try {
@@ -40,7 +44,9 @@ export default function ReviewScreen() {
         if (r) {
           const cm = await commitmentsFor(nextWeekOf(ws));
           setNextCommitments(cm);
-          if (!cm.length) setThree([r.content.suggested_commitments[0] ?? '', r.content.suggested_commitments[1] ?? '', r.content.suggested_commitments[2] ?? '']);
+          if (!cm.length && threeRef.current.every((t) => !t.trim())) {
+            setThree([r.content.suggested_commitments[0] ?? '', r.content.suggested_commitments[1] ?? '', r.content.suggested_commitments[2] ?? '']);
+          }
         }
       }
     } catch (e: any) {
@@ -87,7 +93,7 @@ export default function ReviewScreen() {
 
   if (!isPaid(credits)) {
     return (
-      <Screen>
+      <Screen onRefresh={load}>
         <BackLink onPress={() => router.navigate('/')} label="Today" />
         <Title sub="Ten minutes a week with Tali on what moved, what slipped and what's next.">Weekly review</Title>
         <TaliSays pose="think">The weekly review is part of Tali HQ. I pull your week together, money and quiet clients included, and we set your three for next week.</TaliSays>
@@ -99,7 +105,7 @@ export default function ReviewScreen() {
   // Read only view of a past week.
   if (viewing) {
     return (
-      <Screen>
+      <Screen onRefresh={load}>
         <BackLink onPress={() => setViewing(null)} label="This week" />
         <Title sub={`Week of ${weekLabel(viewing.week_start)}`}>Weekly review</Title>
         <ReviewBody review={viewing} />
@@ -109,7 +115,7 @@ export default function ReviewScreen() {
   }
 
   return (
-    <Screen>
+    <Screen onRefresh={load}>
       <BackLink onPress={() => router.navigate('/')} label="Today" />
       <Title sub={`Week of ${weekLabel(weekStart)}`}>Weekly review</Title>
 

@@ -106,9 +106,11 @@ export type SleepState = {
   status: 'idle' | 'playing' | 'paused';
   endsAt: number | null;
   now: number;
+  /** The sound a five second preview is playing for, if any (4 Nov 2026). */
+  previewId: SoundId | null;
 };
 
-let state: SleepState = { picks: [{ id: 'noise_brown', level: 0.6 }, { id: 'rain_tin_roof', level: 0.4 }], timerMinutes: 45, fade: true, volume: 0.6, status: 'idle', endsAt: null, now: Date.now() };
+let state: SleepState = { picks: [{ id: 'noise_brown', level: 0.6 }, { id: 'rain_tin_roof', level: 0.4 }], timerMinutes: 45, fade: true, volume: 0.6, status: 'idle', endsAt: null, now: Date.now(), previewId: null };
 // Seamless looping (3 Nov 2026). Every loop restarts with a tiny gap (AAC padding plus the player's
 // own loop seek) and a few have a hard jump where the end meets the start. So each sound plays as
 // two copies half a loop apart. A copy is faded right down around its own restart point while the
@@ -241,6 +243,11 @@ function onTick() {
 }
 
 function removeVoice(v: Voice) {
+  if (Platform.OS !== 'web') {
+    try {
+      v.a.setActiveForLockScreen(false);
+    } catch {}
+  }
   for (const pl of [v.a, v.b]) {
     try {
       pl.pause();
@@ -249,21 +256,73 @@ function removeVoice(v: Voice) {
   }
 }
 
+// 4 Nov 2026 (bug from Taj: eight sounds going at once). The `players` map is the one registry of live
+// audio. Anything in it that is no longer picked gets stopped and unloaded here, so a sound dropped by
+// the two pick limit, or toggled off, can never keep playing underneath the new ones.
+function dropUnpicked() {
+  for (const [id, v] of players) {
+    if (state.picks.some((p) => p.id === id)) continue;
+    removeVoice(v);
+    players.delete(id);
+  }
+}
+
+// Stop and unload every player, whatever state says. Used before a fresh Start and by stop().
+function clearPlayers() {
+  stopPreview();
+  for (const v of players.values()) removeVoice(v);
+  players.clear();
+}
+
+// Preview (4 Nov 2026, Taj): hear one sound for a few seconds without starting a session. One slot
+// only, so previews never stack, and it sits in the same teardown as the session players.
+const PREVIEW_MS = 5000;
+let previewPlayer: AudioPlayer | null = null;
+let previewTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function stopPreview() {
+  if (previewTimer) clearTimeout(previewTimer);
+  previewTimer = null;
+  if (previewPlayer) {
+    try {
+      previewPlayer.pause();
+      previewPlayer.remove();
+    } catch {}
+    previewPlayer = null;
+  }
+  if (state.previewId) set({ previewId: null });
+}
+
+/** Play a five second taste of one sound. Tapping the same sound again, or another one, stops it. */
+export async function preview(id: SoundId) {
+  const same = state.previewId === id;
+  stopPreview();
+  if (same) return;
+  const sound = SOUNDS.find((x) => x.id === id);
+  if (!sound) return;
+  if (Platform.OS !== 'web' && state.status === 'idle') {
+    try {
+      await setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false, interruptionMode: 'doNotMix' });
+    } catch {}
+    // Something else may have started while we waited.
+    if (previewPlayer || state.previewId) return;
+  }
+  const pl = createAudioPlayer(sound.source);
+  pl.loop = true;
+  pl.volume = Math.max(0.2, Math.min(1, state.volume));
+  previewPlayer = pl;
+  set({ previewId: id });
+  pl.play();
+  previewTimer = setTimeout(() => {
+    if (previewPlayer === pl) stopPreview();
+  }, PREVIEW_MS);
+}
+
 export function togglePick(id: SoundId) {
   const has = state.picks.some((p) => p.id === id);
   let picks: Pick[];
   if (has) {
     picks = state.picks.filter((p) => p.id !== id);
-    const v = players.get(id);
-    if (v) {
-      if (Platform.OS !== 'web') {
-        try {
-          v.a.setActiveForLockScreen(false);
-        } catch {}
-      }
-      removeVoice(v);
-      players.delete(id);
-    }
   } else {
     picks = [...state.picks, { id, level: 0.5 }].slice(-MAX_PICKS);
   }
@@ -271,7 +330,9 @@ export function togglePick(id: SoundId) {
   if (picks.length === 2 && picks.every((p) => p.level === 0.5)) picks = [{ ...picks[0], level: 0.6 }, { ...picks[1], level: 0.4 }];
   if (picks.length === 1) picks = [{ ...picks[0], level: 1 }];
   set({ picks });
-  if (state.status === 'playing') ensurePlayers();
+  // Whether or not anything is playing: unload what was dropped, then load what is new.
+  dropUnpicked();
+  if (state.status !== 'idle') ensurePlayers();
   savePrefs();
 }
 
@@ -304,7 +365,10 @@ export function extend(minutes = 15) {
   applyVolumes();
 }
 
+// Loads a player pair for each pick that does not have one yet. The `players.has` check is what
+// stops a sound ever being loaded twice; dropUnpicked() is the other half of keeping the map honest.
 function ensurePlayers() {
+  dropUnpicked();
   for (const p of state.picks) {
     if (players.has(p.id)) continue;
     const sound = SOUNDS.find((s) => s.id === p.id)!;
@@ -322,15 +386,25 @@ function ensurePlayers() {
   applyVolumes();
 }
 
+let starting = false;
+
 export async function start() {
-  if (!state.picks.length) return;
-  if (Platform.OS !== 'web') {
-    try {
-      await setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: 'doNotMix' });
-    } catch {}
+  if (!state.picks.length || starting) return;
+  starting = true;
+  try {
+    // A fresh start always begins from silence: nothing from the last run can carry over.
+    clearPlayers();
+    if (Platform.OS !== 'web') {
+      try {
+        await setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: 'doNotMix' });
+      } catch {}
+    }
+    clearPlayers();
+    set({ status: 'playing', endsAt: state.timerMinutes ? Date.now() + state.timerMinutes * 60_000 : null, now: Date.now() });
+    ensurePlayers();
+  } finally {
+    starting = false;
   }
-  set({ status: 'playing', endsAt: state.timerMinutes ? Date.now() + state.timerMinutes * 60_000 : null, now: Date.now() });
-  ensurePlayers();
   let first = true;
   for (const v of players.values()) {
     v.a.play();
@@ -366,15 +440,7 @@ export function resume() {
 export function stop() {
   if (tick) clearInterval(tick);
   tick = null;
-  for (const v of players.values()) {
-    if (Platform.OS !== 'web') {
-      try {
-        v.a.setActiveForLockScreen(false);
-      } catch {}
-    }
-    removeVoice(v);
-  }
-  players.clear();
+  clearPlayers();
   set({ status: 'idle', endsAt: null });
 }
 

@@ -4,7 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { bookEventApproval, bookOutlookApproval, decideApproval, editDraft, sendEmailApproval, sendFromTaliAddress, sendInvoiceWithStripe, sendOutlookApproval, type Approval } from '@/lib/data';
 import { INBOUND_DOMAIN } from '@/constants/business';
-import { Card } from '@/components/ui';
+import { Card, useConfirm } from '@/components/ui';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 const KIND_LABEL: Record<string, string> = {
@@ -22,6 +22,8 @@ const KIND_LABEL: Record<string, string> = {
 export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id: string) => void }) {
   // 4 Nov 2026: the draft opens in a sheet now, so the whole message is always shown.
   const [open, setOpen] = useState(true);
+  // 4 Nov 2026: "Not needed" asks "Sure?" on the first tap so a stray thumb cannot bin a draft.
+  const { armed, confirm } = useConfirm();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -237,7 +239,7 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
             <Chip label="Done, I sent it" onPress={() => decide('done')} disabled={busy} />
           </>
         )}
-        <Chip label="Not needed" ghost onPress={() => decide('rejected')} disabled={busy || sent} />
+        <Chip label={armed === 'reject' ? 'Sure?' : 'Not needed'} ghost onPress={() => confirm('reject', () => decide('rejected'))} disabled={busy || sent} />
       </View>
     </Card>
   );

@@ -93,10 +93,13 @@ export default function GoalsScreen() {
   }
 
   async function status(g: Goal, s: Goal['status']) {
+    setError('');
     setBusy(true);
     try {
       await setGoalStatus(g.id, s);
       await load();
+    } catch (e: any) {
+      setError(e?.message ?? "Couldn't change that goal.");
     } finally {
       setBusy(false);
     }
@@ -104,6 +107,7 @@ export default function GoalsScreen() {
 
   async function saveProgress() {
     if (!progressFor) return;
+    setError('');
     const n = Number(progressFor.value.replace(/[^0-9.]/g, ''));
     if (!(n >= 0)) return setError('Needs to be a number.');
     setBusy(true);
@@ -111,6 +115,8 @@ export default function GoalsScreen() {
       await setGoalProgress(progressFor.id, n);
       setProgressFor(null);
       await load();
+    } catch (e: any) {
+      setError(e?.message ?? "Couldn't save that number.");
     } finally {
       setBusy(false);
     }
@@ -118,14 +124,15 @@ export default function GoalsScreen() {
 
   function askTali(g: Goal) {
     const text = `Can we talk about my goal "${g.title}"? I'm at ${goalLine(g)}${g.due_date ? `, due ${friendlyDate(g.due_date)}` : ''}. What should I do this week to move it?`;
-    router.push({ pathname: '/talk', params: { text } });
+    // 4 Nov 2026: Talk reads `ask` (see person.tsx), not `text`.
+    router.push({ pathname: '/talk', params: { ask: text } } as any);
   }
 
   if (!ready) return <Loading />;
 
   if (!isPaid(credits)) {
     return (
-      <Screen>
+      <Screen onRefresh={load}>
         <BackLink onPress={() => router.navigate('/')} label="Today" />
         <Title sub="The numbers you're chasing, and Tali holding you to them.">Goals</Title>
         <TaliSays pose="think">Goals are part of Tali HQ. Tell me what you're chasing, I'll track it on Today, mention it in your brief when you're behind pace, and ask about it in your weekly review.</TaliSays>
@@ -139,7 +146,7 @@ export default function GoalsScreen() {
 
   if (draft) {
     return (
-      <Screen>
+      <Screen onRefresh={load}>
         <BackLink onPress={() => setDraft(null)} label="Goals" />
         <Title sub="A number and a date make it real. Both are optional.">{draft.id ? 'Edit goal' : 'New goal'}</Title>
         <Field label="Goal" value={draft.title} onChangeText={(v) => setDraft({ ...draft, title: v })} placeholder="5 more regular clients" maxLength={120} autoFocus={!draft.id} />
@@ -173,7 +180,7 @@ export default function GoalsScreen() {
   }
 
   return (
-    <Screen>
+    <Screen onRefresh={load}>
       <BackLink onPress={() => router.navigate('/')} label="Today" />
       <Title sub="The numbers you're chasing, and Tali holding you to them.">Goals</Title>
 
