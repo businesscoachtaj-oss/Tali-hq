@@ -9,6 +9,7 @@ import { MicButton } from '@/components/MicButton';
 import { useVoiceNote, voiceMinutesLeftLine, VOICE_NOTES_ON } from '@/lib/voiceNotes';
 import { TaliThinking } from '@/components/TaliThinking';
 import { TaliAvatar } from '@/components/TaliAvatar';
+import { TaliMessage } from '@/components/TaliMessage';
 import { useAuth } from '@/lib/auth';
 import { pickFiles, type PickedFile } from '@/lib/pickFiles';
 import { tali } from '@/components/ui';
@@ -298,7 +299,9 @@ export default function Talk() {
                       ))}
                     </View>
                   ) : null}
-                  {item.content ? <Text style={{ color: me ? '#FFFFFF' : colours.text, fontSize: 15, lineHeight: 22 }}>{item.content}</Text> : null}
+                  {item.content ? (me
+                    ? <Text style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
+                    : <TaliMessage content={item.content} />) : null}
                   {item.failed ? (
                     <Pressable
                       accessibilityRole="button"
