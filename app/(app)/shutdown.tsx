@@ -77,7 +77,7 @@ export default function ShutdownScreen() {
     return (
       <Screen>
         <BackLink onPress={() => router.navigate('/')} label="Today" />
-        <Title sub="Day closed. See you in the morning.">Night, {name}</Title>
+        <Title sub="Day closed. See you in the morning.">G'night, {name} 😊</Title>
         <TaliSays pose={(done.mood ?? 3) >= 4 ? 'celebrate' : 'idle'}>{done.tali_line}</TaliSays>
         <Card>
           <Label>Today</Label>
@@ -98,7 +98,7 @@ export default function ShutdownScreen() {
             <Text style={{ fontSize: 12, color: colours.faint, marginTop: space.sm }}>Set as reminders for 9am tomorrow.</Text>
           </Card>
         ) : null}
-        <Button title="Night" onPress={() => router.navigate('/')} />
+        <Button title="G'night 😊"onPress={() => router.navigate('/')} />
         <Button title="Change my answers" kind="ghost" onPress={startAgain} />
       </Screen>
     );
