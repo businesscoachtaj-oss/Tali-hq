@@ -13,7 +13,9 @@ const SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
 
 const STATUS: Record<string, string> = {
   active: 'active',
-  trialing: 'trialing',
+  // A Stripe 'trialing' subscription has been checked out and will bill when the Tali trial ends,
+  // so it counts as a paid plan here (5 Nov 2026). Our own 'trialing' status is only the free trial.
+  trialing: 'active',
   past_due: 'past_due',
   unpaid: 'past_due',
   canceled: 'canceled',
