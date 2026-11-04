@@ -131,7 +131,7 @@ export default function Plans() {
             {p.id === 'pro' && paying && credits?.plan === 'hq' ? (
               <>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
-                  You're on Tali HQ. Switch to Pro from Manage billing and it changes on the spot.
+                  You're on Tali HQ. Switching to Pro happens in Manage billing, where your card already is.
                 </Text>
                 <Button title="Switch to Pro in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
               </>
