@@ -170,7 +170,7 @@ export default function Today() {
         </View>
 
         {morning && briefOpen && !night ? (
-          <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => markBriefRead(morning.id).then(load)} />
+          <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
         ) : null}
 
         <MeetingNudge credits={credits} calendar={calendar} compact />
@@ -247,7 +247,7 @@ export default function Today() {
             others,
             noteOpen,
             onNote: setNoteOpen,
-            onNoteRead: (id) => markBriefRead(id).then(load),
+            onNoteRead: (id) => { setNoteOpen(null); markBriefRead(id).then(load); },
             onTick: () => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined),
             onPatternsRead: load,
           });
