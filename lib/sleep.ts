@@ -109,7 +109,71 @@ export type SleepState = {
 };
 
 let state: SleepState = { picks: [{ id: 'noise_brown', level: 0.6 }, { id: 'rain_tin_roof', level: 0.4 }], timerMinutes: 45, fade: true, volume: 0.6, status: 'idle', endsAt: null, now: Date.now() };
-const players = new Map<SoundId, AudioPlayer>();
+// Seamless looping (3 Nov 2026). Every loop restarts with a tiny gap (AAC padding plus the player's
+// own loop seek) and a few have a hard jump where the end meets the start. So each sound plays as
+// two copies half a loop apart. A copy is faded right down around its own restart point while the
+// other copy, which is mid-loop there, carries the sound, so a restart is never heard.
+type Voice = { a: AudioPlayer; b: AudioPlayer; offset: boolean; lastSeek: number };
+const players = new Map<SoundId, Voice>();
+const SEAM_GUARD = 0.35; // seconds either side of a restart that stay fully muted
+const SEAM_FADE = 5; // seconds to fade a copy in or out around its restart (a quarter of the loop at most)
+const MIX_TICK_MS = 50; // fine volume steps, so the fades themselves never click
+let lastSecond = 0;
+// iPhone and iPad Safari ignore volume on web audio, so two copies would just play doubled. There
+// the web app keeps one plain loop, as before. The native iOS app controls volume and is not affected.
+const WEB_NO_VOLUME =
+  Platform.OS === 'web' &&
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1));
+
+/** 0 at a copy's restart point, 1 once it is SEAM_GUARD + SEAM_FADE seconds away from it. */
+function seamGain(t: number, d: number) {
+  if (!(d > 0) || !Number.isFinite(d)) return 1;
+  const pos = ((t % d) + d) % d;
+  const dist = Math.min(pos, d - pos);
+  const fade = Math.min(SEAM_FADE, d / 4);
+  const x = Math.max(0, Math.min(1, (dist - SEAM_GUARD) / fade));
+  return Math.sin((x * Math.PI) / 2);
+}
+
+const finite = (n: number | null | undefined) => (typeof n === 'number' && Number.isFinite(n) ? n : 0);
+const usable = (d: number) => d > 4 * SEAM_GUARD;
+
+/** How far apart the two copies are, as a share of the loop (0 = together, 0.5 = ideal). */
+function spread(v: Voice, d: number) {
+  const gap = Math.abs(finite(v.a.currentTime) - finite(v.b.currentTime)) % d;
+  return Math.min(gap, d - gap) / d;
+}
+
+function voiceGains(v: Voice) {
+  if (WEB_NO_VOLUME) return [1, 0];
+  const d = finite(v.a.duration);
+  // Until copy B is confirmed half a loop away, play copy A alone (a plain loop, as before).
+  if (!v.offset || !usable(d) || spread(v, d) < 0.25) return [1, 0];
+  const fa = seamGain(finite(v.a.currentTime), d);
+  const fb = seamGain(finite(v.b.currentTime), d);
+  const n = Math.sqrt(fa * fa + fb * fb) || 1; // equal power: the two copies never add up louder
+  return [fa / n, fb / n];
+}
+
+/** Park copy B half a loop away from copy A, and keep checking it stayed there. */
+function alignVoice(v: Voice) {
+  if (WEB_NO_VOLUME) return;
+  const d = finite(v.a.duration);
+  if (!usable(d)) return;
+  if (spread(v, d) >= 0.25) {
+    v.offset = true;
+    return;
+  }
+  v.offset = false;
+  const now = Date.now();
+  if (now - v.lastSeek < 1000) return; // give a seek a moment to land before trying again
+  v.lastSeek = now;
+  try {
+    void v.b.seekTo((finite(v.a.currentTime) + d / 2) % d);
+  } catch {}
+}
+
 const listeners = new Set<() => void>();
 let tick: ReturnType<typeof setInterval> | null = null;
 let loaded = false;
@@ -151,8 +215,13 @@ export function fadeFactor(s: SleepState = state) {
 function applyVolumes() {
   const f = fadeFactor();
   for (const p of state.picks) {
-    const pl = players.get(p.id);
-    if (pl) pl.volume = Math.max(0, Math.min(1, p.level * state.volume * f));
+    const v = players.get(p.id);
+    if (!v) continue;
+    alignVoice(v);
+    const base = Math.max(0, Math.min(1, p.level * state.volume * f));
+    const [ga, gb] = voiceGains(v);
+    v.a.volume = finite(base * ga);
+    v.b.volume = finite(base * gb);
   }
 }
 
@@ -163,7 +232,21 @@ function onTick() {
     return;
   }
   applyVolumes();
-  emit();
+  // The mix runs twenty times a second; the screen only needs a new number once a second.
+  const sec = Math.floor(state.now / 1000);
+  if (sec !== lastSecond) {
+    lastSecond = sec;
+    emit();
+  }
+}
+
+function removeVoice(v: Voice) {
+  for (const pl of [v.a, v.b]) {
+    try {
+      pl.pause();
+      pl.remove();
+    } catch {}
+  }
 }
 
 export function togglePick(id: SoundId) {
@@ -171,9 +254,14 @@ export function togglePick(id: SoundId) {
   let picks: Pick[];
   if (has) {
     picks = state.picks.filter((p) => p.id !== id);
-    const pl = players.get(id);
-    if (pl) {
-      pl.remove();
+    const v = players.get(id);
+    if (v) {
+      if (Platform.OS !== 'web') {
+        try {
+          v.a.setActiveForLockScreen(false);
+        } catch {}
+      }
+      removeVoice(v);
       players.delete(id);
     }
   } else {
@@ -220,11 +308,16 @@ function ensurePlayers() {
   for (const p of state.picks) {
     if (players.has(p.id)) continue;
     const sound = SOUNDS.find((s) => s.id === p.id)!;
-    const pl = createAudioPlayer(sound.source);
-    pl.loop = true;
-    pl.volume = 0;
-    players.set(p.id, pl);
-    if (state.status === 'playing') pl.play();
+    const v: Voice = { a: createAudioPlayer(sound.source), b: createAudioPlayer(sound.source), offset: false, lastSeek: 0 };
+    for (const pl of [v.a, v.b]) {
+      pl.loop = true;
+      pl.volume = 0;
+    }
+    players.set(p.id, v);
+    if (state.status === 'playing') {
+      v.a.play();
+      if (!WEB_NO_VOLUME) v.b.play();
+    }
   }
   applyVolumes();
 }
@@ -239,40 +332,47 @@ export async function start() {
   set({ status: 'playing', endsAt: state.timerMinutes ? Date.now() + state.timerMinutes * 60_000 : null, now: Date.now() });
   ensurePlayers();
   let first = true;
-  for (const [id, pl] of players) {
-    pl.play();
+  for (const v of players.values()) {
+    v.a.play();
+    if (!WEB_NO_VOLUME) v.b.play();
     if (first && Platform.OS !== 'web') {
       try {
         const names = state.picks.map((p) => SOUNDS.find((s) => s.id === p.id)?.name).filter(Boolean).join(' + ');
-        pl.setActiveForLockScreen(true, { title: names || 'Sleep sounds', artist: 'Tali HQ', albumTitle: 'Sleep' });
+        v.a.setActiveForLockScreen(true, { title: names || 'Sleep sounds', artist: 'Tali HQ', albumTitle: 'Sleep' });
       } catch {}
       first = false;
     }
-    void id;
   }
   if (tick) clearInterval(tick);
-  tick = setInterval(onTick, 1000);
+  tick = setInterval(onTick, MIX_TICK_MS);
 }
 
 export function pause() {
-  for (const pl of players.values()) pl.pause();
+  for (const v of players.values()) {
+    v.a.pause();
+    v.b.pause();
+  }
   set({ status: 'paused' });
 }
 
 export function resume() {
-  for (const pl of players.values()) pl.play();
+  for (const v of players.values()) {
+    v.a.play();
+    if (!WEB_NO_VOLUME) v.b.play();
+  }
   set({ status: 'playing' });
 }
 
 export function stop() {
   if (tick) clearInterval(tick);
   tick = null;
-  for (const pl of players.values()) {
-    try {
-      pl.pause();
-      if (Platform.OS !== 'web') pl.setActiveForLockScreen(false);
-      pl.remove();
-    } catch {}
+  for (const v of players.values()) {
+    if (Platform.OS !== 'web') {
+      try {
+        v.a.setActiveForLockScreen(false);
+      } catch {}
+    }
+    removeVoice(v);
   }
   players.clear();
   set({ status: 'idle', endsAt: null });

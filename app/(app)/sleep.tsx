@@ -171,7 +171,7 @@ export default function Sleep() {
                 </Text>
                 <View style={s.taliRow}>
                   <View style={s.bubble}>
-                    <Text style={s.bubbleText}>Night. Your brief will be ready in the morning.</Text>
+                    <Text style={s.bubbleText}>G'night 😊 Your brief will be ready in the morning.</Text>
                   </View>
                   <Image source={require('@/assets/tali/tali_idle.png')} style={{ width: 54, height: 54 }} resizeMode="contain" />
                 </View>

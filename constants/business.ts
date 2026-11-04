@@ -17,7 +17,7 @@ export const INBOUND_DOMAIN = process.env.EXPO_PUBLIC_INBOUND_DOMAIN || 'tali.to
 // Where the Sleep sound loops live. They ship with the web app (public/sounds, served by Vercel)
 // rather than inside the native binary, so phone builds stream them from the web deploy and the
 // web app itself uses the relative path.
-export const SOUNDS_BASE = 'https://tali-hq.vercel.app/sounds';
+export const SOUNDS_BASE = 'https://talihq.com.au/sounds';
 
 // Taj's account. The Founder screen (Me) only shows for this user, and founder_stats() only answers it.
 export const FOUNDER_USER_ID = 'e89ca9de-a86e-4dd6-8094-bc518566352e';

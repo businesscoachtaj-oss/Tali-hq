@@ -5,7 +5,7 @@ import { myCredits, mySubscription, openBillingPortal, plans as loadPlans, start
 import { BackLink, Button, Card, ErrorText, Screen, Title } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
-const APP_WEB_URL = 'https://tali-hq.vercel.app';
+const APP_WEB_URL = 'https://talihq.com.au';
 
 const FOUNDING_OFF = 0.425; // founding members: 42.5% off for life
 

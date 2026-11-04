@@ -47,7 +47,7 @@ export function MicrosoftConnectCard() {
   async function connect(what: 'both' | 'calendar') {
     setNote(null);
     if (Platform.OS !== 'web' || typeof window === 'undefined') {
-      setNote({ text: 'Connect Outlook from the web app for now, at tali-hq.vercel.app.', good: false });
+      setNote({ text: 'Connect Outlook from the web app for now, at talihq.com.au.', good: false });
       return;
     }
     setBusy(true);

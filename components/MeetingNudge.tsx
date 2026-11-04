@@ -11,6 +11,7 @@ import { isPaid } from '@/lib/plan';
 import { matchMeetings, memoriesAbout, type MeetingMatch } from '@/lib/people';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { Card } from '@/components/ui';
+import { Sheet } from '@/components/Sheet';
 import { colours, space } from '@/constants/theme';
 
 type Row = MeetingMatch & { memories: Memory[] };
@@ -42,8 +43,8 @@ export function MeetingNudge({ credits, calendar, compact }: { credits: Credits 
   return (
     <>
       {rows.map((r) => (
-        compact && open !== r.client.id ? (
-          <Pressable key={r.client.id} onPress={() => setOpen(r.client.id)} accessibilityRole="button" accessibilityState={{ expanded: false }}>
+        compact ? (
+          <Pressable key={r.client.id} onPress={() => setOpen(r.client.id)} accessibilityRole="button">
             <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.purple, paddingVertical: space.md }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                 <TaliAvatar pose="head" size={30} />
@@ -81,6 +82,32 @@ export function MeetingNudge({ credits, calendar, compact }: { credits: Credits 
         </Pressable>
         )
       ))}
+      {compact ? (() => {
+        const r = rows.find((x) => x.client.id === open);
+        return (
+          <Sheet visible={!!r} title={r ? `Meeting ${r.client.name.split(' ')[0]} at ${r.time}` : ''} sub={r?.title} onClose={() => setOpen(null)}>
+            {r ? (
+              <Card>
+                {r.memories.length ? (
+                  r.memories.map((m) => (
+                    <View key={m.id} style={{ flexDirection: 'row', gap: space.sm, marginTop: 4, marginBottom: 4, alignItems: 'flex-start' }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colours.purple, marginTop: 8 }} />
+                      <Text style={{ fontSize: 15, lineHeight: 22, color: colours.text, flex: 1 }}>{m.content}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={{ fontSize: 14, color: colours.muted, lineHeight: 20 }}>
+                    {r.client.notes ? r.client.notes : `Nothing in my memory about ${r.client.name.split(' ')[0]} yet. Tell me how it goes after.`}
+                  </Text>
+                )}
+                <Pressable onPress={() => { setOpen(null); router.navigate({ pathname: '/person', params: { id: r.client.id } } as any); }} accessibilityRole="button">
+                  <Text style={{ fontSize: 14, color: colours.purple, fontWeight: '700', marginTop: space.md }}>Everything on {r.client.name.split(' ')[0]} {'›'}</Text>
+                </Pressable>
+              </Card>
+            ) : null}
+          </Sheet>
+        );
+      })() : null}
     </>
   );
 }

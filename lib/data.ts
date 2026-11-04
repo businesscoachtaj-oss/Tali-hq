@@ -841,3 +841,37 @@ export async function anyCalendarToday(): Promise<(CalendarToday & { ok: boolean
   const m = await outlookCalendarToday().catch(() => null);
   return m?.connected ? m : g ?? m;
 }
+
+// ---------- Founder: every account (4 Nov 2026, Taj only) ----------
+export type FounderUser = {
+  id: string;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  first_name: string | null;
+  business_name: string | null;
+  business_type: string | null;
+  about_me: string | null;
+  timezone: string | null;
+  onboarded_at: string | null;
+  plan_id: string | null;
+  status: string | null;
+  trial_ends_at: string | null;
+  founding_member: boolean | null;
+  paying_stripe: boolean | null;
+  current_period_end: string | null;
+  credits_month: number;
+  messages_total: number;
+  last_message_at: string | null;
+  journal_count: number;
+  clients_count: number;
+  google: boolean;
+  stripe: boolean;
+  devices: number;
+};
+
+export async function founderUsers(): Promise<FounderUser[]> {
+  const { data, error } = await supabase.rpc('founder_users');
+  if (error) throw error;
+  return (data ?? []) as FounderUser[];
+}

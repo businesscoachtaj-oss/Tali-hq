@@ -63,9 +63,9 @@ export function MoneyCard({ credits }: { credits: Credits | null }) {
 
 function Mini({ label, value, colour, muted }: { label: string; value: string; colour?: string; muted?: boolean }) {
   return (
-    <View style={{ flex: 1, backgroundColor: colours.sunk, borderRadius: radius.input, paddingVertical: 8, paddingHorizontal: 6, alignItems: 'center' }}>
+    <View style={{ flex: 1, backgroundColor: colours.sunk, borderRadius: radius.input, paddingVertical: 8, paddingHorizontal: 3, alignItems: 'center' }}>
       <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colours.muted }}>{label}</Text>
-      <Text style={{ fontSize: 14, fontWeight: '800', color: muted ? colours.faint : colour ?? colours.text, marginTop: 2 }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={{ fontSize: value.length > 6 ? 12.5 : 14, fontWeight: '800', color: muted ? colours.faint : colour ?? colours.text, marginTop: 2 }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
     </View>
   );
 }
