@@ -538,10 +538,19 @@ export async function myInbox(): Promise<string | null> {
   return (data as any)?.alias ?? null;
 }
 
-export async function claimInbox(): Promise<string> {
-  const { data, error } = await supabase.rpc('claim_tali_inbox');
+// 4 Nov 2026: the user picks the word before the @ (letters and numbers, 3 to 24). Leave it out and
+// the server builds one from the business name. The RPC raises a friendly message when it is taken.
+export async function claimInbox(alias?: string): Promise<string> {
+  const { data, error } = await supabase.rpc('claim_tali_inbox', { p_alias: alias?.trim() || null });
   if (error) throw error;
   return data as string;
+}
+
+// The suggestion the server would use, to pre-fill the box. Never claims anything.
+export async function suggestInboxAlias(): Promise<string> {
+  const { data, error } = await supabase.rpc('suggest_tali_alias');
+  if (error) throw error;
+  return String(data ?? '');
 }
 
 export async function inboundEmails(): Promise<InboundEmail[]> {
@@ -734,9 +743,10 @@ export const disconnectGoogle = () => googleCall({ action: 'disconnect' });
 export const sendEmailApproval = (approvalId: string) => googleCall({ action: 'send', approvalId });
 export const bookEventApproval = (approvalId: string) => googleCall({ action: 'book', approvalId });
 
-// ADDED (2 Nov 2026): a reply to email that arrived at their own Tali address (Pro) sends from
-// that address through Resend. Only ever called from their tap on Today.
-export async function sendFromTaliAddress(approvalId: string): Promise<{ ok: boolean; message?: string; code?: string; from?: string }> {
+// ADDED (2 Nov 2026): a reply to email that arrived at their own Tali address (Pro). Only ever
+// called from their tap on Today. 4 Nov 2026: goes out from their connected Gmail or Outlook when
+// they have one (via 'gmail' | 'outlook'), otherwise from the Tali address itself (via 'tali').
+export async function sendFromTaliAddress(approvalId: string): Promise<{ ok: boolean; message?: string; code?: string; from?: string; via?: 'gmail' | 'outlook' | 'tali' }> {
   const { data, error } = await supabase.functions.invoke('tali-send', { body: { approvalId } });
   if (error) {
     try {
@@ -745,7 +755,7 @@ export async function sendFromTaliAddress(approvalId: string): Promise<{ ok: boo
     } catch {}
     return { ok: false, message: "Couldn't reach the server. Try again." };
   }
-  return data as { ok: boolean; from?: string };
+  return data as { ok: boolean; from?: string; via?: 'gmail' | 'outlook' | 'tali' };
 }
 export const calendarToday = () => googleCall({ action: 'calendar' }) as Promise<CalendarToday & { ok: boolean }>;
 

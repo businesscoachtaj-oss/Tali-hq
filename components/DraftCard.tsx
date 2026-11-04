@@ -58,10 +58,13 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   // Microsoft 365 twins (2 Nov 2026).
   const outlookSend = item.draft?.action === 'outlook_send';
   const outlookBook = item.draft?.action === 'outlook_calendar_create';
-  // A reply to email that came in to their own Tali address (Pro): Send goes out from that address.
+  // A reply to email that came in to their own Tali address (Pro). 4 Nov 2026: Send goes out from
+  // their connected Gmail or Outlook when they have one, otherwise from the Tali address. The server
+  // picks; the note after says which. With neither set up it answers copy_only and we fall back to copy.
   const taliSend = !item.draft?.action && typeof item.draft?.from === 'string' && item.draft.from.startsWith('email/') && !!item.draft?.to;
   const [sent, setSent] = useState(false);
   const [sentNote, setSentNote] = useState('');
+  const [copyOnly, setCopyOnly] = useState(false);
 
   async function sendGmail() {
     setBusy(true);
@@ -82,11 +85,13 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
     setError('');
     const res = await sendFromTaliAddress(item.id);
     if (!res.ok) {
+      if (res.code === 'copy_only' || res.code === 'not_ready') setCopyOnly(true);
       setError(res.message ?? 'Could not send.');
       setBusy(false);
       return;
     }
-    setSentNote(`Sent from ${res.from ?? `your @${INBOUND_DOMAIN} address`} to ${item.draft?.to} 🙌`);
+    const fromWhere = res.via === 'gmail' ? 'your Gmail' : res.via === 'outlook' ? 'your Outlook' : res.from ?? `your @${INBOUND_DOMAIN} address`;
+    setSentNote(`Sent from ${fromWhere} to ${item.draft?.to} 🙌`);
     setSent(true);
     setTimeout(() => onDecided(item.id), 1600);
   }
@@ -221,9 +226,9 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
           </>
         ) : calendarBook || outlookBook ? (
           <Chip label={busy ? 'Booking...' : 'Book it'} primary onPress={book} disabled={busy || sent} />
-        ) : taliSend ? (
+        ) : taliSend && !copyOnly ? (
           <>
-            <Chip label={busy ? 'Sending...' : 'Send from my Tali address'} primary onPress={sendTali} disabled={busy || sent} />
+            <Chip label={busy ? 'Sending...' : 'Send'} primary onPress={sendTali} disabled={busy || sent} />
             {body ? <Chip label={copied ? 'Copied' : 'Copy instead'} onPress={copy} disabled={busy} /> : null}
           </>
         ) : (

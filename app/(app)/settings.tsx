@@ -11,7 +11,7 @@ import { ChipPicker } from '@/components/ChipPicker';
 import { GoogleConnectCard } from '@/components/GoogleConnectCard';
 import { MicrosoftConnectCard } from '@/components/MicrosoftConnectCard';
 import { StripeConnectCard } from '@/components/StripeConnectCard';
-import { TaliAddressCard } from '@/components/TaliAddressCard';
+import { TaliAddressCard, TaliAddressNote } from '@/components/TaliAddressCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 
@@ -108,6 +108,7 @@ export default function Settings() {
 
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
       <Field label="Business name" value={businessName} onChangeText={setBusinessName} />
+      <TaliAddressNote />
       <Label>What kind of business</Label>
       <ChipPicker options={BUSINESS_TYPES} value={businessType} onChange={setBusinessType} />
       <Field

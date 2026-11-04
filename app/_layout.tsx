@@ -3,12 +3,27 @@
 //   signed in, not onboarded  -> onboarding
 //   signed in, onboarded      -> (app) tabs
 //   opened a reset link       -> reset-password, until they set a new one
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { Loading } from '@/components/ui';
 import { colours } from '@/constants/theme';
+
+// Where a tapped push goes (4 Nov 2026). Pushes carry data.url ('/', '/inbox', ...), the same shape
+// the web service worker (public/sw.js) opens. Phone builds land here instead.
+const PUSH_ROUTES = ['/', '/inbox'];
+let lastHandled: string | null = null;
+function openPushUrl(r: Notifications.NotificationResponse | null) {
+  if (!r || r.notification.request.identifier === lastHandled) return;
+  lastHandled = r.notification.request.identifier;
+  const url = (r.notification.request.content.data as { url?: unknown } | null)?.url;
+  if (typeof url !== 'string') return;
+  if (PUSH_ROUTES.includes(url)) router.navigate(url as any);
+}
 
 export default function RootLayout() {
   return (
@@ -23,11 +38,20 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { isLoading, session, profile, profileReady, recovering } = useAuth();
-  // Wait for the signed-in user's profile too, or onboarding flashes up for a moment after sign in.
-  if (isLoading || !profileReady) return <Loading />;
-
   const signedIn = !!session;
   const onboarded = !!profile?.onboarded_at;
+  const ready = !isLoading && profileReady && signedIn && !recovering && onboarded;
+
+  // Notification taps on phone builds: route by data.url once the app screens are available.
+  useEffect(() => {
+    if (Platform.OS === 'web' || !ready) return;
+    const sub = Notifications.addNotificationResponseReceivedListener(openPushUrl);
+    Notifications.getLastNotificationResponseAsync().then(openPushUrl).catch(() => {});
+    return () => sub.remove();
+  }, [ready]);
+
+  // Wait for the signed-in user's profile too, or onboarding flashes up for a moment after sign in.
+  if (isLoading || !profileReady) return <Loading />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colours.bg } }}>
