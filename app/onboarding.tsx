@@ -6,7 +6,7 @@ import { BUSINESS_TYPES } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
 
 export default function Onboarding() {
-  const { session, profile, refreshProfile } = useAuth();
+  const { session, profile, refreshProfile, signOut } = useAuth();
   const [firstName, setFirstName] = useState(profile?.first_name ?? '');
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
@@ -61,6 +61,8 @@ export default function Onboarding() {
       />
       <ErrorText>{error}</ErrorText>
       <Button title="Meet Tali" onPress={finish} busy={busy} />
+      {/* 4 Nov 2026: a way out if this isn't your account (shared device, wrong email). */}
+      <Button title="Not you? Sign out" kind="ghost" onPress={signOut} disabled={busy} />
     </Screen>
   );
 }

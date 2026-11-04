@@ -29,7 +29,7 @@ export default function ResetPassword() {
       <Field label="Type it again" value={again} onChangeText={setAgain} secureTextEntry autoComplete="new-password" onSubmitEditing={save} />
       <ErrorText>{error}</ErrorText>
       <Button title="Save new password" onPress={save} busy={busy} />
-      <Button title="Cancel" kind="ghost" onPress={signOut} />
+      <Button title="Cancel and sign out" kind="ghost" onPress={signOut} />
     </Screen>
   );
 }
