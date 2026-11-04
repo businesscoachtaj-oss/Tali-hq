@@ -17,7 +17,7 @@ import {
   type WorkoutLog,
 } from '@/lib/data';
 import { addDays, friendlyDate, isoDate, today } from '@/lib/dates';
-import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, goBack } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
@@ -106,7 +106,7 @@ export default function Life() {
 
   return (
     <Screen>
-      <BackLink onPress={() => router.navigate('/')} label="Today" />
+      <BackLink onPress={() => goBack('/')} />
       <Title sub="Logged by chatting with Tali. Tell her what you ate, what you weigh or that you trained.">Food and training</Title>
       <ErrorText>{error}</ErrorText>
 
