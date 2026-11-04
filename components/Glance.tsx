@@ -1,9 +1,11 @@
 // Today, decluttered (3 Nov 2026). Two pieces that let Today stay short:
-// GlanceGrid, four small tiles (money, health, week, goals) where tapping one opens its full
-// card underneath, and FoldList, a quiet list of "more from Tali" rows that open in place.
+// GlanceGrid, four small tiles (money, health, week, goals) where tapping one slides its full
+// card up in a sheet, and FoldList, a quiet list of rows that each open in a sheet (4 Nov 2026:
+// nothing opens in place any more).
 // Nothing here loads data; Today passes in what it already has.
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Sheet } from '@/components/Sheet';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 export type Tile = { key: string; label: string; value: string; hint?: string; tone?: 'good' | 'warn' | 'bad' | 'plain'; body: ReactNode };
@@ -28,10 +30,10 @@ export function GlanceGrid({ tiles }: { tiles: Tile[] }) {
                   onPress={() => setOpen(on ? null : t.key)}
                   accessibilityRole="button"
                   accessibilityState={{ expanded: on }}
-                  style={[g.tile, on && g.tileOn]}>
+                  style={g.tile}>
                   <View style={g.tileTop}>
                     <View style={[g.dot, { backgroundColor: toneColour(t.tone) }]} />
-                    <Text style={[g.label, on && { color: colours.purpleInk }]}>{t.label}</Text>
+                    <Text style={g.label}>{t.label}</Text>
                   </View>
                   <Text style={g.value} numberOfLines={1}>{t.value}</Text>
                   {t.hint ? <Text style={g.hint} numberOfLines={1}>{t.hint}</Text> : null}
@@ -42,10 +44,14 @@ export function GlanceGrid({ tiles }: { tiles: Tile[] }) {
           </View>
         ))}
       </View>
-      {openTile ? <View style={{ marginTop: space.sm }}>{openTile.body}</View> : null}
+      <Sheet visible={!!openTile} title={openTile ? cap(openTile.label) : ''} onClose={() => setOpen(null)}>
+        {openTile?.body}
+      </Sheet>
     </View>
   );
 }
+
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase();
 
 // Two tiles a row, so an odd one out keeps its size instead of stretching across.
 function pairs<T>(list: T[]): T[][] {
@@ -86,23 +92,23 @@ export type Fold = { key: string; title: string; hint?: string; body: ReactNode 
 export function FoldList({ folds }: { folds: Fold[] }) {
   const [open, setOpen] = useState<string | null>(null);
   if (!folds.length) return null;
+  const cur = folds.find((f) => f.key === open);
   return (
     <View style={g.list}>
-      {folds.map((f, i) => {
-        const on = f.key === open;
-        return (
-          <View key={f.key} style={i ? g.rowBorder : null}>
-            <Pressable onPress={() => setOpen(on ? null : f.key)} accessibilityRole="button" accessibilityState={{ expanded: on }} style={g.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={g.rowTitle}>{f.title}</Text>
-                {f.hint && !on ? <Text style={g.rowHint} numberOfLines={1}>{f.hint}</Text> : null}
-              </View>
-              <Text style={[g.chev, on && { transform: [{ rotate: '90deg' }] }]}>{'›'}</Text>
-            </Pressable>
-            {on ? <View style={g.rowBody}>{f.body}</View> : null}
-          </View>
-        );
-      })}
+      {folds.map((f, i) => (
+        <View key={f.key} style={i ? g.rowBorder : null}>
+          <Pressable onPress={() => setOpen(f.key)} accessibilityRole="button" style={g.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={g.rowTitle}>{f.title}</Text>
+              {f.hint ? <Text style={g.rowHint} numberOfLines={1}>{f.hint}</Text> : null}
+            </View>
+            <Text style={g.chev}>{'›'}</Text>
+          </Pressable>
+        </View>
+      ))}
+      <Sheet visible={!!cur} title={cur?.title ?? ''} onClose={() => setOpen(null)}>
+        {cur?.body}
+      </Sheet>
     </View>
   );
 }

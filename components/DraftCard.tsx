@@ -20,7 +20,8 @@ const KIND_LABEL: Record<string, string> = {
 // One of Tali's drafts waiting on Today. Tali never sends anything herself: the user copies it,
 // sends it however they like, then taps Done. "Not needed" clears it.
 export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
+  // 4 Nov 2026: the draft opens in a sheet now, so the whole message is always shown.
+  const [open, setOpen] = useState(true);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -164,7 +165,7 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
       {(gmailSend || outlookSend) && item.draft?.summary ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>They said: {item.draft.summary}</Text> : null}
       {(gmailSend || outlookSend || taliSend) && subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {subject}</Text> : null}
       {body ? (
-        <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel={open ? 'Hide draft' : 'Show draft'}>
+        <Pressable disabled onPress={() => setOpen(!open)}>
           <View style={{ marginTop: space.sm, backgroundColor: colours.sunk, borderRadius: 12, padding: space.md, ...elevation.tile }}>
             <Text selectable numberOfLines={open ? undefined : 3} style={{ fontSize: 14, lineHeight: 21, color: colours.text }}>
               {body}
