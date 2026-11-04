@@ -1,8 +1,10 @@
-import type { PropsWithChildren, ReactNode } from 'react';
+import { useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
+import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,13 +25,52 @@ export const tali = {
   celebrate: require('@/assets/tali/tali_celebrate.png'),
 };
 
-export function Screen({ children, scroll = true }: PropsWithChildren<{ scroll?: boolean }>) {
+// 4 Nov 2026: optional pull to refresh (pass the screen's load) so every list screen can refresh, not just Today.
+export function Screen({ children, scroll = true, onRefresh }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void }>) {
+  const [refreshing, setRefreshing] = useState(false);
   const body = <View style={styles.inner}>{children}</View>;
+  const refresh = onRefresh
+    ? (
+        <RefreshControl
+          refreshing={refreshing}
+          tintColor={colours.purple}
+          onRefresh={async () => {
+            setRefreshing(true);
+            try { await onRefresh(); } finally { setRefreshing(false); }
+          }}
+        />
+      )
+    : undefined;
   return (
     <SafeAreaView style={styles.safe} edges={NO_BOTTOM}>
-      {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">{body}</ScrollView> : body}
+      {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
+}
+
+// 4 Nov 2026: back links used to be hard-coded, so Settings opened from Email went "back" to Me.
+// Go back if there's history, otherwise to the fallback.
+export function goBack(fallback: string) {
+  if (router.canGoBack()) router.back();
+  else router.navigate(fallback as any);
+}
+
+// Two-tap confirm for destructive actions: first tap arms ("Sure?"), second runs. Resets after 3 s.
+export function useConfirm(ms = 3000) {
+  const [armed, setArmed] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confirm = (key: string, run: () => void) => {
+    if (armed === key) {
+      setArmed(null);
+      if (timer.current) clearTimeout(timer.current);
+      run();
+      return;
+    }
+    setArmed(key);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setArmed(null), ms);
+  };
+  return { armed, confirm };
 }
 
 export function Title({ children, sub }: { children: ReactNode; sub?: ReactNode }) {
