@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { markNightNoteRead, myCredits, nightNotes, nightSchool, saveNightSchool, type NightNote, type NightSchool } from '@/lib/data';
 import { friendlyDate } from '@/lib/dates';
 import { isPro } from '@/lib/plan';
 import { ChipPicker } from '@/components/ChipPicker';
-import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint } from '@/components/ui';
+import { BackLink, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint, goBack } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
 const IDEAS = ['Instagram for my business', 'Getting more Google reviews', 'Pricing my services', 'Keeping clients longer', 'Small business tax basics'];
@@ -20,6 +20,9 @@ export default function NightSchoolScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
+  // The form is seeded from the server once. Later loads (focus, marking a note read) refresh the
+  // notes but leave whatever you're typing alone (4 Nov 2026).
+  const seeded = useRef(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -28,7 +31,8 @@ export default function NightSchoolScreen() {
       setPro(isPro(c));
       if (!isPro(c)) return;
       const [n, list] = await Promise.all([nightSchool(), nightNotes()]);
-      if (n) setNs(n);
+      if (n && !seeded.current) setNs(n);
+      seeded.current = true;
       setSaved(n);
       setNotes(list);
     } catch (e: any) {
@@ -41,6 +45,11 @@ export default function NightSchoolScreen() {
       load();
     }, [load]),
   );
+
+  // "Saved." only holds while the form matches what's saved.
+  useEffect(() => {
+    setDone('');
+  }, [ns]);
 
   function addTopic(t: string) {
     const topic = t.trim();
@@ -69,7 +78,7 @@ export default function NightSchoolScreen() {
   if (pro === false) {
     return (
       <Screen>
-        <BackLink onPress={() => router.navigate('/journal')} />
+        <BackLink onPress={() => goBack('/me')} />
         <Title>Night school</Title>
         <TaliSays pose="think">Night school is part of Tali HQ Pro. You pick what I study, I research it late at night and tell you what I learnt in the morning.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
@@ -107,13 +116,13 @@ export default function NightSchoolScreen() {
   const changed = JSON.stringify(saved ?? { enabled: true, topics: [], nights: 'three' }) !== JSON.stringify(ns);
 
   return (
-    <Screen>
-      <BackLink onPress={() => router.navigate('/journal')} />
+    <Screen onRefresh={load}>
+      <BackLink onPress={() => goBack('/me')} />
       <Title sub="Pick up to three things for Tali to study. Late at night she researches one, saves what she learns, and you'll find her notes here.">Night school</Title>
 
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Night school is on</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{ns.enabled ? 'Night school is on' : 'Night school is off'}</Text>
           <Switch value={ns.enabled} onValueChange={(v) => setNs({ ...ns, enabled: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
         </View>
       </Card>

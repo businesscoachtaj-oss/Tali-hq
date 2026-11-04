@@ -7,7 +7,7 @@ import { myCredits, type Credits } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
 import { loadMoneyPicture, money0, runwayLabel, saveMoneySettings, taliMoneyLine, type MoneyPicture } from '@/lib/money';
 import { friendlyDate } from '@/lib/dates';
-import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, goBack } from '@/components/ui';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 const num = (s: string) => {
@@ -23,6 +23,8 @@ export default function Money() {
   const [cash, setCash] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // So "Tell me what goes out" doesn't flash before the picture arrives (4 Nov 2026).
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -36,6 +38,8 @@ export default function Money() {
       setCash(p.cashSource === 'entered' && p.cashOnHand != null ? String(p.cashOnHand) : '');
     } catch (e: any) {
       setError(e?.message ?? 'Could not load your money picture.');
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -61,7 +65,7 @@ export default function Money() {
   if (credits !== undefined && !isPaid(credits)) {
     return (
       <Screen>
-        <BackLink onPress={() => router.navigate('/me')} />
+        <BackLink onPress={() => goBack('/')} />
         <Title>Money</Title>
         <TaliSays pose="wave">Cash in, owed, overdue, what goes out and your runway, in one glance each morning. I read it before your brief.</TaliSays>
         <Card>
@@ -76,8 +80,8 @@ export default function Money() {
   const runway = pic ? runwayLabel(pic.runwayWeeks) : null;
 
   return (
-    <Screen>
-      <BackLink onPress={() => router.navigate('/me')} />
+    <Screen onRefresh={load}>
+      <BackLink onPress={() => goBack('/')} />
       <Title sub="Your view of the month. Tali reads it, nothing here moves money.">Money</Title>
 
       {pic ? <TaliSays pose={pic.overdueInvoices.length ? 'think' : 'idle'}>{taliMoneyLine(pic)}</TaliSays> : null}
@@ -105,8 +109,8 @@ export default function Money() {
         </>
       ) : null}
 
-      <Label>Your numbers</Label>
-      <Card>
+      {loaded ? <Label>Your numbers</Label> : null}
+      {loaded ? <Card>
         {editing ? (
           <>
             <Field label="Going out each month (A$)" value={costs} onChangeText={setCosts} keyboardType="decimal-pad" inputMode="decimal" placeholder="Rent, software, insurance, you" />
@@ -126,13 +130,13 @@ export default function Money() {
             <Button title={pic?.goingOut != null ? 'Update numbers' : 'Add your numbers'} kind="ghost" onPress={() => setEditing(true)} />
           </>
         )}
-      </Card>
+      </Card> : null}
 
       {pic?.overdueInvoices.length ? (
         <>
           <Label>Overdue</Label>
           {pic.overdueInvoices.map((i) => (
-            <Pressable key={i.id} onPress={() => router.navigate('/invoices')} accessibilityRole="button">
+            <Pressable key={i.id} onPress={() => router.navigate({ pathname: '/invoices', params: { open: i.id } })} accessibilityRole="button">
               <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.danger }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
                   <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text, flex: 1 }} numberOfLines={1}>{i.client_name}</Text>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Switch, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { deleteAccount } from '@/lib/data';
@@ -12,11 +12,15 @@ import { GoogleConnectCard } from '@/components/GoogleConnectCard';
 import { MicrosoftConnectCard } from '@/components/MicrosoftConnectCard';
 import { StripeConnectCard } from '@/components/StripeConnectCard';
 import { TaliAddressCard, TaliAddressNote } from '@/components/TaliAddressCard';
-import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title } from '@/components/ui';
+import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title, goBack } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 
 export default function Settings() {
   const { session, profile, refreshProfile, signOut } = useAuth();
+  // 4 Nov 2026: Me's Connections row opens this screen with ?section=connections. Screen owns the
+  // ScrollView, so rather than scrolling we show Connections first when asked for.
+  const { section } = useLocalSearchParams<{ section?: string }>();
+  const connectionsFirst = section === 'connections';
   const [firstName, setFirstName] = useState(profile?.first_name ?? '');
   const [businessName, setBusinessName] = useState(profile?.business_name ?? '');
   const [businessType, setBusinessType] = useState<string | null>(profile?.business_type ?? null);
@@ -29,6 +33,13 @@ export default function Settings() {
   const [shutdownPush, setShutdownPush] = useState<boolean>(true);
   const [reviewDay, setReviewDay] = useState<string>(REVIEW_DAYS[0]);
   const [reviewTime, setReviewTime] = useState<string>('17:00');
+  // Save waits for these to load, otherwise a quick Save would write the defaults over the real rhythm.
+  const [rhythmLoaded, setRhythmLoaded] = useState(false);
+  const [pushNote, setPushNote] = useState('');
+  const [pushBusy, setPushBusy] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
   useEffect(() => {
     rhythmSettings()
       .then((r) => {
@@ -36,14 +47,14 @@ export default function Settings() {
         setShutdownPush(r.shutdown_push);
         setReviewDay(REVIEW_DAYS[r.review_day] ?? REVIEW_DAYS[0]);
         setReviewTime(r.review_time.slice(0, 5));
+        setRhythmLoaded(true);
       })
-      .catch(() => {});
+      .catch((e: any) => setError(e?.message ?? "Couldn't load your shutdown and review times. Close this and try again."));
   }, []);
-  const [pushNote, setPushNote] = useState('');
-  const [pushBusy, setPushBusy] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState('');
+  // "Saved." only means the form on screen matches what's saved, so it goes as soon as anything changes.
+  useEffect(() => {
+    setSaved(false);
+  }, [firstName, businessName, businessType, aboutMe, briefTime, briefPush, shutdownTime, shutdownPush, reviewDay, reviewTime]);
 
   const [showDelete, setShowDelete] = useState(false);
   const [confirm, setConfirm] = useState('');
@@ -101,10 +112,34 @@ export default function Settings() {
     await signOut();
   }
 
+  const connections = (
+    <>
+      <Label>Connections</Label>
+      <Text style={{ color: colours.muted, fontSize: 13, marginTop: -4, marginBottom: space.md, lineHeight: 19 }}>
+        Connect the apps you already use. Tali reads what she needs and drafts the rest. Nothing goes out without your yes.
+      </Text>
+      <GoogleConnectCard />
+      <View style={{ height: space.md }} />
+      <MicrosoftConnectCard />
+      <View style={{ height: space.md }} />
+      <StripeConnectCard />
+      <View style={{ height: space.md }} />
+      <TaliAddressCard />
+    </>
+  );
+
   return (
     <Screen>
-      <BackLink onPress={() => router.navigate('/me')} />
+      <BackLink onPress={() => goBack('/me')} />
       <Title sub="Tali reads this before every chat and brief.">Settings</Title>
+
+      {connectionsFirst ? (
+        <>
+          {connections}
+          <View style={{ height: space.xl }} />
+          <Label>About you</Label>
+        </>
+      ) : null}
 
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
       <Field label="Business name" value={businessName} onChangeText={setBusinessName} />
@@ -128,7 +163,7 @@ export default function Settings() {
 
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '700', color: colours.text }}>Notify me when my brief lands</Text>
+          <Text style={{ fontWeight: '700', color: colours.text }}>Notifications from Tali</Text>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>A short notification when your brief lands, an email needs you, a reminder is due or a health check turns amber. Nothing else, ever.</Text>
         </View>
         <Switch value={briefPush} onValueChange={setBriefPush} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
@@ -159,20 +194,14 @@ export default function Settings() {
 
       <ErrorText>{error}</ErrorText>
       {saved ? <Text style={{ color: colours.good, marginTop: 6 }}>Saved.</Text> : null}
-      <Button title="Save" onPress={save} busy={busy} />
+      <Button title="Save" onPress={save} busy={busy} disabled={!rhythmLoaded} />
 
-      <View style={{ height: space.xl }} />
-      <Label>Connections</Label>
-      <Text style={{ color: colours.muted, fontSize: 13, marginTop: -4, marginBottom: space.md, lineHeight: 19 }}>
-        Connect the apps you already use. Tali reads what she needs and drafts the rest. Nothing goes out without your yes.
-      </Text>
-      <GoogleConnectCard />
-      <View style={{ height: space.md }} />
-      <MicrosoftConnectCard />
-      <View style={{ height: space.md }} />
-      <StripeConnectCard />
-      <View style={{ height: space.md }} />
-      <TaliAddressCard />
+      {connectionsFirst ? null : (
+        <>
+          <View style={{ height: space.xl }} />
+          {connections}
+        </>
+      )}
 
       <View style={{ height: space.xxl }} />
       <Label>Danger zone</Label>

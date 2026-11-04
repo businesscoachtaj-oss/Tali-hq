@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import {
   clients as loadClients,
@@ -23,7 +23,7 @@ import { addDays, friendlyDate, isoDate, today } from '@/lib/dates';
 import { isPaid } from '@/lib/plan';
 import { money, shareInvoice } from '@/lib/invoicePdf';
 import { ChipPicker } from '@/components/ChipPicker';
-import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { BackLink, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, goBack, useConfirm } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
 type Tab = 'open' | 'paid' | 'all';
@@ -75,7 +75,14 @@ export default function Invoices() {
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [stripeOn, setStripeOn] = useState(false);
-  const [sentNote, setSentNote] = useState('');
+  // One line on the list after something happened in the editor (sent, marked paid). Goes after 6 s or on focus.
+  const [note, setNote] = useState('');
+  // So "No invoices yet" and the Stripe promo don't flash before the list arrives (4 Nov 2026).
+  const [loaded, setLoaded] = useState(false);
+  const { armed, confirm } = useConfirm();
+  // Money's overdue rows open an invoice straight away: /invoices?open=<id>.
+  const { open: openParam } = useLocalSearchParams<{ open?: string }>();
+  const openedParam = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -90,14 +97,33 @@ export default function Invoices() {
       setSettings(s);
     } catch (e: any) {
       setError(e?.message ?? 'Could not load your invoices.');
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
+      setNote('');
       load();
     }, [load]),
   );
+
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(''), 6000);
+    return () => clearTimeout(t);
+  }, [note]);
+
+  useEffect(() => {
+    if (!openParam || openedParam.current === openParam) return;
+    const i = list.find((x) => x.id === openParam);
+    if (!i) return;
+    openedParam.current = openParam;
+    open(i);
+    router.setParams({ open: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openParam, list]);
 
   const shown = useMemo(() => {
     if (tab === 'open') return list.filter((i) => i.status === 'draft' || i.status === 'sent').sort((a, b) => a.due_date.localeCompare(b.due_date));
@@ -197,6 +223,8 @@ export default function Invoices() {
       await setInvoiceStatus(draft.id, status);
       await load();
       setDraft(null);
+      const num = draft.number ?? 'it';
+      setNote(status === 'void' ? `Voided ${num}.` : `Marked ${num} as ${status}.`);
     } catch (e: any) {
       setError(e?.message ?? 'Could not update.');
     }
@@ -218,7 +246,7 @@ export default function Invoices() {
     }
     await load();
     setDraft(null);
-    setSentNote(`Sent ${s.number} to ${s.client_email}. It'll mark itself paid when they pay. 🙌`);
+    setNote(`Sent ${s.number} to ${s.client_email}. It'll mark itself paid when they pay. 🙌`);
   }
 
   async function remove() {
@@ -253,7 +281,7 @@ export default function Invoices() {
   if (credits !== undefined && !isPaid(credits)) {
     return (
       <Screen>
-        <BackLink onPress={() => router.navigate('/clients')} />
+        <BackLink onPress={() => goBack('/me')} />
         <Title>Invoices</Title>
         <TaliSays pose="wave">Invoices are part of Tali HQ. I'll draft them for you, keep track of who's paid and nudge you when one's overdue.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
@@ -393,7 +421,7 @@ export default function Invoices() {
         {draft.status === 'draft' ? <Button title={stripeOn ? 'Mark as sent (I sent it myself)' : 'Mark as sent'} kind="ghost" onPress={() => mark('sent')} disabled={busy} /> : null}
         {draft.status === 'sent' ? <Button title="Mark as paid" kind="ghost" onPress={() => mark('paid')} disabled={busy} /> : null}
         {draft.status === 'paid' ? <Button title="Not paid after all" kind="ghost" onPress={() => mark('sent')} disabled={busy} /> : null}
-        {draft.status === 'sent' ? <Button title="Void this invoice" kind="danger" onPress={() => mark('void')} disabled={busy} /> : null}
+        {draft.status === 'sent' ? <Button title={armed === 'void' ? 'Sure?' : 'Void this invoice'} kind="danger" onPress={() => confirm('void', () => mark('void'))} disabled={busy} /> : null}
         {draft.status === 'draft' || draft.status === 'void' ? (
           <Button title={confirmDelete ? 'Tap again to delete' : 'Delete'} kind="danger" onPress={remove} disabled={busy} />
         ) : null}
@@ -408,15 +436,15 @@ export default function Invoices() {
 
   // ---------- List ----------
   return (
-    <Screen>
-      <BackLink onPress={() => router.navigate('/clients')} label="Clients" />
+    <Screen onRefresh={load}>
+      <BackLink onPress={() => goBack('/me')} />
       <Title sub="Or just tell Tali: invoice Jordan for 4 PT sessions at $80.">Invoices</Title>
-      {sentNote ? <Text style={{ color: colours.good, fontWeight: '700', marginBottom: space.md, lineHeight: 20 }}>{sentNote}</Text> : null}
-      {!stripeOn ? (
-        <Pressable onPress={() => router.navigate('/settings')} accessibilityRole="button">
+      {note ? <Text style={{ color: colours.good, fontWeight: '700', marginBottom: space.md, lineHeight: 20 }}>{note}</Text> : null}
+      {loaded && !stripeOn ? (
+        <Pressable onPress={() => router.navigate({ pathname: '/settings', params: { section: 'connections' } })} accessibilityRole="button">
           <Card style={{ backgroundColor: colours.purpleSoft, borderColor: colours.purpleSoft }}>
             <Text style={{ color: colours.purpleInk, fontWeight: '700' }}>Connect your Stripe and I'll send these for you</Text>
-            <Text style={{ color: colours.purpleInk, fontSize: 13, marginTop: 2 }}>With a pay by card link, and they mark themselves paid. Settings, Payments.</Text>
+            <Text style={{ color: colours.purpleInk, fontSize: 13, marginTop: 2 }}>With a pay by card link, and they mark themselves paid. Settings, Connections.</Text>
           </Card>
         </Pressable>
       ) : null}
@@ -446,7 +474,7 @@ export default function Invoices() {
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.md }} />
 
-      {shown.length === 0 ? (
+      {!loaded ? null : shown.length === 0 ? (
         list.length === 0 ? (
           <TaliSays pose="idle">No invoices yet. Make one here, or tell me in Talk who to bill and what for, and I'll draft it.</TaliSays>
         ) : (

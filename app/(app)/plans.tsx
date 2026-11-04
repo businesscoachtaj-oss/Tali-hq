@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Linking, Platform, Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { myCredits, mySubscription, openBillingPortal, plans as loadPlans, startCheckout, type Credits, type Plan } from '@/lib/data';
-import { BackLink, Button, Card, ErrorText, Screen, Title } from '@/components/ui';
+import { BackLink, Button, Card, ErrorText, Screen, Title, goBack } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
 const APP_WEB_URL = 'https://talihq.com.au';
@@ -18,6 +18,8 @@ export default function Plans() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [yearly, setYearly] = useState(false);
+  // So the screen isn't blank cards and no buttons while plans load (4 Nov 2026).
+  const [loaded, setLoaded] = useState(false);
   const web = Platform.OS === 'web';
 
   const load = useCallback(async () => {
@@ -28,6 +30,8 @@ export default function Plans() {
       setSub(s);
     } catch (e: any) {
       setError(e?.message ?? 'Could not load plans.');
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -64,8 +68,8 @@ export default function Plans() {
   }
 
   return (
-    <Screen>
-      <BackLink onPress={() => router.navigate('/me')} />
+    <Screen onRefresh={load}>
+      <BackLink onPress={() => goBack('/me')} />
       <Title sub={founding ? 'You are a founding member: 42.5% off Tali HQ and Pro for as long as you stay.' : 'Start free. Upgrade when Tali is pulling her weight.'}>
         Plans
       </Title>
@@ -84,6 +88,7 @@ export default function Plans() {
         ))}
       </View>
 
+      {!loaded ? <ActivityIndicator color={colours.purple} style={{ marginVertical: space.xl }} /> : null}
       {list.map((p) => {
         const current = credits?.plan === p.id && (p.id !== 'hq' || credits?.status !== 'trialing');
         const trialHere = p.id === 'hq' && credits?.status === 'trialing';
@@ -121,6 +126,15 @@ export default function Plans() {
             </View>
             {p.id !== 'free' && !paying ? (
               <Button title={trialHere ? `Keep ${p.name} after my trial` : `Choose ${p.name}`} onPress={() => go(p.id as 'hq' | 'pro')} busy={busy === p.id} disabled={!!busy} kind={p.id === 'hq' ? 'primary' : 'ghost'} />
+            ) : null}
+            {/* Paying HQ members switch plans through Stripe's portal, so point them there rather than a second checkout (4 Nov 2026). */}
+            {p.id === 'pro' && paying && credits?.plan === 'hq' ? (
+              <>
+                <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
+                  You're on Tali HQ. Switching to Pro happens in Manage billing, where your card already is.
+                </Text>
+                <Button title="Switch to Pro in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
+              </>
             ) : null}
           </Card>
         );

@@ -1,7 +1,7 @@
 // Settings card: connect the business's own Stripe so Tali can send invoices through it.
 // Stripe Connect (Standard): they sign in to the Stripe account they already have and approve.
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Linking, Platform, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { disconnectStripe, myCredits, startStripeConnect, stripeConnection, type StripeConnection } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
@@ -14,6 +14,18 @@ const RESULT: Record<string, { text: string; good: boolean }> = {
   expired: { text: 'That link timed out. Give it another go.', good: false },
   error: { text: "Stripe didn't finish connecting. Give it another go.", good: false },
 };
+
+// 4 Nov 2026: on the phone apps the Stripe hop needs a browser we come back from, so say so up front
+// instead of after a tap, and open the web app's Settings.
+const NATIVE = Platform.OS !== 'web';
+function WebOnly() {
+  return (
+    <>
+      <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>Connect this from the web app. It takes a minute, and it shows up here straight after.</Text>
+      <Button title="Open the web app" kind="ghost" onPress={() => Linking.openURL('https://talihq.com.au/settings')} />
+    </>
+  );
+}
 
 export function StripeConnectCard() {
   const params = useLocalSearchParams<{ stripe?: string }>();
@@ -97,7 +109,7 @@ export function StripeConnectCard() {
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
             Connect the Stripe account you already use and I'll send your invoices through it, with a pay by card link. Nothing goes out until you tap Send. Payments go straight to you.
           </Text>
-          <Button title="Connect Stripe" onPress={connect} busy={busy} />
+          {NATIVE ? <WebOnly /> : <Button title="Connect Stripe" onPress={connect} busy={busy} />}
         </>
       ) : (
         <>

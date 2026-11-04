@@ -12,6 +12,27 @@ export default function SignUp() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendNote, setResendNote] = useState('');
+
+  // 4 Nov 2026: the confirmation email sometimes lands late or in junk, so they can ask for another.
+  async function resend() {
+    if (resendBusy) return;
+    setResendNote('');
+    setError('');
+    setResendBusy(true);
+    const { error: err } = await supabase.auth.resend({ type: 'signup', email: email.trim() });
+    setResendBusy(false);
+    if (err) return setError(err.message);
+    setResendNote('Sent again.');
+  }
+
+  function startAgain() {
+    setSent(false);
+    setError('');
+    setResendNote('');
+    setPassword('');
+  }
 
   async function signUp() {
     setError('');
@@ -34,7 +55,11 @@ export default function SignUp() {
     return (
       <Screen>
         <Title>Check your email</Title>
-        <TaliSays pose="celebrate">Nearly there, {firstName.trim()}. Tap the link I just emailed you, then come back and sign in.</TaliSays>
+        <TaliSays pose="celebrate">Nearly there, {firstName.trim()}. Tap the link I just emailed to {email.trim()}, then come back and sign in.</TaliSays>
+        <ErrorText>{error}</ErrorText>
+        {resendNote ? <Text style={{ color: colours.good, marginTop: 8 }}>{resendNote}</Text> : null}
+        <Button title="Resend email" kind="ghost" onPress={resend} busy={resendBusy} />
+        <Button title="Wrong email? Start again" kind="ghost" onPress={startAgain} disabled={resendBusy} />
         <Link href="/sign-in" style={{ marginTop: 12, textAlign: 'center', color: colours.purple, fontWeight: '700', fontSize: 15 }}>
           Back to sign in
         </Link>

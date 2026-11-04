@@ -2,7 +2,7 @@
 // Tali reads new mail and sorts it, drafts replies, reads the calendar and drafts invites.
 // Nothing is sent or booked until the user taps the button on Today.
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Linking, Platform, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { disconnectGoogle, googleConnection, myCredits, startGoogleConnect, type GoogleConnection } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
@@ -15,6 +15,18 @@ const RESULT: Record<string, { text: string; good: boolean }> = {
   expired: { text: 'That link timed out. Give it another go.', good: false },
   error: { text: "Google didn't finish connecting. Give it another go, and tick every box Google asks about.", good: false },
 };
+
+// 4 Nov 2026: on the phone apps the sign-in hop needs a browser we come back from, so say so up front
+// instead of after a tap, and open the web app's Settings.
+const NATIVE = Platform.OS !== 'web';
+function WebOnly() {
+  return (
+    <>
+      <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>Connect this from the web app. It takes a minute, and it shows up here straight after.</Text>
+      <Button title="Open the web app" kind="ghost" onPress={() => Linking.openURL('https://talihq.com.au/settings')} />
+    </>
+  );
+}
 
 export function GoogleConnectCard() {
   const params = useLocalSearchParams<{ google?: string }>();
@@ -90,8 +102,14 @@ export function GoogleConnectCard() {
                 ? 'Google Calendar only. Your calendar is in your brief and I can draft invites. Connect Gmail too if you want me sorting your email.'
                 : 'Gmail only.'}
           </Text>
-          {conn.last_error === 'revoked' ? <Button title="Reconnect Google" onPress={() => connect(hasGmail ? 'both' : 'calendar')} busy={busy} /> : null}
-          {hasCal && !hasGmail && !conn.last_error ? <Button title="Add Gmail too" kind="ghost" onPress={() => connect('both')} busy={busy} /> : null}
+          {NATIVE && (conn.last_error === 'revoked' || (hasCal && !hasGmail)) ? (
+            <WebOnly />
+          ) : (
+            <>
+              {conn.last_error === 'revoked' ? <Button title="Reconnect Google" onPress={() => connect(hasGmail ? 'both' : 'calendar')} busy={busy} /> : null}
+              {hasCal && !hasGmail && !conn.last_error ? <Button title="Add Gmail too" kind="ghost" onPress={() => connect('both')} busy={busy} /> : null}
+            </>
+          )}
           {confirmOff ? (
             <View style={{ marginTop: space.sm }}>
               <Button title="Yes, disconnect Google" kind="danger" onPress={disconnect} busy={busy} />
@@ -106,11 +124,17 @@ export function GoogleConnectCard() {
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
             One sign-in for Gmail and Google Calendar. I'll sort your new email, draft replies, put your day in the brief and draft bookings. I only read new mail from the moment you connect, I never delete or move anything, and nothing is sent or booked until you tap it.
           </Text>
-          <Button title="Connect Gmail and Calendar" onPress={() => connect('both')} busy={busy} />
-          <Button title="Just the calendar" kind="ghost" onPress={() => connect('calendar')} busy={busy} />
-          <Text style={{ color: colours.faint, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
-            While Tali HQ is in beta, Google may show a "Google hasn't verified this app" page. Tap Advanced, then Continue.
-          </Text>
+          {NATIVE ? (
+            <WebOnly />
+          ) : (
+            <>
+              <Button title="Connect Gmail and Calendar" onPress={() => connect('both')} busy={busy} />
+              <Button title="Just the calendar" kind="ghost" onPress={() => connect('calendar')} busy={busy} />
+              <Text style={{ color: colours.faint, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+                While Tali HQ is in beta, Google may show a "Google hasn't verified this app" page. Tap Advanced, then Continue.
+              </Text>
+            </>
+          )}
         </>
       ) : (
         <>

@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { forgetMemory, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { resetTour } from '@/lib/tour';
-import { Body, Button, Card, Label, Screen, Title } from '@/components/ui';
+import { Body, Button, Card, Label, Screen, Title, useConfirm } from '@/components/ui';
 import { PatternsRow } from '@/components/PatternsCard';
 import { colours, space } from '@/constants/theme';
 import { FOUNDER_USER_ID } from '@/constants/business';
@@ -20,6 +20,7 @@ export default function Me() {
   const [showMemories, setShowMemories] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const { armed, confirm } = useConfirm();
 
   const load = useCallback(async () => {
     setError('');
@@ -53,7 +54,7 @@ export default function Me() {
   const shown = showAll ? memories : memories.slice(0, 15);
 
   return (
-    <Screen>
+    <Screen onRefresh={load}>
       <Title sub={session?.user.email}>{profile?.first_name || 'You'}</Title>
       {error ? <Card><Body muted>{error}</Body></Card> : null}
 
@@ -95,10 +96,15 @@ export default function Me() {
         <MenuRow title="Invoices" sub="Make, share and track invoices" locked={!isPaid(credits)} onPress={() => router.navigate('/invoices')} />
         <MenuRow title="Money" sub="Cash in, owed, overdue, going out and runway" locked={!isPaid(credits)} onPress={() => router.navigate('/money')} />
         <MenuRow title="Decisions" sub="What you decided and why. Ask Tali if it still holds" onPress={() => router.navigate('/decisions')} />
-        <MenuRow title="People" sub="What Tali knows about each client, and a nudge before you meet" locked={!isPaid(credits)} onPress={() => router.navigate('/clients')} />
+        {/* 4 Nov 2026: Goals, Weekly review and Shut the day down were only reachable from Today. */}
+        <MenuRow title="Goals" sub="The numbers you're chasing, and Tali holding you to them" locked={!isPaid(credits)} onPress={() => router.navigate('/goals')} />
+        <MenuRow title="Weekly review" sub="Ten minutes a week on what moved, what slipped and what's next" locked={!isPaid(credits)} onPress={() => router.navigate('/review')} />
+        <MenuRow title="Shut the day down" sub="Two minutes with Tali, then switch off" onPress={() => router.navigate('/shutdown')} />
+        {/* Clients is the free tab, so no lock here. */}
+        <MenuRow title="Clients" sub="Your people, and what Tali remembers about each" locked={false} onPress={() => router.navigate('/clients')} />
         <MenuRow title="Rules" sub="Things Tali handles automatically" locked={!isPro(credits)} pro onPress={() => router.navigate('/rules')} />
-        <MenuRow title="Email" sub="Your Gmail sorted, replies drafted. Her own address on Pro" locked={!isPaid(credits)} onPress={() => router.navigate('/inbox')} />
-        <MenuRow title="Connections" sub="Google and Stripe" locked={!isPaid(credits)} last={session?.user.id !== FOUNDER_USER_ID} onPress={() => router.navigate('/settings')} />
+        <MenuRow title="Email" sub="Your Gmail or Outlook sorted, replies drafted. Her own address on Pro" locked={!isPaid(credits)} onPress={() => router.navigate('/inbox')} />
+        <MenuRow title="Connections" sub="Google, Microsoft and Stripe" locked={!isPaid(credits)} last={session?.user.id !== FOUNDER_USER_ID} onPress={() => router.navigate({ pathname: '/settings', params: { section: 'connections' } })} />
         {session?.user.id === FOUNDER_USER_ID ? <MenuRow title="Founder" sub="Sign-ups, conversions, credits and cost. Only you see this" last onPress={() => router.navigate('/founder')} /> : null}
       </Card>
 
@@ -124,7 +130,7 @@ export default function Me() {
                 <Text style={{ fontSize: 11, color: colours.purpleInk, fontWeight: '700', textTransform: 'uppercase' }}>{m.kind}</Text>
                 <Text style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 2 }}>{m.content}</Text>
               </View>
-              <Pressable onPress={() => forget(m.id)} accessibilityRole="button">
+              <Pressable onPress={() => forget(m.id)} accessibilityRole="button" hitSlop={8}>
                 <Text style={{ color: confirmId === m.id ? colours.danger : colours.muted, fontWeight: '700', fontSize: 13 }}>
                   {confirmId === m.id ? 'Sure?' : 'Forget'}
                 </Text>
@@ -152,7 +158,7 @@ export default function Me() {
           }
         }}
       />
-      <Button title="Sign out" kind="ghost" onPress={signOut} />
+      <Button title={armed === 'signout' ? 'Sure?' : 'Sign out'} kind="ghost" onPress={() => confirm('signout', signOut)} />
       <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: space.lg }}>Tali HQ by Totality 360. Made in Australia.</Text>
     </Screen>
   );
