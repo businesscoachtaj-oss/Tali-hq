@@ -17,6 +17,7 @@ export default function Me() {
   const [credits, setCredits] = useState<Credits | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [showAll, setShowAll] = useState(false);
+  const [showMemories, setShowMemories] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
@@ -82,6 +83,9 @@ export default function Me() {
         <Button title="See plans" kind="ghost" onPress={() => router.navigate('/plans')} />
       </Card>
 
+      {/* 4 Nov 2026 (Taj): Settings up top, not under the memories list. */}
+      <Button title="Settings" onPress={() => router.navigate('/settings')} />
+
       <View style={{ height: space.md }} />
       <Label>Tali's jobs</Label>
       <Card>
@@ -108,7 +112,10 @@ export default function Me() {
         <Body muted>
           Everything Tali remembers from your chats and journal. It's private to you. Tap Forget on anything you'd rather she didn't keep.
         </Body>
-        {memories.length === 0 ? (
+        {/* 4 Nov 2026 (Taj): collapsed by default so the page isn't 200 rows long. */}
+        {!showMemories ? (
+          <Button title={memories.length ? `Show ${memories.length} memories` : 'Show memories'} kind="ghost" onPress={() => setShowMemories(true)} />
+        ) : memories.length === 0 ? (
           <Text style={{ color: colours.muted, marginTop: space.md }}>Nothing yet. Have a chat and she'll start learning.</Text>
         ) : (
           shown.map((m) => (
@@ -125,12 +132,12 @@ export default function Me() {
             </View>
           ))
         )}
-        {memories.length > 15 ? (
+        {showMemories && memories.length > 15 ? (
           <Button title={showAll ? 'Show fewer' : `Show all ${memories.length}`} kind="ghost" onPress={() => setShowAll(!showAll)} />
         ) : null}
+        {showMemories ? <Button title="Hide memories" kind="ghost" onPress={() => { setShowMemories(false); setShowAll(false); }} /> : null}
       </Card>
 
-      <Button title="Settings" onPress={() => router.navigate('/settings')} />
       <Button
         title="Show me around again"
         kind="ghost"
