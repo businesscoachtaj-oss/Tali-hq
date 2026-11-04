@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { currentConversation, deleteConversation, listConversations, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
@@ -14,7 +14,8 @@ import { pickFiles, type PickedFile } from '@/lib/pickFiles';
 import { tali } from '@/components/ui';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
 
-type Row = Message & { pending?: boolean; failed?: boolean };
+// A failed row keeps its files so "Try again" can resend the same message.
+type Row = Message & { pending?: boolean; failed?: boolean; files?: Attachment[] };
 
 const STARTERS = [
   'Help me plan my week',
@@ -32,6 +33,8 @@ export default function Talk() {
   const [notice, setNotice] = useState('');
   const [pro, setPro] = useState(false);
   const [plan, setPlan] = useState<'free' | 'hq' | 'pro' | null>(null);
+  // 4 Nov 2026: the starter screen waited on nothing, so it flashed before the history arrived.
+  const [loaded, setLoaded] = useState(false);
   // Voice notes (3 Nov 2026): the mic in the composer. Tap to record, tap to stop, the words land in the box.
   const onVoiceText = useCallback((t: string) => setText((cur) => (cur.trim() ? `${cur.trim()} ${t}` : t)), []);
   const voice = useVoiceNote({ onText: onVoiceText, onNotice: setNotice, plan });
@@ -93,30 +96,42 @@ export default function Talk() {
     router.setParams({ text: undefined, title: undefined, url: undefined } as any);
   }, [params.text, params.title, params.url]);
 
+  const loadPlan = useCallback(() => {
+    myCredits().then((c) => { setPro(isPro(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); }).catch(() => {});
+  }, []);
+
   const load = useCallback(async () => {
     try {
       const id = await currentConversation();
       setConversationId(id);
       setRows(await loadMessages(id));
-      myCredits().then((c) => { setPro(isPro(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); }).catch(() => {});
+      loadPlan();
     } catch (e: any) {
       setNotice(e?.message ?? 'Could not load the chat.');
+    } finally {
+      setLoaded(true);
     }
-  }, []);
+  }, [loadPlan]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  async function send(raw?: string) {
+  // 4 Nov 2026: re-check the plan each time Talk comes into view, so an upgrade on Plans shows here straight away.
+  useFocusEffect(useCallback(() => { loadPlan(); }, [loadPlan]));
+
+  // 4 Nov 2026: a failed send puts the words (and files) back in the composer, and the failed bubble
+  // offers "Try again". retryOf is the failed row being resent, so it is replaced rather than doubled.
+  async function send(raw?: string, rawFiles?: Attachment[], retryOf?: string) {
+    const direct = raw !== undefined;
     const body = (raw ?? text).trim();
-    const files = raw ? [] : pending;
+    const files = direct ? rawFiles ?? [] : pending;
     if ((!body && !files.length) || !conversationId || thinking || uploading) return;
     setText('');
     setPending([]);
     setNotice('');
-    const temp: Row = { id: `tmp-${Date.now()}`, role: 'user', content: body, created_at: new Date().toISOString(), pending: true, attachments: files };
-    setRows((r) => [...r, temp]);
+    const temp: Row = { id: `tmp-${Date.now()}`, role: 'user', content: body, created_at: new Date().toISOString(), pending: true, attachments: files, files };
+    setRows((r) => [...r.filter((m) => m.id !== retryOf), temp]);
     setThinking(true);
     const res = await sendMessage(conversationId, body, files);
     setThinking(false);
@@ -129,7 +144,7 @@ export default function Talk() {
       if (res.foodLogged) bits.push(res.foodLogged === 1 ? 'food logged' : `${res.foodLogged} foods logged`);
       if (res.weightLogged) bits.push('weight logged');
       if (res.workoutsLogged) bits.push('workout logged');
-      if (res.planSaved) bits.push('training plan saved');
+      if (res.planSaved) bits.push('programme saved');
       if (res.searched) bits.push(res.searched === 1 ? 'searched the web once' : `searched the web ${res.searched} times`);
       if (res.clientsSaved) bits.push(res.clientsSaved === 1 ? 'client list updated' : `${res.clientsSaved} clients updated`);
       if (res.goalsSaved) bits.push(res.goalsSaved === 1 ? 'goal updated' : `${res.goalsSaved} goals updated`);
@@ -138,6 +153,8 @@ export default function Talk() {
       if (bits.length) setNotice(bits.join(', ').replace(/^./, (c) => c.toUpperCase()) + '.');
     } else {
       setRows((r) => r.map((m) => (m.id === temp.id ? { ...m, pending: false, failed: true } : m)));
+      // Put it all back so nothing typed is lost.
+      setText((cur) => (cur.trim() ? cur : body));
       if (files.length) setPending(files);
       setNotice(res.message);
     }
@@ -218,7 +235,9 @@ export default function Talk() {
           onDeleted={chatDeleted}
         />
 
-        {empty ? (
+        {!loaded ? (
+          <View style={{ flex: 1 }} />
+        ) : empty ? (
           <View style={{ flex: 1, padding: space.lg, justifyContent: 'center', maxWidth: 640, width: '100%', alignSelf: 'center' }}>
             <TaliAvatar pose="wave" size={100} style={{ alignSelf: 'center' }} />
             <Text style={{ fontSize: 18, fontWeight: '700', color: colours.text, textAlign: 'center', marginTop: space.md }}>
@@ -229,7 +248,7 @@ export default function Talk() {
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'center', marginTop: space.lg }}>
               {STARTERS.map((s) => (
-                <Pressable key={s} onPress={() => send(s)} style={{ borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: colours.surface }}>
+                <Pressable key={s} accessibilityRole="button" onPress={() => { setText(s); setTimeout(() => inputRef.current?.focus(), 50); }} style={{ borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: colours.surface }}>
                   <Text style={{ color: colours.text, fontWeight: '600', fontSize: 13 }}>{s}</Text>
                 </Pressable>
               ))}
@@ -241,6 +260,8 @@ export default function Talk() {
             data={rows}
             keyExtractor={(m) => m.id}
             contentContainerStyle={{ padding: space.lg, gap: space.sm, maxWidth: 680, width: '100%', alignSelf: 'center' }}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
             renderItem={({ item }) => {
               const me = item.role === 'user';
@@ -278,7 +299,21 @@ export default function Talk() {
                     </View>
                   ) : null}
                   {item.content ? <Text style={{ color: me ? '#FFFFFF' : colours.text, fontSize: 15, lineHeight: 22 }}>{item.content}</Text> : null}
-                  {item.failed ? <Text style={{ color: '#FFB4A8', fontSize: 12, marginTop: 4 }}>Not sent</Text> : null}
+                  {item.failed ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Try sending again"
+                      hitSlop={8}
+                      disabled={thinking || uploading}
+                      onPress={() => {
+                        // The failed words were put back in the box; clear them only if they are still as they were.
+                        if (text.trim() === (item.content ?? '').trim()) { setText(''); setPending([]); }
+                        void send(item.content ?? '', item.files ?? item.attachments ?? [], item.id);
+                      }}
+                      style={{ marginTop: 4 }}>
+                      <Text style={{ color: '#FFB4A8', fontSize: 12 }}>Not sent. <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }}>Try again</Text></Text>
+                    </Pressable>
+                  ) : null}
                   {VOICE_LIVE && pro && !me && !item.id.startsWith('tmp-') ? <VoiceButton messageId={item.id} onError={setNotice} /> : null}
                 </View>
               );
