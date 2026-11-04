@@ -127,8 +127,8 @@ export default function Talk() {
     const body = (raw ?? text).trim();
     const files = direct ? rawFiles ?? [] : pending;
     if ((!body && !files.length) || !conversationId || thinking || uploading) return;
-    setText('');
-    setPending([]);
+    // A retry leaves the composer alone (the tap handler clears it only if it still holds the failed words).
+    if (!direct) { setText(''); setPending([]); }
     setNotice('');
     const temp: Row = { id: `tmp-${Date.now()}`, role: 'user', content: body, created_at: new Date().toISOString(), pending: true, attachments: files, files };
     setRows((r) => [...r.filter((m) => m.id !== retryOf), temp]);
@@ -154,8 +154,8 @@ export default function Talk() {
     } else {
       setRows((r) => r.map((m) => (m.id === temp.id ? { ...m, pending: false, failed: true } : m)));
       // Put it all back so nothing typed is lost.
-      setText((cur) => (cur.trim() ? cur : body));
-      if (files.length) setPending(files);
+      if (!direct) setText((cur) => (cur.trim() ? cur : body));
+      if (!direct && files.length) setPending(files);
       setNotice(res.message);
     }
   }
