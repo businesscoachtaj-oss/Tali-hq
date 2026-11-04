@@ -3,7 +3,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { anyCalendarToday, followUpsDue, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
+import { anyCalendarToday, followUpsDue, inboundEmails, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type InboundEmail, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
 import { YourDayCard } from '@/components/YourDayCard';
 import { isPaid, isPro } from '@/lib/plan';
 import { HealthCard } from '@/components/HealthCard';
@@ -93,6 +93,8 @@ export default function Today() {
   const [patterns, setPatterns] = useState<PatternsBrief | null>(null);
   const [money, setMoney] = useState<MoneyPicture | null>(null);
   const [lastDecision, setLastDecision] = useState<Decision | null>(null);
+  // 4 Nov 2026 (Taj): new emails (Tali's address, or Gmail/Outlook "needs you") get a nudge on Today.
+  const [newMail, setNewMail] = useState<InboundEmail[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
   const week = useWeekCard(credits);
   const { goals } = useGoalsCard(credits);
@@ -112,6 +114,7 @@ export default function Today() {
       setLife(await lifeSummary().catch(() => null));
       setPatterns(isPro(c) ? await patternsThisMonth().catch(() => null) : null);
       setMoney(isPaid(c) ? await loadMoneyPicture().catch(() => null) : null);
+      setNewMail(isPaid(c) ? (await inboundEmails().catch(() => [])).filter((e) => e.status === 'new' && (e.source === 'tali_inbox' || e.category === 'needs_you')) : []);
       setLastDecision((await loadDecisions(1).catch(() => []))[0] ?? null);
       // Google Calendar, when connected: today's events and free gaps.
       if (isPaid(c)) anyCalendarToday().then((cal) => setCalendar(cal?.connected ? cal : null)).catch(() => setCalendar(null));
@@ -159,6 +162,24 @@ export default function Today() {
         ) : null}
 
         <MeetingNudge credits={credits} calendar={calendar} compact />
+
+        {newMail.length ? (
+          <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">
+            <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.purple }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: colours.text }}>
+                    {newMail.length === 1 ? `Email from ${newMail[0].from_name || newMail[0].from_email || 'someone'}` : `${newMail.length} emails need a look`}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2, lineHeight: 19 }} numberOfLines={2}>
+                    {newMail.length === 1 ? newMail[0].summary || newMail[0].subject || 'Tap to read it.' : newMail.map((e) => e.from_name || e.from_email).filter(Boolean).slice(0, 3).join(', ')}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 20, color: colours.faint }}>{'›'}</Text>
+              </View>
+            </Card>
+          </Pressable>
+        ) : null}
 
         {approvals.length ? (
           <View ref={yesRef} collapsable={false}>
