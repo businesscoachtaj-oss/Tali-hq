@@ -2,17 +2,19 @@ import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useFocusEffect } from 'expo-router';
-import { claimInbox, googleConnection, inboundEmails, microsoftConnection, myCredits, myInbox, setEmailStatus, type GoogleConnection, type InboundEmail, type MicrosoftConnection } from '@/lib/data';
+import { googleConnection, inboundEmails, microsoftConnection, myCredits, myInbox, setEmailStatus, type GoogleConnection, type InboundEmail, type MicrosoftConnection } from '@/lib/data';
 import { friendlyTime } from '@/lib/dates';
 import { isPaid, isPro } from '@/lib/plan';
 import { INBOUND_DOMAIN } from '@/constants/business';
-import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint } from '@/components/ui';
+import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint, goBack } from '@/components/ui';
+import { AliasPicker, useAliasClaim } from '@/components/TaliAddressCard';
 import { colours, radius, space } from '@/constants/theme';
 
 // Email: two sources in one place.
 //  - Gmail, when they have connected Google (Tali HQ and Pro): sorted into Needs you, FYI and Junk,
 //    replies drafted on Today with a "Send from Gmail" button.
-//  - Tali's own address (Pro): enquiries sent to it, summed up with a drafted reply to copy.
+//  - Tali's own address (Pro): enquiries sent to it, summed up with a drafted reply. The reply sends
+//    from their Gmail or Outlook when connected, otherwise from the Tali address (4 Nov 2026).
 type Tab = 'needs_you' | 'fyi' | 'spam';
 
 export default function Inbox() {
@@ -25,7 +27,6 @@ export default function Inbox() {
   const [open, setOpen] = useState<InboundEmail | null>(null);
   const [tab, setTab] = useState<Tab>('needs_you');
   const [showSpam, setShowSpam] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
@@ -57,17 +58,8 @@ export default function Inbox() {
   const gmailOn = !!google?.scopes.includes('gmail') || outlookOn;
   const mailAccount = google?.scopes.includes('gmail') ? google.google_email : microsoft?.ms_email;
   const address = alias && INBOUND_DOMAIN ? `${alias}@${INBOUND_DOMAIN}` : null;
-
-  async function claim() {
-    setBusy(true);
-    setError('');
-    try {
-      setAlias(await claimInbox());
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not set up your address.');
-    }
-    setBusy(false);
-  }
+  // 4 Nov 2026: they pick the word before the @, pre-filled from their business name.
+  const picker = useAliasClaim(pro && paid === true && !alias, setAlias);
 
   async function copy() {
     if (!address) return;
@@ -88,10 +80,10 @@ export default function Inbox() {
 
   if (paid === false) {
     return (
-      <Screen>
-        <BackLink onPress={() => router.navigate('/me')} />
+      <Screen onRefresh={load}>
+        <BackLink onPress={() => goBack('/me')} />
         <Title>Email</Title>
-        <TaliSays pose="wave">On Tali HQ you can connect your Gmail and I'll sort it for you: what needs you, what's just FYI, what's junk. I draft the replies and you tap send. On Pro I get my own address for your enquiries too.</TaliSays>
+        <TaliSays pose="wave">On Tali HQ you can connect your Gmail or Outlook and I'll sort it for you: what needs you, what's just FYI, what's junk. I draft the replies and you tap send. On Pro I get my own address for your enquiries too.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );
@@ -111,7 +103,7 @@ export default function Inbox() {
         {open.summary ? <TaliSays pose="idle">{open.summary}</TaliSays> : null}
         {open.approval_id && open.status !== 'handled' ? (
           <Card style={{ backgroundColor: colours.purpleSoft, borderColor: colours.purpleSoft }}>
-            <Body>{isGmail ? `I drafted a reply. It's waiting on Today with a "Send from ${providerName}" button.` : "I drafted a reply. It's waiting on Today for you to check, copy and send."}</Body>
+            <Body>{isGmail ? `I drafted a reply. It's waiting on Today with a "Send from ${providerName}" button.` : gmailOn ? "I drafted a reply. It's waiting on Today with a Send button." : "I drafted a reply. It's waiting on Today for you to check, copy and send."}</Body>
             <Button title="Go to Today" kind="ghost" onPress={() => router.navigate('/')} />
           </Card>
         ) : null}
@@ -155,11 +147,57 @@ export default function Inbox() {
     </Pressable>
   );
 
+  // Tali's own address: claim it, show it, and the enquiries sent to it.
+  const taliSection = (
+    <>
+      <Label>Tali's own address</Label>
+      {!alias ? (
+        <Card>
+          <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19 }}>Get Tali her own address for enquiries. Put it on your website and she sums up each one and drafts a reply.</Text>
+          <AliasPicker value={picker.pick} onChange={picker.setPick} onSubmit={picker.claim} />
+          <Button title="Get my address" onPress={picker.claim} busy={picker.busy} />
+          <ErrorText>{picker.error}</ErrorText>
+        </Card>
+      ) : address ? (
+        <Card>
+          <Text selectable style={{ fontSize: 18, fontWeight: '800', color: colours.purpleInk }}>{address}</Text>
+          <Button title={copied ? 'Copied' : 'Copy address'} kind="ghost" onPress={copy} />
+          <Text style={{ fontSize: 13, color: colours.muted, marginTop: space.sm, lineHeight: 19 }}>
+            Put it on your website or contact form, or forward enquiries to it.
+            {gmailOn ? ' Replies go out from your connected email when you tap Send on Today.' : ' I draft each reply on Today for you to send, or copy and send yourself.'}
+          </Text>
+        </Card>
+      ) : (
+        <Card>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: colours.purpleInk }}>{alias}@</Text>
+          <Text style={{ fontSize: 14, color: colours.muted, marginTop: space.sm, lineHeight: 20 }}>Your name's saved. Tali's address switches on very soon, and the full address will show here the moment it does.</Text>
+        </Card>
+      )}
+      {alias && !own.length ? <Hint>Nothing yet. Send it a test email and I'll show you what I do with it.</Hint> : null}
+      {alias && own.length ? (
+        <>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.md }}>
+            <Label>{showSpam ? 'Junk' : 'Sent to your address'}</Label>
+            {ownSpam ? (
+              <Pressable onPress={() => setShowSpam(!showSpam)} hitSlop={8}>
+                <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 13 }}>{showSpam ? 'Back' : `Junk (${ownSpam})`}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+          {ownShown.map((e) => <Row key={e.id} e={e} />)}
+        </>
+      ) : null}
+    </>
+  );
+
   return (
-    <Screen>
-      <BackLink onPress={() => router.navigate('/me')} />
+    <Screen onRefresh={load}>
+      <BackLink onPress={() => goBack('/me')} />
       <Title sub={gmailOn ? `${mailAccount}. I sort what comes in and draft replies. Nothing is sent until you tap it on Today.` : 'Connect your Gmail or Outlook and I\'ll sort it for you. On Pro I get my own address for enquiries too.'}>Email</Title>
       <ErrorText>{error}</ErrorText>
+
+      {/* 4 Nov 2026: on Pro with nothing connected, Tali's address comes first and the connect card after. */}
+      {pro && !gmailOn ? taliSection : null}
 
       {gmailOn ? (
         <>
@@ -194,49 +232,22 @@ export default function Inbox() {
           )}
         </>
       ) : (
-        <Card>
-          <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>Connect your Gmail or Outlook</Text>
-          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
-            One sign-in with Google or Microsoft. I only read new mail from the moment you connect, never delete or move anything, and every reply waits for your tap.
-          </Text>
-          <Button title="Connect in Settings" onPress={() => router.navigate('/settings')} />
-        </Card>
+        <>
+          {pro ? <View style={{ height: space.xl }} /> : null}
+          <Card>
+            <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>Connect your Gmail or Outlook</Text>
+            <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
+              One sign-in with Google or Microsoft. I only read new mail from the moment you connect, never delete or move anything, and every reply waits for your tap.
+            </Text>
+            <Button title="Connect in Settings" onPress={() => router.navigate('/settings')} />
+          </Card>
+        </>
       )}
 
-      {pro ? (
+      {pro && gmailOn ? (
         <>
           <View style={{ height: space.xl }} />
-          <Label>Tali's own address</Label>
-          {!alias ? (
-            <>
-              <Hint>Get Tali her own address for enquiries, made from your business name. Put it on your website and she sums up each enquiry and drafts a reply.</Hint>
-              <Button title="Get my address" onPress={claim} busy={busy} />
-            </>
-          ) : address ? (
-            <Card>
-              <Text selectable style={{ fontSize: 18, fontWeight: '800', color: colours.purpleInk }}>{address}</Text>
-              <Button title={copied ? 'Copied' : 'Copy address'} kind="ghost" onPress={copy} />
-              <Text style={{ fontSize: 13, color: colours.muted, marginTop: space.sm, lineHeight: 19 }}>Put it on your website or contact form, or forward enquiries to it.</Text>
-            </Card>
-          ) : (
-            <Card>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: colours.purpleInk }}>{alias}@</Text>
-              <Text style={{ fontSize: 14, color: colours.muted, marginTop: space.sm, lineHeight: 20 }}>Your name's saved. Tali's address switches on very soon, and the full address will show here the moment it does.</Text>
-            </Card>
-          )}
-          {alias && own.length ? (
-            <>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.md }}>
-                <Label>{showSpam ? 'Spam' : 'Sent to your address'}</Label>
-                {ownSpam ? (
-                  <Pressable onPress={() => setShowSpam(!showSpam)} hitSlop={8}>
-                    <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 13 }}>{showSpam ? 'Back' : `Spam (${ownSpam})`}</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-              {ownShown.map((e) => <Row key={e.id} e={e} />)}
-            </>
-          ) : null}
+          {taliSection}
         </>
       ) : null}
     </Screen>

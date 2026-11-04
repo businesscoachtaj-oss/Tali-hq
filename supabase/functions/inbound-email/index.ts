@@ -7,7 +7,8 @@
 // Per email: verify signature -> fetch the full email from Resend -> find the user by alias
 // (Pro only, otherwise ignored) -> one Claude call: short summary, spam check and a draft reply
 // -> save to inbound_emails, put the draft reply on Today as an approval -> push.
-// Tali never replies on her own. The user reads the draft, copies it and sends it themselves.
+// Tali never replies on her own. The user reads the draft on Today and taps Send (tali-send), or
+// copies it and sends it themselves.
 //
 // Secrets: RESEND_API_KEY, RESEND_WEBHOOK_SECRET (whsec_...), INBOUND_DOMAIN (for example
 // tali.totality360.com.au), ANTHROPIC_API_KEY, optional TALI_MODEL.
@@ -127,8 +128,9 @@ async function claude(system: string, user: string) {
   };
 }
 
+// 4 Nov 2026: the push opens the Email screen (data.url, the same shape google-connect uses).
 async function notify(userId: string, title: string, body: string) {
-  await pushUser(admin, userId, { title, body, url: '/' });
+  await pushUser(admin, userId, { title, body, url: '/inbox' });
 }
 
 Deno.serve(async (req) => {
