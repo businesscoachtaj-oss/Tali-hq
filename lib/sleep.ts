@@ -178,7 +178,11 @@ function alignVoice(v: Voice) {
 
 const listeners = new Set<() => void>();
 let tick: ReturnType<typeof setInterval> | null = null;
-let loaded = false;
+// 5 Nov 2026: picks were saved once per phone, so a second account on the same phone opened
+// with the first account's sounds. Prefs are now kept per signed in user.
+let loadedFor: string | null = null;
+const DEFAULT_PREFS = { picks: [{ id: 'noise_brown', level: 0.6 }, { id: 'rain_tin_roof', level: 0.4 }] as Pick[], timerMinutes: 45 as SleepState['timerMinutes'], fade: true, volume: 0.6 };
+const prefsKey = () => (loadedFor ? `${PREFS_KEY}.${loadedFor}` : null);
 
 function emit() {
   for (const l of listeners) l();
@@ -191,15 +195,28 @@ function set(patch: Partial<SleepState>) {
 
 async function savePrefs() {
   try {
-    await AsyncStorage.setItem(PREFS_KEY, JSON.stringify({ picks: state.picks, timerMinutes: state.timerMinutes, fade: state.fade, volume: state.volume }));
+    const key = prefsKey();
+    if (!key) return;
+    await AsyncStorage.setItem(key, JSON.stringify({ picks: state.picks, timerMinutes: state.timerMinutes, fade: state.fade, volume: state.volume }));
   } catch {}
 }
 
-export async function loadPrefs() {
-  if (loaded) return;
-  loaded = true;
+export async function loadPrefs(userId: string | null | undefined) {
+  if (!userId || loadedFor === userId) return;
+  const switching = loadedFor !== null;
+  loadedFor = userId;
+  // A different account on this phone starts from the defaults, not the last account's mix.
+  if (switching && state.status === 'idle') set({ ...DEFAULT_PREFS });
   try {
-    const raw = await AsyncStorage.getItem(PREFS_KEY);
+    let raw = await AsyncStorage.getItem(`${PREFS_KEY}.${userId}`);
+    if (!raw) {
+      // One-time move of the old per-phone prefs to whoever opens Sleep first after the update.
+      raw = await AsyncStorage.getItem(PREFS_KEY);
+      if (raw) {
+        await AsyncStorage.setItem(`${PREFS_KEY}.${userId}`, raw);
+        await AsyncStorage.removeItem(PREFS_KEY);
+      }
+    }
     if (!raw) return;
     const p = JSON.parse(raw);
     const picks = Array.isArray(p.picks) ? p.picks.filter((x: Pick) => SOUNDS.some((s) => s.id === x.id)).slice(0, MAX_PICKS) : state.picks;

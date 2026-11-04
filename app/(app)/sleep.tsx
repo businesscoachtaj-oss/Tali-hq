@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Sky, night } from '@/components/NightSky';
+import { useAuth } from '@/lib/auth';
 import { CATEGORIES, MAX_PICKS, SOUNDS, TIMERS, extend, fadeFactor, loadPrefs, pause, preview, resume, setFade, setLevel, setTimer, setVolume, soundsIn, start, stop, stopPreview, timeLeft, togglePick, useSleep, type CategoryId, type SoundId } from '@/lib/sleep';
 
 // 4 Nov 2026: the sky, stars and palette moved to components/NightSky.tsx so Today can use them too.
@@ -46,8 +47,13 @@ export default function Sleep() {
   const dimTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clock = useMemo(() => new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(' ', ' '), [st.status]);
 
+  const { session } = useAuth();
+  // Sounds, timer and volume are remembered per account (5 Nov 2026), not per phone.
   useEffect(() => {
-    void loadPrefs();
+    void loadPrefs(session?.user.id);
+  }, [session?.user.id]);
+
+  useEffect(() => {
     // A preview is only ever a taste; don't let one carry on after leaving the screen.
     return () => stopPreview();
   }, []);
