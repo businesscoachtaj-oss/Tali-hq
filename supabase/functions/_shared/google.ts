@@ -12,7 +12,7 @@ export const googleReady = () => GOOGLE_CLIENT_ID.length > 0 && GOOGLE_CLIENT_SE
 // What each scope set asks Google for. 'both' is the Tali HQ default; Totality asks for calendar only.
 export const SCOPES = {
   gmail: ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
-  calendar: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar.readonly'],
+  calendar: ['https://www.googleapis.com/auth/calendar.events'],
   identity: ['openid', 'email'],
 };
 
@@ -286,19 +286,27 @@ export async function gmailSend(admin: SupabaseClient, conn: GoogleConnection, m
 }
 
 // ---------- Calendar: busy blocks and event upkeep (Totality) ----------
-// Busy intervals for one local day, from Google's free/busy. Only start and end come back, never titles.
+// Busy intervals for one local day, worked out from the user's own events on the calendar.events
+// scope (no separate read-only calendar scope needed). Only start and end leave this function, never
+// titles. Events marked free, declined or cancelled don't count, the same as Google's free/busy.
 export async function calendarBusy(admin: SupabaseClient, conn: GoogleConnection, dateYmd: string, tz: string): Promise<{ start: string; end: string }[]> {
   const offset = tzOffsetString(tz, new Date(`${dateYmd}T12:00:00Z`));
   const timeMin = `${dateYmd}T00:00:00${offset}`;
   const timeMax = `${dateYmd}T23:59:59${offset}`;
-  const data = await gapi<{ calendars?: Record<string, { busy?: { start: string; end: string }[] }> }>(admin, conn, 'POST', 'https://www.googleapis.com/calendar/v3/freeBusy', {
-    timeMin,
-    timeMax,
-    timeZone: tz,
-    items: [{ id: conn.calendar_id || 'primary' }],
-  });
-  const cal = data.calendars?.[conn.calendar_id || 'primary'] ?? Object.values(data.calendars ?? {})[0];
-  return (cal?.busy ?? []).map((b) => ({ start: b.start, end: b.end }));
+  const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(conn.calendar_id || 'primary')}/events`);
+  url.searchParams.set('timeMin', timeMin);
+  url.searchParams.set('timeMax', timeMax);
+  url.searchParams.set('singleEvents', 'true');
+  url.searchParams.set('maxResults', '100');
+  url.searchParams.set('fields', 'items(status,transparency,start,end,attendees(self,responseStatus))');
+  const data = await gapi<{ items?: any[] }>(admin, conn, 'GET', url.toString());
+  const at = (t: any) => (t?.dateTime ? t.dateTime : t?.date ? `${t.date}T00:00:00${offset}` : null);
+  return (data.items ?? [])
+    .filter((e) => e.status !== 'cancelled' && e.transparency !== 'transparent')
+    .filter((e) => !(e.attendees ?? []).some((a: any) => a.self && a.responseStatus === 'declined'))
+    .map((e) => ({ start: at(e.start), end: at(e.end) }))
+    .filter((b): b is { start: string; end: string } => !!b.start && !!b.end)
+    .map((b) => ({ start: new Date(b.start).toISOString(), end: new Date(b.end).toISOString() }));
 }
 
 export function tzOffsetString(tz: string, at: Date) {
