@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -10,8 +10,7 @@ import { HealthCard } from '@/components/HealthCard';
 import { addDays, today } from '@/lib/dates';
 import { DueList } from '@/components/DueList';
 import { AddReminder } from '@/components/AddReminder';
-import { Body, Button, Card, Label, TaliSays, Title } from '@/components/ui';
-import { TaliAvatar } from '@/components/TaliAvatar';
+import { Body, Card, Label } from '@/components/ui';
 import { DraftCard } from '@/components/DraftCard';
 import { AppTour } from '@/components/AppTour';
 import { TOUR_STEPS, finishTour } from '@/lib/tour';
@@ -19,13 +18,13 @@ import { registerTarget, setTourScroller } from '@/lib/tourTargets';
 import { colours, NO_BOTTOM, space } from '@/constants/theme';
 // The owner's rhythm (3 Nov 2026): shutdown, week, goals, money, meetings, decisions, patterns.
 import { ShutdownCard } from '@/components/ShutdownCard';
+import { todaysShutdown, type Shutdown } from '@/lib/rhythm';
 import { useWeekCard, WeekCardView } from '@/components/WeekCard';
 import { useGoalsCard, GoalsCardView } from '@/components/GoalsCard';
 import { MoneyCard } from '@/components/MoneyCard';
 import { GlanceGrid, FoldList, ChipPicker, type Tile, type Fold } from '@/components/Glance';
 import { loadMoneyPicture, money0, runwayLabel, type MoneyPicture } from '@/lib/money';
 import { decisions as loadDecisions, type Decision } from '@/lib/decisions';
-import { Pressable } from 'react-native';
 import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
@@ -96,6 +95,12 @@ export default function Today() {
   // 4 Nov 2026 (Taj): new emails (Tali's address, or Gmail/Outlook "needs you") get a nudge on Today.
   const [newMail, setNewMail] = useState<InboundEmail[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
+  // 4 Nov 2026: an earlier note opens in full the same way the morning brief does.
+  const [noteOpen, setNoteOpen] = useState<string | null>(null);
+  // 4 Nov 2026: once today's shutdown is done, Today goes into night mode (see TodayHero).
+  const [shutdown, setShutdown] = useState<Shutdown | null>(null);
+  // True once the first load has come back, so empty states don't flash before the data does.
+  const [loaded, setLoaded] = useState(false);
   const week = useWeekCard(credits);
   const { goals } = useGoalsCard(credits);
 
@@ -103,12 +108,14 @@ export default function Today() {
     setLoadError('');
     try {
       const endOfToday = addDays(new Date(new Date().setHours(0, 0, 0, 0)), 1).toISOString();
-      const [b, a, c, r, f] = await Promise.all([recentBriefs(5), pendingApprovals(), myCredits(), openReminders(endOfToday), followUpsDue(today())]);
+      const [b, a, c, r, f, sd] = await Promise.all([recentBriefs(5), pendingApprovals(), myCredits(), openReminders(endOfToday), followUpsDue(today()), todaysShutdown().catch(() => null)]);
       setBriefs(b);
       setApprovals(a);
       setCredits(c);
       setReminders(r);
       setFollowUps(f);
+      setShutdown(sd?.tali_line ? sd : null);
+      setLoaded(true);
       // Health checks are part of Tali HQ and Pro (and the trial).
       setHealth(isPaid(c) ? await myHealth().catch(() => null) : null);
       setLife(await lifeSummary().catch(() => null));
@@ -120,6 +127,7 @@ export default function Today() {
       if (isPaid(c)) anyCalendarToday().then((cal) => setCalendar(cal?.connected ? cal : null)).catch(() => setCalendar(null));
     } catch (e: any) {
       setLoadError(e?.message ?? 'Could not load today.');
+      setLoaded(true);
     }
   }, []);
 
@@ -138,6 +146,8 @@ export default function Today() {
   const morning = briefs.find((b) => b.kind === 'morning');
   const others = briefs.filter((b) => b !== morning && b.kind !== 'journal' && (b.kind as string) !== 'patterns');
   const trial = trialLine(credits);
+  const night = !!shutdown;
+  const tiles = glanceTiles({ credits, money, health, week, goals });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
@@ -151,13 +161,15 @@ export default function Today() {
         <TodayHero
           greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
           sub={trial}
-          hello={helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health })}
-          briefLabel={morning ? (briefOpen ? 'Hide your brief' : 'Read your brief') : null}
+          hello={loaded ? helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health }) : 'Just having a look at your day.'}
+          briefLabel={morning && !night ? (briefOpen ? 'Hide your brief' : 'Read your brief') : null}
           onBrief={() => setBriefOpen((o) => !o)}
+          night={night}
+          nightLine={shutdown?.tali_line}
         />
         </View>
 
-        {morning && briefOpen ? (
+        {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => markBriefRead(morning.id).then(load)} />
         ) : null}
 
@@ -200,9 +212,13 @@ export default function Today() {
         <Label>Due today</Label>
         {reminders.length + followUps.length > 0 ? (
           <DueList reminders={reminders} followUps={followUps} onChange={load} />
-        ) : (
+        ) : loaded ? (
           <Card>
             <Body muted>Nothing due. Add a reminder and I'll nudge you when it's time.</Body>
+          </Card>
+        ) : (
+          <Card>
+            <ActivityIndicator color={colours.purple} />
           </Card>
         )}
         <AddReminder onAdded={load} />
@@ -210,14 +226,31 @@ export default function Today() {
 
         <ShutdownCard />
 
-        <View style={{ height: space.md }} />
-        <View ref={glanceRef} collapsable={false}>
-        <Label>At a glance</Label>
-        <GlanceGrid tiles={glanceTiles({ credits, money, health, week, goals })} />
-        </View>
+        {tiles.length ? (
+          <>
+            <View style={{ height: space.md }} />
+            <View ref={glanceRef} collapsable={false}>
+              <Label>At a glance</Label>
+              <GlanceGrid tiles={tiles} />
+            </View>
+          </>
+        ) : (
+          <View ref={glanceRef} collapsable={false} />
+        )}
 
         {(() => {
-          const folds = moreFolds({ calendar, life, patterns, lastDecision, others, onTick: () => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined), onPatternsRead: load });
+          const folds = moreFolds({
+            calendar,
+            life,
+            patterns,
+            lastDecision,
+            others,
+            noteOpen,
+            onNote: setNoteOpen,
+            onNoteRead: (id) => markBriefRead(id).then(load),
+            onTick: () => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined),
+            onPatternsRead: load,
+          });
           return folds.length ? (
             <>
               <View style={{ height: space.lg }} />
@@ -270,7 +303,10 @@ function helloLine({ morning, reminders, approvals, health }: { morning?: Brief;
   const bits: string[] = [];
   if (reminders) bits.push(`${reminders} thing${reminders === 1 ? '' : 's'} due today`);
   if (approvals) bits.push(`${approvals} draft${approvals === 1 ? '' : 's'} waiting for your yes`);
-  if (health && health.status !== 'green') bits.push('a couple of things worth a look in your business health');
+  if (health && health.status !== 'green' && health.items.length) {
+    const n = health.items.length;
+    bits.push(`${n === 1 ? 'one thing' : `${n} things`} worth a look in your business health`);
+  }
   if (bits.length) return `You've got ${bits.join(', ')}.`;
   if (morning) return "Quiet one today. Nothing due, nothing waiting.";
   return "Nothing on yet. Tell me about your business in Talk and I'll have a brief for you tomorrow.";
@@ -357,7 +393,18 @@ function glanceTiles({ credits, money, health, week, goals }: { credits: Credits
 }
 
 // The quieter things, folded away until you want them.
-function moreFolds({ calendar, life, patterns, lastDecision, others, onTick, onPatternsRead }: { calendar: CalendarToday | null; life: LifeSummary | null; patterns: PatternsBrief | null; lastDecision: Decision | null; others: Brief[]; onTick: () => void; onPatternsRead: () => void }): Fold[] {
+function moreFolds({ calendar, life, patterns, lastDecision, others, noteOpen, onNote, onNoteRead, onTick, onPatternsRead }: {
+  calendar: CalendarToday | null;
+  life: LifeSummary | null;
+  patterns: PatternsBrief | null;
+  lastDecision: Decision | null;
+  others: Brief[];
+  noteOpen: string | null;
+  onNote: (id: string | null) => void;
+  onNoteRead: (id: string) => void;
+  onTick: () => void;
+  onPatternsRead: () => void;
+}): Fold[] {
   const folds: Fold[] = [];
   if (calendar?.connected) {
     const todayWord = new Date().toLocaleDateString('en-AU', { weekday: 'short' });
@@ -374,20 +421,25 @@ function moreFolds({ calendar, life, patterns, lastDecision, others, onTick, onP
       hint: `${others.length} older note${others.length === 1 ? '' : 's'}`,
       body: (
         <>
-          {others.map((b) => (
-            <Card key={b.id}>
-              <Text style={{ fontSize: 12, color: colours.muted }}>{b.for_date}</Text>
-              <Body>{b.content.headline || b.title || b.kind}</Body>
-            </Card>
-          ))}
+          {others.map((b) =>
+            noteOpen === b.id ? (
+              <BriefCard key={b.id} brief={b} open onToggle={() => onNote(null)} onRead={() => onNoteRead(b.id)} />
+            ) : (
+              <Pressable key={b.id} onPress={() => onNote(b.id)} accessibilityRole="button" accessibilityLabel={`Open note from ${b.for_date}`}>
+                <Card>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 12, color: colours.muted }}>{b.for_date}</Text>
+                      <Body>{b.content.headline || b.title || b.kind}</Body>
+                    </View>
+                    <Text style={{ fontSize: 20, color: colours.faint }}>{'›'}</Text>
+                  </View>
+                </Card>
+              </Pressable>
+            ),
+          )}
         </>
       ),
     });
   return folds;
 }
-
-const q = StyleSheet.create({
-  hello: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: -space.sm, marginBottom: space.lg },
-  bubble: { flex: 1, backgroundColor: colours.purpleSoft, borderRadius: 16, borderBottomLeftRadius: 4, padding: space.md },
-  bubbleText: { color: colours.purpleInk, fontSize: 15, lineHeight: 21 },
-});

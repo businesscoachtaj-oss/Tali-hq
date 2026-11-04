@@ -1,7 +1,7 @@
 // End of day shutdown (3 Nov 2026). Free and up, 1 credit. Reached from Today's card and from the
 // evening push (/shutdown). One scrolling screen: how today went, one thing that went well, anything
 // on your mind, tomorrow's three, Done. Tali signs off with one line and the day is closed.
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -21,20 +21,31 @@ export default function ShutdownScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  // 4 Nov 2026: suggestions only fill the three while they're still empty, so coming back from another
+  // tab doesn't wipe what you were typing. A load failure shows a line instead of a blank screen.
+  const [loadError, setLoadError] = useState('');
+  const threeRef = useRef(three);
+  threeRef.current = three;
+
   const load = useCallback(async () => {
+    setLoadError('');
     try {
       const existing = await todaysShutdown();
       if (existing?.tali_line) {
         setDone(existing);
       } else {
-        const lines = await tomorrowSuggestions().catch(() => [] as string[]);
-        setThree([lines[0] ?? '', lines[1] ?? '', lines[2] ?? '']);
+        if (threeRef.current.every((t) => !t.trim())) {
+          const lines = await tomorrowSuggestions().catch(() => [] as string[]);
+          if (threeRef.current.every((t) => !t.trim())) setThree([lines[0] ?? '', lines[1] ?? '', lines[2] ?? '']);
+        }
         if (existing) {
-          setMood(existing.mood);
-          setWentWell(existing.went_well ?? '');
-          setNote(existing.note ?? '');
+          setMood((m) => m ?? existing.mood);
+          setWentWell((w) => w || (existing.went_well ?? ''));
+          setNote((n) => n || (existing.note ?? ''));
         }
       }
+    } catch {
+      setLoadError("Couldn't load today's shutdown. Pull down to try again.");
     } finally {
       setReady(true);
     }
@@ -75,7 +86,7 @@ export default function ShutdownScreen() {
     const m = MOODS.find((x) => x.value === done.mood);
     const lines = done.tomorrow.map((t) => t.text).filter(Boolean);
     return (
-      <Screen>
+      <Screen onRefresh={load}>
         <BackLink onPress={() => router.navigate('/')} label="Today" />
         <Title sub="Day closed. See you in the morning.">G'night, {name} 😊</Title>
         <TaliSays pose={(done.mood ?? 3) >= 4 ? 'celebrate' : 'idle'}>{done.tali_line}</TaliSays>
@@ -98,17 +109,18 @@ export default function ShutdownScreen() {
             <Text style={{ fontSize: 12, color: colours.faint, marginTop: space.sm }}>Set as reminders for 9am tomorrow.</Text>
           </Card>
         ) : null}
-        <Button title="G'night 😊"onPress={() => router.navigate('/')} />
+        <Button title="G'night 😊" onPress={() => router.navigate('/')} />
         <Button title="Change my answers" kind="ghost" onPress={startAgain} />
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen onRefresh={load}>
       <BackLink onPress={() => router.navigate('/')} label="Today" />
       <Title sub="Two minutes, then switch off.">Shut the day down</Title>
       <TaliSays pose="idle">Right, {name}. How did today go? Be honest, I'm not marking it.</TaliSays>
+      <ErrorText>{loadError}</ErrorText>
 
       <Label>How did today go?</Label>
       <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.lg }}>
@@ -171,6 +183,7 @@ export default function ShutdownScreen() {
 
       <ErrorText>{error}</ErrorText>
       <Button title="Done" onPress={finish} busy={busy} />
+      <Text style={{ fontSize: 12, color: colours.faint, textAlign: 'center', marginTop: 6 }}>1 credit.</Text>
       {editing ? <Button title="Keep what I had" kind="ghost" onPress={() => setEditing(false)} /> : null}
     </Screen>
   );

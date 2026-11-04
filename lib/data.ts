@@ -369,6 +369,17 @@ export async function completeReminder(id: string) {
   if (error) throw error;
 }
 
+// 4 Nov 2026: snooze and delete from Today's Due list.
+export async function rescheduleReminder(id: string, dueAt: Date) {
+  const { error } = await supabase.from('reminders').update({ due_at: dueAt.toISOString() }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteReminder(id: string) {
+  const { error } = await supabase.from('reminders').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function addReminder(text: string, dueAt: Date) {
   const { error } = await supabase.from('reminders').insert({ text: text.trim(), due_at: dueAt.toISOString() });
   if (error) throw error;
