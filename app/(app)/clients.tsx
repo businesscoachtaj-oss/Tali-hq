@@ -7,6 +7,15 @@ import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
+// 4 Nov 2026: which quick pick matches a saved follow-up date, so the chip row shows the right one.
+// "None" for no date, the matching label when one lines up with today's picks, otherwise null.
+function followUpPickFor(iso: string | null | undefined): string | null {
+  if (!iso) return 'None';
+  const now = new Date();
+  const hit = FOLLOW_UP_PICKS.find((p) => p.days !== null && isoDate(addDays(now, p.days)) === iso);
+  return hit ? hit.label : null;
+}
+
 const CLIENT_STATUSES = ['active', 'quiet', 'paused', 'past'] as const;
 const LEAD_STATUSES = ['new', 'talking', 'won', 'lost'] as const;
 const STATUS_LABEL: Record<string, string> = {
@@ -25,9 +34,12 @@ export default function Clients() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // ADDED (3 Nov 2026): the person screen's Edit button opens /clients?edit=<id>.
-  const params = useLocalSearchParams<{ edit?: string }>();
+  // ADDED (3 Nov 2026): the person screen's Edit button opens /clients?edit=<id>&from=person.
+  // 4 Nov 2026: remember that it came from Person, so Back and Save return there rather than the list.
+  const params = useLocalSearchParams<{ edit?: string; from?: string }>();
   const editId = Array.isArray(params.edit) ? params.edit[0] : params.edit;
+  const fromParam = Array.isArray(params.from) ? params.from[0] : params.from;
+  const [fromPerson, setFromPerson] = useState(false);
 
   const toDraft = (c: Client): Draft => ({ id: c.id, name: c.name, kind: c.kind, status: c.status, email: c.email ?? '', phone: c.phone ?? '', notes: c.notes, next_follow_up: c.next_follow_up, last_contact_at: c.last_contact_at });
 
@@ -44,8 +56,9 @@ export default function Clients() {
     const c = list.find((x) => x.id === editId);
     if (!c) return;
     setDraft(toDraft(c));
-    router.setParams({ edit: undefined } as any);
-  }, [editId, list]);
+    setFromPerson(fromParam === 'person');
+    router.setParams({ edit: undefined, from: undefined } as any);
+  }, [editId, fromParam, list]);
 
   useFocusEffect(
     useCallback(() => {
@@ -66,6 +79,16 @@ export default function Clients() {
 
   const counts = { client: list.filter((c) => c.kind === 'client').length, lead: list.filter((c) => c.kind === 'lead').length };
 
+  // Leave the editor. If Edit was opened from Person, go back to that person.
+  function closeEditor(personId?: string) {
+    const back = fromPerson && personId;
+    setDraft(null);
+    setConfirmDelete(false);
+    setError('');
+    setFromPerson(false);
+    if (back) router.navigate({ pathname: '/person', params: { id: personId } } as any);
+  }
+
   async function save() {
     if (!draft) return;
     setError('');
@@ -73,7 +96,7 @@ export default function Clients() {
     setBusy(true);
     try {
       await saveClient(draft);
-      setDraft(null);
+      closeEditor(draft.id);
       await load();
     } catch (e: any) {
       setError(e?.message ?? 'Could not save.');
@@ -87,8 +110,9 @@ export default function Clients() {
     setBusy(true);
     try {
       await deleteClient(draft.id);
-      setDraft(null);
-      setConfirmDelete(false);
+      // The person is gone, so the list is the only place to land.
+      setFromPerson(false);
+      closeEditor();
       await load();
     } catch (e: any) {
       setError(e?.message ?? 'Could not delete.');
@@ -101,8 +125,8 @@ export default function Clients() {
     const pickFollow = (days: number | null) => setDraft({ ...draft, next_follow_up: days === null ? null : isoDate(addDays(new Date(), days)) });
     return (
       <Screen>
-        <BackLink onPress={() => { setDraft(null); setConfirmDelete(false); setError(''); }} />
-        <Title sub={draft.id ? 'Tap the name on the list to see what Tali knows about them.' : undefined}>{draft.id ? draft.name || 'Edit' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
+        <BackLink onPress={() => closeEditor(draft.id)} label={fromPerson ? draft.name || 'Back' : 'Back'} />
+        <Title>{draft.id ? draft.name || 'Edit' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
         <ChipPicker options={['client', 'lead'] as const} value={draft.kind} label={(k) => (k === 'lead' ? 'Lead' : 'Client')}
           onChange={(k) => setDraft({ ...draft, kind: k, status: k === 'lead' ? 'new' : 'active' })} />
         <Field label="Name" value={draft.name} onChangeText={(t) => setDraft({ ...draft, name: t })} maxLength={120} />
@@ -111,7 +135,7 @@ export default function Clients() {
         <Label>Follow up</Label>
         <ChipPicker
           options={FOLLOW_UP_PICKS.map((p) => p.label)}
-          value={null}
+          value={followUpPickFor(draft.next_follow_up)}
           onChange={(l) => pickFollow(FOLLOW_UP_PICKS.find((p) => p.label === l)!.days)}
         />
         <Text style={{ color: colours.muted, fontSize: 13, marginTop: -6, marginBottom: space.md }}>
@@ -131,7 +155,7 @@ export default function Clients() {
   }
 
   return (
-    <Screen>
+    <Screen onRefresh={load}>
       <Title sub="Tali reads this before chats and briefs. You can also just tell her: add Mia as a new lead.">Clients</Title>
       <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
         {(['client', 'lead'] as const).map((k) => (
