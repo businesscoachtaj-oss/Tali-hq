@@ -41,7 +41,10 @@ export default function Plans() {
     }, [load]),
   );
 
-  const paying = !!sub?.stripe_customer_id && sub.status !== 'canceled' && sub.plan_id !== 'free';
+  // Paying means a real Stripe subscription. A customer id alone is not enough: checkout creates the
+  // customer before payment, so someone who backs out of checkout would lose the Choose buttons and
+  // land on an empty Manage billing page (5 Nov 2026). Same rule as create-checkout.
+  const paying = !!sub?.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(sub.status);
   const founding = !!sub?.founding_member;
 
   // Phones open Stripe in the browser, the same way Totality does (3 Nov 2026). Stripe sends them
