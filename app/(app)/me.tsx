@@ -118,6 +118,8 @@ export default function Me() {
         <Body muted>
           Everything Tali remembers from your chats and journal. It's private to you. Tap Forget on anything you'd rather she didn't keep.
         </Body>
+        {/* 6 Nov 2026 (Taj): the 3D brain, every memory filed by the part of the brain that holds it. */}
+        <Button title="See Tali's brain" onPress={() => router.navigate('/brain')} />
         {/* 4 Nov 2026 (Taj): collapsed by default so the page isn't 200 rows long. */}
         {!showMemories ? (
           <Button title={memories.length ? `Show ${memories.length} memories` : 'Show memories'} kind="ghost" onPress={() => setShowMemories(true)} />
