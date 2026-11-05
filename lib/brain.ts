@@ -28,6 +28,7 @@ export type BrainItem = {
   held?: number;
   broken?: number;
   old?: string; // a contradiction: the older memory
+  about?: string[]; // subjects, for knowledge from Tali's education
   private?: boolean; // the user marked it private: never shared (6 Nov 2026)
   shared?: boolean; // the nightly scrub has looked at it
 };
@@ -36,20 +37,20 @@ export type BrainLink = { name: string; regions: RegionId[]; count: number };
 export type Brain = { scope: 'main' | 'mine'; total: number; regions: BrainRegion[]; links: BrainLink[] };
 
 // Plain words for each section: what the part does in a person, and what it is in Tali.
-export const REGIONS: Record<RegionId, { name: string; human: string; tali: string; colour: string }> = {
-  frontal: { name: 'Frontal lobe', human: 'Self-control and judgement', tali: 'Rules and preferences she sticks to, and nothing goes out without your yes', colour: '#B9A6FF' },
-  prefrontal: { name: 'Prefrontal cortex', human: 'Planning ahead', tali: 'Plans, ideas, your live goals and open decisions', colour: '#D7B5FF' },
-  parietal: { name: 'Parietal lobe', human: 'The senses', tali: 'What she can feel: your connected Gmail and Calendar', colour: '#7FD1FF' },
-  temporal: { name: 'Temporal lobe', human: 'Language and who is who', tali: 'The people in your world', colour: '#FFC37A' },
-  occipital: { name: 'Occipital lobe', human: 'Vision', tali: 'What she saw in photos and screenshots you sent', colour: '#8EF0C8' },
-  cerebellum: { name: 'Cerebellum', human: 'Fixing mistakes and fine tuning', tali: 'Lessons and mistakes. Lessons that keep holding become proven', colour: '#FF9EC4' },
-  hippocampus: { name: 'Hippocampus', human: 'Memory', tali: 'Facts and events she remembers', colour: '#9FB7FF' },
-  amygdala: { name: 'Amygdala', human: 'Urgency and threat', tali: 'Anything urgent, and contradictions for you to settle', colour: '#FF7A6E' },
-  thalamus: { name: 'Thalamus', human: 'The relay station', tali: 'The router that files every new memory into the right part', colour: '#FFE38A' },
-  hypothalamus: { name: 'Hypothalamus', human: 'The body clock', tali: 'Her schedule: morning brief, health checks, shutdown, night school', colour: '#FFB38A' },
-  basal_ganglia: { name: 'Basal ganglia', human: 'Habits', tali: 'Skills and routines she has learned', colour: '#C6F28A' },
-  brainstem: { name: 'Brainstem', human: 'Keeps you alive', tali: 'The core that keeps every memory searchable', colour: '#A6B0C8' },
-  corpus_callosum: { name: 'Corpus callosum', human: 'Joins the two halves', tali: 'The shared brain every Tali learns from, with no personal details', colour: '#E9E4FF' },
+export const REGIONS: Record<RegionId, { name: string; human: string; tali: string; colour: string; studies: string }> = {
+  frontal: { name: 'Frontal lobe', human: 'Self-control and judgement', tali: 'Rules and preferences she sticks to, and nothing goes out without your yes', colour: '#B9A6FF', studies: 'philosophy, ethics, decision making and logic' },
+  prefrontal: { name: 'Prefrontal cortex', human: 'Planning ahead', tali: 'Plans, ideas, your live goals and open decisions', colour: '#D7B5FF', studies: 'strategy, economics, game theory and the history of big decisions' },
+  parietal: { name: 'Parietal lobe', human: 'The senses', tali: 'What she can feel: your connected Gmail and Calendar', colour: '#7FD1FF', studies: 'maths, physics and astronomy' },
+  temporal: { name: 'Temporal lobe', human: 'Language and who is who', tali: 'The people in your world', colour: '#FFC37A', studies: 'writing, storytelling, language and the psychology of people' },
+  occipital: { name: 'Occipital lobe', human: 'Vision', tali: 'What she saw in photos and screenshots you sent', colour: '#8EF0C8', studies: 'art, design, photography and film' },
+  cerebellum: { name: 'Cerebellum', human: 'Fixing mistakes and fine tuning', tali: 'Lessons and mistakes. Lessons that keep holding become proven', colour: '#FF9EC4', studies: 'sports science, coaching, biomechanics and skill learning' },
+  hippocampus: { name: 'Hippocampus', human: 'Memory', tali: 'Facts and events she remembers', colour: '#9FB7FF', studies: 'history, geography and how memory and learning work' },
+  amygdala: { name: 'Amygdala', human: 'Urgency and threat', tali: 'Anything urgent, and contradictions for you to settle', colour: '#FF7A6E', studies: 'emotions, stress, risk and safety' },
+  thalamus: { name: 'Thalamus', human: 'The relay station', tali: 'The router that files every new memory into the right part', colour: '#FFE38A', studies: 'coding, computing, networks and AI' },
+  hypothalamus: { name: 'Hypothalamus', human: 'The body clock', tali: 'Her schedule: morning brief, health checks, shutdown, night school', colour: '#FFB38A', studies: 'nutrition, sleep, hormones and physiology' },
+  basal_ganglia: { name: 'Basal ganglia', human: 'Habits', tali: 'Skills and routines she has learned', colour: '#C6F28A', studies: 'habits, behaviour change, music and practice' },
+  brainstem: { name: 'Brainstem', human: 'Keeps you alive', tali: 'The core that keeps every memory searchable', colour: '#A6B0C8', studies: 'biology, the body and the basics of medicine' },
+  corpus_callosum: { name: 'Corpus callosum', human: 'Joins the two halves', tali: 'The shared brain every Tali learns from, with no personal details', colour: '#E9E4FF', studies: 'big ideas that connect one field to another' },
 };
 
 export const REGION_ORDER: RegionId[] = [

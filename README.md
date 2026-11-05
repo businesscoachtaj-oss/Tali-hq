@@ -117,3 +117,9 @@ One sweep across every screen. Shared bits in `components/ui.tsx`: `Screen` take
 - On by default: `profiles.share_learning`, switched off in Settings (Your privacy, Help every Tali learn). One memory can be marked Private on the Brain screen (`brain.memories.private`). `shared_at` marks a memory the scrub has looked at.
 - The tour's second last step says how to switch it off. The privacy policy (totality360.com.au/privacy.html, Tali HQ section) says the same.
 - Migration `20261106000042_shared_learning.sql`; deploy `tali-brain-share` with verify_jwt false.
+
+## Tali's education (6 Nov 2026)
+
+- A nightly scheduled task ("Tali: Education") studies real subjects for two parts of the brain a night, oldest first, and saves what it learnt to the shared brain with `brain_learn(region, content, about, ref, confidence)` as kind `knowledge` (user_id null). Subjects per part are in `lib/brain.ts` (REGIONS.studies). `brain_education_progress()` shows how far each part has got.
+- Everyone's Brain screen shows the shared knowledge in each part; it is general knowledge with sources, never personal.
+- Migration `20261106000043_education.sql` (also replaces my_brain so every part counts its own memories).
