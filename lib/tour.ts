@@ -65,6 +65,13 @@ export const TOUR_STEPS: TourStep[] = [
     pose: 'think',
     tab: 4,
   },
+  // ADDED (6 Nov 2026, Taj): sharing is on by default, so the tour says what it means and how to stop it.
+  {
+    title: 'Every Tali learns together',
+    body: "When I learn a lesson that would help any small business, I share it with every Tali, rewritten with no names, clients or numbers. Your facts, people and journal are never shared. To switch it off: Me, Settings, Help every Tali learn. Or mark one memory Private in Tali's brain.",
+    pose: 'think',
+    tab: 4,
+  },
   {
     title: "That's the lot",
     body: "Best first step: tell me about your business in Talk. What you do, who your clients are, what's keeping you busy. Every bit helps.",

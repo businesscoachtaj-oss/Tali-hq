@@ -11,7 +11,7 @@ import { BackLink, Card, ErrorText, Label, Screen, Title, goBack, useConfirm } f
 import { FOUNDER_USER_ID } from '@/constants/business';
 import { colours, radius, space } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
-import { REGIONS, REGION_ORDER, lessonState, myBrain, settleConflict, type Brain, type BrainItem, type RegionId } from '@/lib/brain';
+import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemoryPrivate, settleConflict, type Brain, type BrainItem, type RegionId } from '@/lib/brain';
 import { forgetMemory } from '@/lib/data';
 
 const MEMORY_KINDS = ['fact', 'event', 'person', 'lesson', 'mistake', 'rule', 'preference', 'idea', 'plan', 'seen'];
@@ -59,6 +59,20 @@ export default function BrainScreen() {
       }
       setBusy(null);
     });
+  }
+
+  // 6 Nov 2026: lessons, mistakes and rules can go to the shared brain (rewritten with no personal
+  // details). Private keeps one out.
+  async function togglePrivate(item: BrainItem) {
+    if (!item.id) return;
+    setBusy(item.id + 'p');
+    try {
+      await setMemoryPrivate(item.id, !item.private);
+      await load();
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not change that.');
+    }
+    setBusy(null);
   }
 
   async function settle(item: BrainItem, keep: 'new' | 'old' | 'both') {
@@ -170,13 +184,21 @@ export default function BrainScreen() {
                             {lesson === 'proven' ? <Badge text={it.kind === 'mistake' ? 'Learned' : 'Proven'} colour={colours.good} /> : null}
                             {lesson === 'shaky' ? <Badge text="Not holding up" colour={colours.orange} /> : null}
                             {it.mine === false && it.id ? <Badge text="Shared" colour={colours.faint} /> : null}
+                            {it.mine && it.private ? <Badge text="Private" colour={colours.purpleInk} /> : null}
                           </View>
                           <Text style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 2 }}>{it.text}</Text>
                         </View>
                         {canForget ? (
-                          <Pressable onPress={() => forget(it)} disabled={busy === it.id} accessibilityRole="button" hitSlop={8}>
-                            <Text style={{ color: armed === it.id ? colours.danger : colours.muted, fontWeight: '700', fontSize: 13 }}>{armed === it.id ? 'Sure?' : 'Forget'}</Text>
-                          </Pressable>
+                          <View style={{ alignItems: 'flex-end', gap: space.sm }}>
+                            <Pressable onPress={() => forget(it)} disabled={busy === it.id} accessibilityRole="button" hitSlop={8}>
+                              <Text style={{ color: armed === it.id ? colours.danger : colours.muted, fontWeight: '700', fontSize: 13 }}>{armed === it.id ? 'Sure?' : 'Forget'}</Text>
+                            </Pressable>
+                            {SHAREABLE_KINDS.includes(it.kind) ? (
+                              <Pressable onPress={() => togglePrivate(it)} disabled={!!busy} accessibilityRole="button" hitSlop={8}>
+                                <Text style={{ color: colours.muted, fontWeight: '700', fontSize: 13 }}>{it.private ? 'Unlock' : 'Private'}</Text>
+                              </Pressable>
+                            ) : null}
+                          </View>
                         ) : null}
                       </View>
                     )}

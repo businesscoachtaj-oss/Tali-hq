@@ -28,6 +28,8 @@ export type BrainItem = {
   held?: number;
   broken?: number;
   old?: string; // a contradiction: the older memory
+  private?: boolean; // the user marked it private: never shared (6 Nov 2026)
+  shared?: boolean; // the nightly scrub has looked at it
 };
 export type BrainRegion = { id: RegionId; count: number; items: BrainItem[] };
 export type BrainLink = { name: string; regions: RegionId[]; count: number };
@@ -82,3 +84,23 @@ export function lessonState(i: BrainItem): 'proven' | 'shaky' | null {
   if (broken >= 2 && broken > held) return 'shaky';
   return null;
 }
+
+// A memory marked private is never sent to the shared brain (6 Nov 2026).
+export async function setMemoryPrivate(id: string, isPrivate: boolean): Promise<boolean> {
+  const { data, error } = await supabase.rpc('set_memory_private', { p_id: id, p_private: isPrivate });
+  if (error) throw new Error('Could not change that. Try again.');
+  return data === true;
+}
+
+// Help every Tali learn (anonymously). On by default; switched off in Settings.
+export async function shareLearning(userId: string): Promise<boolean> {
+  const { data } = await supabase.from('profiles').select('share_learning').eq('id', userId).maybeSingle();
+  return (data as any)?.share_learning !== false;
+}
+export async function setShareLearning(userId: string, on: boolean) {
+  const { error } = await supabase.from('profiles').update({ share_learning: on }).eq('id', userId);
+  if (error) throw new Error('Could not save that. Try again.');
+}
+
+// Kinds the nightly scrub can share (once rewritten with no personal details).
+export const SHAREABLE_KINDS = ['lesson', 'mistake', 'rule'];
