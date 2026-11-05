@@ -110,3 +110,10 @@ One sweep across every screen. Shared bits in `components/ui.tsx`: `Screen` take
 - Links: names shared across parts are drawn as lines in the 3D brain.
 - Screen: `app/(app)/brain.tsx` with `components/BrainGlobe.tsx` (Reanimated and gesture handler, no 3D library, so it ships over the air). `my_brain('mine')` for everyone; `my_brain('main')` for the founder: every user's memories count, only his own and the shared brain are readable.
 - Migration `20261106000041_brain_sections.sql` must run before the tali-chat deploy and before the app update.
+
+## The shared brain learns from everyone (6 Nov 2026)
+
+- Lessons, mistakes and rules from every user (night school lessons straight away, chat ones once proven: held 3+ times, never broken) are sent to the shared brain by `tali-brain-share` (hourly at :37 via pg_cron), after Claude rewrites each with no names, clients, places, prices or contact details, or drops it. Facts, people, events, photos, journal and chats are never shared.
+- On by default: `profiles.share_learning`, switched off in Settings (Your privacy, Help every Tali learn). One memory can be marked Private on the Brain screen (`brain.memories.private`). `shared_at` marks a memory the scrub has looked at.
+- The tour's second last step says how to switch it off. The privacy policy (totality360.com.au/privacy.html, Tali HQ section) says the same.
+- Migration `20261106000042_shared_learning.sql`; deploy `tali-brain-share` with verify_jwt false.

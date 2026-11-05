@@ -3,6 +3,7 @@ import { Switch, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { setShareLearning, shareLearning } from '@/lib/brain';
 import { deleteAccount } from '@/lib/data';
 import { enablePush, pushSupported, sendTestPush } from '@/lib/push';
 import { REVIEW_DAYS, REVIEW_TIMES, SHUTDOWN_TIMES, rhythmSettings } from '@/lib/rhythm';
@@ -204,6 +205,8 @@ export default function Settings() {
       )}
 
       <View style={{ height: space.xxl }} />
+      {session ? <ShareLearningCard userId={session.user.id} /> : null}
+      <View style={{ height: space.lg }} />
       <Label>Danger zone</Label>
       <Card>
         <Body muted>
@@ -221,5 +224,41 @@ export default function Settings() {
         )}
       </Card>
     </Screen>
+  );
+}
+
+// Help every Tali learn (6 Nov 2026, Taj): on by default. Saves as soon as it's flipped.
+function ShareLearningCard({ userId }: { userId: string }) {
+  const [on, setOn] = useState<boolean | null>(null);
+  const [note, setNote] = useState('');
+  useEffect(() => {
+    shareLearning(userId).then(setOn).catch(() => setOn(true));
+  }, [userId]);
+  async function flip(v: boolean) {
+    const was = on;
+    setOn(v);
+    setNote('');
+    try {
+      await setShareLearning(userId, v);
+      setNote(v ? 'On. Thanks for helping every Tali learn.' : "Off. Nothing new of yours will be shared.");
+    } catch (e: any) {
+      setOn(was);
+      setNote(e?.message ?? 'Could not save that.');
+    }
+  }
+  return (
+    <>
+      <Label>Your privacy</Label>
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: '700', color: colours.text }}>Help every Tali learn</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>
+            Lessons that would help any small business are shared with every Tali, rewritten with no names, clients or numbers. Your facts, people and journal are never shared.
+          </Text>
+        </View>
+        <Switch value={on ?? true} disabled={on === null} onValueChange={flip} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: '#FFFFFF' } as object)} />
+      </Card>
+      {note ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: 6 }}>{note}</Text> : null}
+    </>
   );
 }
