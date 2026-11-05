@@ -153,6 +153,8 @@ export default function BrainScreen() {
             </View>
             <Text style={{ color: colours.purpleInk, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginTop: space.sm }}>In a person: {REGIONS[region.id].human}</Text>
             <Text style={{ color: colours.text, fontSize: 14, lineHeight: 20, marginTop: 2 }}>In Tali: {REGIONS[region.id].tali}</Text>
+            {/* 6 Nov 2026 (Taj): Tali's education, a part of the brain each night. */}
+            <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 18, marginTop: 4 }}>Studies at night: {REGIONS[region.id].studies}</Text>
 
             {region.items.length === 0 ? (
               <Text style={{ color: colours.muted, marginTop: space.md }}>Nothing here yet.</Text>
@@ -179,7 +181,7 @@ export default function BrainScreen() {
                       <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'flex-start' }}>
                         <View style={{ flex: 1 }}>
                           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <Text style={{ fontSize: 11, color: colours.purpleInk, fontWeight: '700', textTransform: 'uppercase' }}>{it.kind}</Text>
+                            <Text style={{ fontSize: 11, color: colours.purpleInk, fontWeight: '700', textTransform: 'uppercase' }}>{it.kind === 'knowledge' && it.about?.[0] ? it.about[0] : it.kind}</Text>
                             {it.urgent ? <Badge text="Urgent" colour={colours.danger} /> : null}
                             {lesson === 'proven' ? <Badge text={it.kind === 'mistake' ? 'Learned' : 'Proven'} colour={colours.good} /> : null}
                             {lesson === 'shaky' ? <Badge text="Not holding up" colour={colours.orange} /> : null}

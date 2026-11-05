@@ -113,7 +113,13 @@ One sweep across every screen. Shared bits in `components/ui.tsx`: `Screen` take
 
 ## The shared brain learns from everyone (6 Nov 2026)
 
-- Lessons, mistakes and rules from every user (night school lessons straight away, chat ones once proven: held 3+ times, never broken) are sent to the shared brain by `tali-brain-share` (hourly at :37 via pg_cron), after Claude rewrites each with no names, clients, places, prices or contact details, or drops it. Facts, people, events, photos, journal and chats are never shared.
+- Lessons, mistakes and rules from every user (night school lessons straight away, chat ones once proven: held 3+ times, never broken) are sent to the shared brain by `tali-brain-share` (weekly, Sunday 2:47am Sydney, via pg_cron), after Claude rewrites each with no names, clients, places, prices or contact details, or drops it. Facts, people, events, photos, journal and chats are never shared.
 - On by default: `profiles.share_learning`, switched off in Settings (Your privacy, Help every Tali learn). One memory can be marked Private on the Brain screen (`brain.memories.private`). `shared_at` marks a memory the scrub has looked at.
 - The tour's second last step says how to switch it off. The privacy policy (totality360.com.au/privacy.html, Tali HQ section) says the same.
 - Migration `20261106000042_shared_learning.sql`; deploy `tali-brain-share` with verify_jwt false.
+
+## Tali's education (6 Nov 2026)
+
+- A nightly scheduled task ("Tali: Education") studies real subjects for two parts of the brain a night, oldest first, and saves what it learnt to the shared brain with `brain_learn(region, content, about, ref, confidence)` as kind `knowledge` (user_id null). Subjects per part are in `lib/brain.ts` (REGIONS.studies). `brain_education_progress()` shows how far each part has got.
+- Everyone's Brain screen shows the shared knowledge in each part; it is general knowledge with sources, never personal.
+- Migration `20261106000043_education.sql` (also replaces my_brain so every part counts its own memories).

@@ -1,7 +1,7 @@
 // supabase/functions/tali-brain-share/index.ts  (Tali HQ project jbyzblwrywgxilhmfyjt)
 //
-// The shared brain learns from everyone (6 Nov 2026, asked for by Taj). Every hour pg_cron
-// (migration 20261106000042) calls this with the vault key in x-tali-key when there is something to
+// The shared brain learns from everyone (6 Nov 2026, asked for by Taj). Once a week (Sunday 2:47am
+// Sydney, changed from hourly at Taj's request) pg_cron calls this with the vault key in x-tali-key when there is something to
 // look at. It takes lessons, mistakes and rules that qualify (brain_share_candidates: night school
 // lessons, and chat lessons that have proven themselves, from users who have not switched sharing
 // off and memories not marked private), asks Claude to rewrite each as a general lesson any small
@@ -15,7 +15,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const TALI_MODEL = Deno.env.get('TALI_MODEL') ?? 'claude-haiku-5-5';
-const PER_RUN = 40;
+const PER_BATCH = 40; // lessons per model call
+const MAX_BATCHES = 8; // up to 320 a week
 
 const strip = (s: unknown) => String(s ?? '').replace(/\s*[–—]\s*/g, ', ').trim();
 
@@ -83,25 +84,30 @@ Deno.serve(async (req) => {
   if (ok !== true) return new Response('forbidden', { status: 403 });
   if (!ANTHROPIC_KEY) return Response.json({ ok: false, error: 'ANTHROPIC_API_KEY is not set' }, { status: 503 });
 
-  const { data: rows, error } = await admin.rpc('brain_share_candidates', { p_limit: PER_RUN });
-  if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
-  if (!rows?.length) return Response.json({ ok: true, looked: 0, shared: 0 });
-
-  let shared = 0, kept = 0;
+  // Weekly, so work through the whole week's backlog in batches.
+  let looked = 0, shared = 0, kept = 0;
   try {
-    const decisions = await decide(rows);
-    for (let i = 0; i < rows.length; i++) {
-      // A lesson Claude did not answer for is left for the next run (shared_at stays null).
-      if (!decisions.has(i + 1)) continue;
-      const general = decisions.get(i + 1) ?? null;
-      const { data: newId } = await admin.rpc('brain_share_promote', { p_source: rows[i].id, p_general: general });
-      if (newId) shared++;
-      else kept++;
+    for (let batch = 0; batch < MAX_BATCHES; batch++) {
+      const { data: rows, error } = await admin.rpc('brain_share_candidates', { p_limit: PER_BATCH });
+      if (error) throw new Error(error.message);
+      if (!rows?.length) break;
+      const decisions = await decide(rows);
+      let answered = 0;
+      for (let i = 0; i < rows.length; i++) {
+        // A lesson Claude did not answer for is left for next week (shared_at stays null).
+        if (!decisions.has(i + 1)) continue;
+        answered++;
+        const { data: newId } = await admin.rpc('brain_share_promote', { p_source: rows[i].id, p_general: decisions.get(i + 1) ?? null });
+        if (newId) shared++;
+        else kept++;
+      }
+      looked += rows.length;
+      if (!answered) break; // nothing moved, stop rather than ask about the same lessons again
     }
     await admin.from('job_runs').insert({ user_id: null, job: 'brain_share', status: 'ok', summary: `${shared} shared, ${kept} kept private`, finished_at: new Date().toISOString() });
-    return Response.json({ ok: true, looked: rows.length, shared, kept });
+    return Response.json({ ok: true, looked, shared, kept });
   } catch (e) {
     await admin.from('job_runs').insert({ user_id: null, job: 'brain_share', status: 'failed', error: String(e).slice(0, 500), finished_at: new Date().toISOString() });
-    return Response.json({ ok: false, error: String(e).slice(0, 200) }, { status: 500 });
+    return Response.json({ ok: false, error: String(e).slice(0, 200), shared, kept }, { status: 500 });
   }
 });
