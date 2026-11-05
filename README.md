@@ -105,7 +105,7 @@ One sweep across every screen. Shared bits in `components/ui.tsx`: `Screen` take
 ## Tali's brain, in sections (6 Nov 2026)
 
 - Every memory is filed into a part of the brain by a router trigger (`brain.route_memory`): hippocampus (facts, events), temporal (people), cerebellum (lessons, mistakes), frontal (rules, preferences), prefrontal (plans, ideas, plus live goals and open decisions), occipital (`seen`: what was in a photo), amygdala (`urgent`, plus contradictions to settle). Thalamus, hypothalamus, parietal, basal ganglia, brainstem and corpus callosum are counted from what already exists.
-- Contradictions: tali-chat flags a new memory that contradicts an old one (`brain.conflicts`); the user settles it on the Brain screen (keep new, keep old, both true). The one not kept is marked superseded.
+- Contradictions: tali-chat flags a new memory that contradicts an old one (`brain.conflicts`); the user settles it on the Brain screen (keep new, keep old, both true). The one not kept is marked as merged.
 - Lessons that prove themselves: tali-chat reports which lessons, rules and mistakes held (`confirmed_count`) or broke (`broken_count`). 3 holds and no breaks = proven (recalled first), 2+ breaks and more breaks than holds = not holding up (recalled last).
 - Links: names shared across parts are drawn as lines in the 3D brain.
 - Screen: `app/(app)/brain.tsx` with `components/BrainGlobe.tsx` (Reanimated and gesture handler, no 3D library, so it ships over the air). `my_brain('mine')` for everyone; `my_brain('main')` for the founder: every user's memories count, only his own and the shared brain are readable.

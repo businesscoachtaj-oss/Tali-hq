@@ -33,6 +33,10 @@
 -- 1. Section and urgency on every memory --------------------------------------------------------
 alter table brain.memories add column if not exists region text;
 alter table brain.memories add column if not exists urgent boolean not null default false;
+-- New kinds: plan (planning) and seen (vision).
+alter table brain.memories drop constraint if exists memories_kind_check;
+alter table brain.memories add constraint memories_kind_check
+  check (kind = any (array['event', 'fact', 'lesson', 'mistake', 'preference', 'person', 'idea', 'rule', 'plan', 'seen']));
 
 create or replace function brain.region_for(p_kind text)
 returns text language sql immutable set search_path = '' as $$
@@ -70,8 +74,7 @@ create index if not exists memories_region_idx on brain.memories (user_id, regio
 create index if not exists memories_urgent_idx on brain.memories (user_id) where urgent and status = 'active';
 
 -- 2. Saving from chat: new kinds and the urgent flag ---------------------------------------------
--- Kind check lives here (brain.memories has no kind constraint). The old five argument call still
--- works because p_urgent defaults to false.
+-- The old five argument call still works because p_urgent defaults to false.
 drop function if exists public.brain_remember_for(uuid, text, text, text[], text);
 create or replace function public.brain_remember_for(
   p_user_id uuid, p_kind text, p_content text, p_about text[] default '{}'::text[],
@@ -268,7 +271,7 @@ revoke all on function public.brain_flag_conflict_for(uuid, uuid, uuid) from pub
 grant execute on function public.brain_flag_conflict_for(uuid, uuid, uuid) to service_role;
 
 -- The user settles one: 'new' keeps the newer memory, 'old' keeps the older, 'both' means both true.
--- The one not kept is marked superseded (never deleted, so history stays).
+-- The one not kept is marked merged into the one kept (never deleted, so history stays).
 create or replace function public.settle_conflict(p_id uuid, p_keep text)
 returns boolean language plpgsql security definer set search_path = '' as $$
 declare c record;
@@ -277,9 +280,9 @@ begin
   select * into c from brain.conflicts where id = p_id and user_id = (select auth.uid()) and status = 'open' for update;
   if not found then return false; end if;
   if p_keep = 'new' then
-    update brain.memories set status = 'superseded', merged_into = c.new_id where id = c.old_id and user_id = c.user_id;
+    update brain.memories set status = 'merged', merged_into = c.new_id where id = c.old_id and user_id = c.user_id;
   elsif p_keep = 'old' then
-    update brain.memories set status = 'superseded', merged_into = c.old_id where id = c.new_id and user_id = c.user_id;
+    update brain.memories set status = 'merged', merged_into = c.old_id where id = c.new_id and user_id = c.user_id;
   end if;
   update brain.conflicts set status = case p_keep when 'new' then 'kept_new' when 'old' then 'kept_old' else 'both' end,
          settled_at = now() where id = p_id;
