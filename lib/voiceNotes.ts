@@ -6,12 +6,24 @@
 // record with expo-audio. Tali HQ and the trial get 1,800 seconds a month, Pro has no cap.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import * as Updates from 'expo-updates';
 import { supabase } from './supabase';
 
-// Parked, 3 Nov 2026: transcription needs an OpenAI key and Taj is not running other APIs yet. Flip this
-// to true (and deploy tali-transcribe with OPENAI_API_KEY) to switch voice notes on. Off means no mic
-// in Talk, no usage read, no copy about voice notes anywhere.
-export const VOICE_NOTES_ON = false;
+// Switched on 7 Nov 2026 (Taj), now that Tali HQ has an OpenAI key and tali-transcribe is deployed.
+// The web app gets it straight away. The phone apps need the microphone permission, and the store builds
+// of version 1.0.0 (iOS 4, Android 6) were made without it, so the mic only shows on a build of a newer
+// version (its runtime version is no longer 1.0.0). Asking for the mic on a build without the permission
+// would crash on iPhone, so never loosen this check without a new build.
+const NO_MIC_RUNTIMES = ['1.0.0'];
+function phoneBuildHasMic() {
+  try {
+    const rv = Updates.runtimeVersion;
+    return !!rv && !NO_MIC_RUNTIMES.includes(rv);
+  } catch {
+    return false;
+  }
+}
+export const VOICE_NOTES_ON = Platform.OS === 'web' || phoneBuildHasMic();
 export const VOICE_MAX_SECONDS = 180;
 export const VOICE_HQ_MONTHLY_SECONDS = 1800;
 // Show "x minutes left" in the composer once an HQ user is under this.

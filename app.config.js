@@ -27,8 +27,6 @@ module.exports = {
     },
     android: {
       package: 'au.com.totality360.talihq',
-      // No microphone until voice notes ship (image picker adds it for video by default).
-      blockedPermissions: ['android.permission.RECORD_AUDIO'],
       adaptiveIcon: {
         foregroundImage: './assets/android-icon-foreground.png',
         backgroundImage: './assets/android-icon-background.png',
@@ -40,7 +38,7 @@ module.exports = {
       output: 'single',
       favicon: './assets/favicon.png',
     },
-    plugins: ['expo-router', 'expo-notifications', ['expo-audio', { microphonePermission: false, recordAudioAndroid: false }], ['expo-image-picker', { photosPermission: 'Tali uses your photos when you choose one to send her in a chat.', cameraPermission: 'Tali uses the camera when you choose to take a photo to send her.', microphonePermission: false }]],
+    plugins: ['expo-router', 'expo-notifications', ['expo-audio', { microphonePermission: 'Tali uses the microphone when you tap the mic in Talk to send her a voice note.', recordAudioAndroid: true }], ['expo-image-picker', { photosPermission: 'Tali uses your photos when you choose one to send her in a chat.', cameraPermission: 'Tali uses the camera when you choose to take a photo to send her.', microphonePermission: 'Tali uses the microphone when you tap the mic in Talk to send her a voice note.' }]],
     extra: {
       eas: { projectId: '4fcc84f2-1512-4bdb-a354-80b468efd453' },
     },
