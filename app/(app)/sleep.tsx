@@ -4,10 +4,11 @@
 // 3 Nov 2026: night sky look to match the mockup (gradient sky, stars, glowing orb, gradient button), and the
 // player's back button now goes to the sound picker while playing instead of leaving the screen.
 // 4 Nov 2026: Tali's sign off no longer promises a brief (Free has none); the sky lives in NightSky.tsx.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Sky, night } from '@/components/NightSky';
 import { useAuth } from '@/lib/auth';
@@ -163,21 +164,33 @@ export default function Sleep() {
     );
   }
 
+  const timerLabel = st.timerMinutes ? TIMERS.find((t) => t.minutes === st.timerMinutes)?.label : 'until morning';
   return (
     <Sky>
       <SafeAreaView style={s.safe}>
         <ScrollView contentContainerStyle={s.inner}>
-          {/* 6 Nov 2026 (Taj): compact layout so the whole picker fits on one screen. */}
+          {/* 6 Nov 2026 (Taj): a blend of the night sky look with a calmer layout. Tali asleep in the moon up top,
+              round sound type buttons, one list of sounds, a segmented timer. */}
           <View style={s.top}>
             <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button">
               <Text style={s.back}>{'‹'} Me</Text>
             </Pressable>
             <Text style={s.clock}>{clock}</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 8 }}>
-            <Text style={s.h1}>Sleep</Text>
-            <Text style={[s.sub, { flex: 1 }]} numberOfLines={2}>Pick up to {MAX_PICKS} sounds, set a timer, and Tali fades it out.</Text>
+
+          <View style={s.hero} pointerEvents="none">
+            <View style={[s.heroGlow, { width: 172, height: 172, borderRadius: 86 }]} />
+            <View style={s.heroRing} />
+            <LinearGradient colors={['#FFE7AE', '#E8B977']} start={{ x: 0.3, y: 0 }} end={{ x: 0.7, y: 1 }} style={s.heroDisc} />
+            <Ionicons name="moon" size={22} color="#FFE9B8" style={{ position: 'absolute', top: 6, left: '50%', marginLeft: -84 }} />
+            <Text style={[s.zz, { top: 8, left: '50%', marginLeft: 58, fontSize: 18 }]}>Z</Text>
+            <Text style={[s.zz, { top: 28, left: '50%', marginLeft: 72, fontSize: 13 }]}>z</Text>
+            <Image source={require('@/assets/tali/tali_blink.png')} style={s.heroTali} resizeMode="contain" />
           </View>
+          <Text style={s.h1c}>Sleep</Text>
+          <Text style={s.subc} numberOfLines={1}>
+            {names.length ? `${names.join(' + ')} · ${timerLabel}` : `Pick up to ${MAX_PICKS} sounds. Tali fades them out.`}
+          </Text>
 
           {playing ? (
             <Pressable style={s.nowRow} onPress={() => setShowPicker(false)} accessibilityRole="button">
@@ -189,54 +202,53 @@ export default function Sleep() {
             </Pressable>
           ) : null}
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cats} style={{ marginHorizontal: -20, flexGrow: 0 }}>
+          <Text style={[s.label, { marginBottom: 0 }]}>Pick a sound</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow} style={{ marginHorizontal: -20, flexGrow: 0 }}>
             {CATEGORIES.map((c) => {
               const on = c.id === cat;
               const count = st.picks.filter((p) => SOUNDS.find((x) => x.id === p.id)?.category === c.id).length;
               return (
-                <Pressable key={c.id} onPress={() => setCat(c.id)} style={[s.chip, on && s.chipOn]} accessibilityRole="tab" accessibilityState={{ selected: on }}>
-                  <Text style={[s.chipText, on && { color: '#1B1340' }]}>
-                    {c.emoji} {c.name}
-                  </Text>
-                  {count ? (
-                    <View style={[s.badge, on && { backgroundColor: '#1B1340' }]}>
-                      <Text style={[s.badgeText, on && { color: accent }]}>{count}</Text>
-                    </View>
-                  ) : null}
+                <Pressable key={c.id} onPress={() => setCat(c.id)} style={s.catBtn} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={c.name}>
+                  <View style={[s.catCircle, on && s.catCircleOn]}>
+                    <Ionicons name={CAT_ICON[c.id]} size={19} color={on ? '#1B1340' : ink} />
+                    {count ? (
+                      <View style={s.badge}>
+                        <Text style={s.badgeText}>{count}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={[s.catName, on && { color: ink }]}>{c.name}</Text>
                 </Pressable>
               );
             })}
           </ScrollView>
-          <View style={s.grid}>
-            {soundsIn(cat).map((snd) => {
+
+          <View style={s.list}>
+            {soundsIn(cat).map((snd, i) => {
               const on = st.picks.some((p) => p.id === snd.id);
               const full = !on && st.picks.length >= MAX_PICKS;
+              const hearing = st.previewId === snd.id;
               return (
-                <Pressable key={snd.id} onPress={() => togglePick(snd.id)} style={[s.tile, on && s.tileOn, full && { opacity: 0.55 }]} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
-                  {on ? <LinearGradient colors={['rgba(185,166,255,0.28)', 'rgba(127,209,255,0.18)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 17 }]} /> : null}
-                  <Text style={{ fontSize: 18 }}>{snd.emoji}</Text>
-                  <Text style={s.tileName} numberOfLines={1}>{snd.name}</Text>
-                  <Text style={s.tileSub} numberOfLines={1}>{snd.sub}</Text>
-                  {on ? (
-                    <View style={s.chk}>
-                      <Text style={{ color: '#1B1340', fontWeight: '900', fontSize: 12 }}>✓</Text>
-                    </View>
-                  ) : null}
-                  <Pressable
-                    onPress={() => void preview(snd.id)}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel={st.previewId === snd.id ? `Stop hearing ${snd.name}` : `Hear ${snd.name}`}
-                    style={[s.hear, st.previewId === snd.id && s.hearOn]}>
-                    <Text style={[s.hearText, st.previewId === snd.id && { color: '#1B1340' }]}>{st.previewId === snd.id ? '■' : '▶'}</Text>
+                <Pressable key={snd.id} onPress={() => togglePick(snd.id)} style={[s.item, i > 0 && s.itemLine, full && { opacity: 0.5 }]} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.itemName} numberOfLines={1}>{snd.name}</Text>
+                    <Text style={s.itemSub} numberOfLines={1}>{snd.sub}</Text>
+                  </View>
+                  <Pressable onPress={() => void preview(snd.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={hearing ? `Stop hearing ${snd.name}` : `Hear ${snd.name}`} style={[s.hear, { position: 'relative', top: 0, right: 0 }, hearing && s.hearOn]}>
+                    <Ionicons name={hearing ? 'stop' : 'play'} size={12} color={hearing ? '#1B1340' : ink} />
                   </Pressable>
+                  {on ? (
+                    <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.radio}>
+                      <Ionicons name="checkmark" size={15} color="#1B1340" />
+                    </LinearGradient>
+                  ) : (
+                    <View style={[s.radio, s.radioOff]} />
+                  )}
                 </Pressable>
               );
             })}
           </View>
-          <Text style={s.picked} numberOfLines={1}>
-            {st.picks.length ? `Picked: ${names.join(' + ')}` : 'Tap a sound to pick it, ▶ to hear five seconds'}
-          </Text>
+
           {st.picks.length === 2 ? (
             <View style={s.mixBox}>
               <Text style={s.mixTitle}>Mix</Text>
@@ -252,61 +264,46 @@ export default function Sleep() {
             </View>
           ) : null}
 
-          <View style={[s.top, { marginTop: 16, marginBottom: 8 }]}>
-            <Text style={[s.label, { marginTop: 0, marginBottom: 0 }]}>Timer</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, opacity: st.timerMinutes ? 1 : 0.5 }}>
-              <Text style={s.rowSub}>Fade out the last 5 min</Text>
-              <Switch value={st.fade && !!st.timerMinutes} onValueChange={setFade} disabled={!st.timerMinutes} trackColor={{ true: accent, false: 'rgba(255,255,255,0.2)' }} thumbColor="#fff" />
-            </View>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cats} style={{ marginHorizontal: -20, flexGrow: 0 }}>
+          <Text style={s.label}>How long</Text>
+          <View style={s.seg}>
             {TIMERS.map((t) => {
               const on = st.timerMinutes === t.minutes;
               return (
-                <Pressable key={t.label} onPress={() => setTimer(t.minutes)} style={[s.chip, on && s.chipOn]}>
-                  <Text style={[s.chipText, on && { color: '#1B1340' }]}>{t.label}</Text>
+                <Pressable key={t.label} onPress={() => setTimer(t.minutes)} style={[s.segItem, on && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={t.label}>
+                  {t.minutes === null ? (
+                    <Ionicons name="infinite" size={17} color={on ? '#1B1340' : muted} />
+                  ) : (
+                    <Text style={[s.segText, on && { color: '#1B1340' }]}>{t.minutes === 60 ? '1 hr' : String(t.minutes)}</Text>
+                  )}
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
 
           <Pressable style={[s.cta, !st.picks.length && { opacity: 0.5 }]} disabled={!st.picks.length} onPress={() => void start()} accessibilityRole="button">
-            <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[StyleSheet.absoluteFill, { borderRadius: 16 }]} />
-            <Text style={s.ctaText}>
-              {playing ? '▶  Restart' : '▶  Start'}
-              {st.timerMinutes ? `, ${TIMERS.find((t) => t.minutes === st.timerMinutes)?.label.replace(' min', ' minutes')}` : ''}
-            </Text>
+            <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[StyleSheet.absoluteFill, { borderRadius: 18 }]} />
+            <Text style={s.ctaText}>{playing ? 'Restart' : 'Start'}</Text>
           </Pressable>
-          <Text style={s.ghost}>{Platform.OS === 'web' ? 'Plays while this tab is open. No credits.' : 'Keeps playing with the screen off. No credits.'}</Text>
-
-          {/* 6 Nov 2026 (Taj): the space under Start. A glowing moon with Tali dozing on a cloud. */}
-          <View style={s.scene} pointerEvents="none">
-            <View style={[s.moonGlow, { width: 220, height: 220, top: 0 }]} />
-            <View style={[s.moonGlow, { width: 170, height: 170, top: 25 }]} />
-            <View style={s.moon}>
-              <View style={[s.crater, { width: 22, height: 22, left: 30, top: 34 }]} />
-              <View style={[s.crater, { width: 14, height: 14, left: 76, top: 24 }]} />
-              <View style={[s.crater, { width: 30, height: 30, left: 62, top: 66 }]} />
-            </View>
-            <View style={s.cloudWrap}>
-              <View style={[s.puffBack, { width: 80, height: 50, left: 8, top: 66 }]} />
-              <View style={[s.puffBack, { width: 80, height: 50, left: 92, top: 62 }]} />
-              <Image source={require('@/assets/tali/tali_blink.png')} style={s.taliBody} resizeMode="contain" />
-              <View style={[s.puff, { width: 78, height: 54, left: 0, top: 84 }]} />
-              <View style={[s.puff, { width: 84, height: 62, left: 48, top: 74 }]} />
-              <View style={[s.puff, { width: 76, height: 52, left: 104, top: 86 }]} />
-              <View style={[s.puff, { width: 180, height: 34, left: 0, top: 108, borderRadius: 17 }]} />
-            </View>
-            <Text style={[s.zz, { left: '18%', top: 70, fontSize: 13 }]}>z</Text>
-            <Text style={[s.zz, { left: '14%', top: 50, fontSize: 17 }]}>z</Text>
-            <Text style={[s.zz, { left: '9%', top: 26, fontSize: 22 }]}>Z</Text>
-            <Text style={s.sceneText}>Tali's dozing off too. Sweet dreams.</Text>
+          <View style={s.fadeRow}>
+            <Text style={s.ghostL}>{st.timerMinutes ? 'Gets quieter for the last 5 minutes' : 'Plays until you stop it'}</Text>
+            {st.timerMinutes ? <Switch value={st.fade} onValueChange={setFade} trackColor={{ true: accent, false: 'rgba(255,255,255,0.2)' }} thumbColor="#fff" style={{ transform: [{ scale: 0.8 }] }} /> : null}
           </View>
+          <Text style={s.ghost}>{Platform.OS === 'web' ? 'Plays while this tab is open. No credits.' : 'Keeps playing with the screen off. No credits.'}</Text>
         </ScrollView>
       </SafeAreaView>
     </Sky>
   );
 }
+
+const CAT_ICON: Record<CategoryId, ComponentProps<typeof Ionicons>['name']> = {
+  noise: 'pulse-outline',
+  rain: 'rainy-outline',
+  wind: 'cloudy-outline',
+  water: 'water-outline',
+  fire: 'flame-outline',
+  night: 'moon-outline',
+  hum: 'radio-outline',
+};
 
 const s = StyleSheet.create({
   safe: { flex: 1 },
@@ -316,13 +313,13 @@ const s = StyleSheet.create({
   clock: { fontSize: 13, color: faint, fontVariant: ['tabular-nums'] },
   h1: { fontSize: 26, fontWeight: '800', color: ink },
   sub: { color: muted, fontSize: 13, lineHeight: 18 },
-  label: { fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', color: faint, fontWeight: '800', marginTop: 18, marginBottom: 8 },
+  label: { fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: faint, fontWeight: '800', marginTop: 14, marginBottom: 8 },
   nowRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(185,166,255,0.5)', borderRadius: 16, padding: 14 },
   nowTitle: { color: ink, fontSize: 14, fontWeight: '800' },
   nowSub: { color: muted, fontSize: 12, marginTop: 2 },
   nowArrow: { color: accent, fontSize: 24, fontWeight: '800' },
   cats: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingBottom: 10, paddingTop: 14 },
-  badge: { marginLeft: 6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: '#1B1340', fontSize: 11, fontWeight: '800' },
   picked: { color: muted, fontSize: 12, marginTop: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -343,9 +340,9 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 16, padding: 14, marginTop: 12 },
   rowTitle: { color: ink, fontSize: 14, fontWeight: '700' },
   rowSub: { color: muted, fontSize: 12, marginTop: 2 },
-  cta: { marginTop: 16, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: accent2, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 18, elevation: 6 },
+  cta: { marginTop: 14, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: accent2, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 18, elevation: 6 },
   ctaText: { color: '#141033', fontWeight: '800', fontSize: 16 },
-  ghost: { textAlign: 'center', color: muted, fontSize: 12, marginTop: 10 },
+  ghost: { textAlign: 'center', color: faint, fontSize: 11, marginTop: 2 },
   orbWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 26, height: 310 },
   ring1: { position: 'absolute', width: 266, height: 266, borderRadius: 133, borderWidth: 1, borderColor: 'rgba(185,166,255,0.25)' },
   ring2: { position: 'absolute', width: 310, height: 310, borderRadius: 155, borderWidth: 1, borderColor: 'rgba(127,209,255,0.14)' },
@@ -375,16 +372,32 @@ const s = StyleSheet.create({
   bubble: { backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: line, borderRadius: 14, padding: 10, maxWidth: 220 },
   bubbleText: { color: ink, fontSize: 12, lineHeight: 16 },
   dimWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scene: { flexGrow: 1, minHeight: 270, alignItems: 'center', justifyContent: 'flex-end', marginTop: 24 },
-  moonGlow: { position: 'absolute', borderRadius: 200, backgroundColor: 'rgba(255,233,184,0.06)' },
-  moon: { position: 'absolute', top: 50, width: 120, height: 120, borderRadius: 60, backgroundColor: '#FFF1C9', overflow: 'hidden', shadowColor: '#FFE9B8', shadowOpacity: 0.7, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } },
-  crater: { position: 'absolute', borderRadius: 20, backgroundColor: 'rgba(214,190,130,0.35)' },
-  cloudWrap: { position: 'absolute', top: 66, left: '50%', marginLeft: -170, width: 180, height: 142 },
-  puff: { position: 'absolute', borderRadius: 40, backgroundColor: '#C9C2EC' },
-  puffBack: { position: 'absolute', borderRadius: 40, backgroundColor: '#8F87C2' },
-  taliBody: { position: 'absolute', left: 46, top: 0, width: 88, height: 132 },
   zz: { position: 'absolute', color: 'rgba(238,233,255,0.6)', fontWeight: '800' },
-  sceneText: { color: muted, fontSize: 13, marginBottom: 8 },
+  hero: { height: 160, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  heroGlow: { position: 'absolute', backgroundColor: 'rgba(255,233,184,0.16)', shadowColor: '#FFE9B8', shadowOpacity: 0.9, shadowRadius: 46, shadowOffset: { width: 0, height: 0 } },
+  heroRing: { position: 'absolute', width: 150, height: 150, borderRadius: 75, borderWidth: 1, borderColor: 'rgba(255,233,184,0.45)' },
+  heroDisc: { position: 'absolute', width: 132, height: 132, borderRadius: 66 },
+  heroTali: { width: 88, height: 132, marginTop: 4 },
+  h1c: { fontSize: 26, fontWeight: '800', color: ink, textAlign: 'center', marginTop: 2 },
+  subc: { color: muted, fontSize: 13, textAlign: 'center', marginTop: 2 },
+  catRow: { flexDirection: 'row', gap: 5, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6 },
+  catBtn: { alignItems: 'center', width: 46 },
+  catCircle: { width: 42, height: 42, borderRadius: 21, backgroundColor: glass, borderWidth: 1, borderColor: line, alignItems: 'center', justifyContent: 'center' },
+  catCircleOn: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF', shadowColor: accent, shadowOpacity: 0.6, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 6 },
+  catName: { color: muted, fontSize: 11, fontWeight: '700', marginTop: 5 },
+  list: { marginTop: 10, backgroundColor: 'rgba(255,255,255,0.09)', borderWidth: 1, borderColor: line, borderRadius: 18, paddingHorizontal: 14, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  itemLine: { borderTopWidth: 1, borderTopColor: line },
+  itemName: { color: ink, fontSize: 14, fontWeight: '800' },
+  itemSub: { color: muted, fontSize: 12, marginTop: 1 },
+  radio: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  radioOff: { borderWidth: 1.5, borderColor: 'rgba(238,233,255,0.35)' },
+  seg: { flexDirection: 'row', backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 999, padding: 4 },
+  segItem: { flex: 1, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  segOn: { backgroundColor: '#FFFFFF' },
+  segText: { color: muted, fontSize: 13, fontWeight: '800' },
+  fadeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 6, minHeight: 30 },
+  ghostL: { color: muted, fontSize: 12 },
   dimTime: { color: 'rgba(238,233,255,0.35)', fontSize: 40, fontWeight: '700', fontVariant: ['tabular-nums'] },
   dimSub: { color: 'rgba(238,233,255,0.22)', fontSize: 12, marginTop: 6 },
 });
