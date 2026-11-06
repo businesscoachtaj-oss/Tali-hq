@@ -19,6 +19,7 @@ import {
 import { addDays, friendlyDate, isoDate, today } from '@/lib/dates';
 import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, goBack } from '@/components/ui';
 import { ThemeHero, THEMES } from '@/components/PageTheme';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
@@ -106,8 +107,8 @@ export default function Life() {
       : "Tell me what you've eaten and I'll add it up.";
 
   return (
-    <Screen bg={THEMES.life.bg}>
-      <ThemeHero theme="life" title="Food and training" sub="Logged by chatting with Tali. Tell her what you ate, what you weigh or that you trained." onBack={() => goBack('/')} />
+    <Screen skin="gym">
+      <SkinHeader id="gym" title="Food and training" sub="Logged by chatting with Tali. Tell her what you ate, what you weigh or that you trained." onBack={() => goBack('/')} />
       <ErrorText>{error}</ErrorText>
 
       {/* One Tali for the page (3 Nov 2026, Taj: three Talis was a lot). Sections below use plain hints. */}

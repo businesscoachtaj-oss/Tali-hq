@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
+import { CardDecor, SKINS, SkinBackdrop, SkinProvider, useSkin, type SkinId } from '@/components/PageSkin';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -26,9 +27,10 @@ export const tali = {
 };
 
 // 4 Nov 2026: optional pull to refresh (pass the screen's load) so every list screen can refresh, not just Today.
-export function Screen({ children, scroll = true, onRefresh, bg }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string }>) {
+export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
+  if (skin) bg = SKINS[skin].bg;
   const [refreshing, setRefreshing] = useState(false);
-  const body = <View style={styles.inner}>{children}</View>;
+  const body = <SkinProvider id={skin}><View style={styles.inner}>{skin ? <SkinBackdrop id={skin} /> : null}{children}</View></SkinProvider>;
   const refresh = onRefresh
     ? (
         <RefreshControl
@@ -83,7 +85,8 @@ export function Title({ children, sub }: { children: ReactNode; sub?: ReactNode 
 }
 
 export function Card({ children, style }: PropsWithChildren<{ style?: ViewStyle }>) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  const skin = useSkin();
+  return <View style={[styles.card, skin?.card, style]}>{skin ? <CardDecor skin={skin} /> : null}{children}</View>;
 }
 
 export function Body({ children, muted }: PropsWithChildren<{ muted?: boolean }>) {
@@ -91,7 +94,8 @@ export function Body({ children, muted }: PropsWithChildren<{ muted?: boolean }>
 }
 
 export function Label({ children }: PropsWithChildren) {
-  return <Text style={styles.label}>{children}</Text>;
+  const skin = useSkin();
+  return <Text style={[styles.label, skin ? { color: skin.label } : null]}>{children}</Text>;
 }
 
 export function Field(props: TextInputProps & { label?: string }) {

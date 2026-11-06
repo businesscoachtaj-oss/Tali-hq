@@ -8,6 +8,7 @@ import { isPaid, isPro } from '@/lib/plan';
 import { INBOUND_DOMAIN } from '@/constants/business';
 import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint, goBack } from '@/components/ui';
 import { AliasPicker, useAliasClaim } from '@/components/TaliAddressCard';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 // Email: two sources in one place.
@@ -80,9 +81,8 @@ export default function Inbox() {
 
   if (paid === false) {
     return (
-      <Screen onRefresh={load}>
-        <BackLink onPress={() => goBack('/me')} />
-        <Title>Email</Title>
+      <Screen skin="airmail" onRefresh={load}>
+        <SkinHeader id="airmail" title="Email" onBack={() => goBack('/me')} backLabel="Back" />
         <TaliSays pose="wave">On Tali HQ you can connect your Gmail or Outlook and I'll sort it for you: what needs you, what's just FYI, what's junk. I draft the replies and you tap send. On Pro I get my own address for your enquiries too.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
@@ -93,7 +93,7 @@ export default function Inbox() {
     const isGmail = open.source === 'gmail' || open.source === 'outlook';
     const providerName = open.source === 'outlook' ? 'Outlook' : 'Gmail';
     return (
-      <Screen>
+      <Screen skin="airmail">
         <BackLink onPress={() => setOpen(null)} label="Email" />
         <Text style={{ fontSize: 12, color: colours.muted }}>
           {friendlyTime(open.received_at)}
@@ -191,9 +191,8 @@ export default function Inbox() {
   );
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => goBack('/me')} />
-      <Title sub={gmailOn ? `${mailAccount}. I sort what comes in and draft replies. Nothing is sent until you tap it on Today.` : 'Connect your Gmail or Outlook and I\'ll sort it for you. On Pro I get my own address for enquiries too.'}>Email</Title>
+    <Screen skin="airmail" onRefresh={load}>
+      <SkinHeader id="airmail" title="Email" sub={gmailOn ? `${mailAccount}. I sort what comes in and draft replies. Nothing is sent until you tap it on Today.` : 'Connect your Gmail or Outlook and I\'ll sort it for you. On Pro I get my own address for enquiries too.'} onBack={() => goBack('/me')} backLabel="Back" />
       <ErrorText>{error}</ErrorText>
 
       {/* 4 Nov 2026: on Pro with nothing connected, Tali's address comes first and the connect card after. */}

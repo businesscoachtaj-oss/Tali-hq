@@ -101,3 +101,13 @@ export function BusButton({ title, onPress, disabled, outline }: { title: string
     </Pressable>
   );
 }
+
+// 6 Nov 2026 (Taj): everything on the board is written in chalk, no paper.
+export function ChalkBox({ children, style }: PropsWithChildren<{ style?: ViewStyle }>) {
+  return (
+    <View style={[{ borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(244,241,232,0.38)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 10, backgroundColor: 'rgba(244,241,232,0.04)' }, style]}>
+      {children}
+    </View>
+  );
+}
+export const chalkStyle = { color: school.chalk, textShadowColor: 'rgba(244,241,232,0.35)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 3 } as const;

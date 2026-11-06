@@ -7,7 +7,7 @@ import { isPro } from '@/lib/plan';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint, goBack } from '@/components/ui';
 import { ThemeHero, THEMES } from '@/components/PageTheme';
-import { BusButton, ChalkChip, ChalkDust, ChalkHeader, ChalkLabel, Paper, Sticky, school } from '@/components/SchoolTheme';
+import { BusButton, ChalkBox, ChalkChip, ChalkDust, ChalkHeader, ChalkLabel, chalkStyle, school } from '@/components/SchoolTheme';
 import { colours, radius, space } from '@/constants/theme';
 
 const IDEAS = ['Instagram for my business', 'Getting more Google reviews', 'Pricing my services', 'Keeping clients longer', 'Small business tax basics'];
@@ -121,24 +121,23 @@ export default function NightSchoolScreen() {
       <ChalkDust />
       <ChalkHeader title="Night school" sub="Pick up to three things for Tali to study. Late at night she researches one, saves what she learns, and her notes land here." onBack={() => goBack('/me')} backLabel="Me" />
 
-      <Paper lines={2}>
+      <ChalkBox>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: school.ink }}>{ns.enabled ? 'Class is on' : 'Class is off'}</Text>
+          <Text style={[chalkStyle, { fontSize: 18, fontWeight: '800', fontStyle: 'italic' }]}>{ns.enabled ? 'Class is on' : 'Class is off'}</Text>
           <Switch value={ns.enabled} onValueChange={(v) => setNs({ ...ns, enabled: v })} trackColor={{ true: '#2F8F5B', false: '#C9C3B5' }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
         </View>
-        <Text style={{ fontSize: 13, color: '#5A6478', marginTop: 4 }}>{ns.nights === 'every' ? 'Every night' : 'Monday, Wednesday and Friday nights'}</Text>
-      </Paper>
+        <Text style={{ fontSize: 13, color: school.chalkSoft, marginTop: 4 }}>{ns.nights === 'every' ? 'Every night' : 'Monday, Wednesday and Friday nights'}</Text>
+      </ChalkBox>
 
       <ChalkLabel right={<Text style={{ color: school.chalkFaint, fontSize: 12 }}>{ns.topics.length} of 3</Text>}>Her subjects</ChalkLabel>
       {ns.topics.map((t, i) => (
-        <Sticky key={t} i={i}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Text style={{ flex: 1, fontSize: 16, color: '#3A2F12', fontWeight: '700' }}>{t}</Text>
-            <Pressable onPress={() => setNs({ ...ns, topics: ns.topics.filter((_, j) => j !== i) })} hitSlop={8}>
-              <Text style={{ color: '#9A3324', fontWeight: '800', fontSize: 13 }}>Rub out</Text>
-            </Pressable>
-          </View>
-        </Sticky>
+        <View key={t} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(244,241,232,0.14)' }}>
+          <Text style={[chalkStyle, { fontSize: 20, fontWeight: '800', fontStyle: 'italic', width: 24 }]}>{i + 1}.</Text>
+          <Text style={[chalkStyle, { flex: 1, fontSize: 17, fontWeight: '700' }]}>{t}</Text>
+          <Pressable onPress={() => setNs({ ...ns, topics: ns.topics.filter((_, j) => j !== i) })} hitSlop={8}>
+            <Text style={{ color: '#F2A7A0', fontWeight: '800', fontSize: 13 }}>Rub out</Text>
+          </Pressable>
+        </View>
       ))}
       {ns.topics.length < 3 ? (
         <>
@@ -167,17 +166,17 @@ export default function NightSchoolScreen() {
 
       <ChalkLabel>Her notes</ChalkLabel>
       {notes.length === 0 ? (
-        <Paper lines={2}><Text style={{ color: '#5A6478', fontSize: 14, fontStyle: 'italic' }}>{ns.topics.length ? 'Her first notes show up the morning after her first class.' : 'Add a subject and her notes land here.'}</Text></Paper>
+        <ChalkBox><Text style={{ color: school.chalkSoft, fontSize: 14, fontStyle: 'italic' }}>{ns.topics.length ? 'Her first notes show up the morning after her first class.' : 'Add a subject and her notes land here.'}</Text></ChalkBox>
       ) : (
         notes.map((n) => (
           <Pressable key={n.id} onPress={() => { setOpen(n); if (!n.read_at) markNightNoteRead(n.id).then(load); }}>
-            <Paper lines={3}>
+            <ChalkBox>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ flex: 1, fontSize: 11, color: '#6B7487', fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' }}>{n.topic} · {friendlyDate(n.for_date)}</Text>
+                <Text style={{ flex: 1, fontSize: 11, color: school.chalkFaint, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' }}>{n.topic} · {friendlyDate(n.for_date)}</Text>
                 {!n.read_at ? <Text style={{ fontSize: 10, fontWeight: '900', color: '#FFFFFF', backgroundColor: '#D64A4A', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' }}>NEW</Text> : null}
               </View>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: school.ink, marginTop: 6, lineHeight: 24 }}>{n.headline}</Text>
-            </Paper>
+              <Text style={[chalkStyle, { fontSize: 18, fontWeight: '700', fontStyle: 'italic', marginTop: 6, lineHeight: 25 }]}>{n.headline}</Text>
+            </ChalkBox>
           </Pressable>
         ))
       )}

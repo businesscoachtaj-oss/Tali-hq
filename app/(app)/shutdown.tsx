@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { MOODS, finishDay, todaysShutdown, tomorrowSuggestions, type Shutdown } from '@/lib/rhythm';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Loading, Screen, TaliSays, Title } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 export default function ShutdownScreen() {
@@ -86,7 +87,7 @@ export default function ShutdownScreen() {
     const m = MOODS.find((x) => x.value === done.mood);
     const lines = done.tomorrow.map((t) => t.text).filter(Boolean);
     return (
-      <Screen onRefresh={load}>
+      <Screen skin="dusk" onRefresh={load}>
         <BackLink onPress={() => router.navigate('/')} label="Today" />
         <Title sub="Day closed. See you in the morning.">G'night, {name} 😊</Title>
         <TaliSays pose={(done.mood ?? 3) >= 4 ? 'celebrate' : 'idle'}>{done.tali_line}</TaliSays>
@@ -116,9 +117,8 @@ export default function ShutdownScreen() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => router.navigate('/')} label="Today" />
-      <Title sub="Two minutes, then switch off.">Shut the day down</Title>
+    <Screen skin="dusk" onRefresh={load}>
+      <SkinHeader id="dusk" title="Shut the day down" sub="Two minutes, then switch off." onBack={() => router.navigate('/')} backLabel="Today" />
       <TaliSays pose="idle">Right, {name}. How did today go? Be honest, I'm not marking it.</TaliSays>
       <ErrorText>{loadError}</ErrorText>
 

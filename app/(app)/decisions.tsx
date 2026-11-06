@@ -9,6 +9,7 @@ import { askWhyQuestion, decisions as loadDecisions, deleteDecision, saveDecisio
 import { addDays, friendlyDate, isoDate, today } from '@/lib/dates';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, space } from '@/constants/theme';
 
 type Draft = { id?: string; decision: string; reasoning: string; decided_at: string };
@@ -98,7 +99,7 @@ export default function Decisions() {
 
   if (draft) {
     return (
-      <Screen>
+      <Screen skin="crossroads">
         <BackLink onPress={() => { setDraft(null); setConfirmDelete(false); setError(''); }} />
         <Title>{draft.id ? 'Edit decision' : 'Log a decision'}</Title>
         <Field label="What did you decide?" value={draft.decision} onChangeText={(t) => setDraft({ ...draft, decision: t })} maxLength={400} multiline
@@ -117,9 +118,8 @@ export default function Decisions() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => router.navigate('/me')} />
-      <Title sub="What you decided and why, so you stop relitigating it. Tali reads this too.">Decisions</Title>
+    <Screen skin="crossroads" onRefresh={load}>
+      <SkinHeader id="crossroads" title="Decisions" sub="What you decided and why, so you stop relitigating it. Tali reads this too." onBack={() => router.navigate('/me')} backLabel="Back" />
       <Button title="Log a decision" onPress={() => setDraft({ decision: '', reasoning: '', decided_at: today() })} />
       {planHint ? (
         <Card style={{ backgroundColor: colours.purpleSoft, borderColor: colours.purpleSoft }}>
