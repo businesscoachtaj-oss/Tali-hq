@@ -349,9 +349,9 @@ function recallQuery(text: string) {
 
 type Turn = { role: 'user' | 'assistant'; content: unknown };
 
-async function callClaude(system: string, messages: Turn[], opts: { web: boolean; tz: string }) {
+async function callClaude(system: string, messages: Turn[], opts: { web: boolean; tz: string; maxSearches?: number }) {
   const tools: unknown[] = [TOOL];
-  if (opts.web) tools.unshift({ type: 'web_search_20250305', name: 'web_search', max_uses: 3, user_location: { type: 'approximate', country: 'AU', timezone: opts.tz } });
+  if (opts.web) tools.unshift({ type: 'web_search_20250305', name: 'web_search', max_uses: opts.maxSearches ?? 3, user_location: { type: 'approximate', country: 'AU', timezone: opts.tz } });
   let convo: Turn[] = messages;
   let searches = 0;
   let tokensIn = 0;
@@ -488,6 +488,8 @@ Deno.serve(async (req) => {
       admin.rpc('tali_rhythm_context', { p_user_id: user.id }),
     ]);
     const { data: images } = await admin.rpc('image_allowance_for', { p_user_id: user.id });
+    // ADDED (6 Nov 2026, asked for by Taj): Free gets 10 web searches a month; everyone else searches under credits.
+    const { data: freeSearch } = await admin.rpc('search_allowance_for', { p_user_id: user.id });
     // ADDED (6 Nov 2026, brain sections): memories go to Tali with short refs (m1, r1) instead of
     // ids; refToId turns her conflicts_with and lessons_used refs back into memory ids.
     const refToId = new Map<string, string>();
@@ -539,6 +541,11 @@ Deno.serve(async (req) => {
       `Their latest journal entries they let you read: ${JSON.stringify(ctx?.journal ?? [])}`,
       `Their clients, leads, follow-ups due, open reminders, unpaid invoices and business health: ${JSON.stringify(work ?? {})}`,
       `Their food today (your estimates), weight and training this week: ${JSON.stringify(life ?? {})}`,
+      freeSearch?.free
+        ? (freeSearch.remaining > 0
+            ? `Web search: they are on Free, with ${freeSearch.remaining} of ${freeSearch.allowance} searches left this month. Use one only when it really needs a current answer.`
+            : `Web search: they are on Free and have used all ${freeSearch.allowance} searches this month. You cannot search. If they ask for something current (prices, rules, news, local businesses), say so plainly, give what you do know and say it may be out of date, and mention once that Tali HQ has web search built in. Never invent current facts.`)
+        : '',
       images?.allowance
         ? `Image allowance this month: ${images.remaining} of ${images.allowance} left${images.trial ? ' (trial)' : ''}.`
         : 'Image allowance: their plan has no images. Images come with Tali HQ (30 a month) and Pro (100 a month).',
@@ -584,9 +591,11 @@ Deno.serve(async (req) => {
       last.content = [...blocks, { type: 'text', text: String(last.content) }];
     }
 
-    // Web search is part of Tali HQ and Pro (and the trial), not Free.
-    const web = consume.plan !== 'free';
-    const result = await callClaude(system, turns, { web, tz });
+    // Web search is built into Tali HQ and Pro (and the trial). Free gets 10 a month (search_allowance_for).
+    const onFree = consume.plan === 'free';
+    const freeLeft = Number(freeSearch?.remaining ?? 0);
+    const web = !onFree || freeLeft > 0;
+    const result = await callClaude(system, turns, { web, tz, maxSearches: onFree ? Math.min(3, freeLeft) : 3 });
     const reply = strip(String(result.out.reply ?? '').trim()) || "Sorry, I lost my train of thought. Try me again?";
 
     const { data: saved } = await admin
@@ -828,9 +837,14 @@ Deno.serve(async (req) => {
       if (!error) planSaved = true;
     }
 
-    // Each web search costs 2 extra credits on top of the message.
+    // Each web search costs 2 extra credits on top of the message. On Free it uses up one of the 10
+    // monthly searches instead (a usage row each, 0 credits, feature web_search_free).
     if (result.searches > 0) {
-      await admin.from('usage').insert({ user_id: user.id, feature: 'web_search', credits: 2 * result.searches, model: result.model });
+      if (onFree) {
+        await admin.from('usage').insert(Array.from({ length: result.searches }, () => ({ user_id: user.id, feature: 'web_search_free', credits: 0, model: result.model })));
+      } else {
+        await admin.from('usage').insert({ user_id: user.id, feature: 'web_search', credits: 2 * result.searches, model: result.model });
+      }
     }
 
     await Promise.all([
@@ -838,7 +852,7 @@ Deno.serve(async (req) => {
       admin.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId),
     ]);
 
-    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, remaining: Math.max(0, (consume.remaining ?? 0) - 2 * result.searches) });
+    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, remaining: Math.max(0, (consume.remaining ?? 0) - (onFree ? 0 : 2 * result.searches)) });
   } catch (e) {
     await admin.rpc('chat_refund', { p_usage_id: usageId });
     console.error('tali-chat failed', String(e));

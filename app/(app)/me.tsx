@@ -66,7 +66,14 @@ export default function Me() {
         </Text>
         {credits ? (
           credits.plan === 'free' || (!trialing && credits.status !== 'active') ? (
-            <Body muted>{credits.messagesMonth ?? 50} messages a month with Tali.</Body>
+            <>
+              <Body muted>{credits.messagesMonth ?? 50} messages a month with Tali.</Body>
+              {credits.searches?.allowance ? (
+                <View style={{ marginTop: space.sm }}>
+                  <Body muted>{credits.searches.remaining} of {credits.searches.allowance} web searches left this month.</Body>
+                </View>
+              ) : null}
+            </>
           ) : (
             <>
               <Body muted>
