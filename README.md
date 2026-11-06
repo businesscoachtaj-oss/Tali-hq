@@ -167,3 +167,6 @@ Asked for by Taj after mockups, from what was in his own Tali HQ dashboard. Migr
 
 ### Top ups in the founder revenue (6 Nov 2026)
 Asked for by Taj. The Founder page's revenue tile is now "Revenue this month": plan list price times paying accounts plus top ups sold this month, with a Top ups this month tile (packs sold and all time). `founder_topups()` (migration 20261106000050, founder only) reads `public.topups`. His Tali HQ dashboard artifact shows the same in the pulse tile and the Money card.
+
+### Who wrote each memory (7 Nov 2026)
+Asked for by Taj, so the brain can be used to train Tali's own open model one day. Anthropic's and OpenAI's terms stop us training a competing model on their outputs, so `brain.memories.written_by` says who wrote each memory: `claude`, `openai`, `taj`, `user` or `original` (the source text Tali studied, with `source_url` and `licence`). Default `claude`, and all 315 memories as of today are Claude's: Tali keeps using them, they just never go into training. `brain.training_safe` (server only) lists the pile that is safe to train on: Taj's own words and openly licensed originals (public domain, CC0, CC BY, CC BY-SA), never private ones. User words join only once a consent setting exists (not built). Nothing changes in the app. Migration `20261107000052_brain_written_by.sql`.
