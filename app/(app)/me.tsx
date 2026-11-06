@@ -98,6 +98,11 @@ export default function Me() {
             <View style={{ height: 8, backgroundColor: colours.sunk, borderRadius: 8, marginTop: space.sm, overflow: 'hidden' }}>
               <View style={{ height: 8, width: `${Math.min(100, (left / Math.max(credits.creditsMonth, 1)) * 100)}%`, backgroundColor: colours.purple, borderRadius: 8 }} />
             </View>
+            {/* 6 Nov 2026 (Taj): buy extra credits. MOCKUP. */}
+            <Pressable onPress={() => router.navigate('/top-up' as any)} accessibilityRole="button" style={{ marginTop: space.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
+              <Ionicons name="add-circle-outline" size={18} color={colours.purple} />
+              <Text style={{ color: colours.purple, fontWeight: '800', fontSize: 14 }}>Top up credits</Text>
+            </Pressable>
           </>
         ) : credits ? (
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: space.md }}>
