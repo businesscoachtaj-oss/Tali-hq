@@ -26,7 +26,7 @@ export const tali = {
 };
 
 // 4 Nov 2026: optional pull to refresh (pass the screen's load) so every list screen can refresh, not just Today.
-export function Screen({ children, scroll = true, onRefresh }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void }>) {
+export function Screen({ children, scroll = true, onRefresh, bg }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string }>) {
   const [refreshing, setRefreshing] = useState(false);
   const body = <View style={styles.inner}>{children}</View>;
   const refresh = onRefresh
@@ -42,7 +42,7 @@ export function Screen({ children, scroll = true, onRefresh }: PropsWithChildren
       )
     : undefined;
   return (
-    <SafeAreaView style={styles.safe} edges={NO_BOTTOM}>
+    <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
