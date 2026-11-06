@@ -131,3 +131,7 @@ Tali makes images in Talk. When someone asks for one, `tali-chat` fills `make_im
 Images are counted on their own, separate from credits (`plans.images_month`): Free none, the 7 day trial 5, Tali HQ 30 a month, Pro 100 a month. Long founder trials get the full plan. Me shows images left.
 
 Secrets: `OPENAI_API_KEY` (required, also turns on voice notes), optional `TALI_IMAGE_MODEL`. Migration `20261106000045_images.sql`. Deploy `tali-image` with `--no-verify-jwt`, and redeploy `tali-chat`.
+
+## Visual memories (6 Nov 2026)
+
+The images Tali made for someone live in the occipital (vision) part of their brain: tap Occipital lobe on the Brain screen and a Visual memories grid shows every image, newest first. Tap one to see it big with what she drew, open it full size, go to the chat it came from (Talk takes `?chat=<conversation id>`) or delete it. Deleting removes the file, leaves a short "You deleted this image" note in the chat and forgets her memory of making it. Migration `20261106000046_visual_memories.sql` (`my_visual_memories`, `delete_visual_memory`, own rows only).

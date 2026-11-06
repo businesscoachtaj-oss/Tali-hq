@@ -39,6 +39,10 @@ export function TaliImage({ a, drawing, stale, onRetry }: { a: Attachment; drawi
     );
   }
 
+  if (a.deleted) {
+    return <Text style={{ color: colours.faint, fontSize: 12, fontStyle: 'italic' }}>You deleted this image from Visual memories.</Text>;
+  }
+
   if (busy) {
     return (
       <View accessibilityLabel="Tali is making your image" style={{ width: W, height: h, maxWidth: '100%', borderRadius: 14, backgroundColor: colours.purpleSoft, alignItems: 'center', justifyContent: 'center', padding: 16, gap: 10 }}>
