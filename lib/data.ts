@@ -9,6 +9,8 @@ export type Credits = {
   used: number;
   // ADDED (6 Nov 2026, images): images are counted on their own, not in credits.
   images?: { allowance: number; used: number; remaining: number; trial?: boolean } | null;
+  // ADDED (6 Nov 2026): Free gets a few web searches a month (null on paid plans, where searching costs credits).
+  searches?: { allowance: number; used: number; remaining: number } | null;
 };
 
 export async function myCredits(): Promise<Credits | null> {

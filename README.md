@@ -132,6 +132,9 @@ Images are counted on their own, separate from credits (`plans.images_month`): F
 
 Secrets: `OPENAI_API_KEY` (required, also turns on voice notes), optional `TALI_IMAGE_MODEL`. Migration `20261106000045_images.sql`. Deploy `tali-image` with `--no-verify-jwt`, and redeploy `tali-chat`.
 
+### Free web search (6 Nov 2026)
+Free gets 10 web searches a month (asked for by Taj, so Free Tali is not behind the free chat apps). Counted on their own: one `usage` row per search with feature `web_search_free` and 0 credits, so they never touch the 250 messages. `plans.searches_month` (Free 10, others 0), `search_allowance_for(user)` (service role) and `my_searches()` (app) in migration 20261106000047; `my_credits` carries `searches` for Free. `tali-chat` turns the search tool on for Free while searches remain (at most 3 per message), tells Tali how many are left, and when they are gone she says she cannot search, gives what she knows as possibly out of date and mentions Tali HQ once. Trial, Tali HQ and Pro are unchanged (2 extra credits a search). Me shows "X of 10 web searches left this month." for Free; the Free plan list says it; the Founder screen labels the usage. Deploy: run the migration SQL, then deploy `tali-chat` and push an OTA.
+
 ## Visual memories (6 Nov 2026)
 
 The images Tali made for someone live in the occipital (vision) part of their brain: tap Occipital lobe on the Brain screen and a Visual memories grid shows every image, newest first. Tap one to see it big with what she drew, open it full size, go to the chat it came from (Talk takes `?chat=<conversation id>`) or delete it. Deleting removes the file, leaves a short "You deleted this image" note in the chat and forgets her memory of making it. Migration `20261106000046_visual_memories.sql` (`my_visual_memories`, `delete_visual_memory`, own rows only).

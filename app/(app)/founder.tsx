@@ -21,6 +21,7 @@ const FEATURE_NAMES: Record<string, string> = {
   gmail_sort: 'Emails sorted',
   tali_email: 'Tali address emails',
   web_search: 'Web searches',
+  web_search_free: 'Free web searches',
   night_school: 'Night school',
   voice: 'Voice clips',
 };
