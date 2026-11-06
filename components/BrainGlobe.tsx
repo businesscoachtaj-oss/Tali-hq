@@ -5,7 +5,7 @@
 //
 // Drawn with plain Views moved by Reanimated on the UI thread, so it needs no 3D library and ships
 // as an over the air update on iPhone, Android and the web. Names shared by more than one part
-// (a client who shows up in lessons and in facts) are drawn as lines between those parts.
+// (a client who shows up in lessons and in facts) are drawn as lines between those parts on the whole brain.
 import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -121,28 +121,44 @@ function project(p: P3, ry: number, rx: number, zoom: number, half: number) {
   const y2 = p.y * cx - z1 * sx;
   const z2 = p.y * sx + z1 * cx;
   const k = FOCAL / (FOCAL - z2);
-  const scale = half * 0.74 * zoom * k;
-  return { sx: half + x1 * scale, sy: half - y2 * scale, k, z: z2 };
+  const scale = half * 0.86 * zoom * k;
+  return { sx: half + x1 * scale, sy: half - y2 * scale + half * 0.04, k, z: z2 };
 }
 
 type Spin = { ry: SharedValue<number>; rx: SharedValue<number>; zoom: SharedValue<number> };
 
-const DotView = memo(function DotView({ d, spin, half, glow, colour, dimmed }: { d: Dot; spin: Spin; half: number; glow: number; colour: string; dimmed: boolean }) {
+// 6 Nov 2026 (Taj: "looks so much cooler on the website"): drawn like the website demo. Every dot is a
+// crisp circle. The part you picked gets bigger dots with a white core and a soft glow behind them,
+// and everything else dims. With nothing picked (Whole brain) every part shows at once, brighter the
+// more Tali keeps there. The glow is three faint rings, since React Native has no radial gradient.
+// Each dot is drawn once at a fixed size and only moved and scaled per frame.
+type Mode = 'on' | 'off' | 'all';
+const DotView = memo(function DotView({ d, spin, half, scale, glow, colour, mode }: { d: Dot; spin: Spin; half: number; scale: number; glow: number; colour: string; mode: Mode }) {
+  const base = d.size * 2 * scale; // diameter at zoom 1, front of the brain
   const style = useAnimatedStyle(() => {
     const p = project(d, spin.ry.value, spin.rx.value, spin.zoom.value, half);
-    const size = d.size * p.k * (0.85 + glow * 0.75) * spin.zoom.value;
     const depth = (p.z + 1.1) / 2.2; // 0 at the back, 1 at the front
-    const base = dimmed ? 0.12 : 0.28 + glow * 0.72;
+    const bright = mode === 'on' ? 1 : mode === 'off' ? 0.22 : 0.6 + glow * 0.4;
+    const s = p.k * spin.zoom.value * (mode === 'on' ? 0.95 : 0.78);
     return {
-      width: size,
-      height: size,
-      borderRadius: size / 2,
-      opacity: Math.max(0.05, Math.min(1, base * (0.35 + depth * 0.75))),
-      transform: [{ translateX: p.sx - size / 2 }, { translateY: p.sy - size / 2 }],
+      opacity: Math.max(0.06, Math.min(1, bright * (0.3 + depth * 0.8))),
+      transform: [{ translateX: p.sx - base / 2 }, { translateY: p.sy - base / 2 }, { scale: s }],
       zIndex: Math.round(depth * 100),
     };
   });
-  return <Animated.View style={[styles.dot, { backgroundColor: colour, shadowColor: colour }, style]} />;
+  return (
+    <Animated.View style={[styles.dot, { width: base, height: base }, style]}>
+      {mode === 'on' ? (
+        <>
+          <View style={[styles.ring, { width: base * 4, height: base * 4, left: -base * 1.5, top: -base * 1.5, borderRadius: base * 2, backgroundColor: colour, opacity: 0.1 }]} />
+          <View style={[styles.ring, { width: base * 2.6, height: base * 2.6, left: -base * 0.8, top: -base * 0.8, borderRadius: base * 1.3, backgroundColor: colour, opacity: 0.16 }]} />
+          <View style={[styles.ring, { width: base * 1.6, height: base * 1.6, left: -base * 0.3, top: -base * 0.3, borderRadius: base * 0.8, backgroundColor: colour, opacity: 0.3 }]} />
+        </>
+      ) : null}
+      <View style={[styles.ring, { width: base, height: base, left: 0, top: 0, borderRadius: base / 2, backgroundColor: colour }]} />
+      {mode === 'on' ? <View style={[styles.ring, { width: base * 0.45, height: base * 0.45, left: base * 0.275, top: base * 0.275, borderRadius: base, backgroundColor: '#FFFFFF', opacity: 0.8 }]} /> : null}
+    </Animated.View>
+  );
 });
 
 const LinkView = memo(function LinkView({ a, b, spin, half, strength }: { a: P3; b: P3; spin: Spin; half: number; strength: number }) {
@@ -154,7 +170,7 @@ const LinkView = memo(function LinkView({ a, b, spin, half, strength }: { a: P3;
     const len = Math.sqrt(dx * dx + dy * dy);
     return {
       width: len,
-      opacity: 0.18 + strength * 0.45,
+      opacity: 0.1 + strength * 0.3,
       transform: [{ translateX: (p.sx + q.sx) / 2 - len / 2 }, { translateY: (p.sy + q.sy) / 2 }, { rotate: `${Math.atan2(dy, dx)}rad` }],
     };
   });
@@ -171,12 +187,16 @@ export function BrainGlobe({
   size: number;
   counts: Partial<Record<RegionId, number>>;
   links: { regions: RegionId[]; count: number }[];
+  /** null is the whole brain. */
   selected: RegionId | null;
-  onSelect: (id: RegionId) => void;
+  /** The part tapped, or null for a tap on empty space. */
+  onSelect: (id: RegionId | null) => void;
 }) {
   const half = size / 2;
-  const ry = useSharedValue(1.15);
-  const rx = useSharedValue(-0.18);
+  const scale = size / 400;
+  // 6 Nov 2026: opens side on with the front to the right and a slight look down from above, like the website.
+  const ry = useSharedValue(1.9);
+  const rx = useSharedValue(0.18);
   const zoom = useSharedValue(1);
   const dragging = useSharedValue(false);
   const startRy = useSharedValue(0);
@@ -253,7 +273,8 @@ export function BrainGlobe({
           best = c.id;
         }
       }
-      if (best) scheduleOnRN(onSelect, best as RegionId);
+      // Too far from every part: back to the whole brain.
+      scheduleOnRN(onSelect, best && bestD < size * 0.2 ? (best as RegionId) : null);
     });
   const gesture = Gesture.Race(Gesture.Simultaneous(pan, pinch), tap);
 
@@ -261,7 +282,8 @@ export function BrainGlobe({
     <GestureHandlerRootView style={{ width: size, height: size }}>
       <GestureDetector gesture={gesture}>
         <View style={{ width: size, height: size }} accessibilityLabel="Tali's brain in 3D. Drag to spin, pinch to zoom, tap a part to see what is in it.">
-          {linkPairs.map((l) => (
+          {/* The lines between parts only show on the whole brain, so a picked part stays clean. */}
+          {selected ? null : linkPairs.map((l) => (
             <LinkView key={l.key} a={l.a} b={l.b} spin={spin} half={half} strength={l.strength} />
           ))}
           {BRAIN.dots.map((d, i) => (
@@ -270,9 +292,10 @@ export function BrainGlobe({
               d={d}
               spin={spin}
               half={half}
-              glow={selected === d.region ? 1 : glow[d.region]}
+              scale={scale}
+              glow={glow[d.region]}
               colour={REGIONS[d.region].colour}
-              dimmed={selected != null && selected !== d.region}
+              mode={selected == null ? 'all' : selected === d.region ? 'on' : 'off'}
             />
           ))}
         </View>
@@ -282,6 +305,7 @@ export function BrainGlobe({
 }
 
 const styles = StyleSheet.create({
-  dot: { position: 'absolute', left: 0, top: 0, shadowOpacity: 0.9, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
-  link: { position: 'absolute', left: 0, top: 0, height: 1.5, backgroundColor: '#EEE9FF', borderRadius: 1 },
+  dot: { position: 'absolute', left: 0, top: 0 },
+  ring: { position: 'absolute' },
+  link: { position: 'absolute', left: 0, top: 0, height: 1, backgroundColor: '#EEE9FF', borderRadius: 1 },
 });

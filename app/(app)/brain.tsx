@@ -55,8 +55,10 @@ export default function BrainScreen() {
   );
 
   const counts = useMemo(() => Object.fromEntries((brain?.regions ?? []).map((r) => [r.id, r.count])) as Partial<Record<RegionId, number>>, [brain]);
-  // The panel always shows a part: the one you tapped, or the first part with something in it.
-  const shown: RegionId | null = selected ?? (brain ? (REGION_ORDER.find((id) => (counts[id] ?? 0) > 0) ?? REGION_ORDER[0]) : null);
+  // 6 Nov 2026 (Taj): nothing picked is the whole brain, every part lit up, like the website demo.
+  // It opens there; tap a part (or its chip) to pick it, tap it again or tap empty space to go back.
+  const shown: RegionId | null = selected;
+  const pick = useCallback((id: RegionId | null) => setSelected((cur) => (id && id !== cur ? id : null)), []);
   const region = brain?.regions.find((r) => r.id === shown) ?? null;
   useEffect(() => {
     setKeepsOpen(false);
@@ -164,9 +166,23 @@ export default function BrainScreen() {
       <View style={{ borderRadius: radius.card, overflow: 'hidden', padding: space.md, paddingBottom: space.lg }}>
         <NightBackground style={{ borderRadius: radius.card }} />
         <View style={{ alignItems: 'center' }}>
-          <BrainGlobe size={size} counts={counts} links={brain?.links ?? []} selected={shown} onSelect={setSelected} />
+          <BrainGlobe size={size} counts={counts} links={brain?.links ?? []} selected={shown} onSelect={pick} />
           <Text style={{ color: night.faint, fontSize: 12, marginTop: space.xs }}>Drag to spin, pinch to zoom, tap a part</Text>
         </View>
+
+        {brain && !region ? (
+          <View style={{ marginTop: space.lg }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
+              <Text style={{ color: night.accent, fontSize: 11, fontWeight: '800', letterSpacing: 0.9, textTransform: 'uppercase', flex: 1 }}>{REGION_ORDER.length} parts</Text>
+              <Text style={{ color: night.muted, fontSize: 12, fontWeight: '700' }}>{brain.total.toLocaleString('en-AU')} {brain.total === 1 ? 'memory' : 'memories'}</Text>
+            </View>
+            <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginTop: 4 }}>The whole brain</Text>
+            <Text style={{ color: night.muted, fontSize: 15, lineHeight: 22, marginTop: space.sm }}>
+              Every part lit up at once. Each one holds a different kind of memory, and the more Tali keeps in a part, the brighter it glows.
+            </Text>
+            <Text style={{ color: night.faint, fontSize: 13, lineHeight: 18, marginTop: 4 }}>Tap a part, or a name below, to see what she keeps there.</Text>
+          </View>
+        ) : null}
 
         {region ? (
           <View style={{ marginTop: space.lg }}>
@@ -255,13 +271,23 @@ export default function BrainScreen() {
         ) : null}
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: space.lg }}>
+          <Pressable
+            onPress={() => setSelected(null)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: shown == null }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 7, paddingHorizontal: 12, minHeight: 36, borderRadius: radius.pill, backgroundColor: shown == null ? '#FFFFFF' : night.glass, borderWidth: 1, borderColor: shown == null ? '#FFFFFF' : night.line }}
+          >
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: shown == null ? '#17133A' : '#FFFFFF' }} />
+            <Text style={{ color: shown == null ? '#17133A' : night.ink, fontWeight: '700', fontSize: 13 }}>Whole brain</Text>
+            <Text style={{ color: shown == null ? '#5B547F' : night.faint, fontSize: 12, fontWeight: '700' }}>{(brain?.total ?? 0).toLocaleString('en-AU')}</Text>
+          </Pressable>
           {REGION_ORDER.map((id) => {
             const on = shown === id;
             const n = counts[id] ?? 0;
             return (
               <Pressable
                 key={id}
-                onPress={() => setSelected(id)}
+                onPress={() => pick(id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 7, paddingHorizontal: 12, minHeight: 36, borderRadius: radius.pill, backgroundColor: on ? '#FFFFFF' : night.glass, borderWidth: 1, borderColor: on ? '#FFFFFF' : night.line }}
