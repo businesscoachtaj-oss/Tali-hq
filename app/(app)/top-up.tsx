@@ -1,16 +1,18 @@
 // Top up credits (6 Nov 2026, asked for by Taj). Buy a pack of extra credits when the month runs
-// short. Extra credits never expire and are used after the monthly ones. Paid by card through Stripe.
-// MOCKUP: packs and prices are suggestions; checkout is wired up once Taj approves.
+// short, or images, or a bundle of both. Extras never expire and are used after the month's own.
+// Paid by card through Stripe Checkout (create-checkout with { topup }); stripe-webhook adds them.
+// The prices charged come from supabase/functions/_shared/topups.ts; keep the two lists the same.
 import { useCallback, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Card, Label, Screen, goBack } from '@/components/ui';
+import { Card, ErrorText, Screen, goBack } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
-import { myCredits, type Credits } from '@/lib/data';
-import { isPro } from '@/lib/plan';
+import { myCredits, startTopup, type Credits } from '@/lib/data';
+import { isPaid, isPro } from '@/lib/plan';
+
+const APP_WEB_URL = 'https://talihq.com.au';
 
 type Pack = { id: string; credits: number; images: number; price: number; title: string; note: string; best?: boolean; save?: string };
 const PACKS: Record<'credits' | 'images' | 'bundles', Pack[]> = {
@@ -36,23 +38,44 @@ const TABS = [
 
 export default function TopUp() {
   const [credits, setCredits] = useState<Credits | null>(null);
-  const params = useLocalSearchParams<{ tab?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; done?: string }>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const done = Array.isArray(params.done) ? params.done[0] : params.done;
   const [tab, setTab] = useState<'credits' | 'images' | 'bundles'>(params.tab === 'images' || params.tab === 'bundles' ? params.tab : 'credits');
   const [picks, setPicks] = useState<Record<string, string>>({ credits: 'c1500', images: 'i50', bundles: 'b-busy' });
-  useFocusEffect(useCallback(() => { myCredits().then(setCredits).catch(() => null); }, []));
+  const load = useCallback(() => { myCredits().then(setCredits).catch(() => null); }, []);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
   const left = credits ? Math.max(0, credits.creditsMonth - credits.used) : 0;
-  const extra = (credits as any)?.extra ?? 0;
+  const extra = credits?.extra ?? 0;
   const imagesLeft = credits?.images?.remaining ?? 0;
-  const extraImages = (credits as any)?.images?.extra ?? 0;
+  const extraImages = credits?.images?.extra ?? 0;
   const list = PACKS[tab];
   const pick = picks[tab];
   const chosen = list.find((p) => p.id === pick) ?? list[0];
   const pro = isPro(credits);
+  const paid = isPaid(credits);
+
+  async function buy() {
+    setBusy(true);
+    setError('');
+    const web = Platform.OS === 'web';
+    const res = await startTopup(chosen.id, web ? `${window.location.origin}/top-up` : `${APP_WEB_URL}/top-up`);
+    setBusy(false);
+    if (!res.ok || !res.url) return setError(res.message ?? 'Could not start checkout.');
+    web ? window.location.assign(res.url) : Linking.openURL(res.url);
+  }
 
   return (
-    <Screen skin="topup">
+    <Screen skin="topup" onRefresh={async () => load()}>
       <SkinHeader id="topup" title="Top up" sub="Ran short this month? Add a pack. Anything extra never expires." onBack={() => goBack('/me')} backLabel="Back" />
 
+      {done ? (
+        <Card style={{ backgroundColor: '#E3F3E9', marginBottom: space.md }}>
+          <Text style={{ color: '#1E6B3E', fontWeight: '800', fontSize: 15 }}>Thanks, that's paid.</Text>
+          <Text style={{ color: '#1E6B3E', fontSize: 13, marginTop: 2 }}>Your extras land in a few seconds. Pull down to refresh if they're not showing yet.</Text>
+        </Card>
+      ) : null}
       <Card>
         <View style={{ flexDirection: 'row', gap: space.sm }}>
           <View style={{ flex: 1 }}>
@@ -108,8 +131,10 @@ export default function TopUp() {
         })}
       </View>
 
-      <Pressable accessibilityRole="button" style={{ marginTop: space.lg, height: 54, borderRadius: radius.pill, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', ...elevation.button(colours.purple) }}>
-        <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 16 }}>Buy {chosen.title} for ${chosen.price.toFixed(2)}</Text>
+      <ErrorText>{error}</ErrorText>
+      {credits && !paid ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.md, textAlign: 'center' }}>Top ups are for Tali HQ and Pro. Pick a plan first.</Text> : null}
+      <Pressable onPress={buy} disabled={busy || !paid} accessibilityRole="button" style={{ opacity: busy || !paid ? 0.6 : 1, marginTop: space.lg, height: 54, borderRadius: radius.pill, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', ...elevation.button(colours.purple) }}>
+        {busy ? <ActivityIndicator color={colours.onPurple} /> : <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 16 }}>Buy {chosen.title} for ${chosen.price.toFixed(2)}</Text>}
       </Pressable>
       <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: 8 }}>Paid by card through Stripe. One payment, not a subscription.</Text>
 

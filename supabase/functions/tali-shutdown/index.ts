@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
   if (consumeErr) return fail('server_error', 'Could not check your plan.', 500);
   if (!consume?.ok) {
     const copy: Record<string, string> = {
-      out_of_credits: "You've used this month's Tali credits. They top up on the 1st, or you can move up a plan.",
+      out_of_credits: "You've used this month's Tali credits. They top up on the 1st, or you can buy a top up from Me.",
       out_of_messages: "That's your 250 free messages for this month, and the shutdown counts as one. Upgrade to Tali HQ to keep going.",
       slow_down: 'Easy, tiger. Give me a minute and try again.',
       no_access: 'Your plan does not include this yet.',

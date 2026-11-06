@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       no_access: 'Images are part of Tali HQ. Move up a plan and Tali can make them for you.',
       out_of_images: consume?.trial
         ? "You've made the 5 images that come with the trial. Pick a plan for 30 or 100 a month."
-        : `You've made all ${consume?.allowance ?? 'of'} this month's images. They top up on the 1st${Number(consume?.allowance) < 100 ? ', or Pro gets 100 a month' : ''}.`,
+        : `You've made all ${consume?.allowance ?? 'of'} this month's images. They top up on the 1st, or you can buy more from Top up on Me.`,
       slow_down: 'Easy, one at a time. Give it a minute.',
     };
     // slow_down can be tried again; the others cannot until the plan or month changes.

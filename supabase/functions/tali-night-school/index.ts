@@ -47,8 +47,11 @@ const TOOL = {
         items: { type: 'object', properties: { title: { type: 'string' }, url: { type: 'string' } }, required: ['title', 'url'] },
         description: 'The pages you actually used.',
       },
+      // 6 Nov 2026 (Taj): one idea from the class, shown on Today with "Let's try it".
+      idea: { type: 'string', description: 'One specific thing this owner could try this week because of what you learnt, starting with a verb, under 110 characters. Fit it to their business.' },
+      idea_why: { type: 'string', description: 'Why it is worth trying, in one or two short sentences under 180 characters, from what your sources said.' },
     },
-    required: ['headline', 'learnt', 'sources'],
+    required: ['headline', 'learnt', 'sources', 'idea', 'idea_why'],
   },
 };
 
@@ -73,7 +76,7 @@ async function study(system: string, user: string, tz: string) {
     model = data.model ?? model;
     const content = data.content ?? [];
     const block = content.find((c: any) => c.type === 'tool_use' && c.name === TOOL.name);
-    if (block) return { out: block.input as { headline: string; learnt: string[]; sources: { title: string; url: string }[] }, searches, tokensIn, tokensOut, model };
+    if (block) return { out: block.input as { headline: string; learnt: string[]; sources: { title: string; url: string }[]; idea?: string; idea_why?: string }, searches, tokensIn, tokensOut, model };
     if (data.stop_reason === 'pause_turn') {
       messages = [...messages, { role: 'assistant', content }];
       continue;
@@ -112,7 +115,9 @@ async function studyOne(row: { user_id: string; topic: string; local_date: strin
       .slice(0, 5)
       .map((s) => ({ title: strip(s.title).slice(0, 160), url: String(s.url).slice(0, 500) }));
 
-    const { error: insErr } = await admin.from('night_school_notes').insert({ user_id: row.user_id, for_date: row.local_date, topic: row.topic, headline, learnt, sources });
+    const idea = strip(r.out.idea).slice(0, 160) || null;
+    const idea_why = idea ? strip(r.out.idea_why).slice(0, 260) || null : null;
+    const { error: insErr } = await admin.from('night_school_notes').insert({ user_id: row.user_id, for_date: row.local_date, topic: row.topic, headline, learnt, sources, idea, idea_why });
     if (insErr) {
       await admin.rpc('chat_refund', { p_usage_id: usageId });
       return { user: row.user_id, skipped: 'already studied tonight' };

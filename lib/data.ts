@@ -8,7 +8,9 @@ export type Credits = {
   messagesMonth: number | null;
   used: number;
   // ADDED (6 Nov 2026, images): images are counted on their own, not in credits.
-  images?: { allowance: number; used: number; remaining: number; trial?: boolean } | null;
+  images?: { allowance: number; used: number; remaining: number; trial?: boolean; extra?: number } | null;
+  // ADDED (6 Nov 2026, top ups): extra credits bought, never expire, used after the month's.
+  extra?: number;
   // ADDED (6 Nov 2026): Free gets a few web searches a month (null on paid plans, where searching costs credits).
   searches?: { allowance: number; used: number; remaining: number } | null;
   // ADDED (6 Nov 2026): Free's Deep think count (null on paid plans, where it costs credits).
@@ -311,6 +313,8 @@ async function invokeForUrl(fn: string, body: Record<string, unknown>): Promise<
 // Web only for now. In the iOS and Android apps, upgrades will go through the stores.
 export const startCheckout = (plan: 'hq' | 'pro', returnUrl: string, interval: 'month' | 'year' = 'month') =>
   invokeForUrl('create-checkout', { plan, interval, returnUrl });
+// Top up (6 Nov 2026): a one-off Stripe payment for a pack in supabase/functions/_shared/topups.ts.
+export const startTopup = (pack: string, returnUrl: string) => invokeForUrl('create-checkout', { topup: pack, returnUrl });
 export const openBillingPortal = (returnUrl: string) => invokeForUrl('billing-portal', { returnUrl });
 
 // ---------- Clients and leads ----------

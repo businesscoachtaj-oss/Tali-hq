@@ -93,12 +93,12 @@ export default function Me() {
           <>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: space.md }}>
               <Text style={{ fontSize: 28, fontWeight: '800', color: colours.text }}>{left.toLocaleString('en-AU')}</Text>
-              <Text style={{ fontSize: 14, color: colours.muted }}>of {credits.creditsMonth.toLocaleString('en-AU')} credits left</Text>
+              <Text style={{ fontSize: 14, color: colours.muted }}>of {credits.creditsMonth.toLocaleString('en-AU')} credits left{credits.extra ? `, plus ${credits.extra.toLocaleString('en-AU')} extra` : ''}</Text>
             </View>
             <View style={{ height: 8, backgroundColor: colours.sunk, borderRadius: 8, marginTop: space.sm, overflow: 'hidden' }}>
               <View style={{ height: 8, width: `${Math.min(100, (left / Math.max(credits.creditsMonth, 1)) * 100)}%`, backgroundColor: colours.purple, borderRadius: 8 }} />
             </View>
-            {/* 6 Nov 2026 (Taj): buy extra credits. MOCKUP. */}
+            {/* 6 Nov 2026 (Taj): buy extra credits, images or a bundle. */}
             <Pressable onPress={() => router.navigate('/top-up' as any)} accessibilityRole="button" style={{ marginTop: space.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
               <Ionicons name="add-circle-outline" size={18} color={colours.purple} />
               <Text style={{ color: colours.purple, fontWeight: '800', fontSize: 14 }}>Top up</Text>
@@ -112,7 +112,7 @@ export default function Me() {
         ) : null}
         {credits ? (
           <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md }}>
-            {credits.images?.allowance ? <Stat icon="image-outline" value={`${credits.images.remaining}`} label="images left" /> : null}
+            {credits.images?.allowance ? <Stat icon="image-outline" value={`${credits.images.remaining + (credits.images.extra ?? 0)}`} label="images left" /> : null}
             {credits.searches?.allowance ? <Stat icon="globe-outline" value={`${credits.searches.remaining}`} label="web searches" /> : null}
             {credits.deep?.allowance ? <Stat icon="bulb-outline" value={credits.deep.remaining ? '1' : '0'} label="Deep think" /> : null}
             <Stat icon="refresh-outline" value={new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} label={onFree ? 'messages reset' : 'credits top up'} />
