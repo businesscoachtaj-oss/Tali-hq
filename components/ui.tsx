@@ -30,7 +30,7 @@ export const tali = {
 export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
   if (skin) bg = SKINS[skin].bg;
   const [refreshing, setRefreshing] = useState(false);
-  const body = <SkinProvider id={skin}><View style={styles.inner}>{skin ? <SkinBackdrop id={skin} /> : null}{children}</View></SkinProvider>;
+  const body = <SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider>;
   const refresh = onRefresh
     ? (
         <RefreshControl
@@ -45,6 +45,7 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
     : undefined;
   return (
     <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
+      {skin ? <SkinBackdrop id={skin} /> : null}
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -95,7 +96,7 @@ export function Body({ children, muted }: PropsWithChildren<{ muted?: boolean }>
 
 export function Label({ children }: PropsWithChildren) {
   const skin = useSkin();
-  return <Text style={[styles.label, skin ? { color: skin.label } : null]}>{children}</Text>;
+  return <Text style={[styles.label, skin ? { color: skin.accent } : null]}>{children}</Text>;
 }
 
 export function Field(props: TextInputProps & { label?: string }) {
@@ -122,13 +123,15 @@ export function Button({
   disabled?: boolean;
 }) {
   const off = disabled || busy;
+  const skin = useSkin();
+  const brand = skin?.accent ?? colours.purple;
   return (
     <Pressable
       accessibilityRole="button"
       onPress={off ? undefined : onPress}
       style={({ pressed }) => [
         styles.btn,
-        kind === 'primary' && { backgroundColor: colours.purple, borderColor: colours.purple, ...elevation.button(colours.purple) },
+        kind === 'primary' && { backgroundColor: brand, borderColor: brand, ...elevation.button(brand) },
         kind === 'danger' && { borderColor: colours.danger, ...elevation.button(colours.danger) },
         off && { opacity: 0.55 },
         pressed && !off && { opacity: 0.85 },
