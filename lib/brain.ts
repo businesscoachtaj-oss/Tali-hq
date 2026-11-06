@@ -105,3 +105,24 @@ export async function setShareLearning(userId: string, on: boolean) {
 
 // Kinds the nightly scrub can share (once rewritten with no personal details).
 export const SHAREABLE_KINDS = ['lesson', 'mistake', 'rule'];
+
+// Visual memories (6 Nov 2026, asked for by Taj): every image Tali made for this person, newest first,
+// shown in the occipital part of the brain. The file stays in their private chat-uploads folder.
+export type VisualMemory = { message_id: string; conversation_id: string; idx: number; path: string; prompt: string; shape: string; created_at: string; url?: string };
+
+export async function visualMemories(limit = 60): Promise<VisualMemory[]> {
+  const { data, error } = await supabase.rpc('my_visual_memories', { p_limit: limit });
+  if (error) throw error;
+  const rows = (data as VisualMemory[]) ?? [];
+  if (!rows.length) return rows;
+  const { data: signed } = await supabase.storage.from('chat-uploads').createSignedUrls(rows.map((r) => r.path), 3600);
+  const urls = new Map((Array.isArray(signed) ? signed : []).map((d) => [d.path, d.signedUrl]));
+  return rows.map((r) => ({ ...r, url: urls.get(r.path) ?? undefined }));
+}
+
+// Deletes the image (the chat keeps a short note in its place) and her memory of making it.
+export async function deleteVisualMemory(v: VisualMemory): Promise<void> {
+  const { data: path, error } = await supabase.rpc('delete_visual_memory', { p_message_id: v.message_id, p_index: v.idx });
+  if (error) throw error;
+  if (typeof path === 'string' && path) await supabase.storage.from('chat-uploads').remove([path]);
+}

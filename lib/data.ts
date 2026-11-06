@@ -131,7 +131,7 @@ export async function forgetMemory(id: string): Promise<boolean> {
 // `url` is a signed link filled in when messages load (good for an hour).
 // Images Tali makes (6 Nov 2026) start as a placeholder with no path: making is true while she draws
 // it, failed holds the reason if it did not come through, prompt is what she asked for.
-export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string };
+export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string; deleted?: boolean };
 export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null };
 export const MAX_ATTACHMENTS = 4;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;

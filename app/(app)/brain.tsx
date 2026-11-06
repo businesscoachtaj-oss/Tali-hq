@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { BrainGlobe } from '@/components/BrainGlobe';
+import { VisualMemories } from '@/components/VisualMemories';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink, Card, ErrorText, Label, Screen, Title, goBack, useConfirm } from '@/components/ui';
 import { FOUNDER_USER_ID } from '@/constants/business';
@@ -145,6 +146,13 @@ export default function BrainScreen() {
       {region ? (
         <>
           <View style={{ height: space.lg }} />
+          {/* 6 Nov 2026 (Taj): the images Tali made, in the vision part of her brain. Always your own. */}
+          {region.id === 'occipital' ? (
+            <>
+              <VisualMemories />
+              <View style={{ height: space.lg }} />
+            </>
+          ) : null}
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: REGIONS[region.id].colour }} />
