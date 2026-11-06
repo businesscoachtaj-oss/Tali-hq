@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { currentConversation, deleteConversation, listConversations, makeImage, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type Credits, type DeepLevel, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
+import { currentConversation, deleteConversation, freeMessagesLeft, listConversations, makeImage, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type Credits, type DeepLevel, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { MicButton } from '@/components/MicButton';
@@ -46,12 +46,16 @@ export default function Talk() {
   const [deep, setDeep] = useState<DeepLevel | null>(null);
   const [deepSending, setDeepSending] = useState<DeepLevel | null>(null);
   const [freeDeep, setFreeDeep] = useState<Credits['deep']>(null);
+  // 7 Nov 2026 (Taj): Free sees how many messages are left once it gets low (25 or fewer).
+  const [freeLeft, setFreeLeft] = useState<{ left: number; limit: number } | null>(null);
   // 4 Nov 2026: the starter screen waited on nothing, so it flashed before the history arrived.
   const [loaded, setLoaded] = useState(false);
   // Voice notes (3 Nov 2026): the mic in the composer. Tap to record, tap to stop, the words land in the box.
   const onVoiceText = useCallback((t: string) => setText((cur) => (cur.trim() ? `${cur.trim()} ${t}` : t)), []);
   const voice = useVoiceNote({ onText: onVoiceText, onNotice: setNotice, plan });
-  const voiceHint = !VOICE_NOTES_ON ? null : voice.recording ? 'Recording. Tap the red dot to stop, 3 minutes tops.' : voice.busy ? null : voiceMinutesLeftLine(voice.secondsLeft);
+  const voiceLine = !VOICE_NOTES_ON ? null : voice.recording ? 'Recording. Tap the red dot to stop, 3 minutes tops.' : voice.busy ? null : voiceMinutesLeftLine(voice.secondsLeft);
+  const messagesLine = freeLeft && freeLeft.left <= 25 ? (freeLeft.left === 1 ? `1 of ${freeLeft.limit} messages left this month.` : `${freeLeft.left} of ${freeLeft.limit} messages left this month.`) : null;
+  const voiceHint = voiceLine ?? messagesLine;
   // Chat history (3 Nov 2026): the sheet with every chat; open, rename, pin, delete.
   const [historyOpen, setHistoryOpen] = useState(false);
   // Photos and files (3 Nov 2026): what is attached to the message being written, already uploaded.
@@ -136,7 +140,7 @@ export default function Talk() {
   }, [params.text, params.title, params.url]);
 
   const loadPlan = useCallback(() => {
-    myCredits().then((c) => { setPro(isPro(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); setFreeDeep(c?.deep ?? null); }).catch(() => {});
+    myCredits().then((c) => { setPro(isPro(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); setFreeDeep(c?.deep ?? null); setFreeLeft(isPaid(c) ? null : freeMessagesLeft(c)); }).catch(() => {});
   }, []);
 
   const load = useCallback(async () => {
@@ -202,6 +206,7 @@ export default function Talk() {
     if (level) loadPlan();
     if (res.ok) {
       setOutOfCredits(false);
+      setFreeLeft((f) => (f ? { ...f, left: Math.max(f.left - 1, 0) } : f));
       const fresh = await loadMessages(conversationId);
       const reply = [...fresh].reverse().find((m) => m.role !== 'user');
       pinReply.current = reply ? reply.id : null;

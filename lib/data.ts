@@ -7,6 +7,9 @@ export type Credits = {
   creditsMonth: number;
   messagesMonth: number | null;
   used: number;
+  // ADDED (7 Nov 2026): chats and shutdowns this month, and Free's monthly message limit, for "X of 250 messages left".
+  messagesUsed?: number;
+  freeMessages?: number | null;
   // ADDED (6 Nov 2026, images): images are counted on their own, not in credits.
   images?: { allowance: number; used: number; remaining: number; trial?: boolean; extra?: number } | null;
   // ADDED (6 Nov 2026, top ups): extra credits bought, never expire, used after the month's.
@@ -931,4 +934,12 @@ export async function founderUsers(): Promise<FounderUser[]> {
   const { data, error } = await supabase.rpc('founder_users');
   if (error) throw error;
   return (data ?? []) as FounderUser[];
+}
+
+// 7 Nov 2026 (Taj): messages left this month on Free (also used when a paid plan has lapsed, which chats on Free's limit).
+export function freeMessagesLeft(c: Credits | null): { left: number; limit: number } | null {
+  if (!c) return null;
+  const limit = c.freeMessages ?? c.messagesMonth ?? 0;
+  if (!limit) return null;
+  return { left: Math.max(limit - (c.messagesUsed ?? 0), 0), limit };
 }

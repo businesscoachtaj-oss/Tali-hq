@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { forgetMemory, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
+import { forgetMemory, freeMessagesLeft, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { resetTour } from '@/lib/tour';
 import { Body, Button, Card, Label, Screen, useConfirm } from '@/components/ui';
@@ -56,6 +56,7 @@ export default function Me() {
 
   const left = credits ? Math.max(credits.creditsMonth - credits.used, 0) : 0;
   const onFree = !!credits && (credits.plan === 'free' || (!trialing && credits.status !== 'active'));
+  const freeLeft = onFree ? freeMessagesLeft(credits) : null;
   const initial = (profile?.first_name || session?.user.email || '?').trim().charAt(0).toUpperCase();
   const founder = session?.user.id === FOUNDER_USER_ID;
   const paid = isPaid(credits);
@@ -104,11 +105,17 @@ export default function Me() {
               <Text style={{ color: colours.purple, fontWeight: '800', fontSize: 14 }}>Top up</Text>
             </Pressable>
           </>
-        ) : credits ? (
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: space.md }}>
-            <Text style={{ fontSize: 28, fontWeight: '800', color: colours.text }}>{credits.messagesMonth ?? 50}</Text>
-            <Text style={{ fontSize: 14, color: colours.muted }}>messages a month with Tali</Text>
-          </View>
+        ) : credits && freeLeft ? (
+          <>
+            {/* 7 Nov 2026 (Taj): Free shows what's left this month, like credits on the paid plans. */}
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: space.md }}>
+              <Text style={{ fontSize: 28, fontWeight: '800', color: colours.text }}>{freeLeft.left.toLocaleString('en-AU')}</Text>
+              <Text style={{ fontSize: 14, color: colours.muted }}>of {freeLeft.limit.toLocaleString('en-AU')} messages left this month</Text>
+            </View>
+            <View style={{ height: 8, backgroundColor: colours.sunk, borderRadius: 8, marginTop: space.sm, overflow: 'hidden' }}>
+              <View style={{ height: 8, width: `${Math.min(100, (freeLeft.left / Math.max(freeLeft.limit, 1)) * 100)}%`, backgroundColor: colours.purple, borderRadius: 8 }} />
+            </View>
+          </>
         ) : null}
         {credits ? (
           <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md }}>
