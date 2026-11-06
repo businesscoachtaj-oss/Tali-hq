@@ -6,7 +6,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { BrainGlobe } from '@/components/BrainGlobe';
-import { VisualMemories } from '@/components/VisualMemories';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink, Card, ErrorText, Label, Screen, Title, goBack, useConfirm } from '@/components/ui';
 import { FOUNDER_USER_ID } from '@/constants/business';
@@ -45,7 +44,9 @@ export default function BrainScreen() {
   );
 
   const counts = useMemo(() => Object.fromEntries((brain?.regions ?? []).map((r) => [r.id, r.count])) as Partial<Record<RegionId, number>>, [brain]);
-  const region = brain?.regions.find((r) => r.id === selected) ?? null;
+  // The panel always shows a part: the one you tapped, or the first part with something in it.
+  const shown: RegionId | null = selected ?? (brain ? (REGION_ORDER.find((id) => (counts[id] ?? 0) > 0) ?? REGION_ORDER[0]) : null);
+  const region = brain?.regions.find((r) => r.id === shown) ?? null;
 
   function forget(item: BrainItem) {
     const id = item.id;
@@ -108,10 +109,106 @@ export default function BrainScreen() {
         </View>
       ) : null}
 
-      <View style={{ borderRadius: radius.card, overflow: 'hidden', padding: space.md, alignItems: 'center' }}>
+      {/* 6 Nov 2026 (Taj): laid out like the website demo. One night card holds the brain, the part you
+          picked (what it does in a person, in Tali, and what she keeps there), then every part as a chip. */}
+      <View style={{ borderRadius: radius.card, overflow: 'hidden', padding: space.md, paddingBottom: space.lg }}>
         <NightBackground style={{ borderRadius: radius.card }} />
-        <BrainGlobe size={size} counts={counts} links={brain?.links ?? []} selected={selected} onSelect={setSelected} />
-        <Text style={{ color: night.muted, fontSize: 12, marginTop: space.sm }}>Drag to spin, pinch to zoom, tap a part</Text>
+        <View style={{ alignItems: 'center' }}>
+          <BrainGlobe size={size} counts={counts} links={brain?.links ?? []} selected={shown} onSelect={setSelected} />
+          <Text style={{ color: night.faint, fontSize: 12, marginTop: space.xs }}>Drag to spin, pinch to zoom, tap a part</Text>
+        </View>
+
+        {region ? (
+          <View style={{ marginTop: space.lg }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
+              <Text style={{ color: REGIONS[region.id].colour, fontSize: 11, fontWeight: '800', letterSpacing: 0.9, textTransform: 'uppercase', flex: 1 }}>{REGIONS[region.id].human} in you</Text>
+              <Text style={{ color: night.muted, fontSize: 12, fontWeight: '700' }}>{region.count.toLocaleString('en-AU')} {region.count === 1 ? 'memory' : 'memories'}</Text>
+            </View>
+            <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginTop: 4 }}>{REGIONS[region.id].name}</Text>
+            <Text style={{ color: night.muted, fontSize: 15, lineHeight: 22, marginTop: space.sm }}>
+              <Text style={{ color: '#fff', fontWeight: '800' }}>In Tali: </Text>
+              {REGIONS[region.id].tali}.
+            </Text>
+            {/* 6 Nov 2026 (Taj): Tali's education, a part of the brain each night. */}
+            <Text style={{ color: night.faint, fontSize: 13, lineHeight: 18, marginTop: 4 }}>Studies at night: {REGIONS[region.id].studies}</Text>
+
+            <Text style={{ color: night.faint, fontSize: 11, fontWeight: '800', letterSpacing: 0.9, textTransform: 'uppercase', marginTop: space.lg, marginBottom: space.sm }}>What she keeps here</Text>
+            {region.items.length === 0 ? (
+              <Text style={{ color: night.muted }}>Nothing here yet.</Text>
+            ) : (
+              <View style={{ gap: 8 }}>
+                {region.items.map((it, i) => {
+                  const lesson = lessonState(it);
+                  const canForget = !!it.id && it.mine && MEMORY_KINDS.includes(it.kind);
+                  return (
+                    <View key={(it.id ?? '') + i} style={{ backgroundColor: night.glass, borderWidth: 1, borderColor: night.line, borderLeftWidth: 3, borderLeftColor: it.kind === 'conflict' ? '#FF7A6E' : REGIONS[region.id].colour, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14 }}>
+                      {it.kind === 'conflict' ? (
+                        <>
+                          <Text style={{ fontSize: 11, color: '#FF9A90', fontWeight: '800', textTransform: 'uppercase' }}>These two disagree</Text>
+                          <Text style={{ fontSize: 14, color: night.ink, lineHeight: 20, marginTop: 4 }}>New: {it.text}</Text>
+                          <Text style={{ fontSize: 14, color: night.muted, lineHeight: 20, marginTop: 2 }}>Old: {it.old}</Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.sm }}>
+                            {([['new', 'Keep new'], ['old', 'Keep old'], ['both', 'Both true']] as const).map(([k, label]) => (
+                              <Pressable key={k} disabled={!!busy} onPress={() => settle(it, k)} accessibilityRole="button" style={{ paddingVertical: 7, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: night.accent, opacity: busy ? 0.5 : 1 }}>
+                                <Text style={{ color: night.accent, fontWeight: '700', fontSize: 13 }}>{label}</Text>
+                              </Pressable>
+                            ))}
+                          </View>
+                        </>
+                      ) : (
+                        <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'flex-start' }}>
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <Text style={{ fontSize: 10, color: night.faint, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' }}>{it.kind === 'knowledge' && it.about?.[0] ? it.about[0] : it.kind}</Text>
+                              {it.urgent ? <Badge text="Urgent" colour="#FF9A90" /> : null}
+                              {lesson === 'proven' ? <Badge text={it.kind === 'mistake' ? 'Learned' : 'Proven'} colour="#8EF0C8" /> : null}
+                              {lesson === 'shaky' ? <Badge text="Not holding up" colour="#FFC37A" /> : null}
+                              {it.mine === false && it.id ? <Badge text="Shared" colour={night.muted} /> : null}
+                              {it.mine && it.private ? <Badge text="Private" colour={night.accent} /> : null}
+                            </View>
+                            <Text style={{ fontSize: 14, color: night.ink, lineHeight: 20, marginTop: 2 }}>{it.text}</Text>
+                          </View>
+                          {canForget ? (
+                            <View style={{ alignItems: 'flex-end', gap: space.sm }}>
+                              <Pressable onPress={() => forget(it)} disabled={busy === it.id} accessibilityRole="button" hitSlop={8}>
+                                <Text style={{ color: armed === it.id ? '#FF9A90' : night.muted, fontWeight: '700', fontSize: 13 }}>{armed === it.id ? 'Sure?' : 'Forget'}</Text>
+                              </Pressable>
+                              {SHAREABLE_KINDS.includes(it.kind) ? (
+                                <Pressable onPress={() => togglePrivate(it)} disabled={!!busy} accessibilityRole="button" hitSlop={8}>
+                                  <Text style={{ color: night.muted, fontWeight: '700', fontSize: 13 }}>{it.private ? 'Unlock' : 'Private'}</Text>
+                                </Pressable>
+                              ) : null}
+                            </View>
+                          ) : null}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        ) : null}
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: space.lg }}>
+          {REGION_ORDER.map((id) => {
+            const on = shown === id;
+            const n = counts[id] ?? 0;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => setSelected(id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 7, paddingHorizontal: 12, minHeight: 36, borderRadius: radius.pill, backgroundColor: on ? '#FFFFFF' : night.glass, borderWidth: 1, borderColor: on ? '#FFFFFF' : night.line }}
+              >
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: REGIONS[id].colour, shadowColor: REGIONS[id].colour, shadowOpacity: 0.9, shadowRadius: 5, shadowOffset: { width: 0, height: 0 } }} />
+                <Text style={{ color: on ? '#17133A' : night.ink, fontWeight: '700', fontSize: 13 }}>{REGIONS[id].name}</Text>
+                <Text style={{ color: on ? '#5B547F' : night.faint, fontSize: 12, fontWeight: '700' }}>{n.toLocaleString('en-AU')}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
       {brain?.scope === 'main' ? (
         <Text style={{ color: colours.muted, fontSize: 12, marginTop: space.sm, lineHeight: 17 }}>
@@ -120,105 +217,6 @@ export default function BrainScreen() {
       ) : null}
 
       {error ? <ErrorText>{error}</ErrorText> : null}
-
-      <View style={{ height: space.lg }} />
-      <Label>Parts of the brain</Label>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-        {REGION_ORDER.map((id) => {
-          const on = selected === id;
-          const n = counts[id] ?? 0;
-          return (
-            <Pressable
-              key={id}
-              onPress={() => setSelected(on ? null : id)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: on ? colours.purpleSoft : colours.surface, borderWidth: 1, borderColor: on ? colours.purple : colours.border }}
-            >
-              <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: REGIONS[id].colour, borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)' }} />
-              <Text style={{ color: colours.text, fontWeight: '600', fontSize: 13 }}>{REGIONS[id].name}</Text>
-              <Text style={{ color: colours.muted, fontSize: 12 }}>{n.toLocaleString('en-AU')}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {region ? (
-        <>
-          <View style={{ height: space.lg }} />
-          {/* 6 Nov 2026 (Taj): the images Tali made, in the vision part of her brain. Always your own. */}
-          {region.id === 'occipital' ? (
-            <>
-              <VisualMemories />
-              <View style={{ height: space.lg }} />
-            </>
-          ) : null}
-          <Card>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: REGIONS[region.id].colour }} />
-              <Text style={{ fontSize: 18, fontWeight: '800', color: colours.text, flex: 1 }}>{REGIONS[region.id].name}</Text>
-              <Text style={{ color: colours.muted, fontWeight: '700' }}>{region.count.toLocaleString('en-AU')}</Text>
-            </View>
-            <Text style={{ color: colours.purpleInk, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginTop: space.sm }}>In a person: {REGIONS[region.id].human}</Text>
-            <Text style={{ color: colours.text, fontSize: 14, lineHeight: 20, marginTop: 2 }}>In Tali: {REGIONS[region.id].tali}</Text>
-            {/* 6 Nov 2026 (Taj): Tali's education, a part of the brain each night. */}
-            <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 18, marginTop: 4 }}>Studies at night: {REGIONS[region.id].studies}</Text>
-
-            {region.items.length === 0 ? (
-              <Text style={{ color: colours.muted, marginTop: space.md }}>Nothing here yet.</Text>
-            ) : (
-              region.items.map((it, i) => {
-                const lesson = lessonState(it);
-                const canForget = !!it.id && it.mine && MEMORY_KINDS.includes(it.kind);
-                return (
-                  <View key={(it.id ?? '') + i} style={{ paddingVertical: space.md, borderTopWidth: 1, borderTopColor: colours.border, marginTop: space.sm }}>
-                    {it.kind === 'conflict' ? (
-                      <>
-                        <Text style={{ fontSize: 11, color: colours.danger, fontWeight: '700', textTransform: 'uppercase' }}>These two disagree</Text>
-                        <Text style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 4 }}>New: {it.text}</Text>
-                        <Text style={{ fontSize: 14, color: colours.muted, lineHeight: 20, marginTop: 2 }}>Old: {it.old}</Text>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.sm }}>
-                          {([['new', 'Keep new'], ['old', 'Keep old'], ['both', 'Both true']] as const).map(([k, label]) => (
-                            <Pressable key={k} disabled={!!busy} onPress={() => settle(it, k)} accessibilityRole="button" style={{ paddingVertical: 7, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: colours.purple, opacity: busy ? 0.5 : 1 }}>
-                              <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 13 }}>{label}</Text>
-                            </Pressable>
-                          ))}
-                        </View>
-                      </>
-                    ) : (
-                      <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'flex-start' }}>
-                        <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <Text style={{ fontSize: 11, color: colours.purpleInk, fontWeight: '700', textTransform: 'uppercase' }}>{it.kind === 'knowledge' && it.about?.[0] ? it.about[0] : it.kind}</Text>
-                            {it.urgent ? <Badge text="Urgent" colour={colours.danger} /> : null}
-                            {lesson === 'proven' ? <Badge text={it.kind === 'mistake' ? 'Learned' : 'Proven'} colour={colours.good} /> : null}
-                            {lesson === 'shaky' ? <Badge text="Not holding up" colour={colours.orange} /> : null}
-                            {it.mine === false && it.id ? <Badge text="Shared" colour={colours.faint} /> : null}
-                            {it.mine && it.private ? <Badge text="Private" colour={colours.purpleInk} /> : null}
-                          </View>
-                          <Text style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 2 }}>{it.text}</Text>
-                        </View>
-                        {canForget ? (
-                          <View style={{ alignItems: 'flex-end', gap: space.sm }}>
-                            <Pressable onPress={() => forget(it)} disabled={busy === it.id} accessibilityRole="button" hitSlop={8}>
-                              <Text style={{ color: armed === it.id ? colours.danger : colours.muted, fontWeight: '700', fontSize: 13 }}>{armed === it.id ? 'Sure?' : 'Forget'}</Text>
-                            </Pressable>
-                            {SHAREABLE_KINDS.includes(it.kind) ? (
-                              <Pressable onPress={() => togglePrivate(it)} disabled={!!busy} accessibilityRole="button" hitSlop={8}>
-                                <Text style={{ color: colours.muted, fontWeight: '700', fontSize: 13 }}>{it.private ? 'Unlock' : 'Private'}</Text>
-                              </Pressable>
-                            ) : null}
-                          </View>
-                        ) : null}
-                      </View>
-                    )}
-                  </View>
-                );
-              })
-            )}
-          </Card>
-        </>
-      ) : null}
 
       {brain && brain.links.length ? (
         <>

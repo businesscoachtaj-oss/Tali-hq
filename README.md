@@ -153,3 +153,6 @@ Asked for by Taj after mockups. Every Me page (Food and training, Goals, Weekly 
 
 ### Brain: the temporal lobe lights up (6 Nov 2026)
 Found while building the website demo. The rule that files cortex dots into parts asked for `y < -0.12`, which no dot ever reached, so the temporal lobe (the people in your world) had no dots and never lit up. It now takes the lower outer sides of each half (about 34 dots).
+
+### Brain screen laid out like the website (6 Nov 2026)
+Asked for by Taj after the website demo. One night card holds the 3D brain, then the part you picked (what it does in you, in Tali, what she studies at night, and the memories she keeps there as cards with a coloured edge, with Forget, Private and settle still working), then every part as a dark chip with its count. The panel always shows a part: the one you tapped, or the first with something in it.
