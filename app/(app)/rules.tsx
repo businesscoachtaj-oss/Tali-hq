@@ -8,6 +8,7 @@ import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Button, Card, ErrorText, Label, Screen, TaliSays, Title, useConfirm } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
+import { answerRuleSuggestion, ruleSuggestions, type RuleSuggestion } from '@/lib/grow';
 
 const TEMPLATES: { type: RuleType; title: string; what: (p: any) => string; defaults: Record<string, any> }[] = [
   {
@@ -47,13 +48,18 @@ export default function Rules() {
   // defaults and a saved "21 days" showed as "14 days". Now the cards wait for the first load, and
   // each card is keyed on the rule id so it remounts with the saved params when a rule appears.
   const [loaded, setLoaded] = useState(false);
+  const [ideas, setIdeas] = useState<RuleSuggestion[]>([]);
 
   const load = useCallback(async () => {
     setError('');
     try {
       const c = await myCredits();
       setPro(isPro(c));
-      if (isPro(c)) setList(await loadRules());
+      if (isPro(c)) {
+        const [r, sg] = await Promise.all([loadRules(), ruleSuggestions()]);
+        setList(r);
+        setIdeas(sg);
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Could not load your rules.');
     } finally {
@@ -105,6 +111,16 @@ export default function Rules() {
     <Screen skin="control">
       <SkinHeader id="control" title="Rules" sub="Set a rule once and Tali handles it automatically. Rules only change things inside Tali HQ. Anything that goes to another person still waits for your yes." onBack={() => router.navigate('/me')} backLabel="Back" />
       <ErrorText>{error}</ErrorText>
+      {ideas.length ? (
+        <>
+          <Label>Tali suggests</Label>
+          {ideas.map((sg) => (
+            <SuggestionCard key={sg.id} sg={sg} onDone={(id) => { setIdeas((l) => l.filter((x) => x.id !== id)); load(); }} />
+          ))}
+          <View style={{ height: space.md }} />
+          <Label>Your rules</Label>
+        </>
+      ) : null}
       {loaded ? TEMPLATES.map((t) => {
         const existing = list.find((r) => r.type === t.type);
         return <RuleCard key={existing?.id ?? t.type} template={t} rule={existing} busy={busy === t.type || busy === existing?.id} onSave={upsert} onRemove={remove} />;
@@ -179,6 +195,37 @@ function RuleCard({
           <Text style={{ color: armed === 'remove' ? colours.danger : colours.muted, fontSize: 13, fontWeight: '600' }}>{armed === 'remove' ? 'Sure?' : 'Remove'}</Text>
         </Pressable>
       ) : null}
+    </Card>
+  );
+}
+
+// 6 Nov 2026 (Taj): rules Tali suggests from what she has seen. Nothing changes until you say yes.
+const FROM = { weekly_review: 'From your weekly review', night_school: 'From night school', chats: 'From your chats' } as const;
+function SuggestionCard({ sg, onDone }: { sg: RuleSuggestion; onDone: (id: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  async function answer(yes: boolean) {
+    setBusy(true);
+    if (await answerRuleSuggestion(sg.id, yes)) onDone(sg.id);
+    setBusy(false);
+  }
+  return (
+    <Card style={{ backgroundColor: colours.purpleSoft, borderColor: colours.purple, borderWidth: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Text style={{ fontSize: 11, color: colours.purpleInk, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', flex: 1 }}>{FROM[sg.from]}</Text>
+        <View style={{ paddingVertical: 2, paddingHorizontal: 8, borderRadius: radius.pill, backgroundColor: colours.surface }}>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: colours.purpleInk }}>{sg.kind === 'habit' ? 'How I work' : 'Automatic'}</Text>
+        </View>
+      </View>
+      <Text style={{ fontSize: 16, fontWeight: '800', color: colours.text, marginTop: 6, lineHeight: 22 }}>{sg.text}</Text>
+      <Text style={{ fontSize: 13, color: colours.muted, marginTop: 4, lineHeight: 19 }}>{sg.why}</Text>
+      <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md }}>
+        <View style={{ flex: 1 }}>
+          <Button title="Yes, add it" onPress={() => answer(true)} disabled={busy} />
+        </View>
+        <Pressable onPress={() => answer(false)} disabled={busy} accessibilityRole="button" style={{ paddingHorizontal: 16, justifyContent: 'center' }}>
+          <Text style={{ color: colours.muted, fontWeight: '700' }}>Not now</Text>
+        </Pressable>
+      </View>
     </Card>
   );
 }

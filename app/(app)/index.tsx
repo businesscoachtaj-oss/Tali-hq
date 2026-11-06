@@ -1,3 +1,4 @@
+import { NightIdeaCard } from '@/components/NightIdeaCard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -174,6 +175,8 @@ export default function Today() {
         ) : null}
 
         <MeetingNudge credits={credits} calendar={calendar} compact />
+
+        <NightIdeaCard />
 
         {newMail.length ? (
           <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">

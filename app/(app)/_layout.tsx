@@ -51,6 +51,7 @@ export default function AppTabs() {
       <Tabs.Screen name="review" options={{ href: null, title: 'Weekly review' }} />
       <Tabs.Screen name="goals" options={{ href: null, title: 'Goals' }} />
       <Tabs.Screen name="money" options={{ href: null, title: 'Money' }} />
+      <Tabs.Screen name="receipts" options={{ href: null, title: 'Receipts' }} />
       <Tabs.Screen name="person" options={{ href: null, title: 'Person' }} />
       <Tabs.Screen name="decisions" options={{ href: null, title: 'Decisions' }} />
     </Tabs>

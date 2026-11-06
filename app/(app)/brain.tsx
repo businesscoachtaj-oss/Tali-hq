@@ -2,8 +2,10 @@
 // part of Tali's memory filed into the part of a human brain that does the same job.
 // Everyone sees their own brain. The founder also gets the main brain: every user's memories light
 // it up, but only his own and the shared brain can be read.
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { BrainGlobe } from '@/components/BrainGlobe';
 import { NightBackground, night } from '@/components/NightSky';
@@ -13,6 +15,7 @@ import { colours, radius, space } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemoryPrivate, settleConflict, type Brain, type BrainItem, type RegionId } from '@/lib/brain';
 import { forgetMemory } from '@/lib/data';
+import { LEVELS, taliLevel, type Level } from '@/lib/level';
 
 const MEMORY_KINDS = ['fact', 'event', 'person', 'lesson', 'mistake', 'rule', 'preference', 'idea', 'plan', 'seen'];
 
@@ -24,6 +27,11 @@ export default function BrainScreen() {
   const [selected, setSelected] = useState<RegionId | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [level, setLevel] = useState<Level | null>(null);
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    taliLevel().then(setLevel).catch(() => setLevel(null));
+  }, []);
   const { armed, confirm } = useConfirm();
   const { width } = useWindowDimensions();
   const size = Math.min(width - space.lg * 2 - space.md * 2, 420);
@@ -47,6 +55,13 @@ export default function BrainScreen() {
   // The panel always shows a part: the one you tapped, or the first part with something in it.
   const shown: RegionId | null = selected ?? (brain ? (REGION_ORDER.find((id) => (counts[id] ?? 0) > 0) ?? REGION_ORDER[0]) : null);
   const region = brain?.regions.find((r) => r.id === shown) ?? null;
+
+  // 6 Nov 2026 (Taj): search everything she keeps, and what she learnt this week.
+  const all = useMemo(() => (brain?.regions ?? []).flatMap((r) => r.items.filter((it) => it.kind !== 'conflict').map((it) => ({ ...it, region: r.id }))), [brain]);
+  const query = q.trim().toLowerCase();
+  const hits = useMemo(() => (query.length < 2 ? [] : all.filter((it) => it.text.toLowerCase().includes(query) || it.about?.some((a) => a.toLowerCase().includes(query)))), [all, query]);
+  const weekAgo = Date.now() - 7 * 86400000;
+  const fresh = useMemo(() => all.filter((it) => it.at && Date.parse(it.at) > weekAgo && it.mine !== false).sort((a, b) => Date.parse(b.at!) - Date.parse(a.at!)), [all, weekAgo]);
 
   function forget(item: BrainItem) {
     const id = item.id;
@@ -107,6 +122,34 @@ export default function BrainScreen() {
             </Pressable>
           ))}
         </View>
+      ) : null}
+
+      {level ? <LevelCard level={level} /> : null}
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.border, borderRadius: radius.pill, paddingHorizontal: 14, marginBottom: space.md }}>
+        <Ionicons name="search" size={17} color={colours.muted} />
+        <TextInput value={q} onChangeText={setQ} placeholder="Search her brain: a name, a client, a topic" placeholderTextColor={colours.faint} style={{ flex: 1, paddingVertical: 11, fontSize: 15, color: colours.text }} accessibilityLabel="Search Tali's brain" returnKeyType="search" />
+        {q ? (
+          <Pressable onPress={() => setQ('')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search">
+            <Ionicons name="close-circle" size={18} color={colours.faint} />
+          </Pressable>
+        ) : null}
+      </View>
+      {query.length >= 2 ? (
+        <Card style={{ marginBottom: space.md }}>
+          <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+            {hits.length ? `${hits.length} ${hits.length === 1 ? 'thing' : 'things'} she knows about "${q.trim()}"` : `Nothing yet about "${q.trim()}"`}
+          </Text>
+          {hits.slice(0, 12).map((it, i) => (
+            <Pressable key={(it.id ?? '') + i} onPress={() => { setSelected(it.region); setQ(''); }} accessibilityRole="button" style={{ flexDirection: 'row', gap: space.sm, paddingVertical: space.sm, borderTopWidth: i ? 1 : 0, borderTopColor: colours.border, marginTop: i ? 0 : space.sm }}>
+              <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: REGIONS[it.region].colour, marginTop: 6 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colours.text, fontSize: 14, lineHeight: 20 }}>{it.text}</Text>
+                <Text style={{ color: colours.faint, fontSize: 12, marginTop: 1 }}>{REGIONS[it.region].name} · {it.kind}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </Card>
       ) : null}
 
       {/* 6 Nov 2026 (Taj): laid out like the website demo. One night card holds the brain, the part you
@@ -218,6 +261,27 @@ export default function BrainScreen() {
 
       {error ? <ErrorText>{error}</ErrorText> : null}
 
+      {brain?.scope === 'mine' && fresh.length ? (
+        <>
+          <View style={{ height: space.lg }} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <Label>New this week</Label>
+            <Text style={{ color: colours.muted, fontSize: 13, fontWeight: '700' }}>{fresh.length} new</Text>
+          </View>
+          <Card>
+            {fresh.slice(0, 6).map((it, i) => (
+              <Pressable key={(it.id ?? '') + i} onPress={() => setSelected(it.region)} accessibilityRole="button" style={{ flexDirection: 'row', gap: space.sm, paddingVertical: space.sm, borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
+                <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: REGIONS[it.region].colour, marginTop: 6 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colours.text, fontSize: 14, lineHeight: 20 }}>{it.text}</Text>
+                  <Text style={{ color: colours.faint, fontSize: 12, marginTop: 1 }}>{REGIONS[it.region].name} · {ago(it.at!)}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </Card>
+        </>
+      ) : null}
+
       {brain && brain.links.length ? (
         <>
           <View style={{ height: space.lg }} />
@@ -247,6 +311,50 @@ function Badge({ text, colour }: { text: string; colour: string }) {
   return (
     <View style={{ paddingVertical: 1, paddingHorizontal: 7, borderRadius: radius.pill, borderWidth: 1, borderColor: colour }}>
       <Text style={{ color: colour, fontSize: 10, fontWeight: '800' }}>{text}</Text>
+    </View>
+  );
+}
+
+function ago(at: string) {
+  const d = Math.floor((Date.now() - Date.parse(at)) / 86400000);
+  return d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
+}
+
+// 6 Nov 2026 (Taj): her level with the whole ladder, so you can see where she's headed.
+function LevelCard({ level }: { level: Level }) {
+  const pct = Math.max(4, Math.round(level.progress * 100));
+  return (
+    <View style={{ borderRadius: radius.card, overflow: 'hidden', marginBottom: space.md }}>
+      <LinearGradient colors={['#4A2160', colours.purple, '#8A4A9E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: space.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#F6B04C', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#2A1235', fontSize: 20, fontWeight: '900' }}>{level.level}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#F6B04C', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }}>TALI'S LEVEL</Text>
+            <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800', marginTop: 1 }}>{level.name}</Text>
+          </View>
+          <Text style={{ color: 'rgba(255,255,255,0.8)', fontWeight: '800', fontSize: 13 }}>{level.xp.toLocaleString('en-AU')} XP</Text>
+        </View>
+        <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.25)', marginTop: space.md, overflow: 'hidden' }}>
+          <LinearGradient colors={['#F6B04C', '#FFD9A0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ width: `${pct}%`, height: '100%', borderRadius: 4 }} />
+        </View>
+        {level.next ? <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 6 }}>{level.toNext.toLocaleString('en-AU')} XP to {level.next}</Text> : null}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: space.md }}>
+          {LEVELS.map((l, i) => {
+            const done = i + 1 < level.level;
+            const now = i + 1 === level.level;
+            return (
+              <View key={l.name} style={{ paddingVertical: 3, paddingHorizontal: 9, borderRadius: radius.pill, backgroundColor: now ? '#F6B04C' : done ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.18)' }}>
+                <Text style={{ color: now ? '#2A1235' : done ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '800' }}>{l.name}</Text>
+              </View>
+            );
+          })}
+        </View>
+        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 17, marginTop: space.md }}>
+          She earns XP for every memory, night school class, journal entry and job she does for you.
+        </Text>
+      </LinearGradient>
     </View>
   );
 }

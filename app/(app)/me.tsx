@@ -140,6 +140,7 @@ export default function Me() {
         <Tile icon="people-outline" tint="orange" title="Clients" sub="Your people" onPress={() => router.navigate('/clients')} />
         <Tile icon="document-text-outline" tint="orange" title="Invoices" sub="Make, share, track" locked={!paid} onPress={() => router.navigate('/invoices')} />
         <Tile icon="wallet-outline" tint="orange" title="Money" sub="In, owed and runway" locked={!paid} onPress={() => router.navigate('/money')} />
+        <Tile icon="file-tray-full-outline" tint="orange" title="Receipts" sub="Ready for tax time" locked={!paid} onPress={() => router.navigate('/receipts' as any)} />
         <Tile icon="mail-outline" tint="orange" title="Email" sub="Sorted, replies drafted" locked={!paid} onPress={() => router.navigate('/inbox')} />
         <Tile icon="flash-outline" tint="orange" title="Rules" sub="What she does on her own" locked={!pro} pro onPress={() => router.navigate('/rules')} />
         <Tile icon="link-outline" tint="orange" title="Connections" sub="Google, Microsoft, Stripe" locked={!paid} onPress={() => router.navigate({ pathname: '/settings', params: { section: 'connections' } })} />
