@@ -27,7 +27,7 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const TALI_MODEL = Deno.env.get('TALI_MODEL') ?? 'claude-haiku-5-5';
 // Deep think (6 Nov 2026, asked for by Taj): one message to a smarter model with more of her brain.
-// Deep: Sonnet, 20 credits (Tali HQ and Pro; Free gets 1 a month). Deepest: Opus, 40 credits (Pro only).
+// Deep think: Sonnet, 20 credits (Tali HQ and Pro; Free gets 1 a month). Big brain (level 'deepest'): Opus, 40 credits (Pro only).
 type DeepLevel = 'deep' | 'deepest';
 const DEEP_MODEL: Record<DeepLevel, string> = {
   deep: Deno.env.get('TALI_DEEP_MODEL') ?? 'claude-sonnet-5-5',
@@ -515,7 +515,7 @@ Deno.serve(async (req) => {
       slow_down: 'Easy, tiger. Give me a minute and try again.',
       no_access: 'Your plan does not include this yet.',
     };
-    if (deep && consume?.reason === 'out_of_credits') copy.out_of_credits = `A Deep think takes ${DEEP_CREDITS[deep]} credits and you have ${consume?.remaining ?? 0} left this month. Send it as a normal message, or they top up on the 1st.`;
+    if (deep && consume?.reason === 'out_of_credits') copy.out_of_credits = `${deep === 'deepest' ? 'Big brain' : 'A Deep think'} takes ${DEEP_CREDITS[deep]} credits and you have ${consume?.remaining ?? 0} left this month. Send it as a normal message, or they top up on the 1st.`;
     return fail(consume?.reason ?? 'no_access', copy[consume?.reason] ?? copy.no_access, 402, { remaining: consume?.remaining ?? 0 });
   }
   const usageId = consume.usage_id as number;

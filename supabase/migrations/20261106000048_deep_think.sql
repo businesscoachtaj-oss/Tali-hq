@@ -1,5 +1,5 @@
 -- Tali HQ, 6 Nov 2026: Deep think (asked for by Taj). One message to a smarter model with more of her
--- brain: Sonnet for 20 credits on Tali HQ and Pro, Opus ("Deepest") for 40 credits on Pro. Free gets 1
+-- brain: Sonnet for 20 credits on Tali HQ and Pro, Opus ("Big brain") for 40 credits on Pro. Free gets 1
 -- Deep think a month, counted on its own (a usage row with feature 'deep_think_free', 0 credits) on
 -- top of the normal message. Idempotent.
 

@@ -348,7 +348,7 @@ export default function Talk() {
                     </View>
                   ) : null}
                   {!me && item.meta?.deep ? (
-                    <Text style={{ color: colours.purpleInk, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 4 }}>{item.meta.deep === 'deepest' ? 'DEEPEST THINK' : 'DEEP THINK'}</Text>
+                    <Text style={{ color: colours.purpleInk, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 4 }}>{item.meta.deep === 'deepest' ? 'BIG BRAIN' : 'DEEP THINK'}</Text>
                   ) : null}
                   {item.content ? (me
                     ? <Text style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
@@ -590,7 +590,7 @@ function Chip({ label, onPress, danger }: { label: string; onPress: () => void; 
 }
 
 // Deep think (6 Nov 2026, asked for by Taj). Above the composer: a switch that sends the next message to a
-// smarter model with more of her brain. Tali HQ: Deep (Sonnet, 20 credits). Pro adds Deepest (Opus, 40).
+// smarter model with more of her brain. Tali HQ: Deep (Sonnet, 20 credits). Pro adds Big brain (Opus, 40).
 // Free gets 1 a month.
 function deepCost(level: DeepLevel, plan: string | null, freeDeep: Credits['deep']) {
   if (plan === 'free') return freeDeep?.remaining ? 'your free one this month' : 'used for this month';
@@ -609,12 +609,12 @@ function DeepSwitch({ plan, freeDeep, value, onChange, topBorder }: { plan: 'fre
           <Pressable key={o} accessibilityRole="switch" accessibilityState={{ checked: on, disabled: freeOut }} disabled={freeOut}
             onPress={() => onChange(on ? null : o)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colours.purple : colours.borderStrong, backgroundColor: on ? colours.purple : colours.bg, opacity: freeOut ? 0.5 : 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: '800', color: on ? colours.onPurple : colours.text }}>{o === 'deepest' ? 'Deepest think' : 'Deep think'}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: on ? colours.onPurple : colours.text }}>{o === 'deepest' ? 'Big brain' : 'Deep think'}</Text>
             <Text style={{ fontSize: 12, color: on ? colours.onPurple : colours.muted }}>{deepCost(o, plan, freeDeep)}</Text>
           </Pressable>
         );
       })}
-      {value ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>{value === 'deepest' ? 'Her strongest thinking, for the big calls. About a minute.' : 'A smarter Tali with more of her memory. About half a minute.'}</Text> : null}
+      {value ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>{value === 'deepest' ? 'Big brain: her strongest thinking, for the big calls. About a minute.' : 'A smarter Tali with more of her memory. About half a minute.'}</Text> : null}
     </View>
   );
 }
