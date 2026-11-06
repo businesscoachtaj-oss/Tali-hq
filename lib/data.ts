@@ -839,6 +839,14 @@ export async function founderStats(): Promise<FounderStats> {
   return data as FounderStats;
 }
 
+// Top ups sold (6 Nov 2026), founder only. Null for everyone else or before migration 050.
+export type FounderTopups = { month_aud: number; month_count: number; total_aud: number; total_count: number };
+export async function founderTopups(): Promise<FounderTopups | null> {
+  const { data, error } = await supabase.rpc('founder_topups');
+  if (error || !data) return null;
+  return data as FounderTopups;
+}
+
 // ---------- Talk back to a draft (2 Nov 2026) ----------
 // instruction: 'shorter' | 'warmer' | 'formal' | 'casual' or anything in the user's words.
 export async function editDraft(approvalId: string, instruction: string): Promise<{ ok: true; body: string; subject: string | null } | { ok: false; message: string }> {
