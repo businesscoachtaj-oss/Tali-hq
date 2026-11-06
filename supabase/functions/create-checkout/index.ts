@@ -1,6 +1,8 @@
 // supabase/functions/create-checkout/index.ts  (Tali HQ project jbyzblwrywgxilhmfyjt)
 //
 // POST { plan: 'hq' | 'pro', interval?: 'month' | 'year', returnUrl: string }
+// POST { topup: pack id, returnUrl: string }  (6 Nov 2026) a one-off payment for extra credits or images,
+//      see _shared/topups.ts. Paid plans and the trial only. stripe-webhook records it with add_topup.
 // Returns { url } for Stripe Checkout (web only; iOS and Android need store billing later).
 // Founding members (subscriptions.founding_member = true) get STRIPE_COUPON_FOUNDING applied forever.
 // The stripe-webhook function writes the result into public.subscriptions.
@@ -9,6 +11,7 @@
 // founding coupon are built into _shared/stripe.ts (STRIPE_PRICE_* and STRIPE_COUPON_FOUNDING override them).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { topupPack } from '../_shared/topups.ts';
 import { COUPON_FOUNDING, PRICE_HQ, PRICE_HQ_YEARLY, PRICE_PRO, PRICE_PRO_YEARLY, stripe, stripeReady } from '../_shared/stripe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
@@ -31,6 +34,7 @@ Deno.serve(async (req) => {
   if (!user) return json({ ok: false, code: 'unauthorized', message: 'Please sign in again.' }, 401);
 
   const body = await req.json().catch(() => ({}));
+  if (body.topup) return topup(user, body);
   const plan = body.plan === 'pro' ? 'pro' : body.plan === 'hq' ? 'hq' : null;
   const yearly = body.interval === 'year';
   if (!plan) return json({ ok: false, code: 'bad_request', message: 'Pick a plan.' }, 400);
@@ -81,3 +85,44 @@ Deno.serve(async (req) => {
     return json({ ok: false, code: 'server_error', message: 'Could not start checkout. Try again in a minute.' }, 500);
   }
 });
+
+// A one-off top up (6 Nov 2026).
+async function topup(user: { id: string; email?: string }, body: any) {
+  const pack = topupPack(body.topup);
+  if (!pack) return json({ ok: false, code: 'bad_request', message: 'Pick a pack.' }, 400);
+  let origin: string;
+  try {
+    origin = new URL(String(body.returnUrl ?? '')).origin;
+  } catch {
+    return json({ ok: false, code: 'bad_request', message: 'Bad return address.' }, 400);
+  }
+  if (!ALLOWED.includes(origin)) return json({ ok: false, code: 'bad_request', message: 'Bad return address.' }, 400);
+
+  const { data: sub } = await admin.from('subscriptions').select('plan_id, status, trial_ends_at, stripe_customer_id').eq('user_id', user.id).maybeSingle();
+  const paid = sub && ((sub.status === 'trialing' && sub.trial_ends_at && new Date(sub.trial_ends_at).getTime() > Date.now()) || (['active', 'past_due'].includes(sub.status) && ['hq', 'pro'].includes(sub.plan_id)));
+  if (!paid) return json({ ok: false, code: 'no_plan', message: 'Top ups are for Tali HQ and Pro. Pick a plan first.' }, 403);
+
+  try {
+    let customer = sub?.stripe_customer_id ?? null;
+    if (!customer) {
+      const c = await stripe('POST', 'customers', { email: user.email, metadata: { tali_user_id: user.id } });
+      customer = c.id as string;
+      await admin.from('subscriptions').update({ stripe_customer_id: customer }).eq('user_id', user.id);
+    }
+    const meta = { kind: 'topup', tali_user_id: user.id, pack: pack.id, credits: String(pack.credits), images: String(pack.images) };
+    const session = await stripe('POST', 'checkout/sessions', {
+      mode: 'payment',
+      customer,
+      client_reference_id: user.id,
+      line_items: [{ quantity: 1, price_data: { currency: 'aud', unit_amount: pack.cents, product_data: { name: pack.name, description: 'Extras never expire. Used after your monthly allowance.' } } }],
+      payment_intent_data: { metadata: meta },
+      metadata: meta,
+      success_url: `${origin}/top-up?done=${pack.id}`,
+      cancel_url: `${origin}/top-up`,
+    });
+    return json({ ok: true, url: session.url });
+  } catch (e) {
+    console.error('create-checkout topup failed', String(e));
+    return json({ ok: false, code: 'server_error', message: 'Could not start checkout. Try again in a minute.' }, 500);
+  }
+}

@@ -3,6 +3,8 @@
 // Keeps public.subscriptions in step with Stripe. Deployed with verify_jwt false; every
 // request is checked against STRIPE_WEBHOOK_SECRET instead.
 // Events: checkout.session.completed, customer.subscription.created / updated / deleted.
+// 6 Nov 2026: a paid one-off checkout with metadata.kind 'topup' adds extra credits and images (add_topup,
+// once per session).
 // A subscription that ends drops the user back to the Free plan (their data stays).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -70,6 +72,21 @@ Deno.serve(async (req) => {
           const sub = await stripe('GET', `subscriptions/${session.subscription}`);
           if (!sub.metadata?.tali_user_id && session.client_reference_id) sub.metadata = { ...sub.metadata, tali_user_id: session.client_reference_id };
           await syncSubscription(sub);
+        }
+        if (session.mode === 'payment' && session.metadata?.kind === 'topup' && session.payment_status === 'paid') {
+          const userId = session.metadata.tali_user_id || session.client_reference_id;
+          if (userId) {
+            const { error } = await admin.rpc('add_topup', {
+              p_user_id: userId,
+              p_pack: String(session.metadata.pack ?? ''),
+              p_credits: Number(session.metadata.credits ?? 0),
+              p_images: Number(session.metadata.images ?? 0),
+              p_amount_cents: Number(session.amount_total ?? 0),
+              p_currency: String(session.currency ?? 'aud'),
+              p_session: session.id,
+            });
+            if (error) throw error;
+          }
         }
         break;
       }

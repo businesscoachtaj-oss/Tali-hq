@@ -36,6 +36,8 @@ export default function Talk() {
   const [text, setText] = useState('');
   const [thinking, setThinking] = useState(false);
   const [notice, setNotice] = useState('');
+  // 6 Nov 2026 (Taj): out of credits shows a Top up button under the notice.
+  const [outOfCredits, setOutOfCredits] = useState(false);
   const [pro, setPro] = useState(false);
   const [plan, setPlan] = useState<'free' | 'hq' | 'pro' | null>(null);
   // Deep think (6 Nov 2026): the next message goes to a smarter model with more of her brain.
@@ -184,6 +186,7 @@ export default function Talk() {
     setDeepSending(null);
     if (level) loadPlan();
     if (res.ok) {
+      setOutOfCredits(false);
       setRows(await loadMessages(conversationId));
       if (res.image) void drawImage(res.image.messageId, res.image.index);
       const bits: string[] = [];
@@ -206,6 +209,7 @@ export default function Talk() {
       if (!direct) setText((cur) => (cur.trim() ? cur : body));
       if (!direct && files.length) setPending(files);
       setNotice(res.message);
+      setOutOfCredits(res.code === 'out_of_credits');
     }
   }
 
@@ -389,6 +393,11 @@ export default function Talk() {
         )}
 
         {notice ? <Text style={{ color: colours.muted, fontSize: 13, textAlign: 'center', paddingHorizontal: space.lg, paddingBottom: 6 }}>{notice}</Text> : null}
+        {notice && outOfCredits ? (
+          <Pressable onPress={() => router.navigate('/top-up' as any)} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: colours.purple, marginBottom: 8 }}>
+            <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 14 }}>Top up</Text>
+          </Pressable>
+        ) : null}
 
         {pending.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: colours.surface, borderTopWidth: 1, borderTopColor: colours.border }}>
