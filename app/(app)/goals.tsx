@@ -10,6 +10,7 @@ import { addDays, friendlyDate, isoDate } from '@/lib/dates';
 import { behindPace, daysLeft, fmtNum, goalLine, goalProgress, goals as loadGoals, saveGoal, setGoalProgress, setGoalStatus, type Goal } from '@/lib/rhythm';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Loading, Screen, TaliSays, Title } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 type Draft = { id?: string; title: string; target: string; current: string; unit: string; due_date: string | null; notes: string };
@@ -132,9 +133,8 @@ export default function GoalsScreen() {
 
   if (!isPaid(credits)) {
     return (
-      <Screen onRefresh={load}>
-        <BackLink onPress={() => router.navigate('/')} label="Today" />
-        <Title sub="The numbers you're chasing, and Tali holding you to them.">Goals</Title>
+      <Screen skin="finish" onRefresh={load}>
+        <SkinHeader id="finish" title="Goals" sub="The numbers you're chasing, and Tali holding you to them." onBack={() => router.navigate('/')} backLabel="Today" />
         <TaliSays pose="think">Goals are part of Tali HQ. Tell me what you're chasing, I'll track it on Today, mention it in your brief when you're behind pace, and ask about it in your weekly review.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
@@ -146,7 +146,7 @@ export default function GoalsScreen() {
 
   if (draft) {
     return (
-      <Screen onRefresh={load}>
+      <Screen skin="finish" onRefresh={load}>
         <BackLink onPress={() => setDraft(null)} label="Goals" />
         <Title sub="A number and a date make it real. Both are optional.">{draft.id ? 'Edit goal' : 'New goal'}</Title>
         <Field label="Goal" value={draft.title} onChangeText={(v) => setDraft({ ...draft, title: v })} placeholder="5 more regular clients" maxLength={120} autoFocus={!draft.id} />
@@ -180,9 +180,8 @@ export default function GoalsScreen() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => router.navigate('/')} label="Today" />
-      <Title sub="The numbers you're chasing, and Tali holding you to them.">Goals</Title>
+    <Screen skin="finish" onRefresh={load}>
+      <SkinHeader id="finish" title="Goals" sub="The numbers you're chasing, and Tali holding you to them." onBack={() => router.navigate('/')} backLabel="Today" />
 
       {active.length === 0 && tab === 'active' ? (
         <TaliSays pose="think">No goals yet. Give me one with a number and a date, like "5 more regular clients by the end of February", and I'll keep it in front of you.</TaliSays>

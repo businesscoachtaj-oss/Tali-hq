@@ -8,6 +8,7 @@ import { isPaid } from '@/lib/plan';
 import { loadMoneyPicture, money0, runwayLabel, saveMoneySettings, taliMoneyLine, type MoneyPicture } from '@/lib/money';
 import { friendlyDate } from '@/lib/dates';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, goBack } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 const num = (s: string) => {
@@ -64,9 +65,8 @@ export default function Money() {
 
   if (credits !== undefined && !isPaid(credits)) {
     return (
-      <Screen>
-        <BackLink onPress={() => goBack('/')} />
-        <Title>Money</Title>
+      <Screen skin="banknote">
+        <SkinHeader id="banknote" title="Money" onBack={() => goBack('/')} backLabel="Back" />
         <TaliSays pose="wave">Cash in, owed, overdue, what goes out and your runway, in one glance each morning. I read it before your brief.</TaliSays>
         <Card>
           <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Money picture is part of Tali HQ</Text>
@@ -80,9 +80,8 @@ export default function Money() {
   const runway = pic ? runwayLabel(pic.runwayWeeks) : null;
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => goBack('/')} />
-      <Title sub="Your view of the month. Tali reads it, nothing here moves money.">Money</Title>
+    <Screen skin="banknote" onRefresh={load}>
+      <SkinHeader id="banknote" title="Money" sub="Your view of the month. Tali reads it, nothing here moves money." onBack={() => goBack('/')} backLabel="Back" />
 
       {pic ? <TaliSays pose={pic.overdueInvoices.length ? 'think' : 'idle'}>{taliMoneyLine(pic)}</TaliSays> : null}
       {error ? <Card><Body muted>{error}</Body></Card> : null}

@@ -24,6 +24,7 @@ import { isPaid } from '@/lib/plan';
 import { money, shareInvoice } from '@/lib/invoicePdf';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, goBack, useConfirm } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 type Tab = 'open' | 'paid' | 'all';
@@ -280,9 +281,8 @@ export default function Invoices() {
   // ---------- Locked on Free ----------
   if (credits !== undefined && !isPaid(credits)) {
     return (
-      <Screen>
-        <BackLink onPress={() => goBack('/me')} />
-        <Title>Invoices</Title>
+      <Screen skin="receipt">
+        <SkinHeader id="receipt" title="Invoices" onBack={() => goBack('/me')} backLabel="Back" />
         <TaliSays pose="wave">Invoices are part of Tali HQ. I'll draft them for you, keep track of who's paid and nudge you when one's overdue.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
@@ -294,7 +294,7 @@ export default function Invoices() {
     const s = editingSettings;
     const set = (patch: Partial<InvoiceSettings>) => setEditingSettings({ ...s, ...patch });
     return (
-      <Screen>
+      <Screen skin="receipt">
         <BackLink onPress={() => { setEditingSettings(null); setError(''); }} />
         <Title sub="These go on every invoice.">Your invoice details</Title>
         <Field label="Business name" value={s.business_name ?? ''} onChangeText={(t) => set({ business_name: t })} maxLength={120} />
@@ -335,7 +335,7 @@ export default function Invoices() {
       : people.slice(0, 6);
 
     return (
-      <Screen>
+      <Screen skin="receipt">
         <BackLink onPress={() => { setDraft(null); setError(''); setConfirmDelete(false); }} />
         <Title sub={draft.created_by === 'tali' && draft.status === 'draft' ? 'Tali drafted this one. Check it over before you send it.' : undefined}>
           {draft.number ?? 'New invoice'}
@@ -436,9 +436,8 @@ export default function Invoices() {
 
   // ---------- List ----------
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => goBack('/me')} />
-      <Title sub="Or just tell Tali: invoice Jordan for 4 PT sessions at $80.">Invoices</Title>
+    <Screen skin="receipt" onRefresh={load}>
+      <SkinHeader id="receipt" title="Invoices" sub="Or just tell Tali: invoice Jordan for 4 PT sessions at $80." onBack={() => goBack('/me')} backLabel="Back" />
       {note ? <Text style={{ color: colours.good, fontWeight: '700', marginBottom: space.md, lineHeight: 20 }}>{note}</Text> : null}
       {loaded && !stripeOn ? (
         <Pressable onPress={() => router.navigate({ pathname: '/settings', params: { section: 'connections' } })} accessibilityRole="button">

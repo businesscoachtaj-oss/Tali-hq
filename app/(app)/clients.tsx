@@ -5,6 +5,7 @@ import { clients as loadClients, deleteClient, saveClient, type Client } from '@
 import { addDays, friendlyDate, FOLLOW_UP_PICKS, isoDate, today } from '@/lib/dates';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 // 4 Nov 2026: which quick pick matches a saved follow-up date, so the chip row shows the right one.
@@ -124,7 +125,7 @@ export default function Clients() {
     const statuses = draft.kind === 'lead' ? LEAD_STATUSES : CLIENT_STATUSES;
     const pickFollow = (days: number | null) => setDraft({ ...draft, next_follow_up: days === null ? null : isoDate(addDays(new Date(), days)) });
     return (
-      <Screen>
+      <Screen skin="cork">
         <BackLink onPress={() => closeEditor(draft.id)} label={fromPerson ? draft.name || 'Back' : 'Back'} />
         <Title>{draft.id ? draft.name || 'Edit' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
         <ChipPicker options={['client', 'lead'] as const} value={draft.kind} label={(k) => (k === 'lead' ? 'Lead' : 'Client')}
@@ -155,8 +156,8 @@ export default function Clients() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <Title sub="Tali reads this before chats and briefs. You can also just tell her: add Mia as a new lead.">Clients</Title>
+    <Screen skin="cork" onRefresh={load}>
+      <SkinHeader id="cork" title="Clients" sub="Tali reads this before chats and briefs. You can also just tell her: add Mia as a new lead." />
       <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
         {(['client', 'lead'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}

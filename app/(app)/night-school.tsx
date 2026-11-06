@@ -6,6 +6,7 @@ import { friendlyDate } from '@/lib/dates';
 import { isPro } from '@/lib/plan';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint, goBack } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 const IDEAS = ['Instagram for my business', 'Getting more Google reviews', 'Pricing my services', 'Keeping clients longer', 'Small business tax basics'];
@@ -77,9 +78,8 @@ export default function NightSchoolScreen() {
 
   if (pro === false) {
     return (
-      <Screen>
-        <BackLink onPress={() => goBack('/me')} />
-        <Title>Night school</Title>
+      <Screen skin="nightschool">
+        <SkinHeader id="nightschool" title="Night school" onBack={() => goBack('/me')} backLabel="Me" />
         <TaliSays pose="think">Night school is part of Tali HQ Pro. You pick what I study, I research it late at night and tell you what I learnt in the morning.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
@@ -88,7 +88,7 @@ export default function NightSchoolScreen() {
 
   if (open) {
     return (
-      <Screen>
+      <Screen skin="nightschool">
         <BackLink onPress={() => setOpen(null)} label="Night school" />
         <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>{open.topic} · {friendlyDate(open.for_date)}</Text>
         <Title>{open.headline}</Title>
@@ -116,9 +116,8 @@ export default function NightSchoolScreen() {
   const changed = JSON.stringify(saved ?? { enabled: true, topics: [], nights: 'three' }) !== JSON.stringify(ns);
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => goBack('/me')} />
-      <Title sub="Pick up to three things for Tali to study. Late at night she researches one, saves what she learns, and you'll find her notes here.">Night school</Title>
+    <Screen skin="nightschool" onRefresh={load}>
+      <SkinHeader id="nightschool" title="Night school" sub="Pick up to three things for Tali to study. Late at night she researches one, saves what she learns, and you'll find her notes here." onBack={() => goBack('/me')} backLabel="Me" />
 
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

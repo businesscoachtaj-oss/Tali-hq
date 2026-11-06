@@ -6,6 +6,7 @@ import { friendlyTime } from '@/lib/dates';
 import { isPro } from '@/lib/plan';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Button, Card, ErrorText, Label, Screen, TaliSays, Title, useConfirm } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 const TEMPLATES: { type: RuleType; title: string; what: (p: any) => string; defaults: Record<string, any> }[] = [
@@ -92,9 +93,8 @@ export default function Rules() {
 
   if (pro === false) {
     return (
-      <Screen>
-        <BackLink onPress={() => router.navigate('/me')} />
-        <Title>Rules</Title>
+      <Screen skin="control">
+        <SkinHeader id="control" title="Rules" onBack={() => router.navigate('/me')} backLabel="Back" />
         <TaliSays pose="think">Rules are part of Tali HQ Pro. You set the rule once and I handle it automatically, like flagging quiet clients or drafting reminders for overdue invoices.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
@@ -102,9 +102,8 @@ export default function Rules() {
   }
 
   return (
-    <Screen>
-      <BackLink onPress={() => router.navigate('/me')} />
-      <Title sub="Set a rule once and Tali handles it automatically. Rules only change things inside Tali HQ. Anything that goes to another person still waits for your yes.">Rules</Title>
+    <Screen skin="control">
+      <SkinHeader id="control" title="Rules" sub="Set a rule once and Tali handles it automatically. Rules only change things inside Tali HQ. Anything that goes to another person still waits for your yes." onBack={() => router.navigate('/me')} backLabel="Back" />
       <ErrorText>{error}</ErrorText>
       {loaded ? TEMPLATES.map((t) => {
         const existing = list.find((r) => r.type === t.type);

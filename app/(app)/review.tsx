@@ -9,6 +9,7 @@ import { isPaid } from '@/lib/plan';
 import { addDays, isoDate } from '@/lib/dates';
 import { commitmentsFor, reviewFor, reviewWeekStart, reviews as loadReviews, rhythmSettings, runReview, saveCommitments, weekLabel, type Commitment, type Review } from '@/lib/rhythm';
 import { BackLink, Body, Button, Card, ErrorText, Label, Loading, Screen, TaliSays, Title } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 const nextWeekOf = (weekStart: string) => isoDate(addDays(new Date(`${weekStart}T12:00:00`), 7));
@@ -93,9 +94,8 @@ export default function ReviewScreen() {
 
   if (!isPaid(credits)) {
     return (
-      <Screen onRefresh={load}>
-        <BackLink onPress={() => router.navigate('/')} label="Today" />
-        <Title sub="Ten minutes a week with Tali on what moved, what slipped and what's next.">Weekly review</Title>
+      <Screen skin="planner" onRefresh={load}>
+        <SkinHeader id="planner" title="Weekly review" sub="Ten minutes a week with Tali on what moved, what slipped and what's next." onBack={() => router.navigate('/')} backLabel="Today" />
         <TaliSays pose="think">The weekly review is part of Tali HQ. I pull your week together, money and quiet clients included, and we set your three for next week.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
@@ -105,9 +105,8 @@ export default function ReviewScreen() {
   // Read only view of a past week.
   if (viewing) {
     return (
-      <Screen onRefresh={load}>
-        <BackLink onPress={() => setViewing(null)} label="This week" />
-        <Title sub={`Week of ${weekLabel(viewing.week_start)}`}>Weekly review</Title>
+      <Screen skin="planner" onRefresh={load}>
+        <SkinHeader id="planner" title="Weekly review" sub={`Week of ${weekLabel(viewing.week_start)}`} onBack={() => setViewing(null)} backLabel="This week" />
         <ReviewBody review={viewing} />
         <PastCommitments weekStart={nextWeekOf(viewing.week_start)} />
       </Screen>
@@ -115,9 +114,8 @@ export default function ReviewScreen() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => router.navigate('/')} label="Today" />
-      <Title sub={`Week of ${weekLabel(weekStart)}`}>Weekly review</Title>
+    <Screen skin="planner" onRefresh={load}>
+      <SkinHeader id="planner" title="Weekly review" sub={`Week of ${weekLabel(weekStart)}`} onBack={() => router.navigate('/')} backLabel="Today" />
 
       {!review ? (
         <>

@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
+import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -26,9 +27,10 @@ export const tali = {
 };
 
 // 4 Nov 2026: optional pull to refresh (pass the screen's load) so every list screen can refresh, not just Today.
-export function Screen({ children, scroll = true, onRefresh }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void }>) {
+export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
+  if (skin) bg = SKINS[skin].bg;
   const [refreshing, setRefreshing] = useState(false);
-  const body = <View style={styles.inner}>{children}</View>;
+  const body = <SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider>;
   const refresh = onRefresh
     ? (
         <RefreshControl
@@ -42,7 +44,7 @@ export function Screen({ children, scroll = true, onRefresh }: PropsWithChildren
       )
     : undefined;
   return (
-    <SafeAreaView style={styles.safe} edges={NO_BOTTOM}>
+    <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -118,13 +120,14 @@ export function Button({
   disabled?: boolean;
 }) {
   const off = disabled || busy;
+  const brand = colours.purple;
   return (
     <Pressable
       accessibilityRole="button"
       onPress={off ? undefined : onPress}
       style={({ pressed }) => [
         styles.btn,
-        kind === 'primary' && { backgroundColor: colours.purple, borderColor: colours.purple, ...elevation.button(colours.purple) },
+        kind === 'primary' && { backgroundColor: brand, borderColor: brand, ...elevation.button(brand) },
         kind === 'danger' && { borderColor: colours.danger, ...elevation.button(colours.danger) },
         off && { opacity: 0.55 },
         pressed && !off && { opacity: 0.85 },
@@ -203,6 +206,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: colours.text,
+    ...elevation.lift,
   },
   btn: {
     borderRadius: radius.pill,
@@ -214,6 +218,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: space.sm,
+    ...elevation.lift,
   },
   btnText: { fontSize: 16, fontWeight: '700', color: colours.text },
   says: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md, marginBottom: space.lg },
@@ -224,6 +229,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     borderBottomLeftRadius: 6,
     padding: space.md,
+    borderWidth: 1,
+    borderColor: 'rgba(108,52,131,0.08)',
+    ...elevation.lift,
   },
   error: { color: colours.danger, fontSize: 14, marginTop: space.sm },
 });
@@ -231,7 +239,7 @@ const styles = StyleSheet.create({
 // A quiet empty-state line for a section, so Tali only speaks once per screen (3 Nov 2026).
 export function Hint({ children }: PropsWithChildren) {
   return (
-    <Card style={{ backgroundColor: colours.sunk, paddingVertical: space.md }}>
+    <Card style={{ paddingVertical: space.md }}>
       <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20 }}>{children}</Text>
     </Card>
   );

@@ -27,6 +27,8 @@ export const elevation = {
   card: { shadowColor: ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
   // grey tiles inside a card (stat boxes, counters, strips)
   tile: { shadowColor: ink, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  // 6 Nov 2026 (depth pass): white buttons, chips and inputs get a small lift so nothing sits flat
+  lift: { shadowColor: ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.11, shadowRadius: 9, elevation: 3 },
   // filled brand-colour buttons: pass the button colour so the glow is in its own colour
   button: (colour: string) => ({ shadowColor: colour, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 }),
   // floating round buttons (help "?", add, etc.)
