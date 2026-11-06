@@ -381,6 +381,10 @@ async function callClaude(system: string, messages: Turn[], opts: { web: boolean
   const useModel = opts.model ?? TALI_MODEL;
   let model = useModel;
   const texts: string[] = [];
+  // FIX (6 Nov 2026): the Deep think and Big brain models refuse a forced tool_choice
+  // ("tool" or "any"), so every Deep think failed with a 400. When a model says so, ask again
+  // with tool_choice auto; she still answers through tali_reply, or as plain text (handled below).
+  let forceTool = true;
   for (let round = 0; round < 3; round++) {
     let data: any = null;
     let lastErr = '';
@@ -397,7 +401,7 @@ async function callClaude(system: string, messages: Turn[], opts: { web: boolean
             system,
             tools,
             // With web search on, Claude may search first and then answer through tali_reply.
-            tool_choice: opts.web ? { type: 'any' } : { type: 'tool', name: TOOL.name },
+            tool_choice: !forceTool ? { type: 'auto' } : opts.web ? { type: 'any' } : { type: 'tool', name: TOOL.name },
             messages: convo,
           }),
           signal: controller.signal,
@@ -408,7 +412,15 @@ async function callClaude(system: string, messages: Turn[], opts: { web: boolean
           await new Promise((r) => setTimeout(r, 800));
           continue;
         }
-        if (!res.ok) throw new Error(`Claude ${res.status}: ${await res.text()}`);
+        if (!res.ok) {
+          const errText = await res.text();
+          if (res.status === 400 && forceTool && /tool_choice/i.test(errText)) {
+            forceTool = false;
+            attempt--;
+            continue;
+          }
+          throw new Error(`Claude ${res.status}: ${errText}`);
+        }
         data = await res.json();
       } catch (e) {
         clearTimeout(timer);
