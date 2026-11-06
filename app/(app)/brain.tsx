@@ -29,6 +29,9 @@ export default function BrainScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [level, setLevel] = useState<Level | null>(null);
   const [q, setQ] = useState('');
+  // 6 Nov 2026 (Taj): what she keeps in a part is a drop down, closed by default, 5 at a time.
+  const [keepsOpen, setKeepsOpen] = useState(false);
+  const [keepsShown, setKeepsShown] = useState(5);
   useEffect(() => {
     taliLevel().then(setLevel).catch(() => setLevel(null));
   }, []);
@@ -55,6 +58,10 @@ export default function BrainScreen() {
   // The panel always shows a part: the one you tapped, or the first part with something in it.
   const shown: RegionId | null = selected ?? (brain ? (REGION_ORDER.find((id) => (counts[id] ?? 0) > 0) ?? REGION_ORDER[0]) : null);
   const region = brain?.regions.find((r) => r.id === shown) ?? null;
+  useEffect(() => {
+    setKeepsOpen(false);
+    setKeepsShown(5);
+  }, [shown]);
 
   // 6 Nov 2026 (Taj): search everything she keeps, and what she learnt this week.
   const all = useMemo(() => (brain?.regions ?? []).flatMap((r) => r.items.filter((it) => it.kind !== 'conflict').map((it) => ({ ...it, region: r.id }))), [brain]);
@@ -175,12 +182,21 @@ export default function BrainScreen() {
             {/* 6 Nov 2026 (Taj): Tali's education, a part of the brain each night. */}
             <Text style={{ color: night.faint, fontSize: 13, lineHeight: 18, marginTop: 4 }}>Studies at night: {REGIONS[region.id].studies}</Text>
 
-            <Text style={{ color: night.faint, fontSize: 11, fontWeight: '800', letterSpacing: 0.9, textTransform: 'uppercase', marginTop: space.lg, marginBottom: space.sm }}>What she keeps here</Text>
-            {region.items.length === 0 ? (
-              <Text style={{ color: night.muted }}>Nothing here yet.</Text>
-            ) : (
-              <View style={{ gap: 8 }}>
-                {region.items.map((it, i) => {
+            <Pressable
+              onPress={() => { setKeepsOpen((o) => !o); setKeepsShown(5); }}
+              disabled={region.items.length === 0}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: keepsOpen }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.lg, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, backgroundColor: night.glass, borderWidth: 1, borderColor: night.line }}
+            >
+              <Text style={{ flex: 1, color: night.ink, fontSize: 14, fontWeight: '800' }}>
+                {region.items.length === 0 ? 'Nothing here yet' : `What she keeps here (${region.items.length})`}
+              </Text>
+              {region.items.length ? <Ionicons name={keepsOpen ? 'chevron-up' : 'chevron-down'} size={18} color={night.muted} /> : null}
+            </Pressable>
+            {!keepsOpen || region.items.length === 0 ? null : (
+              <View style={{ gap: 8, marginTop: space.sm }}>
+                {region.items.slice(0, keepsShown).map((it, i) => {
                   const lesson = lessonState(it);
                   const canForget = !!it.id && it.mine && MEMORY_KINDS.includes(it.kind);
                   return (
@@ -228,6 +244,11 @@ export default function BrainScreen() {
                     </View>
                   );
                 })}
+                {region.items.length > keepsShown ? (
+                  <Pressable onPress={() => setKeepsShown((n) => n + 10)} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 16 }}>
+                    <Text style={{ color: night.accent, fontWeight: '800' }}>Show {Math.min(10, region.items.length - keepsShown)} more</Text>
+                  </Pressable>
+                ) : null}
               </View>
             )}
           </View>
