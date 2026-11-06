@@ -101,7 +101,7 @@ export default function Me() {
             {/* 6 Nov 2026 (Taj): buy extra credits. MOCKUP. */}
             <Pressable onPress={() => router.navigate('/top-up' as any)} accessibilityRole="button" style={{ marginTop: space.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
               <Ionicons name="add-circle-outline" size={18} color={colours.purple} />
-              <Text style={{ color: colours.purple, fontWeight: '800', fontSize: 14 }}>Top up credits</Text>
+              <Text style={{ color: colours.purple, fontWeight: '800', fontSize: 14 }}>Top up</Text>
             </Pressable>
           </>
         ) : credits ? (
