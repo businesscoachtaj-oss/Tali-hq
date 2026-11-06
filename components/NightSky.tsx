@@ -49,10 +49,10 @@ export function Sky({ children, dark }: { children: ReactNode; dark?: boolean })
 }
 
 /** The same sky behind one card. Pass the card's radius through `style` so the stars are clipped to it. */
-export function NightBackground({ style, colors }: { style?: StyleProp<ViewStyle>; colors?: readonly [string, string, ...string[]] }) {
+export function NightBackground({ style }: { style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }, style]} pointerEvents="none">
-      <LinearGradient colors={[...(colors ?? night.sky)] as [string, string, ...string[]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[...night.sky]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <Stars stars={CARD_STARS} />
     </View>
   );

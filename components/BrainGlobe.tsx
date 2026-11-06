@@ -150,9 +150,9 @@ const DotView = memo(function DotView({ d, spin, half, scale, glow, colour, mode
     <Animated.View style={[styles.dot, { width: base, height: base }, style]}>
       {mode === 'on' ? (
         <>
-          <View style={[styles.ring, { width: base * 4, height: base * 4, left: -base * 1.5, top: -base * 1.5, borderRadius: base * 2, backgroundColor: colour, opacity: 0.06 }]} />
-          <View style={[styles.ring, { width: base * 2.6, height: base * 2.6, left: -base * 0.8, top: -base * 0.8, borderRadius: base * 1.3, backgroundColor: colour, opacity: 0.1 }]} />
-          <View style={[styles.ring, { width: base * 1.6, height: base * 1.6, left: -base * 0.3, top: -base * 0.3, borderRadius: base * 0.8, backgroundColor: colour, opacity: 0.22 }]} />
+          <View style={[styles.ring, { width: base * 4, height: base * 4, left: -base * 1.5, top: -base * 1.5, borderRadius: base * 2, backgroundColor: colour, opacity: 0.1 }]} />
+          <View style={[styles.ring, { width: base * 2.6, height: base * 2.6, left: -base * 0.8, top: -base * 0.8, borderRadius: base * 1.3, backgroundColor: colour, opacity: 0.16 }]} />
+          <View style={[styles.ring, { width: base * 1.6, height: base * 1.6, left: -base * 0.3, top: -base * 0.3, borderRadius: base * 0.8, backgroundColor: colour, opacity: 0.3 }]} />
         </>
       ) : null}
       <View style={[styles.ring, { width: base, height: base, left: 0, top: 0, borderRadius: base / 2, backgroundColor: colour }]} />

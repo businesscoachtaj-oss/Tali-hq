@@ -17,9 +17,6 @@ import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemory
 import { forgetMemory } from '@/lib/data';
 import { LEVELS, taliLevel, type Level } from '@/lib/level';
 
-// The website demo's night sky (tali-hq.html .bd): purple at the top left to near black.
-const BRAIN_SKY = ['#2B2363', '#17133A', '#0E0B26'] as const;
-
 const MEMORY_KINDS = ['fact', 'event', 'person', 'lesson', 'mistake', 'rule', 'preference', 'idea', 'plan', 'seen'];
 
 export default function BrainScreen() {
@@ -167,7 +164,7 @@ export default function BrainScreen() {
       {/* 6 Nov 2026 (Taj): laid out like the website demo. One night card holds the brain, the part you
           picked (what it does in a person, in Tali, and what she keeps there), then every part as a chip. */}
       <View style={{ borderRadius: radius.card, overflow: 'hidden', padding: space.md, paddingBottom: space.lg }}>
-        <NightBackground style={{ borderRadius: radius.card }} colors={BRAIN_SKY} />
+        <NightBackground style={{ borderRadius: radius.card }} />
         <View style={{ alignItems: 'center' }}>
           <BrainGlobe size={size} counts={counts} links={brain?.links ?? []} selected={shown} onSelect={pick} />
           <Text style={{ color: night.faint, fontSize: 12, marginTop: space.xs }}>Drag to spin, pinch to zoom, tap a part</Text>
