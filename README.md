@@ -150,3 +150,6 @@ Asked for by Taj after a mockup. Header with initial avatar and a Settings gear;
 
 ### Page banners, depth and Sleep (6 Nov 2026)
 Asked for by Taj after mockups. Every Me page (Food and training, Goals, Weekly review, Shutdown, Decisions, Clients, Invoices, Money, Inbox, Rules, Night school) opens with its own gradient banner (`SkinHeader` in `components/PageSkin.tsx`): an Ionicon, a kicker line, the title and the sub, with a matching soft page background via `<Screen skin="...">`. Depth pass to match Totality and Nutrition: buttons, inputs, chat bubbles and chips now sit on a soft shadow (`elevation.lift`). Sleep redone as a blend of the night sky look and a calmer layout: Tali asleep in a glowing moon up top, round sound type buttons with line icons, one list of sounds with play and pick, a sliding How long pill (with until morning), and the fade switch under Start.
+
+### Brain: the temporal lobe lights up (6 Nov 2026)
+Found while building the website demo. The rule that files cortex dots into parts asked for `y < -0.12`, which no dot ever reached, so the temporal lobe (the people in your world) had no dots and never lit up. It now takes the lower outer sides of each half (about 34 dots).

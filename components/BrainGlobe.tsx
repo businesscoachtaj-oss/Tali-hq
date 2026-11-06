@@ -26,7 +26,8 @@ function rng(seed: number) {
 function cortexRegion(p: P3): RegionId {
   if (p.z > 0.62 && p.y > -0.2) return 'prefrontal';
   if (p.z < -0.58) return 'occipital';
-  if (p.y < -0.12 && p.z > -0.58 && p.z < 0.62) return 'temporal';
+  // 6 Nov 2026: was p.y < -0.12, which no dot ever reached, so the temporal lobe was empty.
+  if (p.y < 0.22 && Math.abs(p.x) > 0.28 && p.z > -0.58 && p.z < 0.62) return 'temporal';
   if (p.z > 0.12) return 'frontal';
   return 'parietal';
 }
