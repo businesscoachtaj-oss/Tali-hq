@@ -203,6 +203,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: colours.text,
+    ...elevation.lift,
   },
   btn: {
     borderRadius: radius.pill,
@@ -214,6 +215,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: space.sm,
+    ...elevation.lift,
   },
   btnText: { fontSize: 16, fontWeight: '700', color: colours.text },
   says: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md, marginBottom: space.lg },
@@ -224,6 +226,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     borderBottomLeftRadius: 6,
     padding: space.md,
+    borderWidth: 1,
+    borderColor: 'rgba(108,52,131,0.08)',
+    ...elevation.lift,
   },
   error: { color: colours.danger, fontSize: 14, marginTop: space.sm },
 });
@@ -231,7 +236,7 @@ const styles = StyleSheet.create({
 // A quiet empty-state line for a section, so Tali only speaks once per screen (3 Nov 2026).
 export function Hint({ children }: PropsWithChildren) {
   return (
-    <Card style={{ backgroundColor: colours.sunk, paddingVertical: space.md }}>
+    <Card style={{ paddingVertical: space.md }}>
       <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20 }}>{children}</Text>
     </Card>
   );

@@ -7,6 +7,7 @@ import { isPro } from '@/lib/plan';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint, goBack } from '@/components/ui';
 import { ThemeHero, THEMES } from '@/components/PageTheme';
+import { BusButton, ChalkChip, ChalkDust, ChalkHeader, ChalkLabel, Paper, Sticky, school } from '@/components/SchoolTheme';
 import { colours, radius, space } from '@/constants/theme';
 
 const IDEAS = ['Instagram for my business', 'Getting more Google reviews', 'Pricing my services', 'Keeping clients longer', 'Small business tax basics'];
@@ -116,65 +117,67 @@ export default function NightSchoolScreen() {
   const changed = JSON.stringify(saved ?? { enabled: true, topics: [], nights: 'three' }) !== JSON.stringify(ns);
 
   return (
-    <Screen bg={THEMES.nightschool.bg} onRefresh={load}>
-      <ThemeHero theme="nightschool" title="Night school" sub="Pick up to three things for Tali to study. Late at night she researches one, saves what she learns, and you'll find her notes here." onBack={() => goBack('/me')} backLabel="Me" />
+    <Screen bg={school.board} onRefresh={load}>
+      <ChalkDust />
+      <ChalkHeader title="Night school" sub="Pick up to three things for Tali to study. Late at night she researches one, saves what she learns, and her notes land here." onBack={() => goBack('/me')} backLabel="Me" />
 
-      <Card>
+      <Paper lines={2}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{ns.enabled ? 'Night school is on' : 'Night school is off'}</Text>
-          <Switch value={ns.enabled} onValueChange={(v) => setNs({ ...ns, enabled: v })} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
+          <Text style={{ fontSize: 16, fontWeight: '800', color: school.ink }}>{ns.enabled ? 'Class is on' : 'Class is off'}</Text>
+          <Switch value={ns.enabled} onValueChange={(v) => setNs({ ...ns, enabled: v })} trackColor={{ true: '#2F8F5B', false: '#C9C3B5' }} thumbColor="#FFFFFF" {...({ activeThumbColor: "#FFFFFF" } as object)} />
         </View>
-      </Card>
+        <Text style={{ fontSize: 13, color: '#5A6478', marginTop: 4 }}>{ns.nights === 'every' ? 'Every night' : 'Monday, Wednesday and Friday nights'}</Text>
+      </Paper>
 
-      <Label>What she studies</Label>
+      <ChalkLabel right={<Text style={{ color: school.chalkFaint, fontSize: 12 }}>{ns.topics.length} of 3</Text>}>Her subjects</ChalkLabel>
       {ns.topics.map((t, i) => (
-        <Card key={t} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md }}>
-          <Text style={{ flex: 1, fontSize: 15, color: colours.text, fontWeight: '600' }}>{t}</Text>
-          <Pressable onPress={() => setNs({ ...ns, topics: ns.topics.filter((_, j) => j !== i) })} hitSlop={8}>
-            <Text style={{ color: colours.danger, fontWeight: '700', fontSize: 13 }}>Remove</Text>
-          </Pressable>
-        </Card>
+        <Sticky key={t} i={i}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Text style={{ flex: 1, fontSize: 16, color: '#3A2F12', fontWeight: '700' }}>{t}</Text>
+            <Pressable onPress={() => setNs({ ...ns, topics: ns.topics.filter((_, j) => j !== i) })} hitSlop={8}>
+              <Text style={{ color: '#9A3324', fontWeight: '800', fontSize: 13 }}>Rub out</Text>
+            </Pressable>
+          </View>
+        </Sticky>
       ))}
       {ns.topics.length < 3 ? (
         <>
-          <TextInput value={newTopic} onChangeText={setNewTopic} placeholder="e.g. Instagram ideas for cafes" placeholderTextColor={colours.faint} maxLength={80}
+          <TextInput value={newTopic} onChangeText={setNewTopic} placeholder="Write a subject, e.g. Instagram ideas for cafes" placeholderTextColor={school.chalkFaint} maxLength={80}
             onSubmitEditing={() => addTopic(newTopic)} returnKeyType="done"
-            style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 14, paddingVertical: 11, fontSize: 16, color: colours.text, marginBottom: space.sm }} />
-          <Button title="Add topic" kind="ghost" onPress={() => addTopic(newTopic)} />
+            style={{ borderBottomWidth: 1.5, borderBottomColor: school.chalkSoft, paddingHorizontal: 4, paddingVertical: 10, fontSize: 16, color: school.chalk, marginTop: 4, marginBottom: 6 }} />
+          <BusButton title="Add subject" outline onPress={() => addTopic(newTopic)} />
           {ns.topics.length === 0 ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.md }}>
-              {IDEAS.map((idea) => (
-                <Pressable key={idea} onPress={() => addTopic(idea)} style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
-                  <Text style={{ color: colours.purpleInk, fontWeight: '600' }}>{idea}</Text>
-                </Pressable>
-              ))}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+              {IDEAS.map((idea) => <ChalkChip key={idea} label={idea} on={false} onPress={() => addTopic(idea)} />)}
             </View>
           ) : null}
         </>
       ) : null}
 
-      <View style={{ height: space.md }} />
-      <Label>How often</Label>
-      <ChipPicker options={['three', 'every'] as const} value={ns.nights} label={(n) => (n === 'every' ? 'Every night' : 'Mon, Wed and Fri')} onChange={(n) => setNs({ ...ns, nights: n })} />
-      <Text style={{ color: colours.muted, fontSize: 13, marginTop: -6, marginBottom: space.md, lineHeight: 19 }}>
-        Each night uses a few credits: 1 for the night plus 2 for each web search, usually 3 to 7 all up.
-      </Text>
+      <ChalkLabel>Class nights</ChalkLabel>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <ChalkChip label="Mon, Wed and Fri" on={ns.nights !== 'every'} onPress={() => setNs({ ...ns, nights: 'three' })} />
+        <ChalkChip label="Every night" on={ns.nights === 'every'} onPress={() => setNs({ ...ns, nights: 'every' })} />
+      </View>
+      <Text style={{ color: school.chalkFaint, fontSize: 12, marginTop: 8, lineHeight: 18 }}>A few credits a night: 1 for the class plus 2 for each web search, usually 3 to 7 all up.</Text>
 
       <ErrorText>{error}</ErrorText>
-      {done ? <Text style={{ color: colours.good, fontWeight: '700', marginTop: space.sm }}>{done}</Text> : null}
-      <Button title="Save" onPress={save} busy={busy} disabled={!changed} />
+      {done ? <Text style={{ color: '#9BE3B5', fontWeight: '700', marginTop: space.sm }}>{done}</Text> : null}
+      <BusButton title={busy ? 'Saving...' : 'Save'} onPress={save} disabled={!changed || busy} />
 
-      <View style={{ height: space.lg }} />
-      <Label>What I learnt</Label>
+      <ChalkLabel>Her notes</ChalkLabel>
       {notes.length === 0 ? (
-        <Hint>{ns.topics.length ? 'Her first notes show up the morning after her first night.' : 'Add a topic and her notes land here.'}</Hint>
+        <Paper lines={2}><Text style={{ color: '#5A6478', fontSize: 14, fontStyle: 'italic' }}>{ns.topics.length ? 'Her first notes show up the morning after her first class.' : 'Add a subject and her notes land here.'}</Text></Paper>
       ) : (
         notes.map((n) => (
           <Pressable key={n.id} onPress={() => { setOpen(n); if (!n.read_at) markNightNoteRead(n.id).then(load); }}>
-            <Card style={!n.read_at ? { borderLeftWidth: 5, borderLeftColor: colours.purple } : undefined}>
-              <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>{n.topic} · {friendlyDate(n.for_date)}</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text, marginTop: 4 }}>{n.headline}</Text>
-            </Card>
+            <Paper lines={3}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ flex: 1, fontSize: 11, color: '#6B7487', fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' }}>{n.topic} · {friendlyDate(n.for_date)}</Text>
+                {!n.read_at ? <Text style={{ fontSize: 10, fontWeight: '900', color: '#FFFFFF', backgroundColor: '#D64A4A', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' }}>NEW</Text> : null}
+              </View>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: school.ink, marginTop: 6, lineHeight: 24 }}>{n.headline}</Text>
+            </Paper>
           </Pressable>
         ))
       )}

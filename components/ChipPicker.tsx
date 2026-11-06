@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { colours, radius, space } from '@/constants/theme';
+import { colours, elevation, radius, space } from '@/constants/theme';
 
 export function ChipPicker<T extends string>({
   options,
@@ -29,6 +29,7 @@ export function ChipPicker<T extends string>({
               borderWidth: 1,
               borderColor: on ? colours.purple : colours.borderStrong,
               backgroundColor: on ? colours.purple : colours.surface,
+              ...(on ? elevation.button(colours.purple) : elevation.lift),
             }}>
             <Text style={{ color: on ? colours.onPurple : colours.text, fontWeight: '600' }}>{label(o)}</Text>
           </Pressable>
