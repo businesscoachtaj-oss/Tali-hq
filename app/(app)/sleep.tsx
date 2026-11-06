@@ -167,14 +167,17 @@ export default function Sleep() {
     <Sky>
       <SafeAreaView style={s.safe}>
         <ScrollView contentContainerStyle={s.inner}>
+          {/* 6 Nov 2026 (Taj): compact layout so the whole picker fits on one screen. */}
           <View style={s.top}>
             <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button">
               <Text style={s.back}>{'‹'} Me</Text>
             </Pressable>
             <Text style={s.clock}>{clock}</Text>
           </View>
-          <Text style={s.h1}>Sleep</Text>
-          <Text style={s.sub}>Pick a sound or two, set the timer, and Tali fades it out once you're under.</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 8 }}>
+            <Text style={s.h1}>Sleep</Text>
+            <Text style={[s.sub, { flex: 1 }]} numberOfLines={2}>Pick up to {MAX_PICKS} sounds, set a timer, and Tali fades it out.</Text>
+          </View>
 
           {playing ? (
             <Pressable style={s.nowRow} onPress={() => setShowPicker(false)} accessibilityRole="button">
@@ -186,8 +189,7 @@ export default function Sleep() {
             </Pressable>
           ) : null}
 
-          <Text style={s.label}>Sounds</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cats} style={{ marginHorizontal: -20 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cats} style={{ marginHorizontal: -20, flexGrow: 0 }}>
             {CATEGORIES.map((c) => {
               const on = c.id === cat;
               const count = st.picks.filter((p) => SOUNDS.find((x) => x.id === p.id)?.category === c.id).length;
@@ -212,9 +214,9 @@ export default function Sleep() {
               return (
                 <Pressable key={snd.id} onPress={() => togglePick(snd.id)} style={[s.tile, on && s.tileOn, full && { opacity: 0.55 }]} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
                   {on ? <LinearGradient colors={['rgba(185,166,255,0.28)', 'rgba(127,209,255,0.18)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 17 }]} /> : null}
-                  <Text style={{ fontSize: 22 }}>{snd.emoji}</Text>
-                  <Text style={s.tileName}>{snd.name}</Text>
-                  <Text style={s.tileSub}>{snd.sub}</Text>
+                  <Text style={{ fontSize: 18 }}>{snd.emoji}</Text>
+                  <Text style={s.tileName} numberOfLines={1}>{snd.name}</Text>
+                  <Text style={s.tileSub} numberOfLines={1}>{snd.sub}</Text>
                   {on ? (
                     <View style={s.chk}>
                       <Text style={{ color: '#1B1340', fontWeight: '900', fontSize: 12 }}>✓</Text>
@@ -232,9 +234,8 @@ export default function Sleep() {
               );
             })}
           </View>
-          <Text style={s.picked}>
-            {st.picks.length ? `Picked: ${names.join(' + ')}` : `Pick up to ${MAX_PICKS} sounds from any category`}
-            {'. '}Tap ▶ on a tile for a five second listen.
+          <Text style={s.picked} numberOfLines={1}>
+            {st.picks.length ? `Picked: ${names.join(' + ')}` : 'Tap a sound to pick it, ▶ to hear five seconds'}
           </Text>
           {st.picks.length === 2 ? (
             <View style={s.mixBox}>
@@ -251,8 +252,14 @@ export default function Sleep() {
             </View>
           ) : null}
 
-          <Text style={s.label}>Timer</Text>
-          <View style={s.chips}>
+          <View style={[s.top, { marginTop: 16, marginBottom: 8 }]}>
+            <Text style={[s.label, { marginTop: 0, marginBottom: 0 }]}>Timer</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, opacity: st.timerMinutes ? 1 : 0.5 }}>
+              <Text style={s.rowSub}>Fade out the last 5 min</Text>
+              <Switch value={st.fade && !!st.timerMinutes} onValueChange={setFade} disabled={!st.timerMinutes} trackColor={{ true: accent, false: 'rgba(255,255,255,0.2)' }} thumbColor="#fff" />
+            </View>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cats} style={{ marginHorizontal: -20, flexGrow: 0 }}>
             {TIMERS.map((t) => {
               const on = st.timerMinutes === t.minutes;
               return (
@@ -261,14 +268,7 @@ export default function Sleep() {
                 </Pressable>
               );
             })}
-          </View>
-          <View style={s.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.rowTitle}>Fade out at the end</Text>
-              <Text style={s.rowSub}>{st.timerMinutes ? 'Last 5 minutes get quieter, then it stops' : 'Needs a timer'}</Text>
-            </View>
-            <Switch value={st.fade && !!st.timerMinutes} onValueChange={setFade} disabled={!st.timerMinutes} trackColor={{ true: accent, false: 'rgba(255,255,255,0.2)' }} thumbColor="#fff" />
-          </View>
+          </ScrollView>
 
           <Pressable style={[s.cta, !st.picks.length && { opacity: 0.5 }]} disabled={!st.picks.length} onPress={() => void start()} accessibilityRole="button">
             <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[StyleSheet.absoluteFill, { borderRadius: 16 }]} />
@@ -290,36 +290,36 @@ const s = StyleSheet.create({
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   back: { fontSize: 15, color: accent, fontWeight: '700' },
   clock: { fontSize: 13, color: faint, fontVariant: ['tabular-nums'] },
-  h1: { fontSize: 30, fontWeight: '800', color: ink, marginTop: 14, marginBottom: 2 },
-  sub: { color: muted, fontSize: 14, lineHeight: 20, marginBottom: 6 },
+  h1: { fontSize: 26, fontWeight: '800', color: ink },
+  sub: { color: muted, fontSize: 13, lineHeight: 18 },
   label: { fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', color: faint, fontWeight: '800', marginTop: 18, marginBottom: 8 },
   nowRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(185,166,255,0.5)', borderRadius: 16, padding: 14 },
   nowTitle: { color: ink, fontSize: 14, fontWeight: '800' },
   nowSub: { color: muted, fontSize: 12, marginTop: 2 },
   nowArrow: { color: accent, fontSize: 24, fontWeight: '800' },
-  cats: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 12 },
+  cats: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingBottom: 10, paddingTop: 14 },
   badge: { marginLeft: 6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: '#1B1340', fontSize: 11, fontWeight: '800' },
-  picked: { color: muted, fontSize: 12, marginTop: 10 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tile: { width: '48%', flexGrow: 1, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 18, padding: 14, minHeight: 92, overflow: 'hidden' },
+  picked: { color: muted, fontSize: 12, marginTop: 8 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tile: { width: '31%', flexGrow: 1, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 16, padding: 10, paddingBottom: 12, overflow: 'hidden' },
   tileOn: { borderColor: 'rgba(185,166,255,0.6)' },
-  tileName: { color: ink, fontSize: 15, fontWeight: '700', marginTop: 8 },
-  tileSub: { color: muted, fontSize: 12, marginTop: 2, paddingRight: 30 },
-  chk: { position: 'absolute', top: 10, right: 10, width: 20, height: 20, borderRadius: 10, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' },
-  hear: { position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, borderRadius: 14, backgroundColor: glass, borderWidth: 1, borderColor: line, alignItems: 'center', justifyContent: 'center' },
+  tileName: { color: ink, fontSize: 13, fontWeight: '700', marginTop: 6 },
+  tileSub: { color: muted, fontSize: 11, marginTop: 1 },
+  chk: { position: 'absolute', top: 8, right: 38, width: 20, height: 20, borderRadius: 10, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' },
+  hear: { position: 'absolute', top: 8, right: 8, width: 26, height: 26, borderRadius: 13, backgroundColor: glass, borderWidth: 1, borderColor: line, alignItems: 'center', justifyContent: 'center' },
   hearOn: { backgroundColor: accent2, borderColor: accent2 },
   hearText: { color: ink, fontSize: 11, fontWeight: '800' },
   mixBox: { marginTop: 12, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 16, padding: 14 },
   mixTitle: { color: faint, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: line, backgroundColor: glass },
+  chip: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 13, borderRadius: 999, borderWidth: 1, borderColor: line, backgroundColor: glass },
   chipOn: { backgroundColor: accent, borderColor: accent },
   chipText: { color: ink, fontSize: 13, fontWeight: '700' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: glass, borderWidth: 1, borderColor: line, borderRadius: 16, padding: 14, marginTop: 12 },
   rowTitle: { color: ink, fontSize: 14, fontWeight: '700' },
   rowSub: { color: muted, fontSize: 12, marginTop: 2 },
-  cta: { marginTop: 22, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: accent2, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 18, elevation: 6 },
+  cta: { marginTop: 16, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: accent2, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 18, elevation: 6 },
   ctaText: { color: '#141033', fontWeight: '800', fontSize: 16 },
   ghost: { textAlign: 'center', color: muted, fontSize: 12, marginTop: 10 },
   orbWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 26, height: 310 },
