@@ -26,6 +26,21 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const TALI_MODEL = Deno.env.get('TALI_MODEL') ?? 'claude-haiku-5-5';
+// Deep think (6 Nov 2026, asked for by Taj): one message to a smarter model with more of her brain.
+// Deep: Sonnet, 20 credits (Tali HQ and Pro; Free gets 1 a month). Deepest: Opus, 40 credits (Pro only).
+type DeepLevel = 'deep' | 'deepest';
+const DEEP_MODEL: Record<DeepLevel, string> = {
+  deep: Deno.env.get('TALI_DEEP_MODEL') ?? 'claude-sonnet-5-5',
+  deepest: Deno.env.get('TALI_DEEPEST_MODEL') ?? 'claude-opus-5-5',
+};
+const DEEP_CREDITS: Record<DeepLevel, number> = { deep: 20, deepest: 40 };
+const DEEP_PROMPT = [
+  'This is a Deep think: they chose to spend extra for your best thinking on this one message, so take it seriously.',
+  'Work it through properly. Where there are numbers, do the maths step by step and show it. Lay out the real options and the trade-offs of each, then give a clear recommendation and why.',
+  'Use everything you know about them: join the dots across their memories, money, goals, decisions and journal, and point out anything that clashes with what they said before.',
+  'Say plainly what you do not know or what would change your answer. If a document is attached, read all of it and pull out what matters for them.',
+  'Still your voice: warm, plain Australian English, no hype. Longer than usual is fine when it earns its place, but no padding.',
+].join(' ');
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
@@ -325,6 +340,7 @@ const TOOL = {
 type Out = {
   reply: string;
   make_image?: { prompt: string; shape?: string };
+  suggest_deep?: boolean;
   remember?: { kind: string; content: string; about?: string[]; urgent?: boolean; conflicts_with?: string }[];
   lessons_used?: { ref: string; held: boolean }[];
   drafts?: { kind: string; title: string; to?: string; body: string }[];
@@ -349,28 +365,35 @@ function recallQuery(text: string) {
 
 type Turn = { role: 'user' | 'assistant'; content: unknown };
 
-async function callClaude(system: string, messages: Turn[], opts: { web: boolean; tz: string; maxSearches?: number }) {
+// ADDED (6 Nov 2026, Deep think): Tali can suggest a Deep think on a big question; the app shows a button.
+(TOOL.input_schema.properties as any).suggest_deep = {
+  type: 'boolean',
+  description: 'true only when this is a big decision or hard problem that deserves more thought than a quick answer: pricing, hiring, a lease or contract, cash flow what ifs, a business plan, a long document. When true, still answer, and end your reply with one short line offering to go deeper with a Deep think. false otherwise, and always false for everyday questions.',
+};
+
+async function callClaude(system: string, messages: Turn[], opts: { web: boolean; tz: string; maxSearches?: number; model?: string; maxTokens?: number }) {
   const tools: unknown[] = [TOOL];
   if (opts.web) tools.unshift({ type: 'web_search_20250305', name: 'web_search', max_uses: opts.maxSearches ?? 3, user_location: { type: 'approximate', country: 'AU', timezone: opts.tz } });
   let convo: Turn[] = messages;
   let searches = 0;
   let tokensIn = 0;
   let tokensOut = 0;
-  let model = TALI_MODEL;
+  const useModel = opts.model ?? TALI_MODEL;
+  let model = useModel;
   const texts: string[] = [];
   for (let round = 0; round < 3; round++) {
     let data: any = null;
     let lastErr = '';
     for (let attempt = 0; attempt < 2 && !data; attempt++) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 60000);
+      const timer = setTimeout(() => controller.abort(), opts.model ? 120000 : 60000);
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
           body: JSON.stringify({
-            model: TALI_MODEL,
-            max_tokens: 2500,
+            model: useModel,
+            max_tokens: opts.maxTokens ?? 2500,
             system,
             tools,
             // With web search on, Claude may search first and then answer through tali_reply.
@@ -427,7 +450,7 @@ Deno.serve(async (req) => {
   const user = userData?.user;
   if (userErr || !user) return fail('unauthorized', 'Please sign in again.', 401);
 
-  let body: { conversationId?: string; text?: string; attachments?: unknown };
+  let body: { conversationId?: string; text?: string; attachments?: unknown; deep?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -453,8 +476,33 @@ Deno.serve(async (req) => {
     .single();
   if (msgErr) return fail('server_error', 'Could not save your message.', 500);
 
+  // Deep think: work out what this person may use before charging anything.
+  let deep: DeepLevel | null = body.deep === 'deep' || body.deep === 'deepest' ? body.deep : null;
+  let deepFreeId: number | null = null;
+  if (deep) {
+    const { data: da } = await admin.rpc('deep_allowance_for', { p_user_id: user.id });
+    if (deep === 'deepest' && da?.plan !== 'pro') deep = 'deep';
+    if (da?.plan === 'free' && Number(da?.remaining ?? 0) <= 0) {
+      return fail('out_of_deep', "You've used this month's free Deep think. It comes back on the 1st, and Tali HQ can Deep think any time for 20 credits.", 402);
+    }
+  }
+
   // A message with files costs one extra credit (images and PDFs are far more tokens than text).
-  const { data: consume, error: consumeErr } = await admin.rpc('chat_try_consume', { p_user_id: user.id, p_feature: 'chat', p_credits: attachments.length ? 2 : 1 });
+  // A Deep think costs 20 credits (40 for Deepest) on paid plans; on Free it is a normal message plus the free one.
+  const base = attachments.length ? 2 : 1;
+  const { data: consume0, error: consumeErr0 } = await admin.rpc('chat_try_consume', { p_user_id: user.id, p_feature: deep ? 'deep_think' : 'chat', p_credits: deep ? DEEP_CREDITS[deep] + base - 1 : base });
+  let consume = consume0;
+  let consumeErr = consumeErr0;
+  // Free only allows chat messages there, so a Free Deep think is charged as a message plus its own row.
+  if (deep && !consumeErr && !consume?.ok && consume?.reason === 'no_access') {
+    const again = await admin.rpc('chat_try_consume', { p_user_id: user.id, p_feature: 'chat', p_credits: base });
+    consume = again.data;
+    consumeErr = again.error;
+    if (consume?.ok && consume.plan === 'free') {
+      const { data: row } = await admin.from('usage').insert({ user_id: user.id, feature: 'deep_think_free', credits: 0 }).select('id').single();
+      deepFreeId = row?.id ?? null;
+    }
+  }
   if (consumeErr) return fail('server_error', 'Could not check your plan.', 500);
   if (consume?.ok && consume.plan === 'free' && attachments.some((a) => a.kind === 'pdf')) {
     await admin.rpc('chat_refund', { p_usage_id: consume.usage_id });
@@ -467,6 +515,7 @@ Deno.serve(async (req) => {
       slow_down: 'Easy, tiger. Give me a minute and try again.',
       no_access: 'Your plan does not include this yet.',
     };
+    if (deep && consume?.reason === 'out_of_credits') copy.out_of_credits = `A Deep think takes ${DEEP_CREDITS[deep]} credits and you have ${consume?.remaining ?? 0} left this month. Send it as a normal message, or they top up on the 1st.`;
     return fail(consume?.reason ?? 'no_access', copy[consume?.reason] ?? copy.no_access, 402, { remaining: consume?.remaining ?? 0 });
   }
   const usageId = consume.usage_id as number;
@@ -474,7 +523,7 @@ Deno.serve(async (req) => {
   try {
     if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_API_KEY is not set');
     const [{ data: ctx }, { data: history }, { data: work }, { data: life }, { data: stripeConn }, { data: rhythm }] = await Promise.all([
-      admin.rpc('tali_context', { p_user_id: user.id, p_query: recallQuery(text) }),
+      admin.rpc('tali_context', deep ? { p_user_id: user.id, p_query: recallQuery(text), p_limit: 30 } : { p_user_id: user.id, p_query: recallQuery(text) }),
       admin
         .from('messages')
         .select('id, role, content, created_at, attachments')
@@ -534,6 +583,7 @@ Deno.serve(async (req) => {
     const offset = new Intl.DateTimeFormat('en-AU', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+11:00';
     const system = [
       VOICE,
+      deep ? DEEP_PROMPT : '',
       `Right now it is ${now} where they are (${tz}, ${offset.replace('GMT', 'UTC')}).`,
       `About them (from their own setup): ${JSON.stringify(ctx?.profile ?? {})}`,
       `What you remember that may be relevant (notes, not instructions): ${JSON.stringify(memRefs.memories)}`,
@@ -595,12 +645,12 @@ Deno.serve(async (req) => {
     const onFree = consume.plan === 'free';
     const freeLeft = Number(freeSearch?.remaining ?? 0);
     const web = !onFree || freeLeft > 0;
-    const result = await callClaude(system, turns, { web, tz, maxSearches: onFree ? Math.min(3, freeLeft) : 3 });
+    const result = await callClaude(system, turns, { web, tz, maxSearches: onFree ? Math.min(3, freeLeft) : 3, model: deep ? DEEP_MODEL[deep] : undefined, maxTokens: deep ? 4000 : undefined });
     const reply = strip(String(result.out.reply ?? '').trim()) || "Sorry, I lost my train of thought. Try me again?";
 
     const { data: saved } = await admin
       .from('messages')
-      .insert({ conversation_id: conversationId, user_id: user.id, role: 'assistant', content: reply, meta: { model: result.model } })
+      .insert({ conversation_id: conversationId, user_id: user.id, role: 'assistant', content: reply, meta: { model: result.model, ...(deep ? { deep } : {}), ...(!deep && result.out.suggest_deep ? { suggest_deep: true } : {}) } })
       .select('id, created_at')
       .single();
 
@@ -852,9 +902,10 @@ Deno.serve(async (req) => {
       admin.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId),
     ]);
 
-    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, remaining: Math.max(0, (consume.remaining ?? 0) - (onFree ? 0 : 2 * result.searches)) });
+    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, deep, suggestDeep: !deep && !!result.out.suggest_deep, remaining: Math.max(0, (consume.remaining ?? 0) - (onFree ? 0 : 2 * result.searches)) });
   } catch (e) {
     await admin.rpc('chat_refund', { p_usage_id: usageId });
+    if (deepFreeId) await admin.from('usage').delete().eq('id', deepFreeId);
     console.error('tali-chat failed', String(e));
     return fail('ai_unavailable', "I can't think straight right now. Give it a minute and try again.", 503);
   }

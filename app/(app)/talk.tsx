@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { currentConversation, deleteConversation, listConversations, makeImage, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
+import { currentConversation, deleteConversation, listConversations, makeImage, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type Credits, type DeepLevel, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { MicButton } from '@/components/MicButton';
@@ -38,6 +38,10 @@ export default function Talk() {
   const [notice, setNotice] = useState('');
   const [pro, setPro] = useState(false);
   const [plan, setPlan] = useState<'free' | 'hq' | 'pro' | null>(null);
+  // Deep think (6 Nov 2026): the next message goes to a smarter model with more of her brain.
+  const [deep, setDeep] = useState<DeepLevel | null>(null);
+  const [deepSending, setDeepSending] = useState<DeepLevel | null>(null);
+  const [freeDeep, setFreeDeep] = useState<Credits['deep']>(null);
   // 4 Nov 2026: the starter screen waited on nothing, so it flashed before the history arrived.
   const [loaded, setLoaded] = useState(false);
   // Voice notes (3 Nov 2026): the mic in the composer. Tap to record, tap to stop, the words land in the box.
@@ -116,7 +120,7 @@ export default function Talk() {
   }, [params.text, params.title, params.url]);
 
   const loadPlan = useCallback(() => {
-    myCredits().then((c) => { setPro(isPro(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); }).catch(() => {});
+    myCredits().then((c) => { setPro(isPro(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); setFreeDeep(c?.deep ?? null); }).catch(() => {});
   }, []);
 
   const load = useCallback(async () => {
@@ -161,7 +165,7 @@ export default function Talk() {
 
   // 4 Nov 2026: a failed send puts the words (and files) back in the composer, and the failed bubble
   // offers "Try again". retryOf is the failed row being resent, so it is replaced rather than doubled.
-  async function send(raw?: string, rawFiles?: Attachment[], retryOf?: string) {
+  async function send(raw?: string, rawFiles?: Attachment[], retryOf?: string, deepOverride?: DeepLevel | null) {
     const direct = raw !== undefined;
     const body = (raw ?? text).trim();
     const files = direct ? rawFiles ?? [] : pending;
@@ -171,9 +175,14 @@ export default function Talk() {
     setNotice('');
     const temp: Row = { id: `tmp-${Date.now()}`, role: 'user', content: body, created_at: new Date().toISOString(), pending: true, attachments: files, files };
     setRows((r) => [...r.filter((m) => m.id !== retryOf), temp]);
+    const level = deepOverride !== undefined ? deepOverride : deep;
+    setDeep(null);
+    setDeepSending(level);
     setThinking(true);
-    const res = await sendMessage(conversationId, body, files);
+    const res = await sendMessage(conversationId, body, files, level);
     setThinking(false);
+    setDeepSending(null);
+    if (level) loadPlan();
     if (res.ok) {
       setRows(await loadMessages(conversationId));
       if (res.image) void drawImage(res.image.messageId, res.image.index);
@@ -338,6 +347,9 @@ export default function Talk() {
                       ))}
                     </View>
                   ) : null}
+                  {!me && item.meta?.deep ? (
+                    <Text style={{ color: colours.purpleInk, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 4 }}>{item.meta.deep === 'deepest' ? 'DEEPEST THINK' : 'DEEP THINK'}</Text>
+                  ) : null}
                   {item.content ? (me
                     ? <Text style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
                     : <TaliMessage content={item.content} />) : null}
@@ -362,11 +374,17 @@ export default function Talk() {
                       <Text style={{ color: '#FFB4A8', fontSize: 12 }}>Not sent. <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }}>Try again</Text></Text>
                     </Pressable>
                   ) : null}
+                  {!me && item.meta?.suggest_deep && item.id === rows[rows.length - 1]?.id && !thinking ? (
+                    <DeepOffer plan={plan} freeDeep={freeDeep} onPress={() => {
+                      const asked = [...rows].reverse().find((m) => m.role === 'user' && !m.pending);
+                      if (asked) void send(asked.content ?? '', [], undefined, 'deep');
+                    }} />
+                  ) : null}
                   {VOICE_LIVE && pro && !me && !item.id.startsWith('tmp-') ? <VoiceButton messageId={item.id} onError={setNotice} /> : null}
                 </View>
               );
             }}
-            ListFooterComponent={thinking ? <TaliThinking /> : null}
+            ListFooterComponent={thinking ? <TaliThinking label={deepSending ? 'Having a proper think. About half a minute.' : undefined} /> : null}
           />
         )}
 
@@ -387,7 +405,8 @@ export default function Talk() {
         {voiceHint ? (
           <Text style={{ color: voice.recording ? colours.danger : colours.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: space.lg, paddingTop: 6, backgroundColor: colours.surface, borderTopWidth: pending.length ? 0 : 1, borderTopColor: colours.border }}>{voiceHint}</Text>
         ) : null}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, borderTopWidth: pending.length || voiceHint ? 0 : 1, borderTopColor: colours.border, backgroundColor: colours.surface }}>
+        <DeepSwitch plan={plan} freeDeep={freeDeep} value={deep} onChange={setDeep} topBorder={!pending.length && !voiceHint} />
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, paddingTop: plan ? space.sm : space.md, borderTopWidth: 0, borderTopColor: colours.border, backgroundColor: colours.surface }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Attach a photo or file"
@@ -413,7 +432,7 @@ export default function Talk() {
             onPress={() => send()}
             disabled={thinking || uploading || (!text.trim() && !pending.length)}
             style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', opacity: thinking || uploading || (!text.trim() && !pending.length) ? 0.5 : 1, ...elevation.button(colours.purple) }}>
-            <Text style={{ color: colours.onPurple, fontWeight: '700', fontSize: 15 }}>Send</Text>
+            <Text style={{ color: colours.onPurple, fontWeight: '700', fontSize: 15 }}>{deep ? 'Think' : 'Send'}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -566,6 +585,45 @@ function Chip({ label, onPress, danger }: { label: string; onPress: () => void; 
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={{ borderWidth: 1, borderColor: danger ? colours.danger : colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: colours.surface }}>
       <Text style={{ fontSize: 13, fontWeight: '700', color: danger ? colours.danger : colours.text }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+// Deep think (6 Nov 2026, asked for by Taj). Above the composer: a switch that sends the next message to a
+// smarter model with more of her brain. Tali HQ: Deep (Sonnet, 20 credits). Pro adds Deepest (Opus, 40).
+// Free gets 1 a month.
+function deepCost(level: DeepLevel, plan: string | null, freeDeep: Credits['deep']) {
+  if (plan === 'free') return freeDeep?.remaining ? 'your free one this month' : 'used for this month';
+  return level === 'deepest' ? '40 credits' : '20 credits';
+}
+
+function DeepSwitch({ plan, freeDeep, value, onChange, topBorder }: { plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; value: DeepLevel | null; onChange: (v: DeepLevel | null) => void; topBorder: boolean }) {
+  if (!plan) return null;
+  const freeOut = plan === 'free' && !freeDeep?.remaining;
+  const options: DeepLevel[] = plan === 'pro' ? ['deep', 'deepest'] : ['deep'];
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: colours.surface, borderTopWidth: topBorder ? 1 : 0, borderTopColor: colours.border }}>
+      {options.map((o) => {
+        const on = value === o;
+        return (
+          <Pressable key={o} accessibilityRole="switch" accessibilityState={{ checked: on, disabled: freeOut }} disabled={freeOut}
+            onPress={() => onChange(on ? null : o)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colours.purple : colours.borderStrong, backgroundColor: on ? colours.purple : colours.bg, opacity: freeOut ? 0.5 : 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: on ? colours.onPurple : colours.text }}>{o === 'deepest' ? 'Deepest think' : 'Deep think'}</Text>
+            <Text style={{ fontSize: 12, color: on ? colours.onPurple : colours.muted }}>{deepCost(o, plan, freeDeep)}</Text>
+          </Pressable>
+        );
+      })}
+      {value ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>{value === 'deepest' ? 'Her strongest thinking, for the big calls. About a minute.' : 'A smarter Tali with more of her memory. About half a minute.'}</Text> : null}
+    </View>
+  );
+}
+
+function DeepOffer({ plan, freeDeep, onPress }: { plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; onPress: () => void }) {
+  if (!plan || (plan === 'free' && !freeDeep?.remaining)) return null;
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
+      <Text style={{ color: colours.purpleInk, fontWeight: '800', fontSize: 13 }}>Deep think this <Text style={{ fontWeight: '600' }}>({deepCost('deep', plan, freeDeep)})</Text></Text>
     </Pressable>
   );
 }

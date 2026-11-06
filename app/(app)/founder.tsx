@@ -22,6 +22,8 @@ const FEATURE_NAMES: Record<string, string> = {
   tali_email: 'Tali address emails',
   web_search: 'Web searches',
   web_search_free: 'Free web searches',
+  deep_think: 'Deep think',
+  deep_think_free: 'Free Deep think',
   night_school: 'Night school',
   voice: 'Voice clips',
 };

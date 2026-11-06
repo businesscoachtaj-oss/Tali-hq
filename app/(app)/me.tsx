@@ -73,6 +73,9 @@ export default function Me() {
                   <Body muted>{credits.searches.remaining} of {credits.searches.allowance} web searches left this month.</Body>
                 </View>
               ) : null}
+              {credits.deep?.allowance ? (
+                <Body muted>{credits.deep.remaining ? 'Your free Deep think for this month is ready.' : 'Free Deep think used for this month.'}</Body>
+              ) : null}
             </>
           ) : (
             <>

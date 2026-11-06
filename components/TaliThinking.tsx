@@ -5,7 +5,7 @@ import { Animated, Platform, Text, View } from 'react-native';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { colours, elevation } from '@/constants/theme';
 
-export function TaliThinking() {
+export function TaliThinking({ label = 'Tali is thinking' }: { label?: string } = {}) {
   const dots = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export function TaliThinking() {
           ))}
         </View>
       </View>
-      <Text style={{ color: colours.faint, fontSize: 12, marginBottom: 10 }}>Tali is thinking</Text>
+      <Text style={{ color: colours.faint, fontSize: 12, marginBottom: 10, flexShrink: 1 }}>{label}</Text>
     </View>
   );
 }
