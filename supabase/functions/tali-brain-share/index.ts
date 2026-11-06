@@ -11,6 +11,7 @@
 // Secrets: ANTHROPIC_API_KEY (required), TALI_SHARE_MODEL (optional, default claude-opus-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { claudeMessages } from '../_shared/claude.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -55,17 +56,13 @@ const TOOL = {
 
 async function decide(rows: { kind: string; content: string }[]) {
   const list = rows.map((r, i) => `${i + 1}. (${r.kind}) ${r.content}`).join('\n');
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: TALI_MODEL,
-      max_tokens: 4000,
-      system: SYSTEM,
-      tools: [TOOL],
-      tool_choice: { type: 'tool', name: 'share_lessons' },
-      messages: [{ role: 'user', content: `Lessons:\n${list}` }],
-    }),
+  const res = await claudeMessages(ANTHROPIC_KEY, {
+    model: TALI_MODEL,
+    max_tokens: 4000,
+    system: SYSTEM,
+    tools: [TOOL],
+    tool_choice: { type: 'tool', name: 'share_lessons' },
+    messages: [{ role: 'user', content: `Lessons:\n${list}` }],
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${data?.error?.message ?? 'error'}`);

@@ -15,6 +15,7 @@
 // Deployed with verify_jwt false; the function checks the JWT itself like tali-chat.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { claudeMessages } from '../_shared/claude.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -106,19 +107,14 @@ async function claude(system: string, user: string) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 60000);
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: TALI_MODEL,
-        max_tokens: 1500,
-        system,
-        tools: [TOOL],
-        tool_choice: { type: 'tool', name: TOOL.name },
-        messages: [{ role: 'user', content: user }],
-      }),
-      signal: controller.signal,
-    });
+    const res = await claudeMessages(ANTHROPIC_KEY, {
+      model: TALI_MODEL,
+      max_tokens: 1500,
+      system,
+      tools: [TOOL],
+      tool_choice: { type: 'tool', name: TOOL.name },
+      messages: [{ role: 'user', content: user }],
+    }, controller.signal);
     if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const data = await res.json();
     const block = (data.content ?? []).find((c: any) => c.type === 'tool_use' && c.name === TOOL.name);
