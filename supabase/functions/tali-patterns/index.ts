@@ -12,14 +12,15 @@
 //   for every Pro user (has_pro) who has not had one this month and has 14 or more days of data;
 //   manual: POST with the user's JWT, runs for that user only (Pro only), replacing this month's row.
 //   Taj's "Run now" on Me uses this.
-// Deployed with verify_jwt false. Secrets: ANTHROPIC_API_KEY (required), TALI_MODEL (optional).
+// Deployed with verify_jwt false. Secrets: ANTHROPIC_API_KEY (required), TALI_DEEP_MODEL (optional, default claude-sonnet-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { pushUser } from '../_shared/push.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
-const TALI_MODEL = Deno.env.get('TALI_MODEL') ?? 'claude-haiku-5-5';
+// 6 Nov 2026 (Taj): weekly review, monthly patterns and night school run on Sonnet. They are rare and need real thinking across weeks of data, where Haiku is weakest. Override with TALI_DEEP_MODEL.
+const TALI_MODEL = Deno.env.get('TALI_DEEP_MODEL') ?? 'claude-sonnet-5-5';
 const CREDITS = 10;
 const WINDOW_DAYS = 60;
 const MIN_DAYS = 14;

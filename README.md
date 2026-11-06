@@ -138,3 +138,6 @@ Free gets 10 web searches a month (asked for by Taj, so Free Tali is not behind 
 ## Visual memories (6 Nov 2026)
 
 The images Tali made for someone live in the occipital (vision) part of their brain: tap Occipital lobe on the Brain screen and a Visual memories grid shows every image, newest first. Tap one to see it big with what she drew, open it full size, go to the chat it came from (Talk takes `?chat=<conversation id>`) or delete it. Deleting removes the file, leaves a short "You deleted this image" note in the chat and forgets her memory of making it. Migration `20261106000046_visual_memories.sql` (`my_visual_memories`, `delete_visual_memory`, own rows only).
+
+### Models per job (6 Nov 2026)
+Taj's call. Everyday Tali (chat, brief, Gmail sorting, shutdown, drafts) stays on `TALI_MODEL` (default claude-haiku-5-5). The weekly review (`tali-review`), monthly patterns (`tali-patterns`) and night school (`tali-night-school`) use `TALI_DEEP_MODEL` (default claude-sonnet-5-5): they are rare and need real thinking across weeks of data. The shared-brain scrub (`tali-brain-share`) uses `TALI_SHARE_MODEL` (default claude-opus-5-5): it decides what is personal before a lesson reaches every user, and runs weekly, so it costs cents. Credits charged to users are unchanged. Change any of the three by setting the secret in Supabase, no deploy needed.
