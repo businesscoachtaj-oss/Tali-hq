@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { founderStats, type FounderStats } from '@/lib/data';
+import { founderStats, founderTopups, type FounderStats, type FounderTopups } from '@/lib/data';
 import { BackLink, Body, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
@@ -38,11 +38,14 @@ function costAud(tokensIn: number, tokensOut: number) {
 export default function Founder() {
   const [s, setS] = useState<FounderStats | null>(null);
   const [error, setError] = useState('');
+  const [topups, setTopups] = useState<FounderTopups | null>(null);
 
   const load = useCallback(async () => {
     setError('');
     try {
-      setS(await founderStats());
+      const [st, tu] = await Promise.all([founderStats(), founderTopups()]);
+      setS(st);
+      setTopups(tu);
     } catch (e: any) {
       setError(e?.message ?? 'Could not load.');
     }
@@ -59,6 +62,8 @@ export default function Founder() {
   const perActive = m && m.active_users ? monthCost / m.active_users : 0;
   const conversion = s && s.accounts ? Math.round((s.paid_active / Math.max(1, s.accounts)) * 100) : 0;
   const mrr = s ? s.paid_hq * 19.99 + s.paid_pro * 39.99 : 0;
+  // 6 Nov 2026 (Taj): top ups count in revenue too.
+  const topMonth = Number(topups?.month_aud ?? 0);
 
   return (
     <Screen>
@@ -77,7 +82,8 @@ export default function Founder() {
             <Tile label="On trial" value={n(s.trialing)} sub={s.trials_ending_7d ? `${n(s.trials_ending_7d)} end within 7 days` : 'none ending this week'} />
             <Tile label="Paying" value={n(s.paid_active)} sub={`${n(s.paid_hq)} HQ, ${n(s.paid_pro)} Pro`} accent />
             <Tile label="Trial to paid" value={`${conversion}%`} sub={s.trial_expired_unpaid ? `${n(s.trial_expired_unpaid)} trials lapsed unpaid` : 'no lapsed trials'} />
-            <Tile label="Monthly revenue" value={aud(mrr)} sub={`${n(s.founding)} founding members`} accent />
+            <Tile label="Revenue this month" value={aud(mrr + topMonth)} sub={`${aud(mrr)} plans + ${aud(topMonth)} top ups`} accent />
+            <Tile label="Top ups this month" value={aud(topMonth)} sub={`${n(topups?.month_count ?? 0)} packs, ${aud(Number(topups?.total_aud ?? 0))} all time`} />
           </View>
           <Pressable onPress={() => router.navigate('/founder-users')} accessibilityRole="button" style={{ marginTop: space.sm, backgroundColor: colours.surface, borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: space.lg, flexDirection: 'row', alignItems: 'center', ...elevation.card }}>
             <View style={{ flex: 1 }}>
