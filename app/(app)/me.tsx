@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { forgetMemory, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { resetTour } from '@/lib/tour';
-import { Body, Button, Card, Label, Screen, Title, useConfirm } from '@/components/ui';
+import { Body, Button, Card, Label, Screen, useConfirm } from '@/components/ui';
 import { PatternsRow } from '@/components/PatternsCard';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { FOUNDER_USER_ID } from '@/constants/business';
@@ -63,7 +63,7 @@ export default function Me() {
 
   return (
     <Screen onRefresh={load}>
-      {/* Mockup (6 Nov 2026): Me redesign. Header with plan chip, plan card with stat tiles, Tali's brain
+      {/* 6 Nov 2026 (Taj): Me redesign. Header with Settings gear, plan card with stat tiles, Tali's brain
           hero, jobs as grouped tiles, account rows. Same screens and data as before. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.lg }}>
         <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', ...elevation.button(colours.purple) }}>
