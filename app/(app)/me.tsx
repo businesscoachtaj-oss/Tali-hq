@@ -75,6 +75,11 @@ export default function Me() {
               <View style={{ height: 8, backgroundColor: colours.sunk, borderRadius: 8, marginTop: space.sm, overflow: 'hidden' }}>
                 <View style={{ height: 8, width: `${Math.min(100, (credits.used / Math.max(credits.creditsMonth, 1)) * 100)}%`, backgroundColor: colours.purple }} />
               </View>
+              {credits.images?.allowance ? (
+                <View style={{ marginTop: space.sm }}>
+                  <Body muted>{credits.images.remaining} of {credits.images.allowance} images left{credits.images.trial ? ' on your trial' : ' this month'}.</Body>
+                </View>
+              ) : null}
               {trialing && credits.trialEndsAt ? (
                 <Body muted>Trial ends {new Date(credits.trialEndsAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })}.</Body>
               ) : null}

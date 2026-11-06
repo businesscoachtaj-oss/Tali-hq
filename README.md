@@ -123,3 +123,11 @@ One sweep across every screen. Shared bits in `components/ui.tsx`: `Screen` take
 - A nightly scheduled task ("Tali: Education") studies real subjects for two parts of the brain a night, oldest first, and saves what it learnt to the shared brain with `brain_learn(region, content, about, ref, confidence)` as kind `knowledge` (user_id null). Subjects per part are in `lib/brain.ts` (REGIONS.studies). `brain_education_progress()` shows how far each part has got.
 - Everyone's Brain screen shows the shared knowledge in each part; it is general knowledge with sources, never personal.
 - Migration `20261106000043_education.sql` (also replaces my_brain so every part counts its own memories).
+
+## Images (6 Nov 2026)
+
+Tali makes images in Talk. When someone asks for one, `tali-chat` fills `make_image` and saves her reply with a placeholder attachment (`making: true`, the prompt and a shape). The app then calls `tali-image`, which reserves one image (`image_try_consume`), draws it with OpenAI (`gpt-image-2`, medium quality, square, portrait or landscape), saves the PNG to the private `chat-uploads` bucket, swaps the placeholder for the file and remembers it in the occipital part of her brain (kind `seen`). A failure refunds the image and the placeholder shows the reason, with Try again where it can work.
+
+Images are counted on their own, separate from credits (`plans.images_month`): Free none, the 7 day trial 5, Tali HQ 30 a month, Pro 100 a month. Long founder trials get the full plan. Me shows images left.
+
+Secrets: `OPENAI_API_KEY` (required, also turns on voice notes), optional `TALI_IMAGE_MODEL`. Migration `20261106000045_images.sql`. Deploy `tali-image` with `--no-verify-jwt`, and redeploy `tali-chat`.

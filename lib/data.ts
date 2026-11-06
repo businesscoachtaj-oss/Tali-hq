@@ -7,6 +7,8 @@ export type Credits = {
   creditsMonth: number;
   messagesMonth: number | null;
   used: number;
+  // ADDED (6 Nov 2026, images): images are counted on their own, not in credits.
+  images?: { allowance: number; used: number; remaining: number; trial?: boolean } | null;
 };
 
 export async function myCredits(): Promise<Credits | null> {
@@ -127,7 +129,9 @@ export async function forgetMemory(id: string): Promise<boolean> {
 
 // Photos and files in Talk (3 Nov 2026). `path` is the file in the private chat-uploads bucket;
 // `url` is a signed link filled in when messages load (good for an hour).
-export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string };
+// Images Tali makes (6 Nov 2026) start as a placeholder with no path: making is true while she draws
+// it, failed holds the reason if it did not come through, prompt is what she asked for.
+export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string };
 export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null };
 export const MAX_ATTACHMENTS = 4;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -218,7 +222,7 @@ export async function messages(conversationId: string): Promise<Message[]> {
 }
 
 export type ChatResult =
-  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; goalsSaved?: number; decisionsLogged?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; remaining: number | null }
+  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; goalsSaved?: number; decisionsLogged?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; image?: { messageId: string; index: number } | null; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
@@ -235,6 +239,20 @@ export async function sendMessage(conversationId: string, text: string, attachme
     return { ok: false, code: 'network', message: "I couldn't reach Tali. Check your connection and try again." };
   }
   return data as ChatResult;
+}
+
+// Tali draws an image she promised in a reply (tali-image). Takes about half a minute.
+export type ImageResult = { ok: true; attachment: Attachment; remaining?: number } | { ok: false; code: string; message: string };
+export async function makeImage(messageId: string, index = 0): Promise<ImageResult> {
+  const { data, error } = await supabase.functions.invoke('tali-image', { body: { messageId, index } });
+  if (error) {
+    try {
+      const body = await (error as any).context?.json?.();
+      if (body?.message) return { ok: false, code: body.code ?? 'error', message: body.message };
+    } catch {}
+    return { ok: false, code: 'network', message: "That image didn't come through. It wasn't counted, try again." };
+  }
+  return data as ImageResult;
 }
 
 // Permanently deletes the signed-in account and everything Tali knows about them.
