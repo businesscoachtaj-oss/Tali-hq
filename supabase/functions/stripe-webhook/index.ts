@@ -73,8 +73,9 @@ Deno.serve(async (req) => {
           if (!sub.metadata?.tali_user_id && session.client_reference_id) sub.metadata = { ...sub.metadata, tali_user_id: session.client_reference_id };
           await syncSubscription(sub);
         }
-        if (session.mode === 'payment' && session.metadata?.kind === 'topup' && session.payment_status === 'paid') {
-          const userId = session.metadata.tali_user_id || session.client_reference_id;
+        // Only Tali HQ top ups: the same Stripe account runs Totality and Nutrition checkouts too.
+        if (session.mode === 'payment' && session.metadata?.kind === 'topup' && session.metadata?.tali_user_id && session.payment_status === 'paid') {
+          const userId = session.metadata.tali_user_id;
           if (userId) {
             const { error } = await admin.rpc('add_topup', {
               p_user_id: userId,
