@@ -10,6 +10,7 @@
 // Secrets: ANTHROPIC_API_KEY (required), TALI_DEEP_MODEL (optional, default claude-sonnet-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { claudeMessages } from '../_shared/claude.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -63,11 +64,7 @@ async function study(system: string, user: string, tz: string) {
   let messages: { role: 'user' | 'assistant'; content: unknown }[] = [{ role: 'user', content: user }];
   let searches = 0, tokensIn = 0, tokensOut = 0, model = TALI_MODEL;
   for (let round = 0; round < 4; round++) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: TALI_MODEL, max_tokens: 1800, system, tools, tool_choice: { type: 'any' }, messages }),
-    });
+    const res = await claudeMessages(ANTHROPIC_KEY, { model: TALI_MODEL, max_tokens: 1800, system, tools, tool_choice: { type: 'any' }, messages });
     if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const data = await res.json();
     tokensIn += data.usage?.input_tokens ?? 0;

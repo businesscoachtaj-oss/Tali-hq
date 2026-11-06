@@ -15,6 +15,7 @@
 // Deployed with verify_jwt false. Secrets: ANTHROPIC_API_KEY (required), TALI_DEEP_MODEL (optional, default claude-sonnet-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { claudeMessages } from '../_shared/claude.ts';
 import { pushUser } from '../_shared/push.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
@@ -275,17 +276,13 @@ async function gather(userId: string, tz: string) {
 }
 
 async function claude(system: string, user: string) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: TALI_MODEL,
-      max_tokens: 900,
-      system,
-      tools: [TOOL],
-      tool_choice: { type: 'tool', name: TOOL.name },
-      messages: [{ role: 'user', content: user }],
-    }),
+  const res = await claudeMessages(ANTHROPIC_KEY, {
+    model: TALI_MODEL,
+    max_tokens: 900,
+    system,
+    tools: [TOOL],
+    tool_choice: { type: 'tool', name: TOOL.name },
+    messages: [{ role: 'user', content: user }],
   });
   if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
