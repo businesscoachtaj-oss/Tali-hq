@@ -18,7 +18,6 @@ import {
 } from '@/lib/data';
 import { addDays, friendlyDate, isoDate, today } from '@/lib/dates';
 import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, goBack } from '@/components/ui';
-import { ThemeHero, THEMES } from '@/components/PageTheme';
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 

@@ -278,6 +278,28 @@ export default function Sleep() {
             </Text>
           </Pressable>
           <Text style={s.ghost}>{Platform.OS === 'web' ? 'Plays while this tab is open. No credits.' : 'Keeps playing with the screen off. No credits.'}</Text>
+
+          {/* 6 Nov 2026 (Taj): the space under Start. A glowing moon with Tali dozing on a cloud. */}
+          <View style={s.scene} pointerEvents="none">
+            <View style={[s.moonGlow, { width: 220, height: 220, top: 0 }]} />
+            <View style={[s.moonGlow, { width: 170, height: 170, top: 25 }]} />
+            <View style={s.moon}>
+              <View style={[s.crater, { width: 22, height: 22, left: 30, top: 34 }]} />
+              <View style={[s.crater, { width: 14, height: 14, left: 76, top: 24 }]} />
+              <View style={[s.crater, { width: 30, height: 30, left: 62, top: 66 }]} />
+            </View>
+            <View style={s.cloudWrap}>
+              <View style={[s.puff, { width: 70, height: 40, left: 0, top: 26 }]} />
+              <View style={[s.puff, { width: 64, height: 56, left: 34, top: 8 }]} />
+              <View style={[s.puff, { width: 72, height: 44, left: 78, top: 22 }]} />
+              <View style={[s.puff, { width: 150, height: 30, left: 0, top: 40, borderRadius: 15 }]} />
+              <Image source={require('@/assets/tali/tali_head_blink.png')} style={s.taliHead} resizeMode="contain" />
+            </View>
+            <Text style={[s.zz, { left: '24%', top: 112, fontSize: 13 }]}>z</Text>
+            <Text style={[s.zz, { left: '20%', top: 92, fontSize: 17 }]}>z</Text>
+            <Text style={[s.zz, { left: '15%', top: 68, fontSize: 22 }]}>Z</Text>
+            <Text style={s.sceneText}>Tali's dozing off too. Sweet dreams.</Text>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </Sky>
@@ -351,6 +373,15 @@ const s = StyleSheet.create({
   bubble: { backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: line, borderRadius: 14, padding: 10, maxWidth: 220 },
   bubbleText: { color: ink, fontSize: 12, lineHeight: 16 },
   dimWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  scene: { flexGrow: 1, minHeight: 250, alignItems: 'center', justifyContent: 'flex-end', marginTop: 24 },
+  moonGlow: { position: 'absolute', borderRadius: 200, backgroundColor: 'rgba(255,233,184,0.06)' },
+  moon: { position: 'absolute', top: 50, width: 120, height: 120, borderRadius: 60, backgroundColor: '#FFF1C9', overflow: 'hidden', shadowColor: '#FFE9B8', shadowOpacity: 0.7, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } },
+  crater: { position: 'absolute', borderRadius: 20, backgroundColor: 'rgba(214,190,130,0.35)' },
+  cloudWrap: { position: 'absolute', top: 128, left: '50%', marginLeft: -140, width: 150, height: 74 },
+  puff: { position: 'absolute', borderRadius: 40, backgroundColor: 'rgba(238,233,255,0.20)' },
+  taliHead: { position: 'absolute', left: 44, top: -28, width: 62, height: 62 },
+  zz: { position: 'absolute', color: 'rgba(238,233,255,0.6)', fontWeight: '800' },
+  sceneText: { color: muted, fontSize: 13, marginBottom: 8 },
   dimTime: { color: 'rgba(238,233,255,0.35)', fontSize: 40, fontWeight: '700', fontVariant: ['tabular-nums'] },
   dimSub: { color: 'rgba(238,233,255,0.22)', fontSize: 12, marginTop: 6 },
 });

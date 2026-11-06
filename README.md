@@ -147,3 +147,6 @@ Asked for by Taj. A switch above the composer in Talk sends the next message to 
 
 ### Me tab redesign (6 Nov 2026)
 Asked for by Taj after a mockup. Header with initial avatar and a Settings gear; plan card with credits left as a big number, a bar and stat tiles (images, web searches, Deep think, top-up date); a dark "Tali's brain" card that opens /brain; Tali's jobs as two-column icon tiles grouped Your day, Your business and You, with TALI HQ and PRO badges; the memories list, Settings, the tour and Sign out as rows at the bottom. Same screens and data as before.
+
+### Page banners, depth and Sleep (6 Nov 2026)
+Asked for by Taj after mockups. Every Me page (Food and training, Goals, Weekly review, Shutdown, Decisions, Clients, Invoices, Money, Inbox, Rules, Night school) opens with its own gradient banner (`SkinHeader` in `components/PageSkin.tsx`): an Ionicon, a kicker line, the title and the sub, with a matching soft page background via `<Screen skin="...">`. Depth pass to match Totality and Nutrition: buttons, inputs, chat bubbles and chips now sit on a soft shadow (`elevation.lift`). Sleep fits one screen: three-column sound tiles, timer chips in a row, a smaller Start, and a moon with Tali dozing on a cloud in the space underneath.

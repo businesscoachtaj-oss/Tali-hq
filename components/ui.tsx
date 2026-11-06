@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
-import { CardDecor, SKINS, SkinBackdrop, SkinProvider, useSkin, type SkinId } from '@/components/PageSkin';
+import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -45,7 +45,6 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
     : undefined;
   return (
     <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
-      {skin ? <SkinBackdrop id={skin} /> : null}
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -86,8 +85,7 @@ export function Title({ children, sub }: { children: ReactNode; sub?: ReactNode 
 }
 
 export function Card({ children, style }: PropsWithChildren<{ style?: ViewStyle }>) {
-  const skin = useSkin();
-  return <View style={[styles.card, skin?.card, style]}>{skin ? <CardDecor skin={skin} /> : null}{children}</View>;
+  return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export function Body({ children, muted }: PropsWithChildren<{ muted?: boolean }>) {
@@ -95,8 +93,7 @@ export function Body({ children, muted }: PropsWithChildren<{ muted?: boolean }>
 }
 
 export function Label({ children }: PropsWithChildren) {
-  const skin = useSkin();
-  return <Text style={[styles.label, skin ? { color: skin.accent } : null]}>{children}</Text>;
+  return <Text style={styles.label}>{children}</Text>;
 }
 
 export function Field(props: TextInputProps & { label?: string }) {
@@ -123,8 +120,7 @@ export function Button({
   disabled?: boolean;
 }) {
   const off = disabled || busy;
-  const skin = useSkin();
-  const brand = skin?.accent ?? colours.purple;
+  const brand = colours.purple;
   return (
     <Pressable
       accessibilityRole="button"
