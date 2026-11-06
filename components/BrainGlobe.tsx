@@ -194,8 +194,9 @@ export function BrainGlobe({
 }) {
   const half = size / 2;
   const scale = size / 400;
-  const ry = useSharedValue(1.15);
-  const rx = useSharedValue(-0.18);
+  // 6 Nov 2026: opens side on with the front to the right and a slight look down from above, like the website.
+  const ry = useSharedValue(1.9);
+  const rx = useSharedValue(0.18);
   const zoom = useSharedValue(1);
   const dragging = useSharedValue(false);
   const startRy = useSharedValue(0);
