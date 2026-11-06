@@ -11,7 +11,7 @@
 //   4. One Claude call with a forced tool, saved to reviews (upsert on user_id + week_start) and returned
 //      with next week's Monday so the app can save the three commitments.
 //
-// Secrets: ANTHROPIC_API_KEY (required), TALI_MODEL (optional, default claude-haiku-5-5).
+// Secrets: ANTHROPIC_API_KEY (required), TALI_DEEP_MODEL (optional, default claude-sonnet-5-5).
 // Deployed with verify_jwt false; the function checks the JWT itself like tali-chat.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -19,7 +19,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
-const TALI_MODEL = Deno.env.get('TALI_MODEL') ?? 'claude-haiku-5-5';
+// 6 Nov 2026 (Taj): weekly review, monthly patterns and night school run on Sonnet. They are rare and need real thinking across weeks of data, where Haiku is weakest. Override with TALI_DEEP_MODEL.
+const TALI_MODEL = Deno.env.get('TALI_DEEP_MODEL') ?? 'claude-sonnet-5-5';
 const CREDITS = 3;
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });

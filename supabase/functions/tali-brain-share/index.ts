@@ -8,13 +8,14 @@
 // business could use with every personal detail removed, or to drop it, and saves the general ones
 // to the shared brain (brain_share_promote). Deployed with verify_jwt false.
 //
-// Secrets: ANTHROPIC_API_KEY (required), TALI_MODEL (optional, default claude-haiku-5-5).
+// Secrets: ANTHROPIC_API_KEY (required), TALI_SHARE_MODEL (optional, default claude-opus-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
-const TALI_MODEL = Deno.env.get('TALI_MODEL') ?? 'claude-haiku-5-5';
+// 6 Nov 2026 (Taj): the shared-brain scrub runs on Opus. It decides what is personal before a lesson reaches every user, so it gets the strongest model. Weekly, so it costs cents. Override with TALI_SHARE_MODEL.
+const TALI_MODEL = Deno.env.get('TALI_SHARE_MODEL') ?? 'claude-opus-5-5';
 const PER_BATCH = 40; // lessons per model call
 const MAX_BATCHES = 8; // up to 320 a week
 

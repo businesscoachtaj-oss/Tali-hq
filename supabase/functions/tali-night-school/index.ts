@@ -7,13 +7,14 @@
 // public.due_night_school() has someone due. Deployed with verify_jwt false.
 //
 // Credits: 1 for the night (reserved first) plus 2 per web search. Refunded on failure.
-// Secrets: ANTHROPIC_API_KEY (required), TALI_MODEL (optional, default claude-haiku-5-5).
+// Secrets: ANTHROPIC_API_KEY (required), TALI_DEEP_MODEL (optional, default claude-sonnet-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
-const TALI_MODEL = Deno.env.get('TALI_MODEL') ?? 'claude-haiku-5-5';
+// 6 Nov 2026 (Taj): weekly review, monthly patterns and night school run on Sonnet. They are rare and need real thinking across weeks of data, where Haiku is weakest. Override with TALI_DEEP_MODEL.
+const TALI_MODEL = Deno.env.get('TALI_DEEP_MODEL') ?? 'claude-sonnet-5-5';
 const PER_RUN = 5;
 
 const strip = (s: unknown) => String(s ?? '').replace(/\s*[–—]\s*/g, ', ').trim();
