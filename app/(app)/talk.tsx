@@ -33,6 +33,8 @@ export default function Talk() {
   const { profile } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
+  const rowsRef = useRef<Row[]>([]);
+  rowsRef.current = rows;
   const [text, setText] = useState('');
   const [thinking, setThinking] = useState(false);
   const [notice, setNotice] = useState('');
@@ -97,6 +99,18 @@ export default function Talk() {
     setUploading(false);
   }
   const listRef = useRef<FlatList<Row>>(null);
+  // FIX (6 Nov 2026, Taj): when Tali's reply lands, show it from its first line, so a long reply is
+  // read from the top instead of the list jumping to (or stopping short of) the bottom. Cleared as
+  // soon as they scroll themselves or send again.
+  const pinReply = useRef<string | null>(null);
+  function settleList() {
+    const list = listRef.current;
+    if (!list) return;
+    const id = pinReply.current;
+    const index = id ? rowsRef.current.findIndex((m) => m.id === id) : -1;
+    if (index >= 0) list.scrollToIndex({ index, viewPosition: 0, viewOffset: 8, animated: true });
+    else list.scrollToEnd({ animated: true });
+  }
   const inputRef = useRef<TextInput>(null);
   // Share to Tali (2 Nov 2026): the PWA is a share target, so a text, DM screenshot caption or link
   // shared from another app lands here as ?text=&title=&url=. It goes into the composer for the
@@ -174,6 +188,7 @@ export default function Talk() {
     if ((!body && !files.length) || !conversationId || thinking || uploading) return;
     // A retry leaves the composer alone (the tap handler clears it only if it still holds the failed words).
     if (!direct) { setText(''); setPending([]); }
+    pinReply.current = null;
     setNotice('');
     const temp: Row = { id: `tmp-${Date.now()}`, role: 'user', content: body, created_at: new Date().toISOString(), pending: true, attachments: files, files };
     setRows((r) => [...r.filter((m) => m.id !== retryOf), temp]);
@@ -187,7 +202,10 @@ export default function Talk() {
     if (level) loadPlan();
     if (res.ok) {
       setOutOfCredits(false);
-      setRows(await loadMessages(conversationId));
+      const fresh = await loadMessages(conversationId);
+      const reply = [...fresh].reverse().find((m) => m.role !== 'user');
+      pinReply.current = reply ? reply.id : null;
+      setRows(fresh);
       if (res.image) void drawImage(res.image.messageId, res.image.index);
       const bits: string[] = [];
       if (res.drafted) bits.push(res.drafted === 1 ? 'Draft waiting on Today' : `${res.drafted} drafts waiting on Today`);
@@ -315,7 +333,14 @@ export default function Talk() {
             contentContainerStyle={{ padding: space.lg, gap: space.sm, maxWidth: 680, width: '100%', alignSelf: 'center' }}
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+            onContentSizeChange={settleList}
+            // The notice line under the list can shrink it after a reply; settle again when it does.
+            onLayout={settleList}
+            onScrollBeginDrag={() => { pinReply.current = null; }}
+            onScrollToIndexFailed={({ index, averageItemLength }) => {
+              listRef.current?.scrollToOffset({ offset: index * averageItemLength, animated: false });
+              setTimeout(settleList, 120);
+            }}
             renderItem={({ item }) => {
               const me = item.role === 'user';
               return (
