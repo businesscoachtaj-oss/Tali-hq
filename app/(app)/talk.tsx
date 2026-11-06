@@ -95,7 +95,7 @@ export default function Talk() {
   // Share to Tali (2 Nov 2026): the PWA is a share target, so a text, DM screenshot caption or link
   // shared from another app lands here as ?text=&title=&url=. It goes into the composer for the
   // user to add a word to and send; nothing is sent on its own.
-  const params = useLocalSearchParams<{ text?: string; title?: string; url?: string; ask?: string }>();
+  const params = useLocalSearchParams<{ text?: string; title?: string; url?: string; ask?: string; chat?: string }>();
   // Ask Tali (3 Nov 2026): other screens open Talk with a ready question in the box.
   useEffect(() => {
     const ask = Array.isArray(params.ask) ? params.ask[0] : params.ask;
@@ -122,6 +122,7 @@ export default function Talk() {
   const load = useCallback(async () => {
     try {
       const id = await currentConversation();
+      if (chatAsked.current) return; // "Go to the chat" got there first
       setConversationId(id);
       setRows(await loadMessages(id));
       loadPlan();
@@ -135,6 +136,25 @@ export default function Talk() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Visual memories (6 Nov 2026): "Go to the chat" opens Talk on the chat an image came from.
+  const chatAsked = useRef(false);
+  useEffect(() => {
+    const wanted = Array.isArray(params.chat) ? params.chat[0] : params.chat;
+    if (!wanted || !/^[0-9a-f-]{36}$/i.test(String(wanted))) return;
+    chatAsked.current = true;
+    router.setParams({ chat: undefined } as any);
+    (async () => {
+      try {
+        setConversationId(String(wanted));
+        setRows(await loadMessages(String(wanted)));
+      } catch (e: any) {
+        setNotice(e?.message ?? 'Could not open that chat.');
+      } finally {
+        setLoaded(true);
+      }
+    })();
+  }, [params.chat]);
 
   // 4 Nov 2026: re-check the plan each time Talk comes into view, so an upgrade on Plans shows here straight away.
   useFocusEffect(useCallback(() => { loadPlan(); }, [loadPlan]));

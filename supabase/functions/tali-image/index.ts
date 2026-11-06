@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
     return fail('bad_request', 'That image was not found.', 404);
   }
   if (job.path) return json({ ok: true, attachment: job, already: true });
+  if (job.deleted) return fail('deleted', 'You deleted this image.', 410);
 
   const setJob = async (patch: Record<string, unknown>) => {
     const next = atts.map((a, i) => (i === index ? { ...a, ...patch } : a));
