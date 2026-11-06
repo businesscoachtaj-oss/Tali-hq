@@ -11,6 +11,8 @@ export type Credits = {
   images?: { allowance: number; used: number; remaining: number; trial?: boolean } | null;
   // ADDED (6 Nov 2026): Free gets a few web searches a month (null on paid plans, where searching costs credits).
   searches?: { allowance: number; used: number; remaining: number } | null;
+  // ADDED (6 Nov 2026): Free's Deep think count (null on paid plans, where it costs credits).
+  deep?: { allowance: number; used: number; remaining: number } | null;
 };
 
 export async function myCredits(): Promise<Credits | null> {
@@ -134,7 +136,9 @@ export async function forgetMemory(id: string): Promise<boolean> {
 // Images Tali makes (6 Nov 2026) start as a placeholder with no path: making is true while she draws
 // it, failed holds the reason if it did not come through, prompt is what she asked for.
 export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string; deleted?: boolean };
-export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null };
+// meta.deep marks a Deep think reply; meta.suggest_deep is Tali offering one (6 Nov 2026).
+export type DeepLevel = 'deep' | 'deepest';
+export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null; meta?: { deep?: DeepLevel; suggest_deep?: boolean } | null };
 export const MAX_ATTACHMENTS = 4;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -215,7 +219,7 @@ export async function newConversation(): Promise<string> {
 export async function messages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from('messages')
-    .select('id, role, content, created_at, attachments')
+    .select('id, role, content, created_at, attachments, meta')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
     .limit(200);
@@ -224,14 +228,14 @@ export async function messages(conversationId: string): Promise<Message[]> {
 }
 
 export type ChatResult =
-  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; goalsSaved?: number; decisionsLogged?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; image?: { messageId: string; index: number } | null; remaining: number | null }
+  | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; goalsSaved?: number; decisionsLogged?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; image?: { messageId: string; index: number } | null; deep?: DeepLevel | null; suggestDeep?: boolean; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
 // remembers anything worth keeping in this user's private brain.
-export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = []): Promise<ChatResult> {
+export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = [], deep: DeepLevel | null = null): Promise<ChatResult> {
   const files = attachments.map(({ kind, path, name, size }) => ({ kind, path, name, size }));
-  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text, attachments: files } });
+  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text, attachments: files, ...(deep ? { deep } : {}) } });
   if (error) {
     // Non-2xx answers still carry our JSON body with a friendly message.
     try {

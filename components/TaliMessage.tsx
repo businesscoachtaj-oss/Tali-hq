@@ -85,13 +85,16 @@ export function parseTali(raw: string): Block[] {
         const b = line.match(BULLET);
         const s = line.match(STEP);
         const last = blocks[blocks.length - 1];
+        // 6 Nov 2026: a heading line right above a list starts a new list. Before, the first item
+        // jumped into the list above the heading (flush ran after "last" was read).
+        const hadText = textRun.length > 0;
         if (b) {
           flush();
-          if (last?.type === 'bullets' && !textRun.length) last.items.push(b[1]);
+          if (last?.type === 'bullets' && !hadText) last.items.push(b[1]);
           else blocks.push({ type: 'bullets', items: [b[1]] });
         } else if (s) {
           flush();
-          if (last?.type === 'steps') last.items.push({ n: s[1], text: s[2] });
+          if (last?.type === 'steps' && !hadText) last.items.push({ n: s[1], text: s[2] });
           else blocks.push({ type: 'steps', items: [{ n: s[1], text: s[2] }] });
         } else if (line.trim() && (last?.type === 'bullets' || last?.type === 'steps') && !textRun.length && /^\s{2,}/.test(line)) {
           // an indented follow-on line belongs to the item above
