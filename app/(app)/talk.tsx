@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { currentConversation, deleteConversation, listConversations, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
+import { currentConversation, deleteConversation, listConversations, makeImage, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { MicButton } from '@/components/MicButton';
@@ -10,10 +10,14 @@ import { useVoiceNote, voiceMinutesLeftLine, VOICE_NOTES_ON } from '@/lib/voiceN
 import { TaliThinking } from '@/components/TaliThinking';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { TaliMessage } from '@/components/TaliMessage';
+import { isStaleImage, TaliImage } from '@/components/TaliImage';
 import { useAuth } from '@/lib/auth';
 import { pickFiles, type PickedFile } from '@/lib/pickFiles';
 import { tali } from '@/components/ui';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
+
+// An image Tali made (it carries her prompt, or is still a placeholder with no file yet).
+const isTaliMade = (me: boolean, a: Attachment) => !me && a.kind === 'image' && (!!a.prompt || !a.path);
 
 // A failed row keeps its files so "Try again" can resend the same message.
 type Row = Message & { pending?: boolean; failed?: boolean; files?: Attachment[] };
@@ -46,6 +50,20 @@ export default function Talk() {
   const [pending, setPending] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Images Tali is drawing right now (6 Nov 2026), keyed "<message id>:<index>".
+  const [drawing, setDrawing] = useState<Set<string>>(new Set());
+
+  async function drawImage(messageId: string, index: number) {
+    const key = `${messageId}:${index}`;
+    setDrawing((d) => new Set(d).add(key));
+    setRows((r) => r.map((m) => (m.id === messageId && m.attachments ? { ...m, attachments: m.attachments.map((a, i) => (i === index ? { ...a, making: true, failed: null } : a)) } : m)));
+    const res = await makeImage(messageId, index);
+    setDrawing((d) => { const n = new Set(d); n.delete(key); return n; });
+    setRows((r) => r.map((m) => (m.id === messageId && m.attachments
+      ? { ...m, attachments: m.attachments.map((a, i) => (i !== index ? a : res.ok ? res.attachment : { ...a, making: false, failed: res.message })) }
+      : m)));
+    if (res.ok && typeof res.remaining === 'number') setNotice(res.remaining === 1 ? 'Image done. 1 image left this month.' : `Image done. ${res.remaining} images left this month.`);
+  }
 
   async function attach(source: 'photo' | 'camera' | 'file') {
     setPickerOpen(false);
@@ -138,6 +156,7 @@ export default function Talk() {
     setThinking(false);
     if (res.ok) {
       setRows(await loadMessages(conversationId));
+      if (res.image) void drawImage(res.image.messageId, res.image.index);
       const bits: string[] = [];
       if (res.drafted) bits.push(res.drafted === 1 ? 'Draft waiting on Today' : `${res.drafted} drafts waiting on Today`);
       if (res.remindersSet) bits.push(res.remindersSet === 1 ? 'reminder set' : `${res.remindersSet} reminders set`);
@@ -282,9 +301,9 @@ export default function Talk() {
                     opacity: item.pending ? 0.7 : 1,
                     ...(me ? null : elevation.card),
                   }}>
-                  {item.attachments?.length ? (
+                  {item.attachments?.some((a) => !isTaliMade(me, a)) ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: item.content ? 8 : 0 }}>
-                      {item.attachments.map((a, i) => a.kind === 'image' ? (
+                      {item.attachments.map((a, i) => isTaliMade(me, a) ? null : a.kind === 'image' ? (
                         <Pressable key={i} onPress={() => a.url && Linking.openURL(a.url)} accessibilityRole="imagebutton" accessibilityLabel={`Open ${a.name}`}>
                           <Image source={{ uri: a.url }} style={{ width: 150, height: 150, borderRadius: 12, backgroundColor: colours.sunk }} resizeMode="cover" />
                         </Pressable>
@@ -302,6 +321,12 @@ export default function Talk() {
                   {item.content ? (me
                     ? <Text style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
                     : <TaliMessage content={item.content} />) : null}
+                  {/* Images Tali made sit under her words (6 Nov 2026). */}
+                  {item.attachments?.map((a, i) => isTaliMade(me, a) ? (
+                    <View key={`t${i}`} style={{ marginTop: item.content ? 10 : 0 }}>
+                      <TaliImage a={a} drawing={drawing.has(`${item.id}:${i}`)} stale={isStaleImage(a, item.created_at)} onRetry={() => void drawImage(item.id, i)} />
+                    </View>
+                  ) : null)}
                   {item.failed ? (
                     <Pressable
                       accessibilityRole="button"
