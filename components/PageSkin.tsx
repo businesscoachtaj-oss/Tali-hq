@@ -40,7 +40,9 @@ export function SkinProvider({ id, children }: { id?: SkinId; children: ReactNod
 }
 
 export function SkinHeader({ id, title, sub, onBack, backLabel = 'Back' }: { id: SkinId; title: string; sub?: string; onBack?: () => void; backLabel?: string }) {
-  const t = SKINS[id];
+  // 9 Nov 2026 look refresh: every page banner uses the same purple as Tali's box on Today, so the
+  // app reads as one place with one personality. Each page keeps its own icon and kicker.
+  const t = { ...SKINS[id], colors: ['#4A2160', '#8A4A9E'] as [string, string] };
   return (
     <View style={{ marginHorizontal: -16, marginTop: -16, marginBottom: 16 }}>
       <LinearGradient colors={t.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 26, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>

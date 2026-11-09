@@ -28,7 +28,7 @@ export const tali = {
 
 // 4 Nov 2026: optional pull to refresh (pass the screen's load) so every list screen can refresh, not just Today.
 export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
-  if (skin) bg = SKINS[skin].bg;
+  // 9 Nov 2026 look refresh: one page colour everywhere (was a tint per page).
   const [refreshing, setRefreshing] = useState(false);
   const body = <SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider>;
   const refresh = onRefresh
