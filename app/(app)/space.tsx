@@ -105,14 +105,16 @@ export default function Space() {
           })}
           {sel ? sel.links.map((l, k) => {
             const i = stars.indexOf(sel); const p = pos(i);
-            const ang = (-0.6 + k * 0.9) + (p.x > W / 2 ? Math.PI : 0);
-            const lx = p.x + 8 + Math.cos(ang) * 120, ly = Math.min(stageH - 30, Math.max(10, p.y + 8 + Math.sin(ang) * 110));
+            // Fan the connections out below the star, clear of its own label.
+            const base = [0.55, 1.0, 1.45][k] ?? 1.2;
+            const ang = p.x > W / 2 ? Math.PI - base : base;
+            const lx = Math.min(W - 150, Math.max(8, p.x + 8 + Math.cos(ang) * 175)), ly = Math.min(stageH - 30, Math.max(10, p.y + 8 + Math.sin(ang) * 175));
             return (
               <View key={'s' + k} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} pointerEvents="none">
                 <Beam x1={p.x + 8} y1={p.y + 8} x2={lx} y2={ly} colour={AREA[l.area].colour} opacity={0.9} />
                 <View style={{ position: 'absolute', left: lx - 5, top: ly - 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: AREA[l.area].colour, shadowColor: AREA[l.area].colour, shadowOpacity: 1, shadowRadius: 10 }} />
-                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700', maxWidth: 140, textShadowColor: '#000', textShadowRadius: 6 }}>{l.text}</Text>
+                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700', maxWidth: 150, backgroundColor: 'rgba(10,8,32,0.82)', borderRadius: 10, paddingVertical: 4, paddingHorizontal: 8, overflow: 'hidden', borderWidth: 1, borderColor: AREA[l.area].colour + '77' }}>{l.text}</Text>
                 </View>
               </View>
             );
@@ -123,9 +125,9 @@ export default function Space() {
               <Pressable key={s.key} onPress={() => setFocus(on ? null : s.key)} accessibilityRole="button" accessibilityLabel={s.title}
                 style={{ position: 'absolute', left: p.x, top: p.y, flexDirection: 'row', alignItems: 'flex-start', gap: 8, opacity: dim ? 0.3 : 1, maxWidth: 160 }}>
                 <Pulse colour={c} size={s.size} on={on} strong={s.area === 'money'} delay={i * 350} />
-                <View style={{ flexShrink: 1 }}>
-                  <Text style={{ color: '#FFFFFF', fontSize: 13.5, fontWeight: '800', textShadowColor: '#000', textShadowRadius: 8 }}>{s.title}</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11.5, marginTop: 1, textShadowColor: '#000', textShadowRadius: 8 }} numberOfLines={2}>{s.sub}</Text>
+                <View style={{ flexShrink: 1, backgroundColor: 'rgba(10,8,32,0.78)', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 9, borderWidth: 1, borderColor: c + '66' }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 13.5, fontWeight: '800' }}>{s.title}</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 11.5, marginTop: 1 }} numberOfLines={2}>{s.sub}</Text>
                 </View>
               </Pressable>
             );
