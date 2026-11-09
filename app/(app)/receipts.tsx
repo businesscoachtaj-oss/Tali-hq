@@ -18,7 +18,7 @@ import {
 } from '@/lib/grow';
 
 const BROWN = '#B9A6FF'; // 10 Nov 2026: was a brown from the old paper look, unreadable on her night sky
-const aud = (n: number) => `$${n.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const aud = (n: number) => `A$${n.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const monthName = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
 const dayName = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 const todayIso = () => new Intl.DateTimeFormat('en-CA').format(new Date());

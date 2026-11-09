@@ -163,10 +163,8 @@ export function BackLink({ onPress, label = 'Back' }: { onPress: () => void; lab
 export function TaliSays({ children, pose = 'idle' }: PropsWithChildren<{ pose?: keyof typeof tali }>) {
   return (
     <View style={styles.says}>
-      {/* 10 Nov 2026: her head in a glowing ring, the same as Today, instead of her full body. */}
-      <View style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } }}>
-        <TaliAvatar pose="head" size={38} />
-      </View>
+      {/* Her full sprite stays (Taj, 10 Nov 2026): it moves and changes expression; her head alone only blinks. */}
+      <TaliAvatar pose={pose} size={64} />
       <View style={styles.bubble}>
         <Text style={styles.body}>{children}</Text>
       </View>
@@ -229,7 +227,7 @@ const styles = StyleSheet.create({
     ...elevation.lift,
   },
   btnText: { fontSize: 16, fontWeight: '700', color: colours.text },
-  says: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md, marginBottom: space.lg },
+  says: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md, marginBottom: space.lg },
   saysImg: { width: 64, height: 120 },
   bubble: {
     flex: 1,
