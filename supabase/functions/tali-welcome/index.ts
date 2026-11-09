@@ -3,7 +3,7 @@
 // ADDED (10 Nov 2026, asked for by Taj): the welcome email. One short hello from Tali, sent once,
 // a few minutes after someone confirms their email.
 //
-// Called every 5 minutes by pg_cron (migration 20261110000055_welcome_email.sql) with the vault key
+// Called every 5 minutes by pg_cron (migration 20261110000056_welcome_email.sql) with the vault key
 // in x-tali-key, and only when public.welcome_due() has someone waiting. Deployed with
 // verify_jwt false; the key check below is the gate.
 //

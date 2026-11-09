@@ -28,7 +28,7 @@ Files:
 
 - `supabase/templates/build.mjs`, `README.md`, the four auth `.html` files, `welcome.html` (preview)
 - `supabase/functions/tali-welcome/index.ts` and `template.ts` (generated)
-- `supabase/migrations/20261110000055_welcome_email.sql`
+- `supabase/migrations/20261110000056_welcome_email.sql`
 
 ## Putting the auth emails live (Taj)
 
@@ -73,7 +73,7 @@ Steps, in this order:
      "Or just reply to this email." Without it that sentence is left out.
    - `WELCOME_FROM`: defaults to `Tali <tali@tali.totality360.com.au>`.
    - `WELCOME_APP_URL`: defaults to `https://talihq.com.au`.
-4. Run the migration `20261110000055_welcome_email.sql` in the SQL editor
+4. Run the migration `20261110000056_welcome_email.sql` in the SQL editor
    (https://supabase.com/dashboard/project/jbyzblwrywgxilhmfyjt/sql/new). From that moment, new
    confirmed sign ups get the email within about 8 minutes.
 5. Check it: sign up with a spare address, confirm, wait. Or look at
