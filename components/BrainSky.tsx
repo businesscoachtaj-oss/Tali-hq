@@ -20,7 +20,9 @@ const AREA = {
   growth: { name: 'Growth', colour: '#FFE066' },
 } as const;
 type Area = keyof typeof AREA;
-type Star = { key: string; title: string; sub: string; area: Area; size: number; links: { text: string; area: Area }[]; action?: string; to?: string; seed?: string; fallback?: { text: string; area: Area }[] };
+type Star = { key: string; title: string; sub: string; area: Area; size: number; full?: string; links: Link[]; action?: string; to?: string; ask?: string; seed?: string; fallback?: Link[] };
+// `full` is the whole memory, shown when a star or one of its connections is opened.
+type Link = { text: string; area: Area; full?: string };
 
 const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.76], [1, 0.86]] as const;
 
@@ -37,7 +39,10 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   // 10 Nov 2026 overhaul: dates she remembers become stars as they get close, and a tapped star asks
   // the brain for what is really connected to it.
   const [upcoming, setUpcoming] = useState<Upcoming[]>([]);
-  const [found, setFound] = useState<Record<string, { text: string; area: Area }[]>>({});
+  const [found, setFound] = useState<Record<string, Link[]>>({});
+  // A connection that has been tapped open, so it can be read in full.
+  const [openLink, setOpenLink] = useState<Link | null>(null);
+  const pick = (key: string | null) => { setOpenLink(null); setFocus(key); };
 
   useFocusEffect(useCallback(() => {
     const end = addDays(new Date(new Date().setHours(0, 0, 0, 0)), 1).toISOString();
@@ -62,7 +67,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   const related = (name: string | null | undefined, skip?: string) => {
     const n = (name ?? '').trim().toLowerCase();
     if (n.length < 3) return [];
-    return items.filter((i) => i.text !== skip && i.text.toLowerCase().includes(n)).slice(0, 2).map((i) => ({ text: short(i.text, 44), area: areaOf(i.kind) }));
+    return items.filter((i) => i.text !== skip && i.text.toLowerCase().includes(n)).slice(0, 2).map((i) => ({ text: short(i.text, 44), area: areaOf(i.kind), full: i.text }));
   };
   const stars: Star[] = [];
   if (late) {
@@ -89,11 +94,11 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   // Dates she remembers, as they get close (a birthday, a renewal, a deadline). Soonest two.
   const soon = (n: number) => (n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : n < 14 ? `In ${n} days` : `In ${Math.round(n / 7)} weeks`);
   for (const u of upcoming.slice(0, 2)) {
-    stars.push({ key: `date-${u.id}`, title: short(u.text, 46), sub: `${soon(u.days_away)}${u.yearly ? ', every year' : ''}`, area: areaOf(u.kind), size: u.days_away <= 7 ? 17 : 14, links: [], seed: u.text, action: 'Plan it with her', to: '/talk' });
+    stars.push({ key: `date-${u.id}`, full: u.text, ask: `Help me plan for this: ${u.text}`, title: short(u.text, 46), sub: `${soon(u.days_away)}${u.yearly ? ', every year' : ''}`, area: areaOf(u.kind), size: u.days_away <= 7 ? 17 : 14, links: [], seed: u.text, action: 'Plan it with her', to: '/talk' });
   }
   // Until the dates are switched on server side, a birthday she remembers still shows.
-  if (!upcoming.length && person) stars.push({ key: 'person', title: short(person.text, 46), sub: 'Something she remembers for you', area: 'people', size: 14, links: [], seed: person.text, fallback: related(person.text.split(/[\s']/)[0], person.text), action: 'Talk it through', to: '/talk' });
-  if (idea) stars.push({ key: 'idea', title: short(idea.text, 46), sub: 'An idea you had', area: 'growth', size: 12, links: [], seed: idea.text, action: 'Plan it with her', to: '/talk' });
+  if (!upcoming.length && person) stars.push({ key: 'person', full: person.text, ask: `Let's talk about this: ${person.text}`, title: short(person.text, 46), sub: 'Something she remembers for you', area: 'people', size: 14, links: [], seed: person.text, fallback: related(person.text.split(/[\s']/)[0], person.text), action: 'Talk it through', to: '/talk' });
+  if (idea) stars.push({ key: 'idea', full: idea.text, ask: `Let's plan this idea: ${idea.text}`, title: short(idea.text, 46), sub: /night school/i.test(idea.text) ? 'An idea from her night school' : 'An idea you had', area: 'growth', size: 12, links: [], seed: idea.text, action: 'Plan it with her', to: '/talk' });
 
   // Six places in the sky. What needs you comes first, so an idea is the first to wait for a quiet day.
   stars.length = Math.min(stars.length, SPOTS.length);
@@ -114,13 +119,13 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
     myConnections(seed, 3).then((rows) => {
       if (!live) return;
       const own = new Set((picked?.links ?? []).map((l) => l.text.toLowerCase()));
-      setFound((f) => ({ ...f, [pickedKey]: rows.filter((r) => r.text && r.text !== seed && !own.has(r.text.toLowerCase())).map((r) => ({ text: short(r.text, 44), area: areaOf(r.kind) })) }));
+      setFound((f) => ({ ...f, [pickedKey]: rows.filter((r) => r.text && r.text !== seed && !own.has(r.text.toLowerCase())).map((r) => ({ text: short(r.text, 44), area: areaOf(r.kind), full: r.text })) }));
     });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickedKey, seed]);
   const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
-  const line = sel ? `${sel.title}. Here's everything I know that touches it.` : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
+  const line = sel ? "Here's everything I know that touches this." : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
 
   return (
     <View style={{ width: W, alignSelf: 'center' }}>
@@ -137,9 +142,10 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
         <Text style={{ color: '#FFFFFF', fontSize: 32, lineHeight: 36, paddingHorizontal: 20, marginTop: 10, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 }}>{line}</Text>
 
         {/* The stage: her brain, with your day orbiting it. */}
-        <View style={{ height: stageH, marginTop: 10 }}>
+        {/* Tapping the empty sky closes whatever is open. */}
+        <Pressable onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
           <View style={{ position: 'absolute', left: cx - 150, top: cy - 150, opacity: sel ? 0.35 : 1 }}>
-            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} onSelect={() => router.navigate('/brain')} />
+            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
           </View>
           {stars.map((s, i) => {
             const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = !!focus && !on;
@@ -148,25 +154,28 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
           })}
           {sel ? sel.links.map((l, k) => {
             const i = stars.findIndex((x) => x.key === sel.key); const p = pos(i);
-            // Fan the connections out below the star, clear of its own label.
-            const base = [0.55, 1.0, 1.45][k] ?? 1.2;
-            const ang = p.x > W / 2 ? Math.PI - base : base;
-            const lx = Math.min(W - 150, Math.max(8, p.x + 8 + Math.cos(ang) * 175)), ly = Math.min(stageH - 30, Math.max(10, p.y + 8 + Math.sin(ang) * 175));
+            // Stack the connections clear of the star's own label and of each other: below it for stars
+            // in the top half of the sky, above it for the rest.
+            const down = p.y < stageH / 2;
+            const lx = Math.min(W - 190, Math.max(12, p.x > W / 2 ? p.x - 150 - k * 14 : p.x + 44 + k * 14));
+            const ly = down ? p.y + 96 + k * 50 : p.y - 46 - k * 50;
+            const on = openLink?.text === l.text;
             return (
-              <View key={'s' + k} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} pointerEvents="none">
+              <View key={'s' + k} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
                 <Beam x1={p.x + 8} y1={p.y + 8} x2={lx} y2={ly} colour={AREA[l.area].colour} opacity={0.9} />
-                <View style={{ position: 'absolute', left: lx - 5, top: ly - 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Pressable onPress={() => setOpenLink(on ? null : l)} accessibilityRole="button" accessibilityLabel={l.full ?? l.text} hitSlop={6}
+                  style={{ position: 'absolute', left: lx - 5, top: ly - 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <View style={{ width: 10, height: 10 }}><Glow colour={AREA[l.area].colour} size={10} /></View>
-                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700', maxWidth: 150, backgroundColor: 'rgba(10,8,32,0.82)', borderRadius: 10, paddingVertical: 4, paddingHorizontal: 8, overflow: 'hidden', borderWidth: 1, borderColor: AREA[l.area].colour + '77' }}>{l.text}</Text>
-                </View>
+                  <Text numberOfLines={1} style={{ color: '#FFFFFF', fontSize: 12.5, fontWeight: '700', maxWidth: 170, backgroundColor: on ? AREA[l.area].colour + '44' : 'rgba(10,8,32,0.9)', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 9, overflow: 'hidden', borderWidth: 1, borderColor: AREA[l.area].colour + (on ? 'FF' : '88') }}>{l.text}</Text>
+                </Pressable>
               </View>
             );
           }) : null}
           {stars.map((s, i) => {
             const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = !!focus && !on;
             return (
-              <Pressable key={s.key} onPress={() => setFocus(on ? null : s.key)} accessibilityRole="button" accessibilityLabel={s.title}
-                style={{ position: 'absolute', left: p.x, top: p.y, flexDirection: 'row', alignItems: 'flex-start', gap: 8, opacity: dim ? 0.3 : 1, maxWidth: 160 }}>
+              <Pressable key={s.key} onPress={() => pick(on ? null : s.key)} accessibilityRole="button" accessibilityLabel={s.full ?? s.title}
+                style={{ position: 'absolute', left: p.x, top: p.y, flexDirection: 'row', alignItems: 'flex-start', gap: 8, opacity: dim ? 0.12 : 1, maxWidth: 160 }}>
                 <Pulse colour={c} size={s.size} on={on} strong={s.area === 'money'} delay={i * 350} />
                 <View style={{ flexShrink: 1, backgroundColor: 'rgba(10,8,32,0.78)', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 9, borderWidth: 1, borderColor: c + '66' }}>
                   <Text style={{ color: '#FFFFFF', fontSize: 13.5, fontWeight: '800' }}>{s.title}</Text>
@@ -175,20 +184,37 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
               </Pressable>
             );
           })}
-        </View>
+        </Pressable>
 
-        {sel ? (
-          <View style={{ marginHorizontal: 16, marginTop: 6, padding: 18, borderRadius: 22, backgroundColor: 'rgba(20,16,52,0.85)', borderWidth: 1, borderColor: AREA[sel.area].colour + '99', shadowColor: AREA[sel.area].colour, shadowOpacity: 0.6, shadowRadius: 26 }}>
-            <Text style={{ color: AREA[sel.area].colour, fontSize: 11, fontWeight: '800', letterSpacing: 2 }}>{AREA[sel.area].name.toUpperCase()}</Text>
-            <Text style={{ color: '#FFFFFF', fontSize: 28, marginTop: 4, fontFamily: 'InstrumentSerif_400Regular' }}>{sel.title}</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginTop: 2 }}>{sel.sub}</Text>
-            {sel.action ? (
-              <Pressable accessibilityRole="button" disabled={!sel.to} onPress={() => sel.to && router.navigate(sel.to as any)} style={{ marginTop: 16, alignSelf: 'flex-start', backgroundColor: sel.to ? AREA[sel.area].colour : 'rgba(255,255,255,0.12)', borderRadius: 999, paddingVertical: 12, paddingHorizontal: 20, shadowColor: AREA[sel.area].colour, shadowOpacity: 0.8, shadowRadius: 16 }}>
-                <Text style={{ color: sel.to ? '#0C0A24' : 'rgba(255,255,255,0.8)', fontWeight: '800', fontSize: 15 }}>{sel.action}</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : (
+        {sel ? (() => {
+          // The card reads out whatever is open in full: the star itself, or one of its connections.
+          const area = openLink ? openLink.area : sel.area;
+          const c = AREA[area].colour;
+          const words = openLink ? (openLink.full ?? openLink.text) : (sel.full ?? sel.title);
+          const ask = openLink ? `Tell me more about this: ${openLink.full ?? openLink.text}` : sel.ask;
+          const to = openLink ? '/talk' : sel.to;
+          const go = () => { if (!to) return; if (to === '/talk' && ask) router.navigate({ pathname: '/talk', params: { ask } } as any); else router.navigate(to as any); };
+          return (
+            <View style={{ marginHorizontal: 16, marginTop: 6, padding: 18, borderRadius: 22, backgroundColor: 'rgba(20,16,52,0.92)', borderWidth: 1, borderColor: c + '99', shadowColor: c, shadowOpacity: 0.6, shadowRadius: 26, shadowOffset: { width: 0, height: 0 } }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ flex: 1, color: c, fontSize: 11, fontWeight: '800', letterSpacing: 2 }}>{openLink ? `CONNECTED  ·  ${AREA[area].name.toUpperCase()}` : AREA[area].name.toUpperCase()}</Text>
+                <Pressable onPress={() => (openLink ? setOpenLink(null) : pick(null))} accessibilityRole="button" accessibilityLabel={openLink ? 'Back' : 'Close'} hitSlop={14}
+                  style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>{openLink ? '‹' : '✕'}</Text>
+                </Pressable>
+              </View>
+              <Text style={{ color: '#FFFFFF', fontSize: words.length > 70 ? 19 : 26, lineHeight: words.length > 70 ? 26 : 31, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{words}</Text>
+              {!openLink ? <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginTop: 4 }}>{sel.sub}</Text> : null}
+              {!openLink && sel.links.length ? <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12.5, marginTop: 8 }}>Tap a connection to read it.</Text> : null}
+              {openLink || sel.action ? (
+                <Pressable accessibilityRole="button" disabled={!to} onPress={go}
+                  style={{ marginTop: 16, alignSelf: 'flex-start', backgroundColor: to ? c : 'rgba(255,255,255,0.12)', borderRadius: 999, paddingVertical: 12, paddingHorizontal: 20, shadowColor: c, shadowOpacity: to ? 0.8 : 0, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } }}>
+                  <Text style={{ color: to ? '#0C0A24' : 'rgba(255,255,255,0.8)', fontWeight: '800', fontSize: 15 }}>{openLink ? 'Talk about this' : sel.action}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          );
+        })() : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 18, paddingHorizontal: 16, marginTop: 28 }}>
             {(Object.keys(AREA) as Area[]).map((a) => (
               <Pressable key={a} onPress={() => router.navigate('/world')} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }} accessibilityRole="button">
