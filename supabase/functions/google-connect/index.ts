@@ -11,6 +11,10 @@
 //   POST {action:'book', approvalId}         signed in: creates the approved event in their calendar
 //   POST {action:'calendar'}                 signed in: today and tomorrow, for the Today screen
 //   POST {action:'mail_sync'}                pg_cron every 10 min (x-tali-key): read, sort and draft
+//   POST {action:'learn_recent'}             signed in, opt in (10 Nov 2026): get to know them from the last
+//                                            14 days of mail (sender, subject, preview only) and the next 14
+//                                            days of calendar. 10 credits, once per account per 30 days.
+//                                            Returns { ok, learned, message }. See _brain_outside/dayOne.ts.
 //
 // verify_jwt is off (Google's redirect and the cron call carry no Supabase JWT); signed-in actions
 // check the JWT themselves. Secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, APP_URLS, ANTHROPIC_API_KEY.
@@ -21,16 +25,20 @@ import {
   GoogleError,
   SCOPES,
   calendarCreate,
+  calendarEvents,
   calendarSummary,
   emailFromIdToken,
   exchangeCode,
+  gapi,
   gmailNew,
   gmailSend,
   googleReady,
   loadConnection,
   revokeToken,
 } from '../_shared/google.ts';
+import type { GoogleConnection } from '../_shared/google.ts';
 import { pushUser } from '../_shared/push.ts';
+import { learnRecent, type DayOneMail } from '../_brain_outside/dayOne.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -139,6 +147,8 @@ async function disconnect(userId: string) {
   await admin.from('google_connections').delete().eq('user_id', userId);
   // Forget what came from their Gmail; their own replies already sent stay in Gmail, not here.
   await admin.from('inbound_emails').delete().eq('user_id', userId).eq('source', 'gmail');
+  // And what she learned from it on day one (10 Nov 2026). Quietly does nothing before migration 059.
+  await admin.rpc('day_one_forget', { p_user_id: userId, p_provider: 'google' });
   await admin.from('approvals').update({ status: 'expired', decided_at: new Date().toISOString() }).eq('user_id', userId).eq('status', 'pending').in('kind', ['email', 'booking']);
   return json({ ok: true });
 }
@@ -324,6 +334,62 @@ async function mailSync() {
   return json({ ok: true, users, saved });
 }
 
+// ---------- Day one fill (opt in) ----------
+// Who emailed them in the last 14 days: sender, subject and Gmail's one line preview. format=metadata
+// means the body is never fetched. Uses the gmail.readonly access they already gave.
+async function recentMailHeaders(conn: GoogleConnection): Promise<DayOneMail[]> {
+  const q = 'in:inbox newer_than:14d -category:promotions -category:social -category:forums -category:updates -from:me';
+  const list = await gapi<{ messages?: { id: string }[] }>(admin, conn, 'GET', `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=60&q=${encodeURIComponent(q)}`);
+  const ids = (list.messages ?? []).map((m) => m.id);
+  const heads = ['From', 'Subject', 'List-Unsubscribe', 'List-Id', 'Precedence', 'Auto-Submitted', 'Sensitivity'].map((h) => `metadataHeaders=${h}`).join('&');
+  const out: DayOneMail[] = [];
+  for (let i = 0; i < ids.length; i += 8) {
+    const batch = await Promise.all(
+      ids.slice(i, i + 8).map((id) => gapi<any>(admin, conn, 'GET', `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&${heads}`).catch(() => null)),
+    );
+    for (const full of batch) {
+      if (!full) continue;
+      const h = (name: string) => String((full.payload?.headers ?? []).find((x: any) => String(x.name).toLowerCase() === name)?.value ?? '');
+      const raw = h('from');
+      const m = raw.match(/^\s*"?([^"<]*)"?\s*<([^>]+)>\s*$/);
+      const labels: string[] = Array.isArray(full.labelIds) ? full.labelIds : [];
+      const auto = h('auto-submitted').toLowerCase();
+      out.push({
+        from_name: m ? m[1].trim() || null : null,
+        from_email: (m ? m[2] : raw).trim().toLowerCase(),
+        subject: h('subject').slice(0, 300) || '(no subject)',
+        snippet: String(full.snippet ?? '').slice(0, 300),
+        received_at: new Date(Number(full.internalDate) || Date.now()).toISOString(),
+        bulk: !!h('list-unsubscribe') || !!h('list-id') || /bulk|list|junk/i.test(h('precedence')) || (!!auto && auto !== 'no') || labels.includes('SPAM') || labels.includes('TRASH'),
+        confidential: /private|confidential|personal/i.test(h('sensitivity')),
+      });
+    }
+  }
+  return out;
+}
+
+async function learnFromGoogle(userId: string) {
+  const conn = await loadConnection(admin, userId);
+  if (!conn) return json({ ok: false, learned: 0, code: 'not_connected', message: 'Connect Google in Settings first.' }, 400);
+  const { data: prof } = await admin.from('profiles').select('timezone').eq('id', userId).maybeSingle();
+  const tz = prof?.timezone || 'Australia/Sydney';
+  const r = await learnRecent(admin, {
+    userId,
+    provider: 'google',
+    providerName: 'Google',
+    accountEmail: conn.google_email,
+    paid: await isPaid(userId),
+    anthropicKey: ANTHROPIC_KEY,
+    model: TALI_MODEL,
+    timezone: tz,
+    readMail: conn.scopes.includes('gmail') ? () => recentMailHeaders(conn) : null,
+    readCalendar: conn.scopes.includes('calendar')
+      ? async () => (await calendarEvents(admin, conn, tz, 14)).map((e) => ({ title: e.title, start: e.start, all_day: e.all_day, location: e.location, attendees: e.attendees }))
+      : null,
+  });
+  return json(r.body, r.status);
+}
+
 // ---------- Router ----------
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -351,5 +417,6 @@ Deno.serve(async (req) => {
   if (body.action === 'send') return sendEmail(user.id, String(body.approvalId ?? ''));
   if (body.action === 'book') return bookEvent(user.id, String(body.approvalId ?? ''));
   if (body.action === 'calendar') return calendarToday(user.id);
+  if (body.action === 'learn_recent') return learnFromGoogle(user.id);
   return fail('bad_request', 'Unknown action.');
 });

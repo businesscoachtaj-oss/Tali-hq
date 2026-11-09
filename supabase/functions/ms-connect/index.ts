@@ -11,13 +11,19 @@
 //   POST {action:'book', approvalId}         signed in: creates the approved event in their Outlook calendar
 //   POST {action:'calendar'}                 signed in: today and tomorrow, for the Today screen
 //   POST {action:'mail_sync'}                pg_cron every 10 min (x-tali-key): read, sort and draft
+//   POST {action:'learn_recent'}             signed in, opt in (10 Nov 2026): get to know them from the last
+//                                            14 days of mail (sender, subject, preview only) and the next 14
+//                                            days of calendar. 10 credits, once per account per 30 days.
+//                                            Returns { ok, learned, message }. See _brain_outside/dayOne.ts.
 //
 // verify_jwt is off (Microsoft's redirect and the cron call carry no Supabase JWT); signed-in actions
 // check the JWT themselves. Secrets: MS_CLIENT_ID, MS_CLIENT_SECRET, APP_URLS, ANTHROPIC_API_KEY.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
-import { MS_SCOPES, MsError, authUrl, calendarCreate, calendarSummary, emailFromIdToken, exchangeCode, loadConnection, mailNew, mailSend, msReady } from '../_shared/microsoft.ts';
+import { MS_SCOPES, MsError, authUrl, calendarCreate, calendarEvents, calendarSummary, emailFromIdToken, exchangeCode, graph, loadConnection, mailNew, mailSend, msReady } from '../_shared/microsoft.ts';
+import type { MsConnection } from '../_shared/microsoft.ts';
 import { pushUser } from '../_shared/push.ts';
+import { learnRecent, type DayOneMail } from '../_brain_outside/dayOne.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -109,6 +115,8 @@ async function finishConnect(params: URLSearchParams) {
 async function disconnect(userId: string) {
   await admin.from('microsoft_connections').delete().eq('user_id', userId);
   await admin.from('inbound_emails').delete().eq('user_id', userId).eq('source', 'outlook');
+  // And what she learned from it on day one (10 Nov 2026). Quietly does nothing before migration 059.
+  await admin.rpc('day_one_forget', { p_user_id: userId, p_provider: 'microsoft' });
   await admin.from('approvals').update({ status: 'expired', decided_at: new Date().toISOString() }).eq('user_id', userId).eq('status', 'pending').in('kind', ['email', 'booking']).in('draft->>action', ['outlook_send', 'outlook_calendar_create']);
   return json({ ok: true });
 }
@@ -283,6 +291,50 @@ async function mailSync() {
   return json({ ok: true, users, saved });
 }
 
+// ---------- Day one fill (opt in) ----------
+// Who emailed them in the last 14 days: sender, subject and Outlook's one line preview. The body is
+// never asked for ($select leaves it out). Uses the Mail.Read access they already gave.
+// Outlook sorts bulk mail into "Other" itself, so that stands in for the newsletter check, and its
+// own sensitivity marker (private, personal, confidential) is respected.
+async function recentMailHeaders(conn: MsConnection): Promise<DayOneMail[]> {
+  const since = new Date(Date.now() - 14 * 86_400_000).toISOString();
+  const path = `/me/mailFolders/inbox/messages?$filter=${encodeURIComponent(`receivedDateTime ge ${since}`)}&$orderby=receivedDateTime desc&$top=60&$select=from,subject,bodyPreview,receivedDateTime,isDraft,sensitivity,inferenceClassification`;
+  const data = await graph<{ value?: any[] }>(admin, conn, 'GET', path);
+  return (data.value ?? [])
+    .filter((m) => !m.isDraft)
+    .map((m) => ({
+      from_name: m.from?.emailAddress?.name ?? null,
+      from_email: String(m.from?.emailAddress?.address ?? '').toLowerCase(),
+      subject: String(m.subject || '(no subject)').slice(0, 300),
+      snippet: String(m.bodyPreview ?? '').slice(0, 300),
+      received_at: new Date(m.receivedDateTime).toISOString(),
+      bulk: String(m.inferenceClassification ?? '').toLowerCase() === 'other',
+      confidential: ['private', 'personal', 'confidential'].includes(String(m.sensitivity ?? '').toLowerCase()),
+    }));
+}
+
+async function learnFromMicrosoft(userId: string) {
+  const conn = await loadConnection(admin, userId);
+  if (!conn) return json({ ok: false, learned: 0, code: 'not_connected', message: 'Connect Outlook in Settings first.' }, 400);
+  const { data: prof } = await admin.from('profiles').select('timezone').eq('id', userId).maybeSingle();
+  const tz = prof?.timezone || 'Australia/Sydney';
+  const r = await learnRecent(admin, {
+    userId,
+    provider: 'microsoft',
+    providerName: 'Outlook',
+    accountEmail: conn.ms_email,
+    paid: await isPaid(userId),
+    anthropicKey: ANTHROPIC_KEY,
+    model: TALI_MODEL,
+    timezone: tz,
+    readMail: conn.scopes.includes('mail') ? () => recentMailHeaders(conn) : null,
+    readCalendar: conn.scopes.includes('calendar')
+      ? async () => (await calendarEvents(admin, conn, tz, 14)).map((e) => ({ title: e.title, start: e.start, all_day: e.all_day, location: e.location, attendees: e.attendees }))
+      : null,
+  });
+  return json(r.body, r.status);
+}
+
 // ---------- Router ----------
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -310,5 +362,6 @@ Deno.serve(async (req) => {
   if (body.action === 'send') return sendEmail(user.id, String(body.approvalId ?? ''));
   if (body.action === 'book') return bookEvent(user.id, String(body.approvalId ?? ''));
   if (body.action === 'calendar') return calendarToday(user.id);
+  if (body.action === 'learn_recent') return learnFromMicrosoft(user.id);
   return fail('bad_request', 'Unknown action.');
 });
