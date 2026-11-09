@@ -2,8 +2,8 @@
 // isn't a list, it's the brightest stars in front of you, wired to the brain. Tap one and everything
 // connected to it lights up. Tali is a presence in the space, her words float in it. Mockup route, not
 // linked from the tab bar yet.
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -122,7 +122,7 @@ export default function Space() {
             return (
               <Pressable key={s.key} onPress={() => setFocus(on ? null : s.key)} accessibilityRole="button" accessibilityLabel={s.title}
                 style={{ position: 'absolute', left: p.x, top: p.y, flexDirection: 'row', alignItems: 'flex-start', gap: 8, opacity: dim ? 0.3 : 1, maxWidth: 160 }}>
-                <View style={{ width: s.size, height: s.size, borderRadius: s.size / 2, backgroundColor: c, shadowColor: c, shadowOpacity: 1, shadowRadius: on ? 28 : 16, marginTop: 2, borderWidth: on ? 3 : 0, borderColor: '#FFFFFF' }} />
+                <Pulse colour={c} size={s.size} on={on} strong={s.area === 'money'} delay={i * 350} />
                 <View style={{ flexShrink: 1 }}>
                   <Text style={{ color: '#FFFFFF', fontSize: 13.5, fontWeight: '800', textShadowColor: '#000', textShadowRadius: 8 }}>{s.title}</Text>
                   <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11.5, marginTop: 1, textShadowColor: '#000', textShadowRadius: 8 }} numberOfLines={2}>{s.sub}</Text>
@@ -173,5 +173,28 @@ function Beam({ x1, y1, x2, y2, colour, opacity }: { x1: number; y1: number; x2:
   const ang = Math.atan2(y2 - y1, x2 - x1);
   return (
     <View pointerEvents="none" style={{ position: 'absolute', left: (x1 + x2) / 2 - len / 2, top: (y1 + y2) / 2, width: len, height: 1.5, backgroundColor: colour, opacity, transform: [{ rotate: `${ang}rad` }], shadowColor: colour, shadowOpacity: 1, shadowRadius: 6 }} />
+  );
+}
+
+// A star that breathes. Urgent ones (money) pulse bigger so your eye goes there first.
+function Pulse({ colour, size, on, strong, delay }: { colour: string; size: number; on: boolean; strong: boolean; delay: number }) {
+  const v = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.delay(delay),
+      Animated.timing(v, { toValue: 1, duration: strong ? 900 : 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(v, { toValue: 0, duration: strong ? 900 : 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [v, strong, delay]);
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [1, strong ? 1.45 : 1.18] });
+  const ring = v.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] });
+  const ringScale = v.interpolate({ inputRange: [0, 1], outputRange: [1, strong ? 2.6 : 1.8] });
+  return (
+    <View style={{ width: size, height: size, marginTop: 2 }}>
+      <Animated.View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: colour, opacity: ring, transform: [{ scale: ringScale }] }} />
+      <Animated.View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colour, shadowColor: colour, shadowOpacity: 1, shadowRadius: on ? 28 : 16, borderWidth: on ? 3 : 0, borderColor: '#FFFFFF', transform: [{ scale }] }} />
+    </View>
   );
 }

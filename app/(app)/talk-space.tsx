@@ -1,7 +1,7 @@
 // 9 Nov 2026 concept: talking to her inside her space. Her words float in the sky, no bubbles. Yours glow.
 // When she keeps something, you see it become a memory and where in her brain it goes. Mockup route.
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { NightBackground } from '@/components/NightSky';
@@ -18,6 +18,14 @@ const KEPT: Record<number, { text: string; part: string; colour: string }> = {
 
 export default function TalkSpace() {
   const [msgs, setMsgs] = useState<Message[]>([]);
+  const [shown, setShown] = useState(0);
+  const scroller = useRef<ScrollView>(null);
+  useEffect(() => {
+    if (shown >= msgs.length) return;
+    const t = setTimeout(() => setShown((n) => n + 1), shown === 0 ? 400 : 1700);
+    return () => clearTimeout(t);
+  }, [shown, msgs.length]);
+  useEffect(() => { setTimeout(() => scroller.current?.scrollToEnd({ animated: true }), 150); }, [shown]);
   useFocusEffect(useCallback(() => {
     currentConversation().then(loadMessages).then(setMsgs).catch(() => {});
   }, []));
@@ -35,26 +43,26 @@ export default function TalkSpace() {
         </View>
         <Text style={{ color: '#B9A6FF', fontSize: 15, fontWeight: '700' }}>Chats</Text>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 30, gap: 22 }}>
-        {msgs.map((m, i) => m.role === 'user' ? (
-          <View key={m.id} style={{ alignSelf: 'flex-end', maxWidth: '82%', backgroundColor: 'rgba(122,77,255,0.35)', borderRadius: 22, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(200,180,255,0.6)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 18 }}>
+      <ScrollView ref={scroller} contentContainerStyle={{ padding: 20, paddingBottom: 30, gap: 22 }}>
+        {msgs.slice(0, shown).map((m, i) => m.role === 'user' ? (
+          <FadeIn key={m.id}><View style={{ alignSelf: 'flex-end', maxWidth: '82%', backgroundColor: 'rgba(122,77,255,0.35)', borderRadius: 22, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(200,180,255,0.6)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 18 }}>
             {m.attachments?.length ? <Text style={{ color: '#D7CCFF', fontSize: 12, fontWeight: '700', marginBottom: 4 }}>{'▶'} {m.attachments[0].name}</Text> : null}
             <Text style={{ color: '#FFFFFF', fontSize: 16, lineHeight: 22 }}>{m.content}</Text>
-          </View>
+          </View></FadeIn>
         ) : (
-          <View key={m.id} style={{ flexDirection: 'row', gap: 12 }}>
+          <FadeIn key={m.id}><View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 9, backgroundColor: '#D7CCFF', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 10 }} />
             <View style={{ flex: 1 }}>
               {m.meta?.deep ? <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 6 }}>SHE THOUGHT HARDER</Text> : null}
               <Text style={{ color: '#FFFFFF', fontSize: 18, lineHeight: 27, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 8 }}>{m.content}</Text>
               {KEPT[i] ? (
-                <View style={{ marginTop: 12, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: KEPT[i].colour + '22', borderWidth: 1, borderColor: KEPT[i].colour + 'AA', shadowColor: KEPT[i].colour, shadowOpacity: 0.8, shadowRadius: 14 }}>
+                <FadeIn delay={900} pop><View style={{ marginTop: 12, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: KEPT[i].colour + '22', borderWidth: 1, borderColor: KEPT[i].colour + 'AA', shadowColor: KEPT[i].colour, shadowOpacity: 0.8, shadowRadius: 14 }}>
                   <Text style={{ color: KEPT[i].colour, fontSize: 13 }}>{'✦'}</Text>
                   <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>New memory</Text> {KEPT[i].text} <Text style={{ color: KEPT[i].colour, fontWeight: '700' }}>{'→'} {KEPT[i].part}</Text></Text>
-                </View>
+                </View></FadeIn>
               ) : null}
             </View>
-          </View>
+          </View></FadeIn>
         ))}
       </ScrollView>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 12, borderRadius: 999, paddingVertical: 8, paddingLeft: 20, paddingRight: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)' }}>
@@ -65,4 +73,12 @@ export default function TalkSpace() {
       </View>
     </SafeAreaView>
   );
+}
+
+function FadeIn({ children, delay = 0, pop }: { children: React.ReactNode; delay?: number; pop?: boolean }) {
+  const v = useRef(new Animated.Value(0)).current;
+  useEffect(() => { Animated.timing(v, { toValue: 1, duration: 650, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [v, delay]);
+  const y = v.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
+  const sc = v.interpolate({ inputRange: [0, 1], outputRange: [pop ? 0.6 : 1, 1] });
+  return <Animated.View style={{ opacity: v, transform: [{ translateY: y }, { scale: sc }] }}>{children}</Animated.View>;
 }
