@@ -3,11 +3,12 @@
 // 1600px on the long side before upload so a phone photo is not 8 MB.
 import { Platform } from 'react-native';
 
-export type PickedFile = { blob: Blob; name: string; mime: string; previewUrl?: string };
+export type PickedFile = { blob: Blob; name: string; mime: string; previewUrl?: string; seconds?: number };
 
 const MAX_EDGE = 1600;
 
-export async function pickFiles(source: 'photo' | 'camera' | 'file', max: number): Promise<PickedFile[]> {
+export async function pickFiles(source: 'photo' | 'camera' | 'file' | 'video', max: number): Promise<PickedFile[]> {
+  if (source === 'video') return Platform.OS === 'web' ? pickVideoWeb() : pickVideoPhone();
   if (Platform.OS === 'web') return pickWeb(max);
   if (source === 'file') return pickDocument(max);
   return pickImage(source, max);
@@ -85,4 +86,40 @@ async function pickDocument(max: number): Promise<PickedFile[]> {
     out.push({ blob, name: a.name, mime, previewUrl: mime.startsWith('image/') ? a.uri : undefined });
   }
   return out;
+}
+
+// Videos for Tali to watch (10 Nov 2026). One at a time. The length is read here so she can say what
+// it will cost before it is sent; the server checks the real length again.
+function pickVideoWeb(): Promise<PickedFile[]> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'video/mp4,video/quicktime,video/webm';
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      if (!f) return resolve([]);
+      const url = URL.createObjectURL(f);
+      const seconds = await new Promise<number>((res) => {
+        const v = document.createElement('video');
+        v.preload = 'metadata';
+        v.onloadedmetadata = () => res(Number.isFinite(v.duration) ? Math.round(v.duration) : 0);
+        v.onerror = () => res(0);
+        v.src = url;
+      });
+      resolve([{ blob: f, name: f.name, mime: f.type || 'video/mp4', previewUrl: url, seconds }]);
+    };
+    input.click();
+  });
+}
+
+async function pickVideoPhone(): Promise<PickedFile[]> {
+  const ImagePicker = await import('expo-image-picker');
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) throw new Error('Tali needs photo access for that. You can allow it in Settings.');
+  const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsMultipleSelection: false });
+  if (res.canceled || !res.assets[0]) return [];
+  const a = res.assets[0];
+  const blob = await (await fetch(a.uri)).blob();
+  const mime = a.mimeType ?? (/\.mov$/i.test(a.uri) ? 'video/quicktime' : 'video/mp4');
+  return [{ blob, name: a.fileName ?? `video-${Date.now()}.${mime === 'video/quicktime' ? 'mov' : 'mp4'}`, mime, previewUrl: a.uri, seconds: a.duration ? Math.round(a.duration / 1000) : 0 }];
 }

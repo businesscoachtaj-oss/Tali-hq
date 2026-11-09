@@ -11,7 +11,6 @@ import { PatternsRow } from '@/components/PatternsCard';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { FOUNDER_USER_ID } from '@/constants/business';
 import { RoomSwitch, type Room } from '@/components/RoomSwitch';
-import { BRAIN_AI_PREVIEW } from '@/lib/brainAiPlan';
 
 const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Tali HQ', pro: 'Tali HQ Pro' };
 
@@ -124,7 +123,6 @@ export default function Me() {
           <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md }}>
             {credits.images?.allowance ? <Stat icon="image-outline" value={`${credits.images.remaining + (credits.images.extra ?? 0)}`} label="images left" /> : null}
             {credits.searches?.allowance ? <Stat icon="globe-outline" value={`${credits.searches.remaining}`} label="web searches" /> : null}
-            {BRAIN_AI_PREVIEW && !onFree ? <Stat icon="mic-outline" value="14 min" label="voice left" /> : null}
             {credits.deep?.allowance ? <Stat icon="bulb-outline" value={credits.deep.remaining ? '1' : '0'} label="Deep think" /> : null}
             <Stat icon="refresh-outline" value={new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} label={onFree ? 'messages reset' : 'credits top up'} />
           </View>

@@ -1,8 +1,8 @@
 import type { RegionId } from '@/lib/brain';
 
 // The new AIs for Tali's brain (9 Nov 2026 mockups, plan in claude/Tali_Brain_AI_Map.md).
-// Nothing here is live yet. BRAIN_AI_PREVIEW turns the new screens and buttons on so Taj can see
-// them; it must be false (or the features built server side) before this branch is merged.
+// What customers can use comes from lib/capabilities.ts (the server says what is switched on).
+// BRAIN_AI_PREVIEW now only gates the founder's own views (Runs on, How Tali thinks).
 export const BRAIN_AI_PREVIEW = true;
 
 // What each new AI costs the user, in credits. Every one of these costs us money per use, so none

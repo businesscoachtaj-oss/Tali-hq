@@ -11,7 +11,11 @@ import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { myCredits, startTopup, type Credits } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
-import { BRAIN_AI_PREVIEW, VOICE_ADDON } from '@/lib/brainAiPlan';
+import { VOICE_ADDON } from '@/lib/brainAiPlan';
+
+// Tali's voice is not on sale yet (10 Nov 2026): it shows on Plans as Coming soon. Flip this once the
+// add-on can really be bought and the minutes are counted server side.
+const VOICE_FOR_SALE = false;
 
 const APP_WEB_URL = 'https://talihq.com.au';
 
@@ -41,7 +45,7 @@ const TABS = [
   { id: 'credits', label: 'Credits' },
   { id: 'images', label: 'Images' },
   { id: 'bundles', label: 'Bundles' },
-  ...(BRAIN_AI_PREVIEW ? [{ id: 'voice', label: 'Voice' }] as const : []),
+  ...(VOICE_FOR_SALE ? [{ id: 'voice', label: 'Voice' }] as const : []),
 ] as const;
 
 export default function TopUp() {
@@ -97,7 +101,7 @@ export default function TopUp() {
             <Text style={{ color: colours.text, fontSize: 26, fontWeight: '800', marginTop: 2 }}>{imagesLeft.toLocaleString('en-AU')}</Text>
             <Text style={{ color: colours.muted, fontSize: 12.5 }}>left this month{extraImages ? `, plus ${extraImages} extra` : ''}</Text>
           </View>
-          {BRAIN_AI_PREVIEW ? (
+          {VOICE_FOR_SALE ? (
             <>
               <View style={{ width: 1, backgroundColor: colours.border }} />
               <View style={{ flex: 1, paddingLeft: space.sm }}>

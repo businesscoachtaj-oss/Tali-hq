@@ -147,7 +147,7 @@ export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content
   deep?: DeepLevel; suggest_deep?: boolean;
   // What she kept from this reply and which part of her brain it went to.
   kept?: { text: string; part: string } | null;
-  // Planned (9 Nov 2026 mockups, claude/Tali_Brain_AI_Map.md). Not sent by tali-chat yet.
+  // The extra AIs (10 Nov 2026). routed names the AI behind a reply and is only ever sent to the founder.
   second_opinion?: { by: string; agree: string; differ: string; credits: number };
   sources?: { title: string; url: string }[];
   watched?: { seconds: number; credits: number };
@@ -157,10 +157,22 @@ export const MAX_ATTACHMENTS = 4;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 // Uploads one file for a chat and returns the attachment to send with the message.
-export async function uploadAttachment(conversationId: string, file: { blob: Blob; name: string; mime: string }): Promise<Attachment> {
+export const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+export const MAX_VIDEO_SECONDS = 10 * 60;
+export async function uploadAttachment(conversationId: string, file: { blob: Blob; name: string; mime: string; seconds?: number }): Promise<Attachment> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
   if (!uid) throw new Error('Not signed in');
+  if (file.mime.startsWith('video/')) {
+    if (file.blob.size > MAX_VIDEO_BYTES) throw new Error(`${file.name} is over 200 MB. Trim it or send a shorter clip.`);
+    if ((file.seconds ?? 0) > MAX_VIDEO_SECONDS) throw new Error('Videos up to 10 minutes for now. Trim it and send it again.');
+    const vext = file.mime === 'video/quicktime' ? 'mov' : file.mime === 'video/webm' ? 'webm' : 'mp4';
+    const vid = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const vpath = `${uid}/${conversationId}/${vid}.${vext}`;
+    const { error: verr } = await supabase.storage.from('chat-uploads').upload(vpath, file.blob, { contentType: file.mime, upsert: false });
+    if (verr) throw new Error('That video would not upload. Try a shorter or smaller one.');
+    return { kind: 'video', path: vpath, name: file.name.slice(0, 80), size: file.blob.size, seconds: file.seconds ?? 0 };
+  }
   const isPdf = file.mime === 'application/pdf' || /\.pdf$/i.test(file.name);
   if (!isPdf && !file.mime.startsWith('image/')) throw new Error('Photos and PDFs only for now.');
   if (file.blob.size > MAX_FILE_BYTES) throw new Error(`${file.name} is over 10 MB.`);
@@ -247,9 +259,9 @@ export type ChatResult =
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
 // remembers anything worth keeping in this user's private brain.
-export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = [], deep: DeepLevel | null = null): Promise<ChatResult> {
-  const files = attachments.map(({ kind, path, name, size }) => ({ kind, path, name, size }));
-  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text, attachments: files, ...(deep ? { deep } : {}) } });
+export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = [], deep: DeepLevel | null = null, secondOpinion = false): Promise<ChatResult> {
+  const files = attachments.map(({ kind, path, name, size, seconds }) => ({ kind, path, name, size, ...(kind === 'video' ? { seconds: seconds ?? 0 } : {}) }));
+  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text, attachments: files, ...(deep ? { deep } : {}), ...(secondOpinion ? { second_opinion: true } : {}) } });
   if (error) {
     // Non-2xx answers still carry our JSON body with a friendly message.
     try {
