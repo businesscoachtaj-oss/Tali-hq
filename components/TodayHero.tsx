@@ -11,6 +11,7 @@ import { NightBackground, night as sky } from '@/components/NightSky';
 import { taliLevel, type Level } from '@/lib/level';
 import { registerTarget } from '@/lib/tourTargets';
 import { colours, elevation, space } from '@/constants/theme';
+import { myBrain } from '@/lib/brain';
 
 const RADIUS = 22;
 
@@ -44,6 +45,17 @@ export function TodayHero({
     }, []),
   );
 
+  const [brainTotal, setBrainTotal] = useState<number | null>(null);
+  const [brainNew, setBrainNew] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      myBrain('mine').then((b) => {
+        setBrainTotal(b.total);
+        const weekAgo = Date.now() - 7 * 86400000;
+        setBrainNew(b.regions.reduce((n2, r) => n2 + r.items.filter((it) => it.mine && it.at && new Date(it.at).getTime() > weekAgo).length, 0));
+      }).catch(() => setBrainTotal(null));
+    }, []),
+  );
   const n = !!night;
   const line = n ? nightLine?.trim() || "Day's done. Bed time?" : hello;
   const pct = level ? Math.max(4, Math.round(level.progress * 100)) : 0;
@@ -67,21 +79,19 @@ export function TodayHero({
             ) : null}
           </View>
         </View>
-        {level ? (
-          <View ref={levelRef} collapsable={false} style={[h.level, { marginTop: 14 }]}>
-            <View style={h.levelTop}>
-              <View style={h.badge}><Text style={h.badgeNum}>{level.level}</Text></View>
-              <View style={{ flex: 1 }}>
-                <Text style={h.levelLabel}>TALI'S LEVEL</Text>
-                <Text style={h.levelName}>{level.name}</Text>
-              </View>
-              <Text style={h.xp}>{level.xp} XP</Text>
+        {/* 9 Nov 2026 look refresh: her progress is her brain growing, not XP and ranks. */}
+        {brainTotal !== null ? (
+          <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" style={[h.level, { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+            <View style={{ width: 44, height: 40 }}>
+              {[[4, 6, '#8EF0C8'], [16, 2, '#9FB7FF'], [28, 8, '#D7B5FF'], [8, 18, '#FFE38A'], [22, 18, '#7FD1FF'], [34, 22, '#FF9EC4'], [14, 30, '#FFC37A'], [28, 32, '#B9A6FF']].map(([x, y, c], k) => (
+                <View key={k} style={{ position: 'absolute', left: x as number, top: y as number, width: 8, height: 8, borderRadius: 4, backgroundColor: c as string }} />
+              ))}
             </View>
-            <View style={h.bar}>
-              <LinearGradient colors={[colours.orange, '#F6B04C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[h.fill, { width: `${pct}%` }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: 'PlusJakartaSans_700Bold' }}>She knows {brainTotal.toLocaleString('en-AU')} things about you</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 }}>{brainNew ? `${brainNew} new this week. ` : ''}Open her brain {'›'}</Text>
             </View>
-            {level.next ? <Text style={h.next}>{level.toNext} XP to {level.next}</Text> : null}
-          </View>
+          </Pressable>
         ) : null}
       </View>
     );

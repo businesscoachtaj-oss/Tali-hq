@@ -10,6 +10,7 @@ import { Body, Button, Card, Label, Screen, useConfirm } from '@/components/ui';
 import { PatternsRow } from '@/components/PatternsCard';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { FOUNDER_USER_ID } from '@/constants/business';
+import { RoomSwitch, type Room } from '@/components/RoomSwitch';
 
 const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Tali HQ', pro: 'Tali HQ Pro' };
 
@@ -22,6 +23,7 @@ export default function Me() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const { armed, confirm } = useConfirm();
+  const [room, setRoom] = useState<Room>('business');
 
   const load = useCallback(async () => {
     setError('');
@@ -127,6 +129,9 @@ export default function Me() {
 
       {/* 9 Nov 2026 look refresh: Tali's brain has its own tab now, so the big card here is gone. */}
 
+      <View style={{ height: space.lg }} />
+      <RoomSwitch value={room} onChange={setRoom} />
+      {room === 'life' ? <>
       <JobGroup title="Your day">
         <Tile icon="flag-outline" tint="purple" title="Goals" sub="What you're chasing" locked={!paid} onPress={() => router.navigate('/goals')} />
         <Tile icon="calendar-outline" tint="purple" title="Weekly review" sub="What moved and what's next" locked={!paid} onPress={() => router.navigate('/review')} />
@@ -134,6 +139,8 @@ export default function Me() {
         <Tile icon="git-branch-outline" tint="purple" title="Decisions" sub="What you decided and why" onPress={() => router.navigate('/decisions')} />
       </JobGroup>
 
+      </> : null}
+      {room === 'business' ? <>
       <JobGroup title="Your business">
         <Tile icon="people-outline" tint="orange" title="Clients" sub="Your people" onPress={() => router.navigate('/clients')} />
         <Tile icon="document-text-outline" tint="orange" title="Invoices" sub="Make, share, track" locked={!paid} onPress={() => router.navigate('/invoices')} />
@@ -144,12 +151,15 @@ export default function Me() {
         <Tile icon="link-outline" tint="orange" title="Connections" sub="Google, Microsoft, Stripe" locked={!paid} onPress={() => router.navigate({ pathname: '/settings', params: { section: 'connections' } })} />
       </JobGroup>
 
+      </> : null}
+      {room === 'life' ? <>
       <JobGroup title="You">
         <Tile icon="barbell-outline" tint="green" title="Food and training" sub="Logged by chatting" onPress={() => router.navigate('/life')} />
         <Tile icon="bed-outline" tint="green" title="Sleep" sub="Sounds with a timer" onPress={() => router.navigate('/sleep')} />
         <Tile icon="school-outline" tint="green" title="Night school" sub="What she studies tonight" locked={!pro} pro onPress={() => router.navigate('/night-school')} />
         {founder ? <Tile icon="stats-chart-outline" tint="green" title="Founder" sub="Only you see this" onPress={() => router.navigate('/founder')} /> : null}
       </JobGroup>
+      </> : null}
 
       <View style={{ marginTop: space.lg }}>
         <PatternsRow credits={credits} />

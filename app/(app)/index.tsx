@@ -30,7 +30,7 @@ import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
 import { TodayHero } from '@/components/TodayHero';
-import { BrainNow } from '@/components/BrainNow';
+import { RoomSwitch, type Room } from '@/components/RoomSwitch';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 
 function greeting() {
@@ -103,6 +103,8 @@ export default function Today() {
   const [shutdown, setShutdown] = useState<Shutdown | null>(null);
   // True once the first load has come back, so empty states don't flash before the data does.
   const [loaded, setLoaded] = useState(false);
+  // 9 Nov 2026 look refresh: one brain, two rooms.
+  const [room, setRoom] = useState<Room>('business');
   const week = useWeekCard(credits);
   const { goals } = useGoalsCard(credits);
 
@@ -149,7 +151,8 @@ export default function Today() {
   const others = briefs.filter((b) => b !== morning && b.kind !== 'journal' && (b.kind as string) !== 'patterns');
   const trial = trialLine(credits);
   const night = !!shutdown;
-  const tiles = glanceTiles({ credits, money, health, week, goals });
+  const allTiles = glanceTiles({ credits, money, health, week, goals });
+  const tiles = allTiles.filter((t) => (room === 'business' ? t.key === 'money' || t.key === 'health' : t.key === 'week' || t.key === 'goals'));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
@@ -170,6 +173,10 @@ export default function Today() {
           nightLine={shutdown?.tali_line}
         />
         </View>
+        <RoomSwitch value={room} onChange={setRoom} />
+        {room === 'life' ? (
+          <LifeRoom life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} tiles={tiles} />
+        ) : (<>
 
         {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
@@ -228,7 +235,6 @@ export default function Today() {
         <AddReminder onAdded={load} />
         </View>
 
-        <ShutdownCard />
 
         {tiles.length ? (
           <>
@@ -264,6 +270,7 @@ export default function Today() {
           ) : null;
         })()}
 
+        </>)}
         {loadError ? (
           <Card>
             <Body muted>{loadError} Pull down to try again.</Body>
@@ -415,7 +422,7 @@ function moreFolds({ calendar, life, patterns, lastDecision, others, noteOpen, o
     const n = (calendar.events ?? []).filter((e) => e.when.startsWith(todayWord) || e.when === 'all day').length;
     folds.push({ key: 'cal', title: 'Calendar', hint: n ? `${n} thing${n === 1 ? '' : 's'} on today` : 'Nothing booked today', body: <CalendarCard cal={calendar} /> });
   }
-  if (life) folds.push({ key: 'day', title: 'Your day', hint: life.today_session ? `Training: ${life.today_session}` : 'Food, training and weight', body: <YourDayCard life={life} onTick={onTick} /> });
+  // 9 Nov 2026 look refresh: Your day lives in the Life room now.
   if (patterns) folds.push({ key: 'patterns', title: 'Tali noticed', hint: patterns.content?.patterns?.[0]?.pattern ?? 'This month\'s patterns', body: <PatternsCard brief={patterns} onRead={onPatternsRead} /> });
   if (lastDecision) folds.push({ key: 'decisions', title: 'Decisions', hint: lastDecision.decision, body: <DecisionsCard /> });
   if (others.length)
@@ -446,4 +453,41 @@ function moreFolds({ calendar, life, patterns, lastDecision, others, noteOpen, o
       ),
     });
   return folds;
+}
+
+// 9 Nov 2026 look refresh: the Life room on Today. Same cards as before, gathered in one place.
+function LifeRoom({ life, onTick, tiles }: { life: LifeSummary | null; onTick: () => void; tiles: Tile[] }) {
+  const link = (title: string, sub: string, to: string) => (
+    <Pressable onPress={() => router.navigate(to as any)} accessibilityRole="button">
+      <Card>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{title}</Text>
+            <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>{sub}</Text>
+          </View>
+          <Text style={{ fontSize: 20, color: colours.faint }}>{'›'}</Text>
+        </View>
+      </Card>
+    </Pressable>
+  );
+  return (
+    <>
+      {life ? (
+        <>
+          <Label>Your day</Label>
+          <YourDayCard life={life} onTick={onTick} />
+        </>
+      ) : null}
+      {tiles.length ? (
+        <>
+          <Label>This week</Label>
+          <GlanceGrid tiles={tiles} />
+        </>
+      ) : null}
+      <Label>Tonight</Label>
+      <ShutdownCard />
+      {link('Write in your journal', 'Two lines is plenty. She learns from it.', '/journal')}
+      {link('Sleep sounds', 'Rain, waves or her night sky, with a timer', '/sleep')}
+    </>
+  );
 }
