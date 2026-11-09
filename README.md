@@ -177,3 +177,10 @@ Asked for by Taj, so the brain can be used to train Tali's own open model one da
 - Brain: skills show used, worked and last used (migration `20261109000053_brain_skill_stats.sql`, my_brain adds uses, wins, last_used, status). Lessons and mistakes say how many times they held. How Tali thinks (`app/(app)/brain-ai.tsx`, founder only): each part's AI now and planned, from `claude/Tali_Brain_AI_Map.md`.
 - Founder: trials and conversions for Totality, Nutrition and Tali HQ, To confirm, health light. Edge function `founder-ops` (verify_jwt on, founder only) reads Livewell through `tali_hq_founder_snapshot(p_key)` (run `supabase/livewell/20261109_tali_hq_founder_snapshot.sql` in the Livewell project) with the shared key in the Livewell vault (`tali_hq_founder_key`) and this project's secret `LIVEWELL_FOUNDER_KEY`. Migration `20261109000054_founder_ops.sql`: `founder_to_confirm` table, `founder_to_confirm()`, `founder_confirm_done(id)`, `founder_model_checked(model)`, and `founder_add_to_confirm(text, source)` for Tali's jobs.
 - Banners (PageSkin) on Settings, Plans, Brain, Founder and Users; Journal restyled in plum.
+
+## 2026-11-10: brain look across the app, extra AIs, emails (PR #31)
+
+- Today opens on her brain with the day as stars (components/BrainSky.tsx), Talk sits in her space with "New memory" tags, Your world has the living map (components/WorldMap.tsx), night sky theme on every screen, getting started asks about you first.
+- Extra AIs through tali-chat and supabase/functions/_shared/brainAi.ts: watch a video (5 credits a started minute), second opinion (20 credits), reranked memory search, safety screen. The app asks what is switched on (lib/capabilities.ts), so features without a key show as Coming soon. Contract in docs/BRAIN_AI_CONTRACT.md.
+- Emails: welcome email (tali-welcome) and redesigned auth templates. Steps in docs/EMAILS.md.
+- Full report and the steps to put it live: docs/BUILD_REPORT_2026-11-10.md.
