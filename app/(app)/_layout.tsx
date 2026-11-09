@@ -49,6 +49,7 @@ export default function AppTabs() {
       <Tabs.Screen name="founder-users" options={{ href: null, title: 'Users' }} />
       <Tabs.Screen name="sleep" options={{ href: null, title: 'Sleep' }} />
       <Tabs.Screen name="clients" options={{ href: null, title: 'Clients' }} />
+      <Tabs.Screen name="space" options={{ href: null, title: 'Home' }} />
       <Tabs.Screen name="brain-ai" options={{ href: null, title: 'How Tali thinks' }} />
       <Tabs.Screen name="shutdown" options={{ href: null, title: 'Shut the day down' }} />
       <Tabs.Screen name="review" options={{ href: null, title: 'Weekly review' }} />
