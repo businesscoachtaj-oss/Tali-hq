@@ -52,21 +52,41 @@ export function TodayHero({
   // no level (that lives on Brain now). Night mode keeps the night sky card below.
   if (!n) {
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 14, paddingTop: 8, paddingBottom: 6, marginBottom: 14 }}>
-        <TaliAvatar pose="wave" size={118} />
-        <View style={{ flex: 1, paddingBottom: 10 }}>
-          <Text style={{ color: colours.muted, fontSize: 15, fontWeight: '600' }}>{greeting}</Text>
-          {sub ? <Text style={{ color: colours.purpleInk, fontSize: 13, marginTop: 2 }}>{sub}</Text> : null}
-          <Text style={{ color: colours.text, fontSize: 21, lineHeight: 28, marginTop: 6, fontFamily: 'PlusJakartaSans_700Bold' }}>{line}</Text>
-          {briefLabel && onBrief ? (
-            <Pressable onPress={onBrief} accessibilityRole="button" style={{ marginTop: 10 }}>
-              <Text style={{ color: colours.purple, fontSize: 15, fontWeight: '700' }}>{briefLabel} {'›'}</Text>
-            </Pressable>
-          ) : null}
+      <View style={[h.card, { paddingBottom: 18 }]}>
+        <LinearGradient colors={['#4A2160', colours.purple, '#8A4A9E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: RADIUS }]} />
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
+          <TaliAvatar pose="wave" size={112} />
+          <View style={{ flex: 1, paddingBottom: 8 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, fontWeight: '600' }}>{greeting}</Text>
+            {sub ? <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 }}>{sub}</Text> : null}
+            <Text style={{ color: '#FFFFFF', fontSize: 20, lineHeight: 27, marginTop: 6, fontFamily: 'PlusJakartaSans_700Bold' }}>{line}</Text>
+            {briefLabel && onBrief ? (
+              <Pressable onPress={onBrief} accessibilityRole="button" style={{ marginTop: 10 }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' }}>{briefLabel} {'›'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
+        {level ? (
+          <View ref={levelRef} collapsable={false} style={[h.level, { marginTop: 14 }]}>
+            <View style={h.levelTop}>
+              <View style={h.badge}><Text style={h.badgeNum}>{level.level}</Text></View>
+              <View style={{ flex: 1 }}>
+                <Text style={h.levelLabel}>TALI'S LEVEL</Text>
+                <Text style={h.levelName}>{level.name}</Text>
+              </View>
+              <Text style={h.xp}>{level.xp} XP</Text>
+            </View>
+            <View style={h.bar}>
+              <LinearGradient colors={[colours.orange, '#F6B04C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[h.fill, { width: `${pct}%` }]} />
+            </View>
+            {level.next ? <Text style={h.next}>{level.toNext} XP to {level.next}</Text> : null}
+          </View>
+        ) : null}
       </View>
     );
   }
+
   return (
     <View style={[h.card, n && h.cardNight]}>
       {n ? <NightBackground style={{ borderRadius: RADIUS }} /> : <LinearGradient colors={['#4A2160', colours.purple, '#8A4A9E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: RADIUS }]} />}
