@@ -64,38 +64,43 @@ export function TodayHero({
   // no level (that lives on Brain now). Night mode keeps the night sky card below.
   if (!n) {
     return (
-      <View style={[h.card, { paddingBottom: 18 }]}>
-        <LinearGradient colors={['#4A2160', colours.purple, '#8A4A9E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: RADIUS }]} />
-        <Text style={[h.greeting, { fontSize: 30 }]}>{greeting}</Text>
-        {sub ? <Text style={h.sub}>{sub}</Text> : null}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 6 }}>
-          <TaliAvatar pose="wave" size={112} />
-          <View style={{ flex: 1, paddingBottom: 8 }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontFamily: 'PlusJakartaSans_700Bold' }}>{line}</Text>
-            {briefLabel && onBrief ? (
-              <Pressable onPress={onBrief} accessibilityRole="button" style={{ marginTop: 10 }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' }}>{briefLabel} {'›'}</Text>
-              </Pressable>
-            ) : null}
+      <View style={{ marginBottom: 22, paddingTop: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
+            <Text style={{ color: '#F4F1FF', fontSize: 50, lineHeight: 52, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{greeting.replace(', ', ',\n')}</Text>
+          </View>
+          <View>
+            <View style={{ position: 'absolute', left: 4, top: 14, width: 108, height: 108, borderRadius: 54, backgroundColor: 'rgba(185,166,255,0.18)', shadowColor: '#B9A6FF', shadowOpacity: 0.8, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }} />
+            <TaliAvatar pose="wave" size={118} />
           </View>
         </View>
-        {/* 9 Nov 2026 look refresh: her progress is her brain growing, not XP and ranks. */}
+        {/* Her note to you, on warm paper (the HQ desk), pinned in her sky. */}
+        <View style={{ marginTop: 16, backgroundColor: '#F3ECDD', borderRadius: 6, padding: 18, transform: [{ rotate: '-0.6deg' }], shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } }}>
+          <Text style={{ color: '#7A6A9A', fontSize: 11, fontWeight: '700', letterSpacing: 1.6 }}>A NOTE FROM TALI</Text>
+          <Text style={{ color: '#2A2340', fontSize: 25, lineHeight: 30, marginTop: 8, fontFamily: 'InstrumentSerif_400Regular' }}>{line}</Text>
+          {briefLabel && onBrief ? (
+            <Pressable onPress={onBrief} accessibilityRole="button" style={{ marginTop: 12 }}>
+              <Text style={{ color: '#5A2A6E', fontSize: 15, fontWeight: '700' }}>{briefLabel} {'›'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
         {brainTotal !== null ? (
-          <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" style={[h.level, { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+          <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={{ width: 44, height: 40 }}>
               {[[4, 6, '#8EF0C8'], [16, 2, '#9FB7FF'], [28, 8, '#D7B5FF'], [8, 18, '#FFE38A'], [22, 18, '#7FD1FF'], [34, 22, '#FF9EC4'], [14, 30, '#FFC37A'], [28, 32, '#B9A6FF']].map(([x, y, c], k) => (
-                <View key={k} style={{ position: 'absolute', left: x as number, top: y as number, width: 8, height: 8, borderRadius: 4, backgroundColor: c as string }} />
+                <View key={k} style={{ position: 'absolute', left: x as number, top: y as number, width: 7, height: 7, borderRadius: 4, backgroundColor: c as string, shadowColor: c as string, shadowOpacity: 1, shadowRadius: 6 }} />
               ))}
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: 'PlusJakartaSans_700Bold' }}>She knows {brainTotal.toLocaleString('en-AU')} things about you</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 }}>{brainNew ? `${brainNew} new this week. ` : ''}Open her brain {'›'}</Text>
-            </View>
+            <Text style={{ flex: 1, color: '#B9B2D9', fontSize: 14 }}>
+              <Text style={{ color: '#F4F1FF', fontWeight: '700' }}>{brainTotal.toLocaleString('en-AU')} memories</Text>{brainNew ? `, ${brainNew} new this week` : ''}. Step into her brain {'›'}
+            </Text>
           </Pressable>
         ) : null}
       </View>
     );
   }
+
 
   return (
     <View style={[h.card, n && h.cardNight]}>

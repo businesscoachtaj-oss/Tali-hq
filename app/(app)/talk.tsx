@@ -15,6 +15,7 @@ import { useAuth } from '@/lib/auth';
 import { pickFiles, type PickedFile } from '@/lib/pickFiles';
 import { tali } from '@/components/ui';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
+import { NightBackground } from '@/components/NightSky';
 
 // An image Tali made (it carries her prompt, or is still a placeholder with no file yet).
 const isTaliMade = (me: boolean, a: Attachment) => !me && a.kind === 'image' && (!!a.prompt || !a.path);
@@ -272,6 +273,7 @@ export default function Talk() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
+      <NightBackground />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>
           <TaliAvatar pose={thinking ? 'head_think' : 'head'} size={48} />
@@ -353,7 +355,7 @@ export default function Talk() {
                   style={{
                     alignSelf: me ? 'flex-end' : 'flex-start',
                     maxWidth: '86%',
-                    backgroundColor: me ? colours.text : colours.surface,
+                    backgroundColor: me ? '#6B4FD8' : colours.surface,
                     borderWidth: me ? 0 : 1,
                     borderColor: 'rgba(39,38,38,0.04)',
                     borderRadius: 18,

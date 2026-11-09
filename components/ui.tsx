@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colours, elevation, NO_BOTTOM, radius, space, heading, headingSemi } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
+import { NightBackground } from '@/components/NightSky';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -45,6 +46,7 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
     : undefined;
   return (
     <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
+      <NightBackground style={StyleSheet.absoluteFill} />
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -184,7 +186,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.bg },
   scroll: { flexGrow: 1 },
   inner: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center', padding: space.lg },
-  title: { fontSize: 28, color: colours.text, ...heading },
+  title: { fontSize: 40, lineHeight: 44, color: colours.text, ...heading },
   sub: { fontSize: 15, color: colours.muted, marginTop: space.xs, lineHeight: 21 },
   card: {
     backgroundColor: colours.surface,
@@ -196,7 +198,7 @@ const styles = StyleSheet.create({
     ...elevation.card,
   },
   body: { fontSize: 15, lineHeight: 22, color: colours.text },
-  label: { fontSize: 17, color: colours.text, marginBottom: 10, marginTop: 6, ...headingSemi },
+  label: { fontSize: 24, color: colours.text, marginBottom: 10, marginTop: 10, ...headingSemi },
   input: {
     backgroundColor: colours.surface,
     borderColor: colours.borderStrong,

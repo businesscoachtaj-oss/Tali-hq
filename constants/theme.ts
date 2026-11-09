@@ -1,21 +1,25 @@
 // Tali HQ colours, matching the Tali HQ dashboard and the waitlist page.
+// 9 Nov 2026 concept "Inside her mind" (A + B): the app lives in her night sky. Glass cards over
+// the stars, light ink, an editorial serif for headings, and her notes on warm paper.
 export const colours = {
-  bg: '#F7F5F2', // 9 Nov 2026 look refresh: lighter, calmer page (was #F1EEEA)
-  surface: '#FFFFFF',
-  sunk: '#F1EDE8',
-  border: '#ECE8E3',
-  borderStrong: '#D3CCC4',
-  text: '#272626',
-  muted: '#66615B',
-  faint: '#8E877F',
-  purple: '#6C3483',
-  purpleSoft: '#F3EBF7',
-  purpleInk: '#5A2A6E',
-  orange: '#ED8008',
-  orangeSoft: '#FFF1E0',
-  danger: '#C0392B',
-  good: '#1E8E4E',
-  onPurple: '#FFFFFF',
+  bg: '#110E2B',
+  surface: 'rgba(255,255,255,0.07)',
+  sunk: 'rgba(255,255,255,0.05)',
+  border: 'rgba(255,255,255,0.10)',
+  borderStrong: 'rgba(255,255,255,0.20)',
+  text: '#F4F1FF',
+  muted: '#B9B2D9',
+  faint: '#8A83AE',
+  purple: '#B9A6FF',
+  purpleSoft: 'rgba(185,166,255,0.16)',
+  purpleInk: '#D7CCFF',
+  orange: '#FFB561',
+  orangeSoft: 'rgba(255,181,97,0.16)',
+  danger: '#FF8A7E',
+  good: '#7FE0B0',
+  onPurple: '#141033',
+  paper: '#F3ECDD',
+  ink: '#2A2340',
 };
 
 export const radius = { card: 18, pill: 999, input: 12 };
@@ -24,7 +28,7 @@ export const radius = { card: 18, pill: 999, input: 12 };
 const ink = '#272626';
 export const elevation = {
   // white cards sitting on the page grey
-  card: { shadowColor: ink, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 1 },
+  card: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 24, elevation: 1 },
   // grey tiles inside a card (stat boxes, counters, strips)
   tile: { shadowColor: ink, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   // 6 Nov 2026 (depth pass): white buttons, chips and inputs get a small lift so nothing sits flat
@@ -45,5 +49,5 @@ export const NO_BOTTOM = { top: 'additive', left: 'additive', right: 'additive',
 
 // 9 Nov 2026 look refresh: one heading face for titles and section names, so Tali HQ has a look of
 // its own. Body text stays the phone's own font.
-export const heading = { fontFamily: 'PlusJakartaSans_800ExtraBold' } as const;
-export const headingSemi = { fontFamily: 'PlusJakartaSans_700Bold' } as const;
+export const heading = { fontFamily: 'InstrumentSerif_400Regular', fontWeight: '400' } as const;
+export const headingSemi = { fontFamily: 'InstrumentSerif_400Regular', fontWeight: '400' } as const;

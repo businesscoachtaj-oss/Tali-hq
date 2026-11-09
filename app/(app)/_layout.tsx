@@ -28,7 +28,7 @@ export default function AppTabs() {
         headerShown: false,
         tabBarActiveTintColor: colours.purple,
         tabBarInactiveTintColor: colours.faint,
-        tabBarStyle: { backgroundColor: colours.surface, borderTopColor: colours.border, ...elevation.tabBar },
+        tabBarStyle: { backgroundColor: '#0D0B22', borderTopColor: colours.border, ...elevation.tabBar },
         sceneStyle: { backgroundColor: colours.bg },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 0) }} />
