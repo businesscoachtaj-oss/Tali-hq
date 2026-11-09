@@ -31,6 +31,12 @@ export type BrainItem = {
   about?: string[]; // subjects, for knowledge from Tali's education
   private?: boolean; // the user marked it private: never shared (6 Nov 2026)
   shared?: boolean; // the nightly scrub has looked at it
+  // ADDED (9 Nov 2026, Tuesday list): skills carry how often they were used, how often they worked,
+  // when they were last used and their status (draft, tested, proposed, skill, retired).
+  uses?: number;
+  wins?: number;
+  last_used?: string | null;
+  status?: string;
 };
 export type BrainRegion = { id: RegionId; count: number; items: BrainItem[] };
 export type BrainLink = { name: string; regions: RegionId[]; count: number };

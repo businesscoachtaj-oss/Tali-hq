@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { founderStats, founderTopups, type FounderStats, type FounderTopups } from '@/lib/data';
 import { BackLink, Body, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { FounderOps } from '@/components/FounderOps';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 // Claude Haiku list price, US$ per million tokens. Only used for the estimate on this screen.
@@ -70,6 +71,8 @@ export default function Founder() {
       <BackLink onPress={() => router.back()} />
       <Title sub="How Tali HQ is going. Only you can see this.">Founder</Title>
       <ErrorText>{error}</ErrorText>
+      {/* 9 Nov 2026 (Tuesday list): what needs Taj across all three apps, first. */}
+      <FounderOps />
 
       {!s ? (
         <TaliSays pose="think">Pulling the numbers together.</TaliSays>
