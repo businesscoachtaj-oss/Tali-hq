@@ -20,7 +20,7 @@ export function SheNoticed() {
   return (
     <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" style={{ marginBottom: space.lg }}>
       <Text style={{ color: colours.text, fontSize: 24, fontFamily: 'InstrumentSerif_400Regular', marginBottom: 10 }}>She learned this week</Text>
-      <View style={{ backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border, padding: space.lg, gap: 12 }}>
+      <View style={{ backgroundColor: 'rgba(142,240,200,0.14)', borderRadius: radius.card, borderWidth: 1, borderColor: 'rgba(142,240,200,0.55)', padding: space.lg, gap: 12, shadowColor: '#8EF0C8', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } }}>
         {items.map((it, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: 10 }}>
             <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 7, backgroundColor: REGIONS[it.region].colour, shadowColor: REGIONS[it.region].colour, shadowOpacity: 1, shadowRadius: 6 }} />

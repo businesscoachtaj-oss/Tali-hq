@@ -20,7 +20,7 @@ export function KnowsAbout({ brain }: { brain: Brain }) {
         const list = items.filter((i) => a.kinds.includes(i.kind));
         if (!list.length) return null;
         return (
-          <View key={a.title} style={{ backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border, padding: space.lg }}>
+          <View key={a.title} style={{ backgroundColor: a.colour + '26', borderRadius: radius.card, borderWidth: 1, borderColor: a.colour + '88', padding: space.lg, shadowColor: a.colour, shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: a.colour, shadowColor: a.colour, shadowOpacity: 1, shadowRadius: 8 }} />
               <Text style={{ flex: 1, color: colours.text, fontSize: 22, fontFamily: 'InstrumentSerif_400Regular' }}>{a.title}</Text>

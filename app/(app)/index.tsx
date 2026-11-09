@@ -34,6 +34,7 @@ import { type Room } from '@/components/RoomSwitch';
 import { SheNoticed } from '@/components/SheNoticed';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 import { NightBackground } from '@/components/NightSky';
+import { Aurora } from '@/components/Aurora';
 
 function greeting() {
   const h = new Date().getHours();
@@ -159,6 +160,7 @@ export default function Today() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
       <NightBackground />
+      <Aurora />
       <ScrollView
         ref={scrollRef}
         onScroll={(e) => (scrollY.current = e.nativeEvent.contentOffset.y)}

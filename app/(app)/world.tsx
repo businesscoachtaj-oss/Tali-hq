@@ -53,10 +53,10 @@ export default function World() {
             <Text style={{ color: colours.text, fontSize: 28, fontFamily: 'InstrumentSerif_400Regular' }}>{a.title}</Text>
           </View>
           <Text style={{ color: colours.muted, fontSize: 13.5, marginBottom: 10 }}>{a.line}</Text>
-          <View style={{ backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border, overflow: 'hidden' }}>
+          <View style={{ backgroundColor: a.colour + '22', borderRadius: radius.card, borderWidth: 1, borderColor: a.colour + '80', overflow: 'hidden', shadowColor: a.colour, shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } }}>
             {a.rows.map((r, i) => (
               <Pressable key={r.title} onPress={() => router.navigate(r.to as any)} accessibilityRole="button"
-                style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 14, paddingHorizontal: space.lg, borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
+                style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 14, paddingHorizontal: space.lg, borderTopWidth: i ? 1 : 0, borderTopColor: a.colour + '40' }}>
                 <Ionicons name={r.icon} size={21} color={a.colour} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colours.text, fontSize: 16, fontWeight: '600' }}>{r.title}</Text>

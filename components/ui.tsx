@@ -18,6 +18,7 @@ import { colours, elevation, NO_BOTTOM, radius, space, heading, headingSemi } fr
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
 import { NightBackground } from '@/components/NightSky';
+import { Aurora } from '@/components/Aurora';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -47,6 +48,7 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
   return (
     <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
       <NightBackground style={StyleSheet.absoluteFill} />
+      <Aurora />
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -190,7 +192,8 @@ const styles = StyleSheet.create({
   sub: { fontSize: 15, color: colours.muted, marginTop: space.xs, lineHeight: 21 },
   card: {
     backgroundColor: colours.surface,
-    borderColor: 'rgba(39,38,38,0.04)',
+    borderColor: 'rgba(196,178,255,0.30)',
+    borderTopColor: 'rgba(230,220,255,0.55)',
     borderWidth: 1,
     borderRadius: radius.card,
     padding: space.lg,

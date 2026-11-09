@@ -2,10 +2,10 @@
 // 9 Nov 2026 concept "Inside her mind" (A + B): the app lives in her night sky. Glass cards over
 // the stars, light ink, an editorial serif for headings, and her notes on warm paper.
 export const colours = {
-  bg: '#110E2B',
-  surface: 'rgba(255,255,255,0.07)',
-  sunk: 'rgba(255,255,255,0.05)',
-  border: 'rgba(255,255,255,0.10)',
+  bg: '#0C0A24',
+  surface: 'rgba(58,44,140,0.55)',
+  sunk: 'rgba(255,255,255,0.10)',
+  border: 'rgba(196,178,255,0.30)',
   borderStrong: 'rgba(255,255,255,0.20)',
   text: '#F4F1FF',
   muted: '#B9B2D9',
