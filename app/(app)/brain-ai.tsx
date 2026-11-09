@@ -4,7 +4,9 @@
 // Founder only until the new AIs are connected and the router picks per job.
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
+import { useAuth } from '@/lib/auth';
+import { FOUNDER_USER_ID } from '@/constants/business';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink } from '@/components/ui';
 import { REGIONS, type RegionId } from '@/lib/brain';
@@ -30,6 +32,10 @@ const PARTS: Part[] = [
 ];
 
 export default function BrainAi() {
+  // Founder only. This page names the AIs behind each part of her brain, which is company
+  // information, so anyone else who reaches it by URL goes back to Brain.
+  const { session } = useAuth();
+  if (session?.user.id !== FOUNDER_USER_ID) return <Redirect href="/brain" />;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#17133A' }} edges={NO_BOTTOM}>
       <NightBackground />
