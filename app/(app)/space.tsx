@@ -113,7 +113,7 @@ export default function Space() {
               <View key={'s' + k} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} pointerEvents="none">
                 <Beam x1={p.x + 8} y1={p.y + 8} x2={lx} y2={ly} colour={AREA[l.area].colour} opacity={0.9} />
                 <View style={{ position: 'absolute', left: lx - 5, top: ly - 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: AREA[l.area].colour, shadowColor: AREA[l.area].colour, shadowOpacity: 1, shadowRadius: 10 }} />
+                  <View style={{ width: 10, height: 10 }}><Glow colour={AREA[l.area].colour} size={10} /></View>
                   <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700', maxWidth: 150, backgroundColor: 'rgba(10,8,32,0.82)', borderRadius: 10, paddingVertical: 4, paddingHorizontal: 8, overflow: 'hidden', borderWidth: 1, borderColor: AREA[l.area].colour + '77' }}>{l.text}</Text>
                 </View>
               </View>
@@ -196,7 +196,23 @@ function Pulse({ colour, size, on, strong, delay }: { colour: string; size: numb
   return (
     <View style={{ width: size, height: size, marginTop: 2 }}>
       <Animated.View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: colour, opacity: ring, transform: [{ scale: ringScale }] }} />
-      <Animated.View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colour, shadowColor: colour, shadowOpacity: 1, shadowRadius: on ? 28 : 16, borderWidth: on ? 3 : 0, borderColor: '#FFFFFF', transform: [{ scale }] }} />
+      <Animated.View style={{ width: size, height: size, transform: [{ scale }] }}>
+        <Glow colour={colour} size={size} />
+      </Animated.View>
     </View>
+  );
+}
+
+// The same glow as a picked part of her brain: three soft rings of colour and a white core.
+function Glow({ colour, size }: { colour: string; size: number }) {
+  const b = size;
+  return (
+    <>
+      <View style={{ position: 'absolute', width: b * 4, height: b * 4, left: -b * 1.5, top: -b * 1.5, borderRadius: b * 2, backgroundColor: colour, opacity: 0.1 }} />
+      <View style={{ position: 'absolute', width: b * 2.6, height: b * 2.6, left: -b * 0.8, top: -b * 0.8, borderRadius: b * 1.3, backgroundColor: colour, opacity: 0.16 }} />
+      <View style={{ position: 'absolute', width: b * 1.6, height: b * 1.6, left: -b * 0.3, top: -b * 0.3, borderRadius: b * 0.8, backgroundColor: colour, opacity: 0.3 }} />
+      <View style={{ position: 'absolute', width: b, height: b, left: 0, top: 0, borderRadius: b / 2, backgroundColor: colour }} />
+      <View style={{ position: 'absolute', width: b * 0.45, height: b * 0.45, left: b * 0.275, top: b * 0.275, borderRadius: b, backgroundColor: '#FFFFFF', opacity: 0.85 }} />
+    </>
   );
 }
