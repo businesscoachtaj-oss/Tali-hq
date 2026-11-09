@@ -27,7 +27,7 @@ export const SKINS: Record<SkinId, Skin> = {
   // ADDED (9 Nov 2026): the pages that had no banner yet, so every page off Me matches.
   founder: { colors: ['#272626', '#5A524B'], bg: '#EFEDEA', icon: 'stats-chart-outline', kicker: 'ONLY YOU SEE THIS' },
   affiliate: { colors: ['#6C3483', '#ED8008'], bg: '#F6EEEA', icon: 'pricetags-outline', kicker: 'PEOPLE SHARING YOUR APPS' },
-  settings: { colors: ['#3B3F46', '#6B7280'], bg: '#EEEFF1', icon: 'settings-outline', kicker: 'YOU AND YOUR BUSINESS' },
+  settings: { colors: ['#3B3F46', '#6B7280'], bg: '#EEEFF1', icon: 'settings-outline', kicker: 'ABOUT YOU' },
   plans: { colors: ['#4A2160', '#6C3483'], bg: '#F3EEF6', icon: 'sparkles-outline', kicker: 'YOUR PLAN' },
   journal: { colors: ['#5B1F4A', '#B24D8C'], bg: '#F6ECF2', icon: 'book-outline', kicker: 'YOUR THOUGHTS, YOUR WEEK' },
   brain: { colors: ['#17133A', '#46307E'], bg: '#ECE8F6', icon: 'bulb-outline', kicker: 'EVERYTHING TALI KNOWS' },
