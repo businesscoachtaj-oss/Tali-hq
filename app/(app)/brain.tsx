@@ -18,6 +18,7 @@ import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemory
 import { forgetMemory } from '@/lib/data';
 import { LEVELS, taliLevel, type Level } from '@/lib/level';
 import { KnowsAbout } from '@/components/KnowsAbout';
+import { BRAIN_AI_PREVIEW, partAi } from '@/lib/brainAiPlan';
 
 const MEMORY_KINDS = ['fact', 'event', 'person', 'lesson', 'mistake', 'rule', 'preference', 'idea', 'plan', 'seen'];
 
@@ -167,7 +168,7 @@ export default function BrainScreen() {
         <Pressable onPress={() => router.navigate('/brain-ai')} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.surface, borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: space.lg, marginBottom: space.md, ...elevation.card }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>How Tali thinks</Text>
-            <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>The AI each part of her brain uses, now and planned</Text>
+            <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>{BRAIN_AI_PREVIEW ? 'Which AI each part runs on, and who handled what today' : 'The AI each part of her brain uses, now and planned'}</Text>
           </View>
           <Text style={{ fontSize: 22, color: colours.faint, fontWeight: '600' }}>{'›'}</Text>
         </Pressable>
@@ -209,6 +210,13 @@ export default function BrainScreen() {
             </Text>
             {/* 6 Nov 2026 (Taj): Tali's education, a part of the brain each night. */}
             <Text style={{ color: night.faint, fontSize: 13, lineHeight: 18, marginTop: 4 }}>Studies at night: {REGIONS[region.id].studies}</Text>
+            {BRAIN_AI_PREVIEW && founder && partAi(region.id) ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: space.sm, alignSelf: 'flex-start', backgroundColor: night.glass, borderWidth: 1, borderColor: night.line, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
+                <Text style={{ color: night.faint, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 }}>RUNS ON</Text>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>{partAi(region.id)!.ai}</Text>
+                <Text style={{ color: night.accent, fontSize: 12, fontWeight: '700' }}>{partAi(region.id)!.cost}</Text>
+              </View>
+            ) : null}
 
             <Pressable
               onPress={() => { setKeepsOpen((o) => !o); setKeepsShown(5); }}

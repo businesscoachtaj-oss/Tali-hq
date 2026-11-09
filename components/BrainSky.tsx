@@ -75,8 +75,8 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   return (
     <View style={{ width: W, alignSelf: 'center' }}>
         <View style={{ paddingHorizontal: 20, paddingTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ borderRadius: 24, padding: 6, backgroundColor: 'rgba(107,79,216,0.45)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.55)', shadowColor: '#B9A6FF', shadowOpacity: 0.9, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } }}>
-            <TaliAvatar pose="idle" size={92} style={{ backgroundColor: 'transparent' }} />
+          <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } }}>
+            <TaliAvatar pose="head" size={42} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>

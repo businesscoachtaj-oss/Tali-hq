@@ -6,6 +6,7 @@ import { currentConversation, deleteConversation, freeMessagesLeft, listConversa
 import { isPaid, isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { MicButton } from '@/components/MicButton';
+import { BRAIN_AI_PREVIEW, COST, VOICE_ADDON } from '@/lib/brainAiPlan';
 import { useVoiceNote, voiceMinutesLeftLine, VOICE_NOTES_ON } from '@/lib/voiceNotes';
 import { TaliThinking } from '@/components/TaliThinking';
 import { TaliAvatar } from '@/components/TaliAvatar';
@@ -47,6 +48,8 @@ export default function Talk() {
   // Deep think (6 Nov 2026): the next message goes to a smarter model with more of her brain.
   const [deep, setDeep] = useState<DeepLevel | null>(null);
   const [deepSending, setDeepSending] = useState<DeepLevel | null>(null);
+  // Second opinion (planned, 9 Nov 2026): GPT-5.4 checks her answer. 20 credits.
+  const [second, setSecond] = useState(false);
   const [freeDeep, setFreeDeep] = useState<Credits['deep']>(null);
   // 7 Nov 2026 (Taj): Free sees how many messages are left once it gets low (25 or fewer).
   const [freeLeft, setFreeLeft] = useState<{ left: number; limit: number } | null>(null);
@@ -57,7 +60,8 @@ export default function Talk() {
   const voice = useVoiceNote({ onText: onVoiceText, onNotice: setNotice, plan });
   const voiceLine = !VOICE_NOTES_ON ? null : voice.recording ? 'Recording. Tap the red dot to stop, 3 minutes tops.' : voice.busy ? null : voiceMinutesLeftLine(voice.secondsLeft);
   const messagesLine = freeLeft && freeLeft.left <= 25 ? (freeLeft.left === 1 ? `1 of ${freeLeft.limit} messages left this month.` : `${freeLeft.left} of ${freeLeft.limit} messages left this month.`) : null;
-  const voiceHint = voiceLine ?? messagesLine;
+  // Preview only: the voice add-on's minutes. The real number will come from my_credits.
+  const voiceHint = voiceLine ?? messagesLine ?? (BRAIN_AI_PREVIEW && plan && plan !== 'free' ? `Voice add-on: 14 of ${VOICE_ADDON.speakMinutes} minutes of her voice left this month.` : null);
   // Chat history (3 Nov 2026): the sheet with every chat; open, rename, pin, delete.
   const [historyOpen, setHistoryOpen] = useState(false);
   // Photos and files (3 Nov 2026): what is attached to the message being written, already uploaded.
@@ -302,6 +306,17 @@ export default function Talk() {
                 <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>{label}</Text>
               </Pressable>
             ))}
+            {BRAIN_AI_PREVIEW ? (
+              <Pressable onPress={() => setPickerOpen(false)} accessibilityRole="button" style={{ backgroundColor: colours.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: 'rgba(39,38,38,0.04)', ...elevation.card, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>Send a video</Text>
+                  <Text style={{ fontSize: 12.5, color: colours.muted, marginTop: 2 }}>A screen recording, an ad, a walkthrough. Up to 10 minutes.</Text>
+                </View>
+                <View style={{ backgroundColor: colours.purpleSoft, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 }}>
+                  <Text style={{ color: colours.purpleInk, fontSize: 12, fontWeight: '800' }}>{COST.videoPerMinute} credits a min</Text>
+                </View>
+              </Pressable>
+            ) : null}
             <Text style={{ fontSize: 12, color: colours.muted, marginTop: 4 }}>Photos and PDFs, up to {MAX_ATTACHMENTS} a message, 10 MB each. One extra credit per message with files.</Text>
           </View>
         </Modal>
@@ -371,7 +386,9 @@ export default function Talk() {
                   {!me ? <View style={{ position: 'absolute', left: 0, top: 15, width: 8, height: 8, borderRadius: 4, backgroundColor: '#D7CCFF', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }} /> : null}
                   {item.attachments?.some((a) => !isTaliMade(me, a)) ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: item.content ? 8 : 0 }}>
-                      {item.attachments.map((a, i) => isTaliMade(me, a) ? null : a.kind === 'image' ? (
+                      {item.attachments.map((a, i) => isTaliMade(me, a) ? null : a.kind === 'video' ? (
+                        <VideoTile key={i} a={a} me={me} />
+                      ) : a.kind === 'image' ? (
                         <Pressable key={i} onPress={() => a.url && Linking.openURL(a.url)} accessibilityRole="imagebutton" accessibilityLabel={`Open ${a.name}`}>
                           <Image source={{ uri: a.url }} style={{ width: 150, height: 150, borderRadius: 12, backgroundColor: colours.sunk }} resizeMode="cover" />
                         </Pressable>
@@ -386,12 +403,17 @@ export default function Talk() {
                       ))}
                     </View>
                   ) : null}
+                  {!me && BRAIN_AI_PREVIEW && item.meta?.watched ? (
+                    <Text style={{ color: colours.purpleInk, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 4 }}>WATCHED {fmtSecs(item.meta.watched.seconds)} OF VIDEO · {item.meta.watched.credits} CREDITS</Text>
+                  ) : null}
                   {!me && item.meta?.deep ? (
                     <Text style={{ color: colours.purple, fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 4 }}>{item.meta.deep === 'deepest' ? 'BIG BRAIN' : 'SHE THOUGHT HARDER'}</Text>
                   ) : null}
                   {item.content ? (me
                     ? <Text style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
                     : <TaliMessage content={item.content} />) : null}
+                  {!me && BRAIN_AI_PREVIEW && item.meta?.sources?.length ? <Sources list={item.meta.sources} /> : null}
+                  {!me && BRAIN_AI_PREVIEW && item.meta?.second_opinion ? <SecondOpinion o={item.meta.second_opinion} /> : null}
                   {/* Images Tali made sit under her words (6 Nov 2026). */}
                   {item.attachments?.map((a, i) => isTaliMade(me, a) ? (
                     <View key={`t${i}`} style={{ marginTop: item.content ? 10 : 0 }}>
@@ -427,6 +449,7 @@ export default function Talk() {
                     }} />
                   ) : null}
                   {VOICE_LIVE && pro && !me && !item.id.startsWith('tmp-') ? <VoiceButton messageId={item.id} onError={setNotice} /> : null}
+                  {BRAIN_AI_PREVIEW && !me && !item.id.startsWith('tmp-') && item.content ? <ListenRow routed={item.meta?.routed} /> : null}
                 </View>
               );
             }}
@@ -456,12 +479,12 @@ export default function Talk() {
         {voiceHint ? (
           <Text style={{ color: voice.recording ? colours.danger : colours.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: space.lg, paddingTop: 6, backgroundColor: colours.surface, borderTopWidth: pending.length ? 0 : 1, borderTopColor: colours.border }}>{voiceHint}</Text>
         ) : null}
-        <DeepSwitch plan={plan} freeDeep={freeDeep} value={deep} onChange={setDeep} topBorder={!pending.length && !voiceHint} />
+        <DeepSwitch plan={plan} freeDeep={freeDeep} value={deep} onChange={setDeep} second={second} onSecond={setSecond} topBorder={!pending.length && !voiceHint} />
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, paddingTop: plan ? space.sm : space.md, borderTopWidth: 0, borderTopColor: colours.border, backgroundColor: colours.surface }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Attach a photo or file"
-            onPress={() => (Platform.OS === 'web' ? attach('file') : setPickerOpen(true))}
+            onPress={() => (Platform.OS === 'web' && !BRAIN_AI_PREVIEW ? attach('file') : setPickerOpen(true))}
             disabled={uploading}
             style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colours.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: colours.bg }}>
             <Text style={{ fontSize: 20, color: colours.muted }}>{uploading ? '…' : '+'}</Text>
@@ -652,13 +675,13 @@ function deepCost(level: DeepLevel, plan: string | null, freeDeep: Credits['deep
   return level === 'deepest' ? '40 credits' : '20 credits';
 }
 
-function DeepSwitch({ plan, freeDeep, value, onChange, topBorder }: { plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; value: DeepLevel | null; onChange: (v: DeepLevel | null) => void; topBorder: boolean }) {
+function DeepSwitch({ plan, freeDeep, value, onChange, second, onSecond, topBorder }: { plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; value: DeepLevel | null; onChange: (v: DeepLevel | null) => void; second: boolean; onSecond: (v: boolean) => void; topBorder: boolean }) {
   // 9 Nov 2026 look refresh: one quiet line until you want more thinking. Costs only show once open.
   const [open, setOpen] = useState(false);
   if (!plan) return null;
   const freeOut = plan === 'free' && !freeDeep?.remaining;
   const options: DeepLevel[] = plan === 'pro' ? ['deep', 'deepest'] : ['deep'];
-  if (!open && !value) {
+  if (!open && !value && !second) {
     return (
       <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={{ paddingHorizontal: space.lg, paddingTop: space.sm, backgroundColor: colours.surface, borderTopWidth: topBorder ? 1 : 0, borderTopColor: colours.border }}>
         <Text style={{ fontSize: 13, color: colours.muted }}>Quick answers  <Text style={{ color: colours.purple, fontWeight: '700' }}>Think harder {'›'}</Text></Text>
@@ -678,6 +701,14 @@ function DeepSwitch({ plan, freeDeep, value, onChange, topBorder }: { plan: 'fre
           </Pressable>
         );
       })}
+      {BRAIN_AI_PREVIEW && plan !== 'free' ? (
+        <Pressable accessibilityRole="switch" accessibilityState={{ checked: second }} onPress={() => onSecond(!second)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: second ? colours.purple : colours.borderStrong, backgroundColor: second ? colours.purple : colours.bg }}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: second ? colours.onPurple : colours.text }}>Second opinion</Text>
+          <Text style={{ fontSize: 12, color: second ? colours.onPurple : colours.muted }}>{COST.secondOpinion} credits</Text>
+        </Pressable>
+      ) : null}
+      {second ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>Tali answers, then a second AI checks her. You see where they agree and where they don't.</Text> : null}
       {value ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>{value === 'deepest' ? 'Big brain: her strongest thinking, for the big calls. About a minute.' : 'A smarter Tali with more of her memory. About half a minute.'}</Text> : null}
     </View>
   );
@@ -689,5 +720,92 @@ function DeepOffer({ plan, freeDeep, onPress }: { plan: 'free' | 'hq' | 'pro' | 
     <Pressable onPress={onPress} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
       <Text style={{ color: colours.purpleInk, fontWeight: '800', fontSize: 13 }}>Deep think this <Text style={{ fontWeight: '600' }}>({deepCost('deep', plan, freeDeep)})</Text></Text>
     </Pressable>
+  );
+}
+
+// ---------- planned (9 Nov 2026 mockups, BRAIN_AI_PREVIEW) ----------
+
+const fmtSecs = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+function VideoTile({ a, me }: { a: Attachment; me: boolean }) {
+  const mins = Math.max(1, Math.ceil((a.seconds ?? 60) / 60));
+  return (
+    <View style={{ width: 220, borderRadius: 12, overflow: 'hidden', backgroundColor: me ? 'rgba(255,255,255,0.12)' : colours.sunk }}>
+      <View style={{ height: 118, backgroundColor: '#1F1A2E', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#1F1A2E', fontSize: 16, marginLeft: 3 }}>{'▶'}</Text>
+        </View>
+        <View style={{ position: 'absolute', right: 8, bottom: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{fmtSecs(a.seconds ?? 0)}</Text>
+        </View>
+      </View>
+      <View style={{ padding: 8 }}>
+        <Text numberOfLines={1} style={{ color: me ? '#fff' : colours.text, fontSize: 13, fontWeight: '700' }}>{a.name}</Text>
+        <Text style={{ color: me ? 'rgba(255,255,255,0.75)' : colours.muted, fontSize: 11 }}>{mins * COST.videoPerMinute} credits to watch</Text>
+      </View>
+    </View>
+  );
+}
+
+function Sources({ list }: { list: { title: string; url: string }[] }) {
+  return (
+    <View style={{ marginTop: 10, gap: 6 }}>
+      <Text style={{ color: colours.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: 0.6 }}>SOURCES · LOOKED UP JUST NOW</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {list.map((s, i) => {
+          let host = s.url;
+          try { host = new URL(s.url).hostname.replace(/^www\./, ''); } catch {}
+          return (
+            <Pressable key={i} onPress={() => Linking.openURL(s.url)} accessibilityRole="link" accessibilityLabel={s.title}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colours.sunk, borderRadius: radius.pill, paddingVertical: 5, paddingLeft: 5, paddingRight: 10, maxWidth: 230 }}>
+              <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{i + 1}</Text>
+              </View>
+              <Text numberOfLines={1} style={{ color: colours.text, fontSize: 12, fontWeight: '600', flexShrink: 1 }}>{host}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function SecondOpinion({ o }: { o: { by: string; agree: string; differ: string; credits: number } }) {
+  return (
+    <View style={{ marginTop: 12, borderRadius: 14, borderWidth: 1, borderColor: colours.border, overflow: 'hidden' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colours.purpleSoft }}>
+        <Text style={{ flex: 1, color: colours.purpleInk, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 }}>SECOND OPINION</Text>
+        <Text style={{ color: colours.purpleInk, fontSize: 11, fontWeight: '700' }}>{o.credits} credits</Text>
+      </View>
+      <View style={{ padding: 12, gap: 10 }}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colours.good, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{'✓'}</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colours.text, fontSize: 13, fontWeight: '800' }}>Agrees</Text>
+            <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19 }}>{o.agree}</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colours.orange, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>!</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colours.text, fontSize: 13, fontWeight: '800' }}>Would change</Text>
+            <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19 }}>{o.differ}</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// Listen (voice add-on, ElevenLabs) plus which part of her brain answered and what it cost.
+function ListenRow({ routed }: { routed?: { part: string; ai: string; credits: number } }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Listen" style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: colours.sunk }}>
+        <Text style={{ color: colours.purpleInk, fontSize: 11 }}>{'▶'}</Text>
+        <Text style={{ color: colours.purpleInk, fontSize: 12, fontWeight: '800' }}>Listen</Text>
+      </Pressable>
+      {routed ? <Text style={{ color: colours.faint, fontSize: 11 }}>{routed.part} · {routed.credits} {routed.credits === 1 ? 'credit' : 'credits'}</Text> : null}
+    </View>
   );
 }
