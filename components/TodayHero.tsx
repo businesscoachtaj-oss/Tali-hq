@@ -48,6 +48,25 @@ export function TodayHero({
   const line = n ? nightLine?.trim() || "Day's done. Bed time?" : hello;
   const pct = level ? Math.max(4, Math.round(level.progress * 100)) : 0;
 
+  // 9 Nov 2026 look refresh: in the day, Tali stands on the page and talks to you. No purple card,
+  // no level (that lives on Brain now). Night mode keeps the night sky card below.
+  if (!n) {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 14, paddingTop: 8, paddingBottom: 6, marginBottom: 14 }}>
+        <TaliAvatar pose="wave" size={118} />
+        <View style={{ flex: 1, paddingBottom: 10 }}>
+          <Text style={{ color: colours.muted, fontSize: 15, fontWeight: '600' }}>{greeting}</Text>
+          {sub ? <Text style={{ color: colours.purpleInk, fontSize: 13, marginTop: 2 }}>{sub}</Text> : null}
+          <Text style={{ color: colours.text, fontSize: 21, lineHeight: 28, marginTop: 6, fontFamily: 'PlusJakartaSans_700Bold' }}>{line}</Text>
+          {briefLabel && onBrief ? (
+            <Pressable onPress={onBrief} accessibilityRole="button" style={{ marginTop: 10 }}>
+              <Text style={{ color: colours.purple, fontSize: 15, fontWeight: '700' }}>{briefLabel} {'›'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={[h.card, n && h.cardNight]}>
       {n ? <NightBackground style={{ borderRadius: RADIUS }} /> : <LinearGradient colors={['#4A2160', colours.purple, '#8A4A9E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: RADIUS }]} />}

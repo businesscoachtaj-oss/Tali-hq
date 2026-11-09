@@ -274,17 +274,17 @@ export default function Talk() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>
-          <TaliAvatar pose={thinking ? 'head_think' : 'head'} size={36} />
+          <TaliAvatar pose={thinking ? 'head_think' : 'head'} size={48} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 17, fontWeight: '800', color: colours.text }}>Tali</Text>
-            <Text style={{ fontSize: 12, color: colours.muted }}>{thinking ? 'Thinking...' : 'Your AI teammate'}</Text>
+            <Text style={{ fontSize: 20, color: colours.text, fontFamily: 'PlusJakartaSans_800ExtraBold' }}>Tali</Text>
+            <Text style={{ fontSize: 12, color: colours.muted }}>{thinking ? 'Thinking...' : 'Here and ready'}</Text>
           </View>
-          <Pressable onPress={() => setHistoryOpen(true)} accessibilityRole="button" accessibilityLabel="Your chats" style={{ borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
-            <Text style={{ fontWeight: '700', fontSize: 13, color: colours.text }}>Chats</Text>
+          <Pressable onPress={() => setHistoryOpen(true)} accessibilityRole="button" accessibilityLabel="Your chats" style={{ borderWidth: 0, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
+            <Text style={{ fontWeight: '700', fontSize: 15, color: colours.purple }}>Chats</Text>
           </Pressable>
           {!empty ? (
-            <Pressable onPress={startNew} accessibilityRole="button" style={{ borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
-              <Text style={{ fontWeight: '700', fontSize: 13, color: colours.text }}>New chat</Text>
+            <Pressable onPress={startNew} accessibilityRole="button" style={{ borderWidth: 0, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
+              <Text style={{ fontWeight: '700', fontSize: 15, color: colours.purple }}>New</Text>
             </Pressable>
           ) : null}
         </View>
@@ -637,9 +637,18 @@ function deepCost(level: DeepLevel, plan: string | null, freeDeep: Credits['deep
 }
 
 function DeepSwitch({ plan, freeDeep, value, onChange, topBorder }: { plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; value: DeepLevel | null; onChange: (v: DeepLevel | null) => void; topBorder: boolean }) {
+  // 9 Nov 2026 look refresh: one quiet line until you want more thinking. Costs only show once open.
+  const [open, setOpen] = useState(false);
   if (!plan) return null;
   const freeOut = plan === 'free' && !freeDeep?.remaining;
   const options: DeepLevel[] = plan === 'pro' ? ['deep', 'deepest'] : ['deep'];
+  if (!open && !value) {
+    return (
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={{ paddingHorizontal: space.lg, paddingTop: space.sm, backgroundColor: colours.surface, borderTopWidth: topBorder ? 1 : 0, borderTopColor: colours.border }}>
+        <Text style={{ fontSize: 13, color: colours.muted }}>Quick answers  <Text style={{ color: colours.purple, fontWeight: '700' }}>Think harder {'›'}</Text></Text>
+      </Pressable>
+    );
+  }
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: colours.surface, borderTopWidth: topBorder ? 1 : 0, borderTopColor: colours.border }}>
       {options.map((o) => {

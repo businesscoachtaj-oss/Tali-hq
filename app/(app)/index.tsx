@@ -170,7 +170,6 @@ export default function Today() {
           nightLine={shutdown?.tali_line}
         />
         </View>
-        <BrainNow />
 
         {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
@@ -180,9 +179,10 @@ export default function Today() {
 
         <NightIdeaCard />
 
+        {newMail.length || approvals.length ? <Label>Needs you</Label> : null}
         {newMail.length ? (
           <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">
-            <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.purple }}>
+            <Card>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: '800', color: colours.text }}>
@@ -200,7 +200,6 @@ export default function Today() {
 
         {approvals.length ? (
           <View ref={yesRef} collapsable={false}>
-            <Label>Needs your yes</Label>
             <FoldList
               folds={approvals.map((a) => ({
                 key: a.id,
