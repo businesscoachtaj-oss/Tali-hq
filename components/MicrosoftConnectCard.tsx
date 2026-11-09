@@ -1,6 +1,7 @@
 // Settings card: connect Microsoft 365 (Outlook mail and calendar), the twin of GoogleConnectCard. Added 2 Nov 2026.
 // Tali reads new mail and sorts it, drafts replies, reads the calendar and drafts invites.
 // Nothing is sent or booked until the user taps the button on Today.
+import { LearnRecent } from '@/components/LearnRecent';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -116,7 +117,10 @@ export function MicrosoftConnectCard() {
               <Button title="Keep it connected" kind="ghost" onPress={() => setConfirmOff(false)} />
             </View>
           ) : (
-            <Button title="Disconnect" kind="ghost" onPress={() => setConfirmOff(true)} />
+            <>
+              {conn.last_error ? null : <LearnRecent provider="microsoft" />}
+              <Button title="Disconnect" kind="ghost" onPress={() => setConfirmOff(true)} />
+            </>
           )}
         </>
       ) : paid ? (

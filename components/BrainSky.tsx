@@ -6,7 +6,7 @@ import { Animated, Easing, Pressable, Text, View, useWindowDimensions } from 're
 import { router, useFocusEffect } from 'expo-router';
 import { BrainGlobe } from '@/components/BrainGlobe';
 import { TaliAvatar } from '@/components/TaliAvatar';
-import { myBrain, type Brain, type RegionId } from '@/lib/brain';
+import { myBrain, myConnections, myUpcoming, type Brain, type RegionId, type Upcoming } from '@/lib/brain';
 import { inboundEmails, openReminders, pendingApprovals, type Approval, type InboundEmail, type Reminder } from '@/lib/data';
 import { loadMoneyPicture, type MoneyPicture } from '@/lib/money';
 import { addDays } from '@/lib/dates';
@@ -20,7 +20,7 @@ const AREA = {
   growth: { name: 'Growth', colour: '#FFE066' },
 } as const;
 type Area = keyof typeof AREA;
-type Star = { key: string; title: string; sub: string; area: Area; size: number; links: { text: string; area: Area }[]; action?: string; to?: string };
+type Star = { key: string; title: string; sub: string; area: Area; size: number; links: { text: string; area: Area }[]; action?: string; to?: string; seed?: string; fallback?: { text: string; area: Area }[] };
 
 const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.76], [1, 0.86]] as const;
 
@@ -34,11 +34,16 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   const [due, setDue] = useState<Reminder[]>([]);
   const [focus, setFocus] = useState<string | null>(null);
   const [level, setLevel] = useState<Level | null>(null);
+  // 10 Nov 2026 overhaul: dates she remembers become stars as they get close, and a tapped star asks
+  // the brain for what is really connected to it.
+  const [upcoming, setUpcoming] = useState<Upcoming[]>([]);
+  const [found, setFound] = useState<Record<string, { text: string; area: Area }[]>>({});
 
   useFocusEffect(useCallback(() => {
     const end = addDays(new Date(new Date().setHours(0, 0, 0, 0)), 1).toISOString();
     myBrain('mine').then(setBrain).catch(() => {});
     taliLevel().then(setLevel).catch(() => {});
+    myUpcoming(45).then(setUpcoming).catch(() => {});
     loadMoneyPicture().then(setMoney).catch(() => {});
     pendingApprovals().then(setApprovals).catch(() => {});
     inboundEmails().then((e) => setMail(e.filter((x) => x.status === 'new'))).catch(() => {});
@@ -61,34 +66,59 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   };
   const stars: Star[] = [];
   if (late) {
-    const days = Math.max(1, Math.round((Date.now() - new Date(late.due_date).getTime()) / 86400000));
+    const lateMs = Date.now() - new Date(late.due_date).getTime();
+    const days = Number.isFinite(lateMs) ? Math.max(1, Math.round(lateMs / 86400000)) : 0;
     stars.push({ key: 'late', title: `Invoice ${late.number} is late`, sub: `${late.client_name}, A$${late.total}`, area: 'money', size: 22,
-      links: [{ text: late.client_name, area: 'people' }, { text: `${days} ${days === 1 ? 'day' : 'days'} overdue`, area: 'money' }, ...related(late.client_name).slice(0, 1)], action: 'Open invoices', to: '/invoices' });
+      links: [{ text: late.client_name, area: 'people' }, ...(days ? [{ text: `${days} ${days === 1 ? 'day' : 'days'} overdue`, area: 'money' as Area }] : [])], seed: late.client_name, fallback: related(late.client_name).slice(0, 1), action: 'Open invoices', to: '/invoices' });
   }
   if (approvals[0]) {
     const to = approvals[0].draft?.to_name;
     stars.push({ key: 'yes', title: short(approvals[0].title), sub: 'Waiting for your yes', area: 'work', size: 18,
-      links: [...(to ? [{ text: to, area: 'people' as Area }] : []), ...related(to)], action: approvals.length > 1 ? `${approvals.length} drafts are just below` : 'The draft is just below' });
+      links: to ? [{ text: to, area: 'people' as Area }] : [], seed: to || approvals[0].title, fallback: related(to), action: approvals.length > 1 ? `${approvals.length} drafts are just below` : 'The draft is just below' });
   }
   if (mail[0]) {
     const from = mail[0].from_name || mail[0].from_email || 'Someone';
     stars.push({ key: 'mail', title: `${short(from, 22)} emailed`, sub: mail[0].summary || mail[0].subject || 'New email', area: 'people', size: 16,
-      links: [...(mail[0].subject ? [{ text: short(mail[0].subject, 44), area: 'work' as Area }] : []), ...related(mail[0].from_name)], action: 'Open email', to: '/inbox' });
+      links: mail[0].subject ? [{ text: short(mail[0].subject, 44), area: 'work' as Area }] : [], seed: mail[0].from_name || mail[0].subject || '', fallback: related(mail[0].from_name), action: 'Open email', to: '/inbox' });
   }
   if (due[0]) {
     const at = due[0].due_at ? new Date(due[0].due_at) : null;
     stars.push({ key: 'due', title: short(due[0].text), sub: at && !Number.isNaN(at.getTime()) ? `Today, ${at.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}` : 'Due today', area: 'work', size: 13,
       links: due.length > 1 ? [{ text: `${due.length - 1} more due today`, area: 'work' }] : [], action: 'Your list is just below' });
   }
-  if (person) stars.push({ key: 'person', title: short(person.text, 46), sub: 'Something she remembers for you', area: 'people', size: 14, links: related(person.text.split(/[\s']/)[0], person.text), action: 'Talk it through', to: '/talk' });
-  if (idea) stars.push({ key: 'idea', title: short(idea.text, 46), sub: 'An idea you had', area: 'growth', size: 12, links: [], action: 'Plan it with her', to: '/talk' });
+  // Dates she remembers, as they get close (a birthday, a renewal, a deadline). Soonest two.
+  const soon = (n: number) => (n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : n < 14 ? `In ${n} days` : `In ${Math.round(n / 7)} weeks`);
+  for (const u of upcoming.slice(0, 2)) {
+    stars.push({ key: `date-${u.id}`, title: short(u.text, 46), sub: `${soon(u.days_away)}${u.yearly ? ', every year' : ''}`, area: areaOf(u.kind), size: u.days_away <= 7 ? 17 : 14, links: [], seed: u.text, action: 'Plan it with her', to: '/talk' });
+  }
+  // Until the dates are switched on server side, a birthday she remembers still shows.
+  if (!upcoming.length && person) stars.push({ key: 'person', title: short(person.text, 46), sub: 'Something she remembers for you', area: 'people', size: 14, links: [], seed: person.text, fallback: related(person.text.split(/[\s']/)[0], person.text), action: 'Talk it through', to: '/talk' });
+  if (idea) stars.push({ key: 'idea', title: short(idea.text, 46), sub: 'An idea you had', area: 'growth', size: 12, links: [], seed: idea.text, action: 'Plan it with her', to: '/talk' });
+
+  // Six places in the sky. What needs you comes first, so an idea is the first to wait for a quiet day.
+  stars.length = Math.min(stars.length, SPOTS.length);
 
   const stageH = 470;
   const cx = W / 2, cy = stageH / 2;
   const pos = (i: number) => ({ x: 16 + SPOTS[i][0] * (W - 186), y: SPOTS[i][1] * (stageH - 50) });
   const counts: Partial<Record<RegionId, number>> = {};
   brain?.regions.forEach((r) => (counts[r.id] = r.count));
-  const sel = stars.find((s) => s.key === focus) ?? null;
+  const picked = stars.find((s) => s.key === focus) ?? null;
+  // What the brain says is connected, else the simple name match, on top of the star's own facts.
+  const sel = picked ? { ...picked, links: [...picked.links, ...((found[picked.key]?.length ? found[picked.key] : picked.fallback) ?? [])].slice(0, 3) } : null;
+  const seed = picked?.seed ?? '';
+  const pickedKey = picked?.key ?? '';
+  useEffect(() => {
+    if (!pickedKey || !seed || found[pickedKey]) return;
+    let live = true;
+    myConnections(seed, 3).then((rows) => {
+      if (!live) return;
+      const own = new Set((picked?.links ?? []).map((l) => l.text.toLowerCase()));
+      setFound((f) => ({ ...f, [pickedKey]: rows.filter((r) => r.text && r.text !== seed && !own.has(r.text.toLowerCase())).map((r) => ({ text: short(r.text, 44), area: areaOf(r.kind) })) }));
+    });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedKey, seed]);
   const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
   const line = sel ? `${sel.title}. Here's everything I know that touches it.` : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
 
@@ -117,7 +147,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
             return <Beam key={'l' + s.key} x1={sx} y1={sy} x2={cx} y2={cy} colour={c} opacity={dim ? 0.08 : on ? 0.9 : 0.35} />;
           })}
           {sel ? sel.links.map((l, k) => {
-            const i = stars.indexOf(sel); const p = pos(i);
+            const i = stars.findIndex((x) => x.key === sel.key); const p = pos(i);
             // Fan the connections out below the star, clear of its own label.
             const base = [0.55, 1.0, 1.45][k] ?? 1.2;
             const ang = p.x > W / 2 ? Math.PI - base : base;

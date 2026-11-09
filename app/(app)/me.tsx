@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { forgetMemory, freeMessagesLeft, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
+import { brainExport, exportAsText, updateMemory } from '@/lib/brain';
+import { saveTextFile } from '@/lib/saveFile';
 import { isPaid, isPro } from '@/lib/plan';
 import { resetTour } from '@/lib/tour';
 import { Body, Button, Card, Label, Screen, useConfirm } from '@/components/ui';
@@ -41,6 +43,32 @@ export default function Me() {
       load();
     }, [load]),
   );
+
+  // 10 Nov 2026: fix what a memory says without losing it, and take the whole brain with you.
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportNote, setExportNote] = useState('');
+  async function saveEdit() {
+    const id = editId; const next = editText.trim();
+    if (!id || next.length < 3) return setError('A memory needs a few words.');
+    setSaving(true);
+    try {
+      if (await updateMemory(id, next)) { setMemories((m) => m.map((x) => (x.id === id ? { ...x, content: next } : x))); setEditId(null); }
+      else setError("I couldn't change that one.");
+    } catch (e: any) { setError(/my_memory_update/.test(String(e?.message)) ? "Fixing a memory isn't switched on yet." : e?.message ?? "I couldn't change that one."); }
+    setSaving(false);
+  }
+  async function download() {
+    setExporting(true); setExportNote('');
+    try {
+      const e = await brainExport();
+      await saveTextFile(`tali-brain-${new Date().toISOString().slice(0, 10)}.txt`, exportAsText(e));
+      setExportNote(`Done. ${e.memories.length} memories.`);
+    } catch (e: any) { setExportNote(e?.message ?? "I couldn't put your download together just now."); }
+    setExporting(false);
+  }
 
   async function forget(id: string) {
     if (confirmId !== id) return setConfirmId(id);
@@ -158,8 +186,24 @@ export default function Me() {
             <View key={m.id} style={{ flexDirection: 'row', gap: space.md, alignItems: 'flex-start', paddingVertical: space.md, borderTopWidth: 1, borderTopColor: colours.border, marginTop: space.sm }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 11, color: colours.purpleInk, fontWeight: '700', textTransform: 'uppercase' }}>{m.kind}</Text>
-                <Text style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 2 }}>{m.content}</Text>
+                {editId === m.id ? (
+                  <>
+                    <TextInput value={editText} onChangeText={setEditText} multiline maxLength={600} autoFocus accessibilityLabel="Fix this memory"
+                      style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 4, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colours.purple, backgroundColor: colours.bg, minHeight: 64, textAlignVertical: 'top' }} />
+                    <View style={{ flexDirection: 'row', gap: space.lg, marginTop: 8 }}>
+                      <Pressable onPress={saveEdit} disabled={saving} accessibilityRole="button" hitSlop={8}><Text style={{ color: colours.purple, fontWeight: '800', fontSize: 13 }}>{saving ? 'Saving...' : 'Save'}</Text></Pressable>
+                      <Pressable onPress={() => setEditId(null)} accessibilityRole="button" hitSlop={8}><Text style={{ color: colours.muted, fontWeight: '700', fontSize: 13 }}>Cancel</Text></Pressable>
+                    </View>
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 2 }}>{m.content}</Text>
+                )}
               </View>
+              {editId === m.id ? null : (
+                <Pressable onPress={() => { setEditId(m.id); setEditText(m.content); setConfirmId(null); }} accessibilityRole="button" hitSlop={8}>
+                  <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 13 }}>Fix</Text>
+                </Pressable>
+              )}
               <Pressable onPress={() => forget(m.id)} accessibilityRole="button" hitSlop={8}>
                 <Text style={{ color: confirmId === m.id ? colours.danger : colours.muted, fontWeight: '700', fontSize: 13 }}>{confirmId === m.id ? 'Sure?' : 'Forget'}</Text>
               </Pressable>
@@ -170,6 +214,8 @@ export default function Me() {
       </Card>
 
       <Card style={{ marginTop: space.md, paddingVertical: 4 }}>
+        <MenuRow title="Share her brain" sub="A card of how much she knows, with nothing private on it" onPress={() => router.navigate('/brain-card')} />
+        <MenuRow title={exporting ? 'Putting it together...' : 'Download her brain'} sub={exportNote || 'Everything she knows about you, as a file you keep'} onPress={() => { if (!exporting) void download(); }} />
         <MenuRow title="Settings" sub="Your details, rhythm, notifications" onPress={() => router.navigate('/settings')} />
         <MenuRow title="Show me around again" sub="The quick tour of Tali HQ" onPress={async () => {
           if (!session) return;

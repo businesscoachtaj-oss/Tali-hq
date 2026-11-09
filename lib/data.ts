@@ -964,3 +964,12 @@ export function freeMessagesLeft(c: Credits | null): { left: number; limit: numb
   if (!limit) return null;
   return { left: Math.max(limit - (c.messagesUsed ?? 0), 0), limit };
 }
+
+// Day one fill (10 Nov 2026): Tali reads the last two weeks of mail and the next two of calendar from
+// an account that is already connected, and remembers the people and commitments in it.
+export async function learnRecent(provider: 'google' | 'microsoft'): Promise<{ ok: boolean; learned?: number; message?: string }> {
+  const r = (await (provider === 'google' ? googleCall : msCall)({ action: 'learn_recent' })) as { ok: boolean; learned?: number; message?: string };
+  // An older server ignores the action and answers with something else; treat that as not available yet.
+  if (r.ok && typeof r.learned !== 'number' && !r.message) return { ok: false, message: "That isn't switched on yet. Nothing was charged." };
+  return r;
+}
