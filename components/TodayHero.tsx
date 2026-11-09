@@ -100,7 +100,7 @@ export function TodayHero({
 const h = StyleSheet.create({
   card: { borderRadius: RADIUS, padding: space.lg, paddingTop: space.xl, marginBottom: space.lg, overflow: 'hidden', backgroundColor: colours.purple, ...elevation.card, shadowOpacity: 0.18 },
   cardNight: { backgroundColor: sky.sky[1], shadowColor: sky.accent2, shadowOpacity: 0.25 },
-  greeting: { color: '#FFFFFF', fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  greeting: { color: '#FFFFFF', fontSize: 28, letterSpacing: -0.5, fontFamily: 'PlusJakartaSans_800ExtraBold' },
   sub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
   hello: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: space.sm },
   bubble: { flex: 1, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 16, borderBottomLeftRadius: 4, padding: space.md },

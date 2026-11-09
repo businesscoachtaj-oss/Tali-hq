@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { createContext, useContext, type ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, Text, View } from 'react-native';
+import { colours, heading } from '@/constants/theme';
 
 export type SkinId = 'gym' | 'finish' | 'planner' | 'dusk' | 'crossroads' | 'cork' | 'receipt' | 'banknote' | 'airmail' | 'control' | 'nightschool' | 'shoebox' | 'topup' | 'founder' | 'affiliate' | 'settings' | 'plans' | 'brain' | 'journal';
 
@@ -39,29 +40,24 @@ export function SkinProvider({ id, children }: { id?: SkinId; children: ReactNod
   return <SkinCtx.Provider value={id ? SKINS[id] : null}>{children}</SkinCtx.Provider>;
 }
 
+// 9 Nov 2026 look refresh: one calm header for every page. No coloured banner per page any more;
+// the page's colour only shows in its small icon, so the app reads as one place.
 export function SkinHeader({ id, title, sub, onBack, backLabel = 'Back' }: { id: SkinId; title: string; sub?: string; onBack?: () => void; backLabel?: string }) {
   const t = SKINS[id];
   return (
-    <View style={{ marginHorizontal: -16, marginTop: -16, marginBottom: 16 }}>
-      <LinearGradient colors={t.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 26, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>
-        <View style={{ position: 'absolute', right: -30, top: -20, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.07)' }} />
-        <View style={{ position: 'absolute', right: 40, bottom: -50, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-        {onBack ? (
-          <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button">
-            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 15, fontWeight: '700' }}>{'\u2039'} {backLabel}</Text>
-          </Pressable>
-        ) : null}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: onBack ? 18 : 4 }}>
-          <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name={t.icon} size={28} color="#FFFFFF" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>{t.kicker}</Text>
-            <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '800', marginTop: 2 }}>{title}</Text>
-          </View>
+    <View style={{ marginBottom: 18, marginTop: 4 }}>
+      {onBack ? (
+        <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" style={{ marginBottom: 14 }}>
+          <Text style={{ color: colours.purple, fontSize: 15, fontWeight: '700' }}>{'\u2039'} {backLabel}</Text>
+        </Pressable>
+      ) : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colours.purpleSoft, alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons name={t.icon} size={21} color={colours.purple} />
         </View>
-        {sub ? <Text style={{ color: 'rgba(255,255,255,0.88)', fontSize: 14, lineHeight: 20, marginTop: 12 }}>{sub}</Text> : null}
-      </LinearGradient>
+        <Text style={{ flex: 1, color: colours.text, fontSize: 28, letterSpacing: -0.4, ...heading }}>{title}</Text>
+      </View>
+      {sub ? <Text style={{ color: colours.muted, fontSize: 15, lineHeight: 21, marginTop: 10 }}>{sub}</Text> : null}
     </View>
   );
 }

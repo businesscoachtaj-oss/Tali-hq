@@ -14,7 +14,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
+import { colours, elevation, NO_BOTTOM, radius, space, heading, headingSemi } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
 
@@ -28,7 +28,7 @@ export const tali = {
 
 // 4 Nov 2026: optional pull to refresh (pass the screen's load) so every list screen can refresh, not just Today.
 export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
-  if (skin) bg = SKINS[skin].bg;
+  // 9 Nov 2026 look refresh: every page uses the same background now (was a tint per page).
   const [refreshing, setRefreshing] = useState(false);
   const body = <SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider>;
   const refresh = onRefresh
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.bg },
   scroll: { flexGrow: 1 },
   inner: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center', padding: space.lg },
-  title: { fontSize: 28, fontWeight: '800', color: colours.text },
+  title: { fontSize: 28, color: colours.text, ...heading },
   sub: { fontSize: 15, color: colours.muted, marginTop: space.xs, lineHeight: 21 },
   card: {
     backgroundColor: colours.surface,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     ...elevation.card,
   },
   body: { fontSize: 15, lineHeight: 22, color: colours.text },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: colours.muted, marginBottom: 6 },
+  label: { fontSize: 17, color: colours.text, marginBottom: 10, marginTop: 6, ...headingSemi },
   input: {
     backgroundColor: colours.surface,
     borderColor: colours.borderStrong,

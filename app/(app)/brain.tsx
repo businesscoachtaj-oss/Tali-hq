@@ -116,7 +116,7 @@ export default function BrainScreen() {
 
   return (
     <Screen skin="brain" onRefresh={load}>
-      <SkinHeader id="brain" title="Tali's brain" sub={brain ? `${brain.total.toLocaleString('en-AU')} memories${brain.scope === 'main' ? ' across everyone' : ''}` : undefined} onBack={() => goBack('/me')} />
+      <SkinHeader id="brain" title="Tali's brain" sub={brain ? `${brain.total.toLocaleString('en-AU')} memories${brain.scope === 'main' ? ' across everyone' : ''}` : undefined} />
 
       {founder ? (
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
@@ -133,7 +133,6 @@ export default function BrainScreen() {
         </View>
       ) : null}
 
-      {level ? <LevelCard level={level} /> : null}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.border, borderRadius: radius.pill, paddingHorizontal: 14, marginBottom: space.md }}>
         <Ionicons name="search" size={17} color={colours.muted} />
@@ -322,6 +321,8 @@ export default function BrainScreen() {
         </Text>
       ) : null}
 
+      {/* 9 Nov 2026 look refresh: her level sits under the brain now, so the brain is the first thing you see. */}
+      {level ? <><View style={{ height: space.lg }} /><LevelCard level={level} /></> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       {brain?.scope === 'mine' && fresh.length ? (
@@ -403,17 +404,7 @@ function LevelCard({ level }: { level: Level }) {
           <LinearGradient colors={['#F6B04C', '#FFD9A0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ width: `${pct}%`, height: '100%', borderRadius: 4 }} />
         </View>
         {level.next ? <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 6 }}>{level.toNext.toLocaleString('en-AU')} XP to {level.next}</Text> : null}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: space.md }}>
-          {LEVELS.map((l, i) => {
-            const done = i + 1 < level.level;
-            const now = i + 1 === level.level;
-            return (
-              <View key={l.name} style={{ paddingVertical: 3, paddingHorizontal: 9, borderRadius: radius.pill, backgroundColor: now ? '#F6B04C' : done ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.18)' }}>
-                <Text style={{ color: now ? '#2A1235' : done ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '800' }}>{l.name}</Text>
-              </View>
-            );
-          })}
-        </View>
+        {/* 9 Nov 2026 look refresh: the row of every rank name is gone; the bar and next rank say enough. */}
         <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 17, marginTop: space.md }}>
           She earns XP for every memory, night school class, journal entry and job she does for you.
         </Text>

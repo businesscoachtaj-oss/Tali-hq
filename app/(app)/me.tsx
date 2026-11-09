@@ -118,28 +118,14 @@ export default function Me() {
           </>
         ) : null}
         {credits ? (
-          <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md }}>
-            {credits.images?.allowance ? <Stat icon="image-outline" value={`${credits.images.remaining + (credits.images.extra ?? 0)}`} label="images left" /> : null}
-            {credits.searches?.allowance ? <Stat icon="globe-outline" value={`${credits.searches.remaining}`} label="web searches" /> : null}
-            {credits.deep?.allowance ? <Stat icon="bulb-outline" value={credits.deep.remaining ? '1' : '0'} label="Deep think" /> : null}
-            <Stat icon="refresh-outline" value={new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} label={onFree ? 'messages reset' : 'credits top up'} />
-          </View>
+          <Text style={{ fontSize: 13, color: colours.muted, marginTop: space.md }}>
+            {[credits.images?.allowance ? `${credits.images.remaining + (credits.images.extra ?? 0)} images left` : null,
+              `Resets ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}`].filter(Boolean).join('  ·  ')}
+          </Text>
         ) : null}
       </Card>
 
-      {/* Tali's brain */}
-      <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel="See Tali's brain"
-        style={{ marginTop: space.md, borderRadius: radius.card, overflow: 'hidden', backgroundColor: '#1F1D4A', padding: space.lg, flexDirection: 'row', alignItems: 'center', gap: space.md, ...elevation.card }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: '#CFC6FF', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }}>WHAT TALI KNOWS</Text>
-          <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', marginTop: 4 }}>Tali's brain</Text>
-          <Text style={{ color: '#E6E1FF', fontSize: 13, lineHeight: 19, marginTop: 4 }}>{memories.length ? `${memories.length} memories in 13 parts. Private to you.` : 'Everything she learns, filed in 13 parts. Private to you.'}</Text>
-          <View style={{ flexDirection: 'row', alignSelf: 'flex-start', marginTop: space.md, backgroundColor: '#FFFFFF', borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 }}>
-            <Text style={{ color: '#1F1D4A', fontWeight: '800', fontSize: 13 }}>Open her brain {'›'}</Text>
-          </View>
-        </View>
-        <BrainDots />
-      </Pressable>
+      {/* 9 Nov 2026 look refresh: Tali's brain has its own tab now, so the big card here is gone. */}
 
       <JobGroup title="Your day">
         <Tile icon="flag-outline" tint="purple" title="Goals" sub="What you're chasing" locked={!paid} onPress={() => router.navigate('/goals')} />
@@ -231,33 +217,36 @@ function Stat({ icon, value, label }: { icon: React.ComponentProps<typeof Ionico
   );
 }
 
+// 9 Nov 2026 look refresh: each group is one card of plain rows (was a grid of coloured tiles).
 function JobGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  const rows = (Array.isArray(children) ? children : [children]).filter(Boolean);
   return (
     <View style={{ marginTop: space.lg }}>
       <Label>{title}</Label>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>{children}</View>
+      <View style={{ backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border, overflow: 'hidden' }}>
+        {rows.map((r, i) => (
+          <View key={i} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>{r}</View>
+        ))}
+      </View>
     </View>
   );
 }
 
-function Tile({ icon, tint, title, sub, locked, pro, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; tint: keyof typeof TINTS; title: string; sub: string; locked?: boolean; pro?: boolean; onPress: () => void }) {
-  const t = TINTS[tint];
+function Tile({ icon, title, sub, locked, pro, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; tint?: string; title: string; sub: string; locked?: boolean; pro?: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title}
-      style={{ flexBasis: '48%', flexGrow: 1, backgroundColor: colours.surface, borderRadius: 16, padding: space.md, minHeight: 104, ...elevation.card }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name={icon} size={19} color={t.fg} />
-        </View>
-        {locked ? <Text style={{ fontSize: 10, fontWeight: '800', color: colours.purpleInk, backgroundColor: colours.purpleSoft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' }}>{pro ? 'PRO' : 'TALI HQ'}</Text> : null}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 13, paddingHorizontal: space.lg }}>
+      <Ionicons name={icon} size={21} color={colours.purple} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: colours.text }} numberOfLines={1}>{title}</Text>
+        <Text style={{ fontSize: 13, color: colours.muted, marginTop: 1 }} numberOfLines={1}>{sub}</Text>
       </View>
-      <Text style={{ fontSize: 15, fontWeight: '800', color: colours.text, marginTop: space.sm }} numberOfLines={1}>{title}</Text>
-      <Text style={{ fontSize: 12, color: colours.muted, marginTop: 2 }} numberOfLines={2}>{sub}</Text>
+      {locked ? <Text style={{ fontSize: 11, fontWeight: '700', color: colours.purpleInk }}>{pro ? 'Pro' : 'HQ'}</Text> : null}
+      <Ionicons name="chevron-forward" size={18} color={colours.faint} />
     </Pressable>
   );
 }
 
-// A little static constellation for the brain card (no 3D, so the Me tab stays light).
 function BrainDots() {
   const dots = [[30, 14, '#8EF0C8'], [44, 10, '#8EF0C8'], [58, 12, '#9FB7FF'], [70, 18, '#B9A6FF'], [22, 26, '#8EF0C8'], [36, 26, '#7FD1FF'], [52, 24, '#D7B5FF'], [66, 30, '#B9A6FF'], [78, 30, '#D7B5FF'], [28, 40, '#FFE38A'], [42, 40, '#9FB7FF'], [56, 38, '#FFC37A'], [70, 44, '#9FB7FF'], [24, 54, '#FF9EC4'], [36, 58, '#FF9EC4'], [50, 54, '#FF7A6E'], [62, 58, '#FF9EC4'], [46, 70, '#A6B0C8']] as const;
   return (

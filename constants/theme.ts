@@ -1,9 +1,9 @@
 // Tali HQ colours, matching the Tali HQ dashboard and the waitlist page.
 export const colours = {
-  bg: '#F1EEEA',
+  bg: '#F7F5F2', // 9 Nov 2026 look refresh: lighter, calmer page (was #F1EEEA)
   surface: '#FFFFFF',
   sunk: '#F1EDE8',
-  border: '#E7E2DC',
+  border: '#ECE8E3',
   borderStrong: '#D3CCC4',
   text: '#272626',
   muted: '#66615B',
@@ -24,11 +24,11 @@ export const radius = { card: 18, pill: 999, input: 12 };
 const ink = '#272626';
 export const elevation = {
   // white cards sitting on the page grey
-  card: { shadowColor: ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
+  card: { shadowColor: ink, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 1 },
   // grey tiles inside a card (stat boxes, counters, strips)
   tile: { shadowColor: ink, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   // 6 Nov 2026 (depth pass): white buttons, chips and inputs get a small lift so nothing sits flat
-  lift: { shadowColor: ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.11, shadowRadius: 9, elevation: 3 },
+  lift: { shadowColor: ink, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
   // filled brand-colour buttons: pass the button colour so the glow is in its own colour
   button: (colour: string) => ({ shadowColor: colour, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 }),
   // floating round buttons (help "?", add, etc.)
@@ -42,3 +42,8 @@ export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
 // Written as an object because on web the library pads any edge missing from a list,
 // which opened a gap above the tabs on Android phones.
 export const NO_BOTTOM = { top: 'additive', left: 'additive', right: 'additive', bottom: 'off' } as const;
+
+// 9 Nov 2026 look refresh: one heading face for titles and section names, so Tali HQ has a look of
+// its own. Body text stays the phone's own font.
+export const heading = { fontFamily: 'PlusJakartaSans_800ExtraBold' } as const;
+export const headingSemi = { fontFamily: 'PlusJakartaSans_700Bold' } as const;
