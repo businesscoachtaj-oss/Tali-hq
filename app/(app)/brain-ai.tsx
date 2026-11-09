@@ -1,33 +1,17 @@
-// How Tali thinks (9 Nov 2026, Tali's Tuesday list item 8). Each part of her brain, the AI it uses
-// today and the one planned for it in the 7 Nov plan (claude/Tali_Brain_AI_Map.md). Nothing here
-// switches anything on: it shows the plan beside what is live, so Taj can approve it part by part.
-// Founder only until the new AIs are connected and the router picks per job.
+// How Tali thinks (9 Nov 2026). Each part of her brain, the AI it runs on and what it costs you, then
+// the router's recent picks: which part and which AI handled each thing you asked. Planned (the 9 Nov
+// mockups, claude/Tali_Brain_AI_Map.md): behind BRAIN_AI_PREVIEW, the picks are sample data until the
+// router logs them. Before the preview it was founder only and showed now beside planned.
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink } from '@/components/ui';
-import { REGIONS, type RegionId } from '@/lib/brain';
+import { REGIONS } from '@/lib/brain';
+import { PART_AI, SAMPLE_PICKS } from '@/lib/brainAiPlan';
 import { NO_BOTTOM, radius, space } from '@/constants/theme';
 
-type Part = { id: RegionId; job: string; now: string; planned: string; where: string };
-
-// What is live comes from the edge functions (tali-chat, tali-image, tali-voice, tali-brain-embed).
-const PARTS: Part[] = [
-  { id: 'thalamus', job: 'The router: picks the AI for each job', now: 'Fixed per screen', planned: 'Claude Haiku 5.5', where: 'Included' },
-  { id: 'frontal', job: 'Judgement and rules', now: 'Claude Haiku 5.5', planned: 'Claude Haiku 5.5', where: 'Included' },
-  { id: 'prefrontal', job: 'Planning, and a second opinion', now: 'Deep think (Sonnet), Big brain (Opus)', planned: 'Adds GPT-5.4 second opinion', where: 'Pro, or Deep think credits' },
-  { id: 'occipital', job: 'Seeing photos, screenshots and video', now: 'Claude vision, images by gpt-image-2', planned: 'Gemini 3 Flash', where: 'HQ and Pro, monthly cap' },
-  { id: 'temporal', job: 'Her voice, and hearing yours', now: 'Kokoro voice (Pro)', planned: 'ElevenLabs Flash and Scribe', where: 'Voice add-on' },
-  { id: 'hippocampus', job: 'Finding memories by meaning', now: 'gte-small', planned: 'Voyage 4 with rerank', where: 'Included' },
-  { id: 'brainstem', job: 'Keeping every memory searchable', now: 'gte-small', planned: 'Voyage 4', where: 'Included' },
-  { id: 'cerebellum', job: 'Checking her own work', now: 'Claude Sonnet (weekly review)', planned: 'GPT-5.4 nano checker', where: 'Included' },
-  { id: 'amygdala', job: 'Safety and urgency', now: 'Claude Haiku triage', planned: 'Adds OpenAI moderation', where: 'Included' },
-  { id: 'corpus_callosum', job: 'Research and the shared brain', now: 'Anthropic web search, Opus brain share', planned: 'Perplexity Sonar, Mistral OCR', where: 'Included' },
-  { id: 'hypothalamus', job: 'Her schedule', now: 'Scheduled jobs', planned: 'Anthropic batch API (half price)', where: 'Included' },
-  { id: 'basal_ganglia', job: 'Skills and routines', now: 'Claude Sonnet', planned: 'Claude computer use', where: 'Pro add-on, later' },
-  { id: 'parietal', job: 'Her senses: your connected apps', now: 'Gmail, Calendar, Outlook, Stripe', planned: 'Adds Metricool, Meta ad library, GA4, Sentry, Basiq', where: 'Read only first; bank feeds later' },
-];
+const label = { color: night.faint, fontSize: 11, fontWeight: '800' as const, letterSpacing: 0.9 };
 
 export default function BrainAi() {
   return (
@@ -37,29 +21,52 @@ export default function BrainAi() {
         <BackLink onPress={() => router.navigate('/brain')} />
         <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>How Tali thinks</Text>
         <Text style={{ color: night.muted, fontSize: 15, lineHeight: 22, marginTop: space.sm }}>
-          Each part of her brain gets the AI that's best at its job. The thalamus will read each thing you ask and send it to the right part. Below is what each part uses now, and what's planned.
+          Her thalamus reads everything you ask and sends it to the part of her brain that's best at it. Each part runs on the AI that's best at that job.
         </Text>
-        <View style={{ gap: space.sm, marginTop: space.lg }}>
-          {PARTS.map((p) => (
-            <View key={p.id} style={{ backgroundColor: night.glass, borderWidth: 1, borderColor: night.line, borderLeftWidth: 3, borderLeftColor: REGIONS[p.id].colour, borderRadius: radius.card - 4, padding: space.md, gap: 6 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: REGIONS[p.id].colour }} />
-                <Text style={{ flex: 1, color: '#fff', fontSize: 15, fontWeight: '800' }}>{REGIONS[p.id].name}</Text>
-                <Text style={{ color: night.faint, fontSize: 11, fontWeight: '800' }}>{p.where}</Text>
+
+        <Text style={{ ...label, marginTop: space.lg, marginBottom: space.sm }}>TODAY, WHO HANDLED WHAT</Text>
+        <View style={{ backgroundColor: night.glass, borderWidth: 1, borderColor: night.line, borderRadius: radius.card - 4 }}>
+          {SAMPLE_PICKS.map((p, i) => (
+            <View key={i} style={{ flexDirection: 'row', gap: 10, padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: night.line }}>
+              <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: REGIONS[p.part].colour, marginTop: 5 }} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', lineHeight: 19 }}>{p.ask}</Text>
+                <Text style={{ color: night.muted, fontSize: 12.5 }}>
+                  <Text style={{ color: REGIONS[p.part].colour, fontWeight: '800' }}>{REGIONS[p.part].name}</Text> · {p.ai}
+                </Text>
               </View>
-              <Text style={{ color: night.muted, fontSize: 13 }}>{p.job}</Text>
-              <View style={{ flexDirection: 'row', gap: space.sm }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: night.faint, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>NOW</Text>
-                  <Text style={{ color: night.ink, fontSize: 13, lineHeight: 18 }}>{p.now}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: night.accent, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>PLANNED</Text>
-                  <Text style={{ color: '#fff', fontSize: 13, lineHeight: 18, fontWeight: '700' }}>{p.planned}</Text>
-                </View>
+              <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>{p.credits ? `${p.credits} cr` : 'Add-on'}</Text>
+                <Text style={{ color: night.faint, fontSize: 11 }}>{p.when}</Text>
               </View>
             </View>
           ))}
+        </View>
+        <Text style={{ color: night.faint, fontSize: 12, lineHeight: 17, marginTop: 6 }}>59 credits today. A normal chat is 1 credit; another AI joining in costs more, and Tali tells you before it does.</Text>
+
+        <Text style={{ ...label, marginTop: space.lg, marginBottom: space.sm }}>EACH PART AND ITS AI</Text>
+        <View style={{ gap: space.sm }}>
+          {PART_AI.map((p) => {
+            const changed = p.was !== p.ai && p.was !== 'Same';
+            return (
+              <View key={p.id} style={{ backgroundColor: night.glass, borderWidth: 1, borderColor: night.line, borderLeftWidth: 3, borderLeftColor: REGIONS[p.id].colour, borderRadius: radius.card - 4, padding: space.md, gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ flex: 1, color: '#fff', fontSize: 15, fontWeight: '800' }}>{REGIONS[p.id].name}</Text>
+                  {changed ? (
+                    <View style={{ backgroundColor: 'rgba(185,166,255,0.18)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ color: night.accent, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>NEW</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={{ color: night.muted, fontSize: 13 }}>{p.job}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.sm, marginTop: 2 }}>
+                  <Text style={{ flex: 1, color: '#fff', fontSize: 14, fontWeight: '700' }}>{p.ai}</Text>
+                  <Text style={{ color: night.accent, fontSize: 12, fontWeight: '800', textAlign: 'right', maxWidth: 140 }}>{p.cost}</Text>
+                </View>
+                {changed ? <Text style={{ color: night.faint, fontSize: 11.5 }}>Was {p.was}</Text> : null}
+              </View>
+            );
+          })}
         </View>
         <View style={{ height: space.xl }} />
       </ScrollView>

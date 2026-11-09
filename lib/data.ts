@@ -140,10 +140,17 @@ export async function forgetMemory(id: string): Promise<boolean> {
 // `url` is a signed link filled in when messages load (good for an hour).
 // Images Tali makes (6 Nov 2026) start as a placeholder with no path: making is true while she draws
 // it, failed holds the reason if it did not come through, prompt is what she asked for.
-export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string; deleted?: boolean };
+export type Attachment = { kind: 'image' | 'pdf' | 'video'; seconds?: number; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string; deleted?: boolean };
 // meta.deep marks a Deep think reply; meta.suggest_deep is Tali offering one (6 Nov 2026).
 export type DeepLevel = 'deep' | 'deepest';
-export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null; meta?: { deep?: DeepLevel; suggest_deep?: boolean } | null };
+export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null; meta?: {
+  deep?: DeepLevel; suggest_deep?: boolean;
+  // Planned (9 Nov 2026 mockups, claude/Tali_Brain_AI_Map.md). Not sent by tali-chat yet.
+  second_opinion?: { by: string; agree: string; differ: string; credits: number };
+  sources?: { title: string; url: string }[];
+  watched?: { seconds: number; credits: number };
+  routed?: { part: string; ai: string; credits: number };
+} | null };
 export const MAX_ATTACHMENTS = 4;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 

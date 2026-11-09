@@ -5,6 +5,7 @@ import { myCredits, mySubscription, openBillingPortal, plans as loadPlans, start
 import { BackLink, Button, Card, ErrorText, Screen, Title, goBack } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
+import { BRAIN_AI_PREVIEW, COST, VOICE_ADDON } from '@/lib/brainAiPlan';
 
 const APP_WEB_URL = 'https://talihq.com.au';
 
@@ -151,11 +152,57 @@ export default function Plans() {
         );
       })}
 
+      {BRAIN_AI_PREVIEW ? <ExtrasCard /> : null}
+
       <ErrorText>{error}</ErrorText>
       {paying ? <Button title="Manage billing" onPress={manage} busy={busy === 'portal'} /> : null}
       <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 18 }}>
         Prices in Australian dollars. Cancel any time from Manage billing. Credits reset each month, on yearly plans too.
       </Text>
     </Screen>
+  );
+}
+
+// Planned (9 Nov 2026 mockups): the new AIs each cost us per use, so they come out of credits on every
+// plan rather than being included. Voice is its own add-on because it costs the most.
+const EXTRAS: { icon: string; name: string; what: string; cost: string }[] = [
+  { icon: '🎬', name: 'Watch a video', what: 'Screen recordings, ads, walkthroughs. Gemini watches, Tali explains.', cost: `${COST.videoPerMinute} credits a minute` },
+  { icon: '⚖️', name: 'Second opinion', what: 'GPT-5.4 checks her answer and says where it would change it.', cost: `${COST.secondOpinion} credits` },
+  { icon: '🔎', name: 'Live web answers', what: 'Looks it up now, with sources you can tap.', cost: `${COST.webSearch} credits a search` },
+  { icon: '🧠', name: 'Deep think', what: 'A smarter Tali with more of her memory.', cost: '20 credits' },
+  { icon: '🚀', name: 'Big brain (Pro)', what: 'Her strongest thinking, for the big calls.', cost: '40 credits' },
+];
+
+function ExtrasCard() {
+  return (
+    <>
+      <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: colours.muted, marginTop: space.lg, marginBottom: space.sm }}>WHAT USES MORE CREDITS</Text>
+      <Card>
+        <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>A normal message is 1 credit. These bring in another AI, so they use more. Same on every paid plan.</Text>
+        {EXTRAS.map((e, i) => (
+          <View key={e.name} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
+            <Text style={{ fontSize: 20, width: 28, textAlign: 'center' }}>{e.icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14.5, fontWeight: '800', color: colours.text }}>{e.name}</Text>
+              <Text style={{ fontSize: 12.5, color: colours.muted, lineHeight: 17 }}>{e.what}</Text>
+            </View>
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: colours.purpleInk, maxWidth: 92, textAlign: 'right' }}>{e.cost}</Text>
+          </View>
+        ))}
+      </Card>
+      <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: colours.muted, marginTop: space.lg, marginBottom: space.sm }}>ADD-ONS</Text>
+      <Card style={{ borderColor: colours.purple, borderWidth: 1 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: colours.text }}>🎙️ Tali's voice</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{money(VOICE_ADDON.price)} a month</Text>
+        </View>
+        <View style={{ marginTop: space.sm, gap: 4 }}>
+          {[`She reads her replies out loud: ${VOICE_ADDON.speakMinutes} minutes a month`, `Talk to her hands free: up to ${VOICE_ADDON.listenHours} hours of listening`, `Need more? ${VOICE_ADDON.packMinutes} more minutes for ${money(VOICE_ADDON.packPrice)}`, 'Works with Tali HQ and Pro'].map((f) => (
+            <Text key={f} style={{ fontSize: 14, color: colours.text, lineHeight: 20 }}>{'✓'} {f}</Text>
+          ))}
+        </View>
+        <Button title="Add Tali's voice" kind="ghost" onPress={() => {}} />
+      </Card>
+    </>
   );
 }
