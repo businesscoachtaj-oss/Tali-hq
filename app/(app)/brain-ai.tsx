@@ -4,7 +4,9 @@
 // router logs them. Before the preview it was founder only and showed now beside planned.
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
+import { useAuth } from '@/lib/auth';
+import { FOUNDER_USER_ID } from '@/constants/business';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink } from '@/components/ui';
 import { REGIONS } from '@/lib/brain';
@@ -14,6 +16,9 @@ import { NO_BOTTOM, radius, space } from '@/constants/theme';
 const label = { color: night.faint, fontSize: 11, fontWeight: '800' as const, letterSpacing: 0.9 };
 
 export default function BrainAi() {
+  // Founder only: this names the AIs behind her brain, which is company information.
+  const { session } = useAuth();
+  if (session?.user.id !== FOUNDER_USER_ID) return <Redirect href="/brain" />;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#17133A' }} edges={NO_BOTTOM}>
       <NightBackground />

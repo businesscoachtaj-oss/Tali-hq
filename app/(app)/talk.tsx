@@ -683,7 +683,7 @@ function DeepSwitch({ plan, freeDeep, value, onChange, second, onSecond, topBord
           <Text style={{ fontSize: 12, color: second ? colours.onPurple : colours.muted }}>{COST.secondOpinion} credits</Text>
         </Pressable>
       ) : null}
-      {second ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>Tali answers, then a second AI (GPT-5.4) checks her. You see where they agree and where they don't.</Text> : null}
+      {second ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>Tali answers, then a second AI checks her. You see where they agree and where they don't.</Text> : null}
       {value ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>{value === 'deepest' ? 'Big brain: her strongest thinking, for the big calls. About a minute.' : 'A smarter Tali with more of her memory. About half a minute.'}</Text> : null}
     </View>
   );
@@ -749,7 +749,7 @@ function SecondOpinion({ o }: { o: { by: string; agree: string; differ: string; 
   return (
     <View style={{ marginTop: 12, borderRadius: 14, borderWidth: 1, borderColor: colours.border, overflow: 'hidden' }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colours.purpleSoft }}>
-        <Text style={{ flex: 1, color: colours.purpleInk, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 }}>SECOND OPINION · {o.by.toUpperCase()}</Text>
+        <Text style={{ flex: 1, color: colours.purpleInk, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 }}>SECOND OPINION</Text>
         <Text style={{ color: colours.purpleInk, fontSize: 11, fontWeight: '700' }}>{o.credits} credits</Text>
       </View>
       <View style={{ padding: 12, gap: 10 }}>
@@ -780,7 +780,7 @@ function ListenRow({ routed }: { routed?: { part: string; ai: string; credits: n
         <Text style={{ color: colours.purpleInk, fontSize: 11 }}>{'▶'}</Text>
         <Text style={{ color: colours.purpleInk, fontSize: 12, fontWeight: '800' }}>Listen</Text>
       </Pressable>
-      {routed ? <Text style={{ color: colours.faint, fontSize: 11 }}>{routed.part} · {routed.ai} · {routed.credits} {routed.credits === 1 ? 'credit' : 'credits'}</Text> : null}
+      {routed ? <Text style={{ color: colours.faint, fontSize: 11 }}>{routed.part} · {routed.credits} {routed.credits === 1 ? 'credit' : 'credits'}</Text> : null}
     </View>
   );
 }

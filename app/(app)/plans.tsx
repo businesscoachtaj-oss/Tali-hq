@@ -166,8 +166,8 @@ export default function Plans() {
 // Planned (9 Nov 2026 mockups): the new AIs each cost us per use, so they come out of credits on every
 // plan rather than being included. Voice is its own add-on because it costs the most.
 const EXTRAS: { icon: string; name: string; what: string; cost: string }[] = [
-  { icon: '🎬', name: 'Watch a video', what: 'Screen recordings, ads, walkthroughs. Gemini watches, Tali explains.', cost: `${COST.videoPerMinute} credits a minute` },
-  { icon: '⚖️', name: 'Second opinion', what: 'GPT-5.4 checks her answer and says where it would change it.', cost: `${COST.secondOpinion} credits` },
+  { icon: '🎬', name: 'Watch a video', what: 'Screen recordings, ads, walkthroughs. Tali watches and tells you what she sees.', cost: `${COST.videoPerMinute} credits a minute` },
+  { icon: '⚖️', name: 'Second opinion', what: 'A second AI checks her answer and says where it would change it.', cost: `${COST.secondOpinion} credits` },
   { icon: '🔎', name: 'Live web answers', what: 'Looks it up now, with sources you can tap.', cost: `${COST.webSearch} credits a search` },
   { icon: '🧠', name: 'Deep think', what: 'A smarter Tali with more of her memory.', cost: '20 credits' },
   { icon: '🚀', name: 'Big brain (Pro)', what: 'Her strongest thinking, for the big calls.', cost: '40 credits' },

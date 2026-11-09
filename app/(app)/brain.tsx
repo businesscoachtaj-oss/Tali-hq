@@ -163,7 +163,7 @@ export default function BrainScreen() {
       ) : null}
 
       {/* 9 Nov 2026 (Tuesday list item 8): which AI each part uses, now and planned. Founder only for now. */}
-      {founder || BRAIN_AI_PREVIEW ? (
+      {founder ? (
         <Pressable onPress={() => router.navigate('/brain-ai')} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.surface, borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: space.lg, marginBottom: space.md, ...elevation.card }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>How Tali thinks</Text>
@@ -209,7 +209,7 @@ export default function BrainScreen() {
             </Text>
             {/* 6 Nov 2026 (Taj): Tali's education, a part of the brain each night. */}
             <Text style={{ color: night.faint, fontSize: 13, lineHeight: 18, marginTop: 4 }}>Studies at night: {REGIONS[region.id].studies}</Text>
-            {BRAIN_AI_PREVIEW && partAi(region.id) ? (
+            {BRAIN_AI_PREVIEW && founder && partAi(region.id) ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: space.sm, alignSelf: 'flex-start', backgroundColor: night.glass, borderWidth: 1, borderColor: night.line, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
                 <Text style={{ color: night.faint, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 }}>RUNS ON</Text>
                 <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>{partAi(region.id)!.ai}</Text>
