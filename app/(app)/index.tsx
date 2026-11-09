@@ -30,6 +30,7 @@ import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
 import { TodayHero } from '@/components/TodayHero';
+import { BrainSky } from '@/components/BrainSky';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 
 function greeting() {
@@ -169,6 +170,7 @@ export default function Today() {
           nightLine={shutdown?.tali_line}
         />
         </View>
+        <BrainSky greeting="" />
 
         {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
