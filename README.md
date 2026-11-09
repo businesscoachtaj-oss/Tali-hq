@@ -186,3 +186,12 @@ Asked for by Taj, so the brain can be used to train Tali's own open model one da
 - Full report and the steps to put it live: docs/BUILD_REPORT_2026-11-10.md.
 - The checker: tali-checker runs nightly for everyone who chatted and turns Tali's corrected mistakes into lessons in that person's own brain (migration 20261110000057, free to the user).
 - Brain overhaul (same PR): Voyage embeddings beside the old index, my_connections, my_upcoming, my_memory_update, weekly tidy for customers, day one fill, forward to Tali, day 3 email, my_brain_export, share card. Docs: docs/BRAIN_OVERHAUL.md, docs/BRAIN_OUTSIDE.md. One file to run: docs/RUN_10NOV_ALL.sql.
+
+## 10 Nov 2026: onboarding, tour and Tali HQ Max
+
+- **Onboarding** (`app/onboarding.tsx`): one question a screen in her night sky (name, what you want a hand with, business or just you, anything she should know). Saves the same profile fields as before.
+- **Tour** (`lib/tour.ts`, `components/AppTour.tsx`): rewritten for the brain Today and the real tabs (Today, Talk, Her brain, Your world, Me). The old steps pointed at Clients and Journal tabs that no longer exist. New targets `brain`, `level` and `tell` are registered in `components/BrainSky.tsx`. Night sky card, serif titles, step bar.
+- **Tali HQ Max** (plan id `max`): A$99.99 a month, A$1,019.90 a year. 10,000 credits and 300 images a month. Deep think, Big brain and second opinions cost half the credits, and she brings up to twice as many memories to each reply (both in `tali-chat`, paying Max members only). Everything Pro can do, Max can do (`isPro` counts Max; `isMax` for the half-price labels).
+  - Stripe: product `prod_VbDF03EfaCxpDJ`, monthly `price_1Ua0ohPy9YlWBZ02UFtAJDRn`, yearly `price_1Ua0otPy9YlWBZ02sl7BwXb7`. Founders use coupon `TALIHQ_FOUNDING_MAX` (42.5% off, Max product only) because the first founding coupon is tied to the HQ and Pro products.
+  - Database: `supabase/migrations/20261110000060_max_plan.sql` adds the plan row and adds `max` to every function that lists the paid plans.
+  - Deploy order: functions first (`create-checkout`, `stripe-webhook`, `tali-chat`, `tali-review`, `tali-transcribe`, `tali-patterns`, `tali-receipts`), then the SQL. The plan card shows as soon as the SQL runs.

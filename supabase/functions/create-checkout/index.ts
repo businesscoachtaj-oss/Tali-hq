@@ -1,6 +1,6 @@
 // supabase/functions/create-checkout/index.ts  (Tali HQ project jbyzblwrywgxilhmfyjt)
 //
-// POST { plan: 'hq' | 'pro', interval?: 'month' | 'year', returnUrl: string }
+// POST { plan: 'hq' | 'pro' | 'max', interval?: 'month' | 'year', returnUrl: string }
 // POST { topup: pack id, returnUrl: string }  (6 Nov 2026) a one-off payment for extra credits or images,
 //      see _shared/topups.ts. Paid plans and the trial only. stripe-webhook records it with add_topup.
 // Returns { url } for Stripe Checkout (web only; iOS and Android need store billing later).
@@ -12,7 +12,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { topupPack } from '../_shared/topups.ts';
-import { COUPON_FOUNDING, PRICE_HQ, PRICE_HQ_YEARLY, PRICE_PRO, PRICE_PRO_YEARLY, stripe, stripeReady } from '../_shared/stripe.ts';
+import { COUPON_FOUNDING, COUPON_FOUNDING_MAX, PRICE_HQ, PRICE_HQ_YEARLY, PRICE_MAX, PRICE_MAX_YEARLY, PRICE_PRO, PRICE_PRO_YEARLY, stripe, stripeReady } from '../_shared/stripe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const cors = {
@@ -35,11 +35,11 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   if (body.topup) return topup(user, body);
-  const plan = body.plan === 'pro' ? 'pro' : body.plan === 'hq' ? 'hq' : null;
+  const plan = body.plan === 'max' ? 'max' : body.plan === 'pro' ? 'pro' : body.plan === 'hq' ? 'hq' : null;
   const yearly = body.interval === 'year';
   if (!plan) return json({ ok: false, code: 'bad_request', message: 'Pick a plan.' }, 400);
 
-  const price = plan === 'hq' ? (yearly ? PRICE_HQ_YEARLY : PRICE_HQ) : yearly ? PRICE_PRO_YEARLY : PRICE_PRO;
+  const price = plan === 'max' ? (yearly ? PRICE_MAX_YEARLY : PRICE_MAX) : plan === 'hq' ? (yearly ? PRICE_HQ_YEARLY : PRICE_HQ) : yearly ? PRICE_PRO_YEARLY : PRICE_PRO;
   if (!price) return json({ ok: false, code: 'not_ready', message: 'That plan is not open yet.' }, 503);
 
   let origin: string;
@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       customer = c.id as string;
       await admin.from('subscriptions').update({ stripe_customer_id: customer }).eq('user_id', user.id);
     }
-    const coupon = sub?.founding_member ? COUPON_FOUNDING : '';
+    const coupon = sub?.founding_member ? (plan === 'max' ? COUPON_FOUNDING_MAX : COUPON_FOUNDING) : '';
     // Still on the free trial: Stripe holds the first charge until the trial ends (5 Nov 2026).
     // Stripe needs trial_end at least 48 hours away, so with under 48 hours (plus a small margin)
     // left on the trial, there is no Stripe trial and the first charge happens now at checkout.
@@ -99,7 +99,7 @@ async function topup(user: { id: string; email?: string }, body: any) {
   if (!ALLOWED.includes(origin)) return json({ ok: false, code: 'bad_request', message: 'Bad return address.' }, 400);
 
   const { data: sub } = await admin.from('subscriptions').select('plan_id, status, trial_ends_at, stripe_customer_id').eq('user_id', user.id).maybeSingle();
-  const paid = sub && ((sub.status === 'trialing' && sub.trial_ends_at && new Date(sub.trial_ends_at).getTime() > Date.now()) || (['active', 'past_due'].includes(sub.status) && ['hq', 'pro'].includes(sub.plan_id)));
+  const paid = sub && ((sub.status === 'trialing' && sub.trial_ends_at && new Date(sub.trial_ends_at).getTime() > Date.now()) || (['active', 'past_due'].includes(sub.status) && ['hq', 'pro', 'max'].includes(sub.plan_id)));
   if (!paid) return json({ ok: false, code: 'no_plan', message: 'Top ups are for Tali HQ and Pro. Pick a plan first.' }, 403);
 
   try {

@@ -55,7 +55,7 @@ export default function Plans() {
   const returnUrl = web ? window.location.href : `${APP_WEB_URL}/plans`;
   const open = (url: string) => (web ? window.location.assign(url) : Linking.openURL(url));
 
-  async function go(plan: 'hq' | 'pro') {
+  async function go(plan: 'hq' | 'pro' | 'max') {
     setError('');
     setBusy(plan);
     const res = await startCheckout(plan, returnUrl, yearly ? 'year' : 'month');
@@ -75,7 +75,7 @@ export default function Plans() {
 
   return (
     <Screen skin="plans" onRefresh={load}>
-      <SkinHeader id="plans" title="Plans" sub={founding ? 'You are a founding member: 42.5% off Tali HQ and Pro for as long as you stay.' : 'Start free. Upgrade when Tali is pulling her weight.'} onBack={() => goBack('/me')} />
+      <SkinHeader id="plans" title="Plans" sub={founding ? 'You are a founding member: 42.5% off every paid plan for as long as you stay.' : 'Start free. Upgrade when Tali is pulling her weight.'} onBack={() => goBack('/me')} />
 
       <View style={{ flexDirection: 'row', alignSelf: 'flex-start', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, gap: 4, marginBottom: space.sm }}>
         {([false, true] as const).map((y) => (
@@ -103,7 +103,8 @@ export default function Plans() {
         const price = founding && full > 0 ? full * (1 - FOUNDING_OFF) : full;
         const per = yearPrice ? 'a year' : 'a month';
         return (
-          <Card key={p.id} style={p.id === 'hq' ? { borderColor: colours.purple, borderWidth: 2 } : undefined}>
+          <Card key={p.id} style={p.id === 'hq' ? { borderColor: colours.purple, borderWidth: 2 } : p.id === 'max' ? { borderColor: '#F6A02C', borderWidth: 2, shadowColor: '#F6A02C', shadowOpacity: 0.55, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } } : undefined}>
+            {p.id === 'max' ? <Text style={{ color: '#FFC56B', fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 4 }}>HER WHOLE BRAIN</Text> : null}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
               <Text style={{ fontSize: 19, fontWeight: '800', color: colours.text }}>{p.name}</Text>
               <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text }}>
@@ -131,9 +132,17 @@ export default function Plans() {
               ))}
             </View>
             {p.id !== 'free' && !paying ? (
-              <Button title={trialHere ? `Keep ${p.name} after my trial` : `Choose ${p.name}`} onPress={() => go(p.id as 'hq' | 'pro')} busy={busy === p.id} disabled={!!busy} kind={p.id === 'hq' ? 'primary' : 'ghost'} />
+              <Button title={trialHere ? `Keep ${p.name} after my trial` : `Choose ${p.name}`} onPress={() => go(p.id as 'hq' | 'pro' | 'max')} busy={busy === p.id} disabled={!!busy} kind={p.id === 'hq' ? 'primary' : 'ghost'} />
             ) : null}
             {/* Paying HQ members switch plans through Stripe's portal, so point them there rather than a second checkout (4 Nov 2026). */}
+            {p.id === 'max' && paying && credits?.plan !== 'max' ? (
+              <>
+                <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
+                  You're on {credits?.plan === 'pro' ? 'Tali HQ Pro' : 'Tali HQ'}. Switching to Max happens in Manage billing, where your card already is.
+                </Text>
+                <Button title="Switch to Max in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
+              </>
+            ) : null}
             {p.id === 'pro' && paying && credits?.plan === 'hq' ? (
               <>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>

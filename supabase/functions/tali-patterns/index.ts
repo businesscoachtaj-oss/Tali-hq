@@ -372,7 +372,7 @@ Deno.serve(async (req) => {
     const { data: subs, error } = await admin
       .from('subscriptions')
       .select('user_id, status, trial_ends_at')
-      .eq('plan_id', 'pro')
+      .in('plan_id', ['pro', 'max'])
       .in('status', ['active', 'past_due', 'trialing'])
       .limit(500);
     if (error) return json({ ok: false, error: error.message }, 500);

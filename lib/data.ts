@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 export type Credits = {
-  plan: 'free' | 'hq' | 'pro';
+  plan: 'free' | 'hq' | 'pro' | 'max';
   status: string;
   trialEndsAt: string | null;
   creditsMonth: number;
@@ -301,7 +301,7 @@ export async function deleteAccount(confirm: string): Promise<{ ok: boolean; mes
 }
 
 export type Plan = {
-  id: 'free' | 'hq' | 'pro';
+  id: 'free' | 'hq' | 'pro' | 'max';
   name: string;
   monthly_price_aud: number;
   yearly_price_aud: number | null;
@@ -335,7 +335,7 @@ async function invokeForUrl(fn: string, body: Record<string, unknown>): Promise<
 }
 
 // Web only for now. In the iOS and Android apps, upgrades will go through the stores.
-export const startCheckout = (plan: 'hq' | 'pro', returnUrl: string, interval: 'month' | 'year' = 'month') =>
+export const startCheckout = (plan: 'hq' | 'pro' | 'max', returnUrl: string, interval: 'month' | 'year' = 'month') =>
   invokeForUrl('create-checkout', { plan, interval, returnUrl });
 // Top up (6 Nov 2026): a one-off Stripe payment for a pack in supabase/functions/_shared/topups.ts.
 export const startTopup = (pack: string, returnUrl: string) => invokeForUrl('create-checkout', { topup: pack, returnUrl });

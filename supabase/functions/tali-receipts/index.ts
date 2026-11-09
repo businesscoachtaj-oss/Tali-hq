@@ -50,7 +50,7 @@ async function paidUser(req: Request) {
   const user = u?.user;
   if (!user) return { user: null, paid: false };
   const { data: s } = await admin.from('subscriptions').select('plan_id, status, trial_ends_at').eq('user_id', user.id).maybeSingle();
-  const paid = !!s && ((s.status === 'trialing' && !!s.trial_ends_at && new Date(s.trial_ends_at).getTime() > Date.now()) || (['active', 'past_due'].includes(s.status) && ['hq', 'pro'].includes(s.plan_id)));
+  const paid = !!s && ((s.status === 'trialing' && !!s.trial_ends_at && new Date(s.trial_ends_at).getTime() > Date.now()) || (['active', 'past_due'].includes(s.status) && ['hq', 'pro', 'max'].includes(s.plan_id)));
   return { user, paid };
 }
 
