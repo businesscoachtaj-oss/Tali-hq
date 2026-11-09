@@ -10,6 +10,7 @@ import { myBrain, type Brain, type RegionId } from '@/lib/brain';
 import { inboundEmails, openReminders, pendingApprovals, type Approval, type InboundEmail, type Reminder } from '@/lib/data';
 import { loadMoneyPicture, type MoneyPicture } from '@/lib/money';
 import { addDays } from '@/lib/dates';
+import { taliLevel, type Level } from '@/lib/level';
 
 const AREA = {
   people: { name: 'People', colour: '#5CF2C0' },
@@ -32,10 +33,12 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   const [mail, setMail] = useState<InboundEmail[]>([]);
   const [due, setDue] = useState<Reminder[]>([]);
   const [focus, setFocus] = useState<string | null>(null);
+  const [level, setLevel] = useState<Level | null>(null);
 
   useFocusEffect(useCallback(() => {
     const end = addDays(new Date(new Date().setHours(0, 0, 0, 0)), 1).toISOString();
     myBrain('mine').then(setBrain).catch(() => {});
+    taliLevel().then(setLevel).catch(() => {});
     loadMoneyPicture().then(setMoney).catch(() => {});
     pendingApprovals().then(setApprovals).catch(() => {});
     inboundEmails().then((e) => setMail(e.filter((x) => x.status === 'new'))).catch(() => {});
@@ -72,8 +75,8 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   return (
     <View style={{ width: W, alignSelf: 'center' }}>
         <View style={{ paddingHorizontal: 20, paddingTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 22 }}>
-            <TaliAvatar pose="head" size={40} />
+          <View style={{ borderRadius: 24, padding: 6, backgroundColor: 'rgba(107,79,216,0.45)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.55)', shadowColor: '#B9A6FF', shadowOpacity: 0.9, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } }}>
+            <TaliAvatar pose="idle" size={92} style={{ backgroundColor: 'transparent' }} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
@@ -81,7 +84,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
           </View>
         </View>
         {/* Her words float in the space. */}
-        <Text style={{ color: '#FFFFFF', fontSize: 34, lineHeight: 38, paddingHorizontal: 20, marginTop: 18, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 }}>{line}</Text>
+        <Text style={{ color: '#FFFFFF', fontSize: 32, lineHeight: 36, paddingHorizontal: 20, marginTop: 10, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 }}>{line}</Text>
 
         {/* The stage: her brain, with your day orbiting it. */}
         <View style={{ height: stageH, marginTop: 10 }}>
@@ -145,6 +148,27 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
             ))}
           </View>
         )}
+
+        {/* Tali's level stays (Taj, 10 Nov 2026): it's how you see her grow. */}
+        {level ? (
+          <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}
+            style={{ marginHorizontal: 16, marginTop: 22, padding: 14, borderRadius: 20, backgroundColor: 'rgba(107,79,216,0.38)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#F6A02C', alignItems: 'center', justifyContent: 'center', shadowColor: '#F6A02C', shadowOpacity: 1, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } }}>
+                <Text style={{ color: '#141033', fontSize: 19, fontWeight: '800' }}>{level.level}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#FFC56B', fontSize: 11, fontWeight: '800', letterSpacing: 1.6 }}>TALI'S LEVEL</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '800' }}>{level.name}</Text>
+              </View>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '700' }}>{level.xp} XP</Text>
+            </View>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.18)', marginTop: 12, overflow: 'hidden' }}>
+              <View style={{ width: `${Math.max(4, Math.round(level.progress * 100))}%`, height: 6, borderRadius: 3, backgroundColor: '#F6A02C' }} />
+            </View>
+            {level.next ? <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12.5, marginTop: 8 }}>{level.toNext} XP to {level.next}. Her brain grows every time you talk.</Text> : null}
+          </Pressable>
+        ) : null}
 
         <Pressable onPress={() => router.navigate('/talk')} accessibilityRole="button"
           style={{ marginHorizontal: 16, marginTop: 22, borderRadius: 999, paddingVertical: 16, paddingHorizontal: 22, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
