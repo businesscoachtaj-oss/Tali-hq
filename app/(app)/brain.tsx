@@ -17,6 +17,7 @@ import { useAuth } from '@/lib/auth';
 import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemoryPrivate, settleConflict, type Brain, type BrainItem, type RegionId } from '@/lib/brain';
 import { forgetMemory } from '@/lib/data';
 import { LEVELS, taliLevel, type Level } from '@/lib/level';
+import { KnowsAbout } from '@/components/KnowsAbout';
 
 const MEMORY_KINDS = ['fact', 'event', 'person', 'lesson', 'mistake', 'rule', 'preference', 'idea', 'plan', 'seen'];
 
@@ -116,7 +117,8 @@ export default function BrainScreen() {
 
   return (
     <Screen skin="brain" onRefresh={load}>
-      <SkinHeader id="brain" title="Tali's brain" sub={brain ? `${brain.total.toLocaleString('en-AU')} memories${brain.scope === 'main' ? ' across everyone' : ''}` : undefined} />
+      <SkinHeader id="brain" title="Her brain" sub={brain ? `Everything she knows about you. ${brain.total.toLocaleString('en-AU')} memories and growing.` : undefined} />
+      {brain?.scope === 'mine' ? <KnowsAbout brain={brain} /> : null}
 
       {founder ? (
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>

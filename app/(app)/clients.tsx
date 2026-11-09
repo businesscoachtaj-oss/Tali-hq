@@ -157,7 +157,7 @@ export default function Clients() {
 
   return (
     <Screen skin="cork" onRefresh={load}>
-      <SkinHeader id="cork" title="Clients" sub="Tali reads this before chats and briefs. You can also just tell her: add Mia as a new lead." />
+      <SkinHeader id="cork" title="Your people" sub="Clients, leads and the people who matter. Tell her about anyone: add Mia as a new lead, or Mum\'s birthday is 14 December." onBack={() => router.navigate('/world')} />
       <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
         {(['client', 'lead'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}

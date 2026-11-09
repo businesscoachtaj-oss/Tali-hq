@@ -30,7 +30,8 @@ import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
 import { TodayHero } from '@/components/TodayHero';
-import { RoomSwitch, type Room } from '@/components/RoomSwitch';
+import { type Room } from '@/components/RoomSwitch';
+import { SheNoticed } from '@/components/SheNoticed';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 import { NightBackground } from '@/components/NightSky';
 
@@ -153,7 +154,7 @@ export default function Today() {
   const trial = trialLine(credits);
   const night = !!shutdown;
   const allTiles = glanceTiles({ credits, money, health, week, goals });
-  const tiles = allTiles.filter((t) => (room === 'business' ? t.key === 'money' || t.key === 'health' : t.key === 'week' || t.key === 'goals'));
+  const tiles = allTiles;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
@@ -175,10 +176,8 @@ export default function Today() {
           nightLine={shutdown?.tali_line}
         />
         </View>
-        <RoomSwitch value={room} onChange={setRoom} />
-        {room === 'life' ? (
-          <LifeRoom life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} tiles={tiles} />
-        ) : (<>
+        {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
+        <SheNoticed />
 
         {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
@@ -272,7 +271,7 @@ export default function Today() {
           ) : null;
         })()}
 
-        </>)}
+        <LifeRoom life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} tiles={[]} />
         {loadError ? (
           <Card>
             <Body muted>{loadError} Pull down to try again.</Body>

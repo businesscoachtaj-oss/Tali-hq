@@ -129,37 +129,12 @@ export default function Me() {
 
       {/* 9 Nov 2026 look refresh: Tali's brain has its own tab now, so the big card here is gone. */}
 
-      <View style={{ height: space.lg }} />
-      <RoomSwitch value={room} onChange={setRoom} />
-      {room === 'life' ? <>
-      <JobGroup title="Your day">
-        <Tile icon="flag-outline" tint="purple" title="Goals" sub="What you're chasing" locked={!paid} onPress={() => router.navigate('/goals')} />
-        <Tile icon="calendar-outline" tint="purple" title="Weekly review" sub="What moved and what's next" locked={!paid} onPress={() => router.navigate('/review')} />
-        <Tile icon="moon-outline" tint="purple" title="Shut down" sub="Two minutes, then off" onPress={() => router.navigate('/shutdown')} />
-        <Tile icon="git-branch-outline" tint="purple" title="Decisions" sub="What you decided and why" onPress={() => router.navigate('/decisions')} />
-      </JobGroup>
-
-      </> : null}
-      {room === 'business' ? <>
-      <JobGroup title="Your business">
-        <Tile icon="people-outline" tint="orange" title="Clients" sub="Your people" onPress={() => router.navigate('/clients')} />
-        <Tile icon="document-text-outline" tint="orange" title="Invoices" sub="Make, share, track" locked={!paid} onPress={() => router.navigate('/invoices')} />
-        <Tile icon="wallet-outline" tint="orange" title="Money" sub="In, owed and runway" locked={!paid} onPress={() => router.navigate('/money')} />
-        <Tile icon="file-tray-full-outline" tint="orange" title="Receipts" sub="Ready for tax time" locked={!paid} onPress={() => router.navigate('/receipts' as any)} />
-        <Tile icon="mail-outline" tint="orange" title="Email" sub="Sorted, replies drafted" locked={!paid} onPress={() => router.navigate('/inbox')} />
-        <Tile icon="flash-outline" tint="orange" title="Rules" sub="What she does on her own" locked={!pro} pro onPress={() => router.navigate('/rules')} />
-        <Tile icon="link-outline" tint="orange" title="Connections" sub="Google, Microsoft, Stripe" locked={!paid} onPress={() => router.navigate({ pathname: '/settings', params: { section: 'connections' } })} />
-      </JobGroup>
-
-      </> : null}
-      {room === 'life' ? <>
-      <JobGroup title="You">
-        <Tile icon="barbell-outline" tint="green" title="Food and training" sub="Logged by chatting" onPress={() => router.navigate('/life')} />
-        <Tile icon="bed-outline" tint="green" title="Sleep" sub="Sounds with a timer" onPress={() => router.navigate('/sleep')} />
-        <Tile icon="school-outline" tint="green" title="Night school" sub="What she studies tonight" locked={!pro} pro onPress={() => router.navigate('/night-school')} />
-        {founder ? <Tile icon="stats-chart-outline" tint="green" title="Founder" sub="Only you see this" onPress={() => router.navigate('/founder')} /> : null}
-      </JobGroup>
-      </> : null}
+      {/* 9 Nov 2026 "life with a growing brain": everything she helps with lives in Your world now. */}
+      {founder ? (
+        <JobGroup title="Only you">
+          <Tile icon="stats-chart-outline" title="Founder" sub="Only you see this" onPress={() => router.navigate('/founder')} />
+        </JobGroup>
+      ) : null}
 
       <View style={{ marginTop: space.lg }}>
         <PatternsRow credits={credits} />

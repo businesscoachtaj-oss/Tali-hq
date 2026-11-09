@@ -34,8 +34,9 @@ export default function AppTabs() {
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 0) }} />
       <Tabs.Screen name="talk" options={{ title: 'Talk', tabBarIcon: icon('chatbubble-ellipses-outline', 1) }} />
       {/* 9 Nov 2026 look refresh: her brain gets a tab of its own, in the middle. Clients moves into Me. */}
-      <Tabs.Screen name="brain" options={{ title: 'Brain', tabBarIcon: icon('sparkles-outline', 2) }} />
-      <Tabs.Screen name="journal" options={{ title: 'Journal', tabBarIcon: icon('book-outline', 3) }} />
+      <Tabs.Screen name="brain" options={{ title: 'Her brain', tabBarIcon: icon('sparkles-outline', 2) }} />
+      <Tabs.Screen name="world" options={{ title: 'Your world', tabBarIcon: icon('planet-outline', 3) }} />
+      <Tabs.Screen name="journal" options={{ href: null, title: 'Journal' }} />
       <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline', 4) }} />
       <Tabs.Screen name="settings" options={{ href: null, title: 'Settings' }} />
       <Tabs.Screen name="plans" options={{ href: null, title: 'Plans' }} />
