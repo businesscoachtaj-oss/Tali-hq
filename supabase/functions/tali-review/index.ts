@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
 // Rules Tali suggests from the week (6 Nov 2026). Pro only, because the Rules page is Pro. Settings are
 // clamped to what the Rules page allows, and an automation for a rule type that is already on is skipped.
 async function saveSuggestions(userId: string, plan: string, raw: unknown, known: { rules: { type: string; enabled: boolean }[]; suggested: { text: string; rule_type: string | null; status: string }[] }) {
-  if (plan !== 'pro' || !Array.isArray(raw)) return;
+  if ((plan !== 'pro' && plan !== 'max') || !Array.isArray(raw)) return;
   const clamp = (v: unknown, lo: number, hi: number, d: number) => (Number.isFinite(Number(v)) ? Math.min(hi, Math.max(lo, Math.round(Number(v)))) : d);
   const rows = [];
   for (const x of raw.slice(0, 2) as any[]) {

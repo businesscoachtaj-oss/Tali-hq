@@ -65,14 +65,20 @@ export const PRICE_PRO = Deno.env.get('STRIPE_PRICE_PRO') || 'price_1UWucXPy9YlW
 // Yearly prices (created 2 Nov 2026): 15% off twelve months of the monthly price.
 export const PRICE_HQ_YEARLY = Deno.env.get('STRIPE_PRICE_HQ_YEARLY') || 'price_1UXB4HPy9YlWBZ02pW7k1ubh';
 export const PRICE_PRO_YEARLY = Deno.env.get('STRIPE_PRICE_PRO_YEARLY') || 'price_1UXB4JPy9YlWBZ02mazh3HDd';
+// Tali HQ Max (created 10 Nov 2026): A$99.99 a month, A$1,019.90 a year. The founding coupon is tied to
+// products, so Max has its own with the same 42.5% off.
+export const PRICE_MAX = Deno.env.get('STRIPE_PRICE_MAX') || 'price_1Ua0ohPy9YlWBZ02UFtAJDRn';
+export const PRICE_MAX_YEARLY = Deno.env.get('STRIPE_PRICE_MAX_YEARLY') || 'price_1Ua0otPy9YlWBZ02sl7BwXb7';
+export const COUPON_FOUNDING_MAX = Deno.env.get('STRIPE_COUPON_FOUNDING_MAX') || 'TALIHQ_FOUNDING_MAX';
 export const COUPON_FOUNDING = Deno.env.get('STRIPE_COUPON_FOUNDING') || 'TALIHQ_FOUNDING';
 
-export function planForPrice(priceId: string | undefined | null): 'hq' | 'pro' | null {
+export function planForPrice(priceId: string | undefined | null): 'hq' | 'pro' | 'max' | null {
   if (!priceId) return null;
   const hq = [PRICE_HQ, PRICE_HQ_YEARLY];
   const pro = [PRICE_PRO, PRICE_PRO_YEARLY];
   if (hq.includes(priceId)) return 'hq';
   if (pro.includes(priceId)) return 'pro';
+  if ([PRICE_MAX, PRICE_MAX_YEARLY].includes(priceId)) return 'max';
   return null;
 }
 

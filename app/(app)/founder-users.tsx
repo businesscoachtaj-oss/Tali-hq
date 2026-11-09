@@ -31,7 +31,7 @@ function kindOf(u: FounderUser): 'trial' | 'paying' | 'free' {
 }
 
 function planLine(u: FounderUser) {
-  const plan = u.plan_id === 'pro' ? 'Pro' : u.plan_id === 'hq' ? 'Tali HQ' : 'Free';
+  const plan = u.plan_id === 'max' ? 'Max' : u.plan_id === 'pro' ? 'Pro' : u.plan_id === 'hq' ? 'Tali HQ' : 'Free';
   const k = kindOf(u);
   if (k === 'trial') {
     const left = Math.ceil((new Date(u.trial_ends_at!).getTime() - Date.now()) / DAY);

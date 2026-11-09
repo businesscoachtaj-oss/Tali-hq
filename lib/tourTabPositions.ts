@@ -6,7 +6,7 @@
 export type TabPos = { x: number; y: number; width: number; height: number };
 
 // One slot per visible tab, in (app)/_layout.tsx order:
-// 0 Today, 1 Talk, 2 Clients, 3 Journal, 4 Me
+// 0 Today, 1 Talk, 2 Her brain, 3 Your world, 4 Me
 export const tabPositions: (TabPos | null)[] = [null, null, null, null, null];
 
 type MeasurableView = { measureInWindow: (cb: (x: number, y: number, w: number, h: number) => void) => void };

@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
 
   // The monthly cap on HQ (and the trial). Pro has no cap.
   let secondsLeft: number | null = null;
-  if (plan !== 'pro') {
+  if (plan !== 'pro' && plan !== 'max') {
     const { data: used } = await admin.rpc('voice_seconds_this_month', { p_user_id: user.id });
     const usedSeconds = Number(used ?? 0);
     if (usedSeconds + duration > HQ_MONTHLY_SECONDS) {

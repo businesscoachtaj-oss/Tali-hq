@@ -11,6 +11,7 @@ import { inboundEmails, openReminders, pendingApprovals, type Approval, type Inb
 import { loadMoneyPicture, type MoneyPicture } from '@/lib/money';
 import { addDays } from '@/lib/dates';
 import { taliLevel, type Level } from '@/lib/level';
+import { registerTarget } from '@/lib/tourTargets';
 
 const AREA = {
   people: { name: 'People', colour: '#5CF2C0' },
@@ -127,6 +128,16 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
   const line = sel ? "Here's everything I know that touches this." : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
 
+  // Spots the first-run tour points at (10 Nov 2026).
+  const brainRef = useRef<View>(null);
+  const levelRef = useRef<View>(null);
+  const tellRef = useRef<View>(null);
+  useEffect(() => {
+    registerTarget('brain', brainRef);
+    registerTarget('level', levelRef);
+    registerTarget('tell', tellRef);
+  }, []);
+
   return (
     <View style={{ width: W, alignSelf: 'center' }}>
         <View style={{ paddingHorizontal: 20, paddingTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -143,7 +154,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
 
         {/* The stage: her brain, with your day orbiting it. */}
         {/* Tapping the empty sky closes whatever is open. */}
-        <Pressable onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
+        <Pressable ref={brainRef} collapsable={false} onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
           <View style={{ position: 'absolute', left: cx - 150, top: cy - 150, opacity: sel ? 0.35 : 1 }}>
             <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
           </View>
@@ -227,7 +238,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
 
         {/* Tali's level stays (Taj, 10 Nov 2026): it's how you see her grow. */}
         {level ? (
-          <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}
+          <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}
             style={{ marginHorizontal: 16, marginTop: 22, padding: 14, borderRadius: 20, backgroundColor: 'rgba(107,79,216,0.38)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#F6A02C', alignItems: 'center', justifyContent: 'center', shadowColor: '#F6A02C', shadowOpacity: 1, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } }}>
@@ -246,7 +257,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
           </Pressable>
         ) : null}
 
-        <Pressable onPress={() => router.navigate('/talk')} accessibilityRole="button"
+        <Pressable ref={tellRef} collapsable={false} onPress={() => router.navigate('/talk')} accessibilityRole="button"
           style={{ marginHorizontal: 16, marginTop: 22, borderRadius: 999, paddingVertical: 16, paddingHorizontal: 22, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={{ flex: 1, color: 'rgba(255,255,255,0.65)', fontSize: 16 }}>Tell her anything...</Text>
           <Text style={{ color: '#B9A6FF', fontSize: 18 }}>{'●'}</Text>

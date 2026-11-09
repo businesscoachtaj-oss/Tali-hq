@@ -3,7 +3,7 @@ import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { currentConversation, deleteConversation, freeMessagesLeft, listConversations, makeImage, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type Credits, type DeepLevel, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
-import { isPaid, isPro } from '@/lib/plan';
+import { isMax, isPaid, isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { MicButton } from '@/components/MicButton';
 import { COST } from '@/lib/brainAiPlan';
@@ -45,6 +45,8 @@ export default function Talk() {
   // 6 Nov 2026 (Taj): out of credits shows a Top up button under the notice.
   const [outOfCredits, setOutOfCredits] = useState(false);
   const [pro, setPro] = useState(false);
+  // Tali HQ Max (10 Nov 2026): Deep think, Big brain and second opinions cost half the credits.
+  const [half, setHalf] = useState(false);
   const [plan, setPlan] = useState<'free' | 'hq' | 'pro' | null>(null);
   // Deep think (6 Nov 2026): the next message goes to a smarter model with more of her brain.
   const [deep, setDeep] = useState<DeepLevel | null>(null);
@@ -147,7 +149,7 @@ export default function Talk() {
   }, [params.text, params.title, params.url]);
 
   const loadPlan = useCallback(() => {
-    myCredits().then((c) => { setPro(isPro(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); setFreeDeep(c?.deep ?? null); setFreeLeft(isPaid(c) ? null : freeMessagesLeft(c)); }).catch(() => {});
+    myCredits().then((c) => { setPro(isPro(c)); setHalf(isMax(c)); setPlan(isPro(c) ? 'pro' : isPaid(c) ? 'hq' : 'free'); setFreeDeep(c?.deep ?? null); setFreeLeft(isPaid(c) ? null : freeMessagesLeft(c)); }).catch(() => {});
   }, []);
 
   const load = useCallback(async () => {
@@ -446,7 +448,7 @@ export default function Talk() {
                     </Pressable>
                   ) : null}
                   {!me && item.meta?.suggest_deep && item.id === rows[rows.length - 1]?.id && !thinking ? (
-                    <DeepOffer plan={plan} freeDeep={freeDeep} onPress={() => {
+                    <DeepOffer plan={plan} freeDeep={freeDeep} half={half} onPress={() => {
                       const asked = [...rows].reverse().find((m) => m.role === 'user' && !m.pending);
                       if (asked) void send(asked.content ?? '', [], undefined, 'deep');
                     }} />
@@ -482,7 +484,7 @@ export default function Talk() {
         {voiceHint ? (
           <Text style={{ color: voice.recording ? colours.danger : colours.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: space.lg, paddingTop: 6, backgroundColor: colours.surface, borderTopWidth: pending.length ? 0 : 1, borderTopColor: colours.border }}>{voiceHint}</Text>
         ) : null}
-        <DeepSwitch plan={plan} freeDeep={freeDeep} value={deep} onChange={setDeep} second={second} onSecond={setSecond} canSecond={caps.second_opinion} topBorder={!pending.length && !voiceHint} />
+        <DeepSwitch plan={plan} freeDeep={freeDeep} half={half} value={deep} onChange={setDeep} second={second} onSecond={setSecond} canSecond={caps.second_opinion} topBorder={!pending.length && !voiceHint} />
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, paddingTop: plan ? space.sm : space.md, borderTopWidth: 0, borderTopColor: colours.border, backgroundColor: colours.surface }}>
           <Pressable
             accessibilityRole="button"
@@ -673,12 +675,12 @@ function Chip({ label, onPress, danger }: { label: string; onPress: () => void; 
 // Deep think (6 Nov 2026, asked for by Taj). Above the composer: a switch that sends the next message to a
 // smarter model with more of her brain. Tali HQ: Deep (Sonnet, 20 credits). Pro adds Big brain (Opus, 40).
 // Free gets 1 a month.
-function deepCost(level: DeepLevel, plan: string | null, freeDeep: Credits['deep']) {
+function deepCost(level: DeepLevel, plan: string | null, freeDeep: Credits['deep'], half = false) {
   if (plan === 'free') return freeDeep?.remaining ? 'your free one this month' : 'used for this month';
-  return level === 'deepest' ? '40 credits' : '20 credits';
+  return `${(level === 'deepest' ? 40 : 20) / (half ? 2 : 1)} credits`;
 }
 
-function DeepSwitch({ plan, freeDeep, value, onChange, second, onSecond, canSecond, topBorder }: { canSecond: boolean; plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; value: DeepLevel | null; onChange: (v: DeepLevel | null) => void; second: boolean; onSecond: (v: boolean) => void; topBorder: boolean }) {
+function DeepSwitch({ plan, freeDeep, value, onChange, second, onSecond, canSecond, topBorder, half }: { half?: boolean; canSecond: boolean; plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; value: DeepLevel | null; onChange: (v: DeepLevel | null) => void; second: boolean; onSecond: (v: boolean) => void; topBorder: boolean }) {
   // 9 Nov 2026 look refresh: one quiet line until you want more thinking. Costs only show once open.
   const [open, setOpen] = useState(false);
   if (!plan) return null;
@@ -700,7 +702,7 @@ function DeepSwitch({ plan, freeDeep, value, onChange, second, onSecond, canSeco
             onPress={() => onChange(on ? null : o)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colours.purple : colours.borderStrong, backgroundColor: on ? colours.purple : colours.bg, opacity: freeOut ? 0.5 : 1 }}>
             <Text style={{ fontSize: 13, fontWeight: '800', color: on ? colours.onPurple : colours.text }}>{o === 'deepest' ? 'Big brain' : 'Deep think'}</Text>
-            <Text style={{ fontSize: 12, color: on ? colours.onPurple : colours.muted }}>{deepCost(o, plan, freeDeep)}</Text>
+            <Text style={{ fontSize: 12, color: on ? colours.onPurple : colours.muted }}>{deepCost(o, plan, freeDeep, half)}</Text>
           </Pressable>
         );
       })}
@@ -708,7 +710,7 @@ function DeepSwitch({ plan, freeDeep, value, onChange, second, onSecond, canSeco
         <Pressable accessibilityRole="switch" accessibilityState={{ checked: second }} onPress={() => onSecond(!second)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: second ? colours.purple : colours.borderStrong, backgroundColor: second ? colours.purple : colours.bg }}>
           <Text style={{ fontSize: 13, fontWeight: '800', color: second ? colours.onPurple : colours.text }}>Second opinion</Text>
-          <Text style={{ fontSize: 12, color: second ? colours.onPurple : colours.muted }}>{COST.secondOpinion} credits</Text>
+          <Text style={{ fontSize: 12, color: second ? colours.onPurple : colours.muted }}>{half ? Math.ceil(COST.secondOpinion / 2) : COST.secondOpinion} credits</Text>
         </Pressable>
       ) : null}
       {second ? <Text style={{ fontSize: 11, color: colours.faint, flexBasis: '100%' }}>Tali answers, then a second AI checks her. You see where they agree and where they don't.</Text> : null}
@@ -717,11 +719,11 @@ function DeepSwitch({ plan, freeDeep, value, onChange, second, onSecond, canSeco
   );
 }
 
-function DeepOffer({ plan, freeDeep, onPress }: { plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; onPress: () => void }) {
+function DeepOffer({ plan, freeDeep, onPress, half }: { half?: boolean; plan: 'free' | 'hq' | 'pro' | null; freeDeep: Credits['deep']; onPress: () => void }) {
   if (!plan || (plan === 'free' && !freeDeep?.remaining)) return null;
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
-      <Text style={{ color: colours.purpleInk, fontWeight: '800', fontSize: 13 }}>Deep think this <Text style={{ fontWeight: '600' }}>({deepCost('deep', plan, freeDeep)})</Text></Text>
+      <Text style={{ color: colours.purpleInk, fontWeight: '800', fontSize: 13 }}>Deep think this <Text style={{ fontWeight: '600' }}>({deepCost('deep', plan, freeDeep, half)})</Text></Text>
     </Pressable>
   );
 }

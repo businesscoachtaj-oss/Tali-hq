@@ -561,12 +561,20 @@ Deno.serve(async (req) => {
     return json({ ok: true, reply: no, messageId: savedNo?.id, remembered: 0, declined: true, remaining: null });
   }
 
+  // Tali HQ Max (10 Nov 2026): Deep think, Big brain and second opinions cost half the credits, and she
+  // checks twice as many memories on every answer. Only a paying Max member, never a trial.
+  const { data: planRow } = await admin.from('subscriptions').select('plan_id, status').eq('user_id', user.id).maybeSingle();
+  const isMax = planRow?.plan_id === 'max' && ['active', 'past_due'].includes(String(planRow?.status));
+  const deepCost = (d: DeepLevel) => (isMax ? Math.ceil(DEEP_CREDITS[d] / 2) : DEEP_CREDITS[d]);
+  const secondCost = isMax ? Math.ceil(COSTS.second_opinion / 2) : COSTS.second_opinion;
+  const recallX = isMax ? 2 : 1;
+
   // Deep think: work out what this person may use before charging anything.
   let deep: DeepLevel | null = body.deep === 'deep' || body.deep === 'deepest' ? body.deep : null;
   let deepFreeId: number | null = null;
   if (deep) {
     const { data: da } = await admin.rpc('deep_allowance_for', { p_user_id: user.id });
-    if (deep === 'deepest' && da?.plan !== 'pro') deep = 'deep';
+    if (deep === 'deepest' && da?.plan !== 'pro' && da?.plan !== 'max') deep = 'deep';
     if (da?.plan === 'free' && Number(da?.remaining ?? 0) <= 0) {
       return fail('out_of_deep', "You've used this month's free Deep think. It comes back on the 1st, and Tali HQ can Deep think any time for 20 credits.", 402);
     }
@@ -576,7 +584,7 @@ Deno.serve(async (req) => {
   // A Deep think costs 20 credits (40 for Deepest) on paid plans; on Free it is a normal message plus the free one.
   // A video is charged on its own, by the minute, once she knows how long it is.
   const base = files.length ? 2 : 1;
-  const { data: consume0, error: consumeErr0 } = await admin.rpc('chat_try_consume', { p_user_id: user.id, p_feature: deep ? 'deep_think' : 'chat', p_credits: deep ? DEEP_CREDITS[deep] + base - 1 : base });
+  const { data: consume0, error: consumeErr0 } = await admin.rpc('chat_try_consume', { p_user_id: user.id, p_feature: deep ? 'deep_think' : 'chat', p_credits: deep ? deepCost(deep) + base - 1 : base });
   let consume = consume0;
   let consumeErr = consumeErr0;
   // Free only allows chat messages there, so a Free Deep think is charged as a message plus its own row.
@@ -607,7 +615,7 @@ Deno.serve(async (req) => {
       slow_down: 'Easy, tiger. Give me a minute and try again.',
       no_access: 'Your plan does not include this yet.',
     };
-    if (deep && consume?.reason === 'out_of_credits') copy.out_of_credits = `${deep === 'deepest' ? 'Big brain' : 'A Deep think'} takes ${DEEP_CREDITS[deep]} credits and you have ${consume?.remaining ?? 0} left this month. Send it as a normal message, or they top up on the 1st.`;
+    if (deep && consume?.reason === 'out_of_credits') copy.out_of_credits = `${deep === 'deepest' ? 'Big brain' : 'A Deep think'} takes ${deepCost(deep)} credits and you have ${consume?.remaining ?? 0} left this month. Send it as a normal message, or they top up on the 1st.`;
     return fail(consume?.reason ?? 'no_access', copy[consume?.reason] ?? copy.no_access, 402, { remaining: consume?.remaining ?? 0 });
   }
   const usageId = consume.usage_id as number;
@@ -627,15 +635,15 @@ Deno.serve(async (req) => {
     // Second opinion: reserve its 20 credits before any thinking happens.
     let secondUsage: number | null = null;
     if (wantSecond) {
-      const { data: r } = await admin.rpc('chat_try_consume', { p_user_id: user.id, p_feature: 'second_opinion', p_credits: COSTS.second_opinion });
+      const { data: r } = await admin.rpc('chat_try_consume', { p_user_id: user.id, p_feature: 'second_opinion', p_credits: secondCost });
       if (!r?.ok) {
         throw new Halt(fail(r?.reason ?? 'no_access', r?.reason === 'out_of_credits'
-          ? `A second opinion takes ${COSTS.second_opinion} credits and you have ${r?.remaining ?? 0} left this month. Send it without one, or top up from Me.`
+          ? `A second opinion takes ${secondCost} credits and you have ${r?.remaining ?? 0} left this month. Send it without one, or top up from Me.`
           : r?.reason === 'slow_down' ? 'Easy, tiger. Give me a minute and try again.' : 'Your plan does not include second opinions yet.', 402, { remaining: r?.remaining ?? 0 }));
       }
       secondUsage = r.usage_id as number;
       extraUsage.push(secondUsage);
-      extraCredits += COSTS.second_opinion;
+      extraCredits += secondCost;
     }
 
     // Video: send it on to be watched, find out how long it really is, reserve the credits, then watch.
@@ -700,7 +708,7 @@ Deno.serve(async (req) => {
     // turned into search numbers first (a quick call, 2.5 seconds at most). If that fails, or the
     // database side is not there yet, recall falls back to words alone, exactly as it was.
     const recallBy = async () => {
-      const wide = { p_user_id: user.id, p_query: recallQuery(text), p_limit: deep ? 40 : 24 };
+      const wide = { p_user_id: user.id, p_query: recallQuery(text), p_limit: (deep ? 40 : 24) * recallX };
       if (caps.better_memory) {
         const qvec = await embedQuery(text);
         if (qvec) {
@@ -710,7 +718,7 @@ Deno.serve(async (req) => {
         // With better memory search on, recall a wider pool and let the reranker pick the same number as before.
         return admin.rpc('tali_context', wide);
       }
-      return admin.rpc('tali_context', deep ? { p_user_id: user.id, p_query: recallQuery(text), p_limit: 30 } : { p_user_id: user.id, p_query: recallQuery(text) });
+      return admin.rpc('tali_context', deep || isMax ? { p_user_id: user.id, p_query: recallQuery(text), p_limit: (deep ? 30 : 12) * recallX } : { p_user_id: user.id, p_query: recallQuery(text) });
     };
     const [{ data: ctx }, { data: history }, { data: work }, { data: life }, { data: stripeConn }, { data: rhythm }] = await Promise.all([
       recallBy(),
@@ -738,7 +746,7 @@ Deno.serve(async (req) => {
         if (m?.id) refToId.set(ref, String(m.id));
         return { ref, kind: m?.kind, content: m?.content, ...(m?.about ? { about: m.about } : {}) };
       });
-    const keepMemories = deep ? 30 : 10;
+    const keepMemories = (deep ? 30 : 10) * recallX; // the database hands back 50 at most, so a Max Deep think tops out there
     const pool: any[] = Array.isArray(ctx?.memories) ? ctx.memories : [];
     const ranked = caps.better_memory ? await rerankMemories(text, pool, keepMemories) : { list: pool, used: false };
     // The wider recall also returns a few more recent memories; keep that the same as before too.
@@ -858,17 +866,17 @@ Deno.serve(async (req) => {
       const so = await secondOpinion(text, reply, `${JSON.stringify(ctx?.profile ?? {})}${watched ? `\nShe watched a video they sent: ${videoNote.slice(0, 1500)}` : ''}`);
       if (!so) {
         await refundExtra(secondUsage);
-        extraCredits -= COSTS.second_opinion;
+        extraCredits -= secondCost;
       } else {
         secondModel = so.model;
-        second = { by: isFounder ? so.model : 'A second AI', agree: so.agree, differ: so.differ, credits: COSTS.second_opinion };
+        second = { by: isFounder ? so.model : 'A second AI', agree: so.agree, differ: so.differ, credits: secondCost };
         if (so.remember) secondRemember = so.differ;
         await admin.from('usage').update({ model: so.model }).eq('id', secondUsage);
       }
     }
 
     // What the app shows under her reply. Vendor and model names (model, routed) are kept for the founder only.
-    const baseCredits = consume.plan === 'free' ? 0 : deep ? DEEP_CREDITS[deep] + base - 1 : base;
+    const baseCredits = consume.plan === 'free' ? 0 : deep ? deepCost(deep) + base - 1 : base;
     const meta: Record<string, unknown> = {
       ...(isFounder ? { model: result.model } : {}),
       ...(deep ? { deep } : {}),

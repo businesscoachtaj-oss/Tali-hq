@@ -2,13 +2,15 @@
 // included, so a business is asked about but never required.
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { colours, radius, space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
-import { Button, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { Button, ErrorText, Field, Label, Screen } from '@/components/ui';
+import { TaliAvatar } from '@/components/TaliAvatar';
 import { BUSINESS_TYPES } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
 
+const LAST = 3;
 const PLATE = ['My week and to-dos', 'My business', 'Money', 'Health and habits', 'The people in my life', 'Big goals'];
 
 export default function Onboarding() {
@@ -19,6 +21,7 @@ export default function Onboarding() {
   const [aboutMe, setAboutMe] = useState('');
   const [plate, setPlate] = useState<string[]>([]);
   const [hasBusiness, setHasBusiness] = useState<boolean | null>(null);
+  const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -52,45 +55,85 @@ export default function Onboarding() {
     await refreshProfile();
   }
 
+  // 10 Nov 2026: one question at a time in her sky, instead of one long form.
+  function next() {
+    setError('');
+    if (step === 0 && !firstName.trim()) return setError('What should I call you?');
+    if (step === 2 && hasBusiness === null) return setError('Do you run a business, or is it just you?');
+    if (step === 2 && hasBusiness && !businessType) return setError('Pick the closest match for your business.');
+    if (step < LAST) setStep(step + 1);
+    else finish();
+  }
+  const name = firstName.trim();
+  const Q = [
+    { kicker: 'FIRST THINGS FIRST', q: "G'day. What should I call you?", sub: "I'm Tali. I'm an AI with a brain that grows with you." },
+    { kicker: 'YOUR PLATE', q: `Nice to meet you${name ? `, ${name}` : ''}. What would you like a hand with?`, sub: 'Pick as many as you like. You can change it later.' },
+    { kicker: 'YOUR WORK', q: 'Do you run a business?', sub: 'Either is fine. I look after your whole life, work included.' },
+    { kicker: 'ONE LAST THING', q: 'Anything I should know from day one?', sub: 'Optional. Everything you tell me becomes a memory in my brain.' },
+  ][step];
+
   return (
     <Screen>
-      <Title sub="Takes a minute. You can change any of it later.">Let's get to know you</Title>
-      <TaliSays pose="wave">Tell me a bit about you so I know where to start. Work, home, health, whatever is on your plate. I remember all of it.</TaliSays>
-      <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
-      <Label>What would you like a hand with?</Label>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md }}>
-        {PLATE.map((o) => {
-          const on = plate.includes(o);
-          return (
-            <Pressable key={o} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setPlate((p) => (on ? p.filter((x) => x !== o) : [...p, o]))}
-              style={{ paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colours.purple : colours.borderStrong, backgroundColor: on ? colours.purple : colours.surface }}>
-              <Text style={{ color: on ? colours.onPurple : colours.text, fontWeight: '600' }}>{o}</Text>
-            </Pressable>
-          );
-        })}
+      <View style={{ flexDirection: 'row', gap: 6, marginTop: space.sm, marginBottom: space.xl }}>
+        {[0, 1, 2, 3].map((n) => (
+          <View key={n} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: n <= step ? '#B9A6FF' : 'rgba(255,255,255,0.18)' }} />
+        ))}
       </View>
-      <Label>Do you run a business?</Label>
-      <ChipPicker options={['Yes', 'No, just me'] as const} value={hasBusiness === null ? null : hasBusiness ? 'Yes' : 'No, just me'} onChange={(v) => setHasBusiness(v === 'Yes')} />
-      {hasBusiness ? (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } }}>
+          <TaliAvatar pose="head" size={42} />
+        </View>
+        <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{Q.kicker}  ·  {step + 1} OF 4</Text>
+      </View>
+      <Text style={{ color: '#FFFFFF', fontSize: 34, lineHeight: 38, marginTop: space.md, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 }}>{Q.q}</Text>
+      <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, lineHeight: 21, marginTop: 8, marginBottom: space.lg }}>{Q.sub}</Text>
+
+      {step === 0 ? <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" onSubmitEditing={next} /> : null}
+
+      {step === 1 ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md }}>
+          {PLATE.map((o) => {
+            const on = plate.includes(o);
+            return (
+              <Pressable key={o} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setPlate((p) => (on ? p.filter((x) => x !== o) : [...p, o]))}
+                style={{ paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? '#B9A6FF' : 'rgba(214,200,255,0.4)', backgroundColor: on ? '#B9A6FF' : 'rgba(255,255,255,0.07)' }}>
+                <Text style={{ color: on ? '#0C0A24' : '#FFFFFF', fontWeight: '700', fontSize: 15 }}>{o}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {step === 2 ? (
         <>
-          <Field label="Business name (optional)" value={businessName} onChangeText={setBusinessName} />
-          <Label>What kind of business</Label>
-          <ChipPicker options={BUSINESS_TYPES} value={businessType || null} onChange={setBusinessType} />
+          <ChipPicker options={['Yes', 'No, just me'] as const} value={hasBusiness === null ? null : hasBusiness ? 'Yes' : 'No, just me'} onChange={(v) => setHasBusiness(v === 'Yes')} />
+          {hasBusiness ? (
+            <>
+              <Field label="Business name (optional)" value={businessName} onChangeText={setBusinessName} />
+              <Label>What kind of business</Label>
+              <ChipPicker options={BUSINESS_TYPES} value={businessType || null} onChange={setBusinessType} />
+            </>
+          ) : null}
         </>
       ) : null}
-      <Field
-        label="Anything I should know? (optional)"
-        value={aboutMe}
-        onChangeText={setAboutMe}
-        multiline
-        maxLength={1000}
-        placeholder="For example: I'm hopeless at follow-ups, I want to be in bed by ten, and Mum's birthday is in December."
-        style={{ minHeight: 100, textAlignVertical: 'top' }}
-      />
+
+      {step === 3 ? (
+        <Field
+          label="Tell me in your own words"
+          value={aboutMe}
+          onChangeText={setAboutMe}
+          multiline
+          maxLength={1000}
+          placeholder="For example: I'm hopeless at follow-ups, I want to be in bed by ten, and Mum's birthday is in December."
+          style={{ minHeight: 120, textAlignVertical: 'top' }}
+        />
+      ) : null}
+
       <ErrorText>{error}</ErrorText>
-      <Button title="Meet Tali" onPress={finish} busy={busy} />
+      <Button title={step === LAST ? 'Meet Tali' : 'Next'} onPress={next} busy={busy} />
+      {step > 0 ? <Button title="Back" kind="ghost" onPress={() => { setError(''); setStep(step - 1); }} disabled={busy} /> : null}
       {/* 4 Nov 2026: a way out if this isn't your account (shared device, wrong email). */}
-      <Button title="Not you? Sign out" kind="ghost" onPress={signOut} disabled={busy} />
+      {step === 0 ? <Button title="Not you? Sign out" kind="ghost" onPress={signOut} disabled={busy} /> : null}
     </Screen>
   );
 }

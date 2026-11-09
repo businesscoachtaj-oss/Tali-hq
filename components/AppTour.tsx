@@ -22,6 +22,7 @@ export type TourStep = {
 };
 
 const RING = 56;
+const NIGHT = '#17123A'; // her sky, a shade lighter so the card lifts off it
 const PAD = 8; // breathing room around a highlighted target
 const CARD_H = 250; // rough card height, for choosing above or below a target
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -102,9 +103,9 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
             <Text style={styles.celebrateSub}>Here's a good way to start.</Text>
             <View style={styles.firstCard}>
               {[
-                { c: colours.purple, t: "Say hi in Talk and tell me about your business" },
-                { c: colours.orange, t: 'Add your first client or lead in Clients' },
-                { c: colours.good, t: 'Check Today tomorrow morning for your first brief' },
+                { c: '#B9A6FF', t: 'Say hi in Talk and tell me three things about you' },
+                { c: '#F6A02C', t: 'Watch a new dot light up in my brain' },
+                { c: '#5CF2C0', t: 'Check Today tomorrow morning for your first brief' },
               ].map((b) => (
                 <View key={b.t} style={styles.bullet}>
                   <View style={[styles.dot, { backgroundColor: b.c }]} />
@@ -175,13 +176,20 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
 
           <View style={[styles.card, cardPos]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.sm }}>
-              <Image source={tali[step.pose]} style={{ width: 56, height: 56 }} resizeMode="contain" accessibilityLabel="Tali" />
+              <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)' }}>
+                <Image source={tali.head} style={{ width: 42, height: 42 }} resizeMode="contain" accessibilityLabel="Tali" />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.counter}>{i + 1} of {steps.length}</Text>
                 <Text style={styles.cardTitle}>{step.title}</Text>
               </View>
             </View>
             <Text style={styles.cardBody}>{step.body}</Text>
+            <View style={{ flexDirection: 'row', gap: 5, marginBottom: space.md }}>
+              {steps.map((_, n) => (
+                <View key={n} style={{ height: 4, flex: n === i ? 2 : 1, borderRadius: 2, backgroundColor: n <= i ? '#B9A6FF' : 'rgba(255,255,255,0.18)' }} />
+              ))}
+            </View>
             <View style={{ flexDirection: 'row', gap: space.sm }}>
               {i > 0 ? (
                 <Pressable accessibilityRole="button" onPress={() => setI(i - 1)} style={styles.backBtn}>
@@ -200,11 +208,11 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(20,12,24,0.66)' },
+  overlay: { flex: 1, backgroundColor: 'rgba(8,6,28,0.72)' },
   centreOverlay: { flex: 1, backgroundColor: 'rgba(20,12,24,0.6)', justifyContent: 'center', alignItems: 'center', padding: space.xl },
   ring: { position: 'absolute', width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3, borderColor: '#C9A2DC', zIndex: 200 },
   ringSolid: { position: 'absolute', width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3, borderColor: colours.purple, backgroundColor: 'rgba(255,255,255,0.12)', zIndex: 199 },
-  box: { position: 'absolute', borderRadius: 26, borderWidth: 3, borderColor: '#C9A2DC', backgroundColor: 'rgba(255,255,255,0.10)', zIndex: 199 },
+  box: { position: 'absolute', borderRadius: 26, borderWidth: 2, borderColor: '#B9A6FF', backgroundColor: 'rgba(185,166,255,0.10)', shadowColor: '#B9A6FF', shadowOpacity: 0.9, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, zIndex: 199 },
   skip: { position: 'absolute', top: 16, right: 20, zIndex: 10, padding: 6 },
   skipText: { color: '#E9DDEF', fontSize: 14, fontWeight: '700' },
   card: {
@@ -213,29 +221,29 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '88%',
     maxWidth: 360,
-    backgroundColor: colours.surface,
-    borderRadius: radius.card,
+    backgroundColor: NIGHT,
+    borderRadius: 22,
     padding: space.lg,
-    borderLeftWidth: 5,
-    borderLeftColor: colours.purple,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(214,200,255,0.55)',
+    shadowColor: '#7A4DFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 24,
     elevation: 8,
   },
-  counter: { fontSize: 12, color: colours.purple, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 },
-  cardTitle: { fontSize: 17, fontWeight: '800', color: colours.text },
-  cardBody: { fontSize: 15, color: colours.muted, lineHeight: 22, marginBottom: space.lg },
-  primaryBtn: { backgroundColor: colours.purple, borderRadius: radius.input, paddingVertical: 12, paddingHorizontal: space.xl, alignItems: 'center', ...elevation.button(colours.purple) },
-  primaryBtnText: { color: colours.onPurple, fontSize: 15, fontWeight: '800' },
-  backBtn: { borderRadius: radius.input, paddingVertical: 12, paddingHorizontal: space.lg, alignItems: 'center', borderWidth: 1, borderColor: colours.borderStrong },
-  backBtnText: { color: colours.text, fontSize: 15, fontWeight: '700' },
-  celebrateCard: { backgroundColor: colours.surface, borderRadius: 22, padding: space.xl, alignItems: 'center', width: '100%', maxWidth: 340, ...elevation.card },
-  celebrateTitle: { fontSize: 22, fontWeight: '800', color: colours.text, textAlign: 'center', marginBottom: 4 },
-  celebrateSub: { fontSize: 14, color: colours.muted, textAlign: 'center', marginBottom: space.lg },
-  firstCard: { backgroundColor: colours.purpleSoft, borderRadius: radius.input, padding: space.md, width: '100%', marginBottom: space.lg, ...elevation.tile },
+  counter: { fontSize: 11, color: '#B9A6FF', fontWeight: '800', letterSpacing: 1.6, marginBottom: 2 },
+  cardTitle: { fontSize: 26, lineHeight: 29, color: '#FFFFFF', fontFamily: 'InstrumentSerif_400Regular' },
+  cardBody: { fontSize: 15, color: 'rgba(255,255,255,0.82)', lineHeight: 22, marginBottom: space.lg },
+  primaryBtn: { backgroundColor: '#B9A6FF', borderRadius: 999, paddingVertical: 13, paddingHorizontal: space.xl, alignItems: 'center', shadowColor: '#B9A6FF', shadowOpacity: 0.7, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
+  primaryBtnText: { color: '#0C0A24', fontSize: 15, fontWeight: '800' },
+  backBtn: { borderRadius: 999, paddingVertical: 13, paddingHorizontal: space.lg, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)' },
+  backBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  celebrateCard: { backgroundColor: NIGHT, borderRadius: 22, padding: space.xl, alignItems: 'center', width: '100%', maxWidth: 340, borderWidth: 1, borderColor: 'rgba(214,200,255,0.55)', shadowColor: '#7A4DFF', shadowOpacity: 0.8, shadowRadius: 24, shadowOffset: { width: 0, height: 0 } },
+  celebrateTitle: { fontSize: 30, lineHeight: 33, color: '#FFFFFF', fontFamily: 'InstrumentSerif_400Regular', textAlign: 'center', marginBottom: 4 },
+  celebrateSub: { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginBottom: space.lg },
+  firstCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, padding: space.md, width: '100%', marginBottom: space.lg, borderWidth: 1, borderColor: 'rgba(214,200,255,0.25)' },
   bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, marginBottom: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
-  bulletText: { flex: 1, fontSize: 14, color: colours.text, lineHeight: 20 },
+  bulletText: { flex: 1, fontSize: 14, color: '#FFFFFF', lineHeight: 20 },
 });

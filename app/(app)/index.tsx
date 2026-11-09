@@ -50,7 +50,7 @@ function trialLine(c: Credits | null) {
     const days = Math.max(0, Math.ceil((new Date(c.trialEndsAt).getTime() - Date.now()) / 86400000));
     // Only worth saying in the last month (founding and comped trials can run for a year or more).
     if (days > 30) return null;
-    return `${days} day${days === 1 ? '' : 's'} left of your ${c.plan === 'pro' ? 'Tali HQ Pro' : 'Tali HQ'} trial`;
+    return `${days} day${days === 1 ? '' : 's'} left of your ${c.plan === 'max' ? 'Tali HQ Max' : c.plan === 'pro' ? 'Tali HQ Pro' : 'Tali HQ'} trial`;
   }
   return null;
 }
