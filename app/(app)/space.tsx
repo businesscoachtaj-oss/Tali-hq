@@ -27,7 +27,7 @@ const AREA = {
 type Area = keyof typeof AREA;
 type Star = { key: string; title: string; sub: string; area: Area; size: number; links: { text: string; area: Area }[]; action?: string };
 
-const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.82], [1, 0.97]] as const;
+const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.76], [1, 0.86]] as const;
 
 export default function Space() {
   const { profile } = useAuth();
@@ -146,7 +146,7 @@ export default function Space() {
             ) : null}
           </View>
         ) : (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 18, paddingHorizontal: 16, marginTop: 4 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 18, paddingHorizontal: 16, marginTop: 28 }}>
             {(Object.keys(AREA) as Area[]).map((a) => (
               <Pressable key={a} onPress={() => router.navigate('/world')} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }} accessibilityRole="button">
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: AREA[a].colour, shadowColor: AREA[a].colour, shadowOpacity: 1, shadowRadius: 8 }} />
