@@ -48,7 +48,7 @@ export default function SignIn() {
 
   return (
     <Screen>
-      <Title sub="Your business, run with an AI that has your back.">Tali HQ</Title>
+      <Title sub="An AI with a brain that grows with you. For your life and your work.">Tali HQ</Title>
       <TaliSays pose="wave">G'day. Sign in and I'll catch you up.</TaliSays>
       <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" inputMode="email" />
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" onSubmitEditing={signIn} />

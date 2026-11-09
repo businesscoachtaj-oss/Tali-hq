@@ -10,7 +10,7 @@ export const BRAIN_AI_PREVIEW = true;
 export const COST = {
   secondOpinion: 20, // GPT-5.4 checks Tali's answer, about A$0.035 to us
   videoPerMinute: 5, // Gemini 3 Flash watches a video, about A$0.015 a minute to us
-  webSearch: 2, // Perplexity Sonar, up to A$0.02 a search to us
+  webSearch: 2, // what tali-chat already charges per web search on paid plans
 } as const;
 
 // The voice add-on: ElevenLabs speaks her replies and hears yours. About A$0.06 a spoken minute to us.

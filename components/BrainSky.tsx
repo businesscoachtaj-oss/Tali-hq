@@ -20,7 +20,7 @@ const AREA = {
   growth: { name: 'Growth', colour: '#FFE066' },
 } as const;
 type Area = keyof typeof AREA;
-type Star = { key: string; title: string; sub: string; area: Area; size: number; links: { text: string; area: Area }[]; action?: string };
+type Star = { key: string; title: string; sub: string; area: Area; size: number; links: { text: string; area: Area }[]; action?: string; to?: string };
 
 const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.76], [1, 0.86]] as const;
 
@@ -50,18 +50,38 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   const idea = items.find((i) => i.kind === 'idea');
   const late = money?.overdueInvoices?.[0];
 
+  // Everything on a star is real: what is late, waiting, new or due, plus what she remembers that touches it.
+  const short = (t: string, n = 40) => (t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t);
+  const areaOf = (kind: string): Area => (kind === 'person' ? 'people' : ['idea', 'plan', 'goal', 'decision'].includes(kind) ? 'growth' : kind === 'event' ? 'health' : 'work');
+  // Up to two other things she knows that mention the same name.
+  const related = (name: string | null | undefined, skip?: string) => {
+    const n = (name ?? '').trim().toLowerCase();
+    if (n.length < 3) return [];
+    return items.filter((i) => i.text !== skip && i.text.toLowerCase().includes(n)).slice(0, 2).map((i) => ({ text: short(i.text, 44), area: areaOf(i.kind) }));
+  };
   const stars: Star[] = [];
-  if (late) stars.push({ key: 'late', title: `Invoice ${late.number} is late`, sub: `${late.client_name}, A$${late.total}`, area: 'money', size: 22,
-    links: [{ text: late.client_name, area: 'people' }, { text: `${(late as any).days ?? Math.max(1, Math.round((Date.now() - new Date(late.due_date).getTime()) / 86400000))} days overdue`, area: 'money' }, { text: 'Invoice sent with Stripe link', area: 'work' }], action: 'Draft a friendly nudge' });
-  if (approvals[0]) stars.push({ key: 'yes', title: approvals[0].title, sub: 'Waiting for your yes', area: 'work', size: 18,
-    links: [{ text: approvals[0].draft?.to_name || 'Jess', area: 'people' }, { text: 'Thursday 10am is free', area: 'work' }], action: 'Read the draft' });
-  if (mail[0]) stars.push({ key: 'mail', title: `${mail[0].from_name || 'Someone'} wants to move`, sub: mail[0].summary || mail[0].subject || 'New email', area: 'people', size: 16,
-    links: [{ text: 'Saturday 9am is free', area: 'work' }, { text: 'Trains with you Fridays', area: 'health' }], action: 'Offer Saturday' });
-  if (person) stars.push({ key: 'mum', title: "Mum's birthday", sub: '14 December. She loves orchids.', area: 'health', size: 14,
-    links: [{ text: '5 weeks away', area: 'growth' }, { text: 'Orchid delivery near her', area: 'people' }], action: 'Remind me 1 Dec' });
-  if (due[0]) stars.push({ key: 'due', title: due[0].text, sub: 'Today, 10am', area: 'work', size: 13, links: [{ text: 'May, M.L Remedial', area: 'people' }], action: 'Done' });
-  if (idea) stars.push({ key: 'idea', title: 'Weekend bootcamp', sub: 'Your idea for February', area: 'growth', size: 12,
-    links: [{ text: '6 clients asked about weekends', area: 'people' }, { text: 'Park permit needed', area: 'work' }], action: 'Plan it with her' });
+  if (late) {
+    const days = Math.max(1, Math.round((Date.now() - new Date(late.due_date).getTime()) / 86400000));
+    stars.push({ key: 'late', title: `Invoice ${late.number} is late`, sub: `${late.client_name}, A$${late.total}`, area: 'money', size: 22,
+      links: [{ text: late.client_name, area: 'people' }, { text: `${days} ${days === 1 ? 'day' : 'days'} overdue`, area: 'money' }, ...related(late.client_name).slice(0, 1)], action: 'Open invoices', to: '/invoices' });
+  }
+  if (approvals[0]) {
+    const to = approvals[0].draft?.to_name;
+    stars.push({ key: 'yes', title: short(approvals[0].title), sub: 'Waiting for your yes', area: 'work', size: 18,
+      links: [...(to ? [{ text: to, area: 'people' as Area }] : []), ...related(to)], action: approvals.length > 1 ? `${approvals.length} drafts are just below` : 'The draft is just below' });
+  }
+  if (mail[0]) {
+    const from = mail[0].from_name || mail[0].from_email || 'Someone';
+    stars.push({ key: 'mail', title: `${short(from, 22)} emailed`, sub: mail[0].summary || mail[0].subject || 'New email', area: 'people', size: 16,
+      links: [...(mail[0].subject ? [{ text: short(mail[0].subject, 44), area: 'work' as Area }] : []), ...related(mail[0].from_name)], action: 'Open email', to: '/inbox' });
+  }
+  if (due[0]) {
+    const at = due[0].due_at ? new Date(due[0].due_at) : null;
+    stars.push({ key: 'due', title: short(due[0].text), sub: at && !Number.isNaN(at.getTime()) ? `Today, ${at.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}` : 'Due today', area: 'work', size: 13,
+      links: due.length > 1 ? [{ text: `${due.length - 1} more due today`, area: 'work' }] : [], action: 'Your list is just below' });
+  }
+  if (person) stars.push({ key: 'person', title: short(person.text, 46), sub: 'Something she remembers for you', area: 'people', size: 14, links: related(person.text.split(/[\s']/)[0], person.text), action: 'Talk it through', to: '/talk' });
+  if (idea) stars.push({ key: 'idea', title: short(idea.text, 46), sub: 'An idea you had', area: 'growth', size: 12, links: [], action: 'Plan it with her', to: '/talk' });
 
   const stageH = 470;
   const cx = W / 2, cy = stageH / 2;
@@ -69,8 +89,8 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   const counts: Partial<Record<RegionId, number>> = {};
   brain?.regions.forEach((r) => (counts[r.id] = r.count));
   const sel = stars.find((s) => s.key === focus) ?? null;
-  const needs = stars.filter((s) => s.area === 'money' || s.key === 'yes' || s.key === 'mail').length;
-  const line = sel ? `${sel.title}. Here's everything I know that touches it.` : needs ? `${needs} things need you. I've got the rest.` : 'All quiet. Tell me anything.';
+  const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
+  const line = sel ? `${sel.title}. Here's everything I know that touches it.` : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
 
   return (
     <View style={{ width: W, alignSelf: 'center' }}>
@@ -133,8 +153,8 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
             <Text style={{ color: '#FFFFFF', fontSize: 28, marginTop: 4, fontFamily: 'InstrumentSerif_400Regular' }}>{sel.title}</Text>
             <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginTop: 2 }}>{sel.sub}</Text>
             {sel.action ? (
-              <Pressable accessibilityRole="button" style={{ marginTop: 16, alignSelf: 'flex-start', backgroundColor: AREA[sel.area].colour, borderRadius: 999, paddingVertical: 12, paddingHorizontal: 20, shadowColor: AREA[sel.area].colour, shadowOpacity: 0.8, shadowRadius: 16 }}>
-                <Text style={{ color: '#0C0A24', fontWeight: '800', fontSize: 15 }}>{sel.action}</Text>
+              <Pressable accessibilityRole="button" disabled={!sel.to} onPress={() => sel.to && router.navigate(sel.to as any)} style={{ marginTop: 16, alignSelf: 'flex-start', backgroundColor: sel.to ? AREA[sel.area].colour : 'rgba(255,255,255,0.12)', borderRadius: 999, paddingVertical: 12, paddingHorizontal: 20, shadowColor: AREA[sel.area].colour, shadowOpacity: 0.8, shadowRadius: 16 }}>
+                <Text style={{ color: sel.to ? '#0C0A24' : 'rgba(255,255,255,0.8)', fontWeight: '800', fontSize: 15 }}>{sel.action}</Text>
               </Pressable>
             ) : null}
           </View>

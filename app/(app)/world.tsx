@@ -8,6 +8,7 @@ import { myCredits, type Credits } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
 import { Screen } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
+import { WorldMap } from '@/components/WorldMap';
 import { colours, radius, space } from '@/constants/theme';
 
 type Row = { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; sub: string; to: string; locked?: boolean; pro?: boolean };
@@ -45,7 +46,11 @@ export default function World() {
   ];
   return (
     <Screen>
-      <SkinHeader id="brain" title="Your world" sub="Everything in your life she helps with. Work is part of it, not all of it." />
+      <SkinHeader id="brain" title="Your world" sub="Everything she looks after, as she sees it. Each star is something she knows. Tap a part of your life to step into it." />
+      <View style={{ marginHorizontal: -space.lg }}>
+        <WorldMap />
+      </View>
+      <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '800', letterSpacing: 2, marginBottom: space.md }}>EVERYTHING, AS A LIST</Text>
       {areas.map((a) => (
         <View key={a.title} style={{ marginBottom: space.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
