@@ -7,7 +7,9 @@ import { friendlyDate } from '@/lib/dates';
 import { recentPatterns, type PatternsBrief } from '@/lib/patterns';
 import { PatternsCard } from '@/components/PatternsCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, useConfirm } from '@/components/ui';
-import { colours, radius, space } from '@/constants/theme';
+import { SkinHeader } from '@/components/PageSkin';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { colours, elevation, radius, space } from '@/constants/theme';
 
 const MOODS = ['Rough', 'Meh', 'Okay', 'Good', 'Great'];
 
@@ -182,13 +184,14 @@ export default function Journal() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <Title sub={tab === 'mine' ? 'Your journal and notes. Tali learns from them unless you keep an entry private.' : 'Every Sunday evening Tali writes up her week working with you.'}>Journal</Title>
-      <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
+    <Screen skin="journal" onRefresh={load}>
+      {/* 9 Nov 2026: Journal gets the same banner and card style as the other pages. */}
+      <SkinHeader id="journal" title="Journal" sub={tab === 'mine' ? 'Your journal and notes. Tali learns from them unless you keep an entry private.' : 'Every Sunday evening Tali writes up her week working with you.'} />
+      <View style={{ flexDirection: 'row', backgroundColor: colours.surface, borderRadius: radius.pill, padding: 4, marginBottom: space.md, ...elevation.tile }}>
         {(['mine', 'tali'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
-            style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? colours.surface : 'transparent', alignItems: 'center' }}>
-            <Text style={{ fontWeight: '700', color: tab === k ? colours.text : colours.muted }}>
+            style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? '#5B1F4A' : 'transparent', alignItems: 'center' }}>
+            <Text style={{ fontWeight: '700', color: tab === k ? '#FFFFFF' : colours.muted }}>
               {k === 'mine' ? 'Yours' : "Tali's"}{k === 'tali' && hers.some((h) => !h.read_at) ? ' \u2022' : ''}
             </Text>
           </Pressable>
@@ -239,14 +242,18 @@ export default function Journal() {
           <Pressable
             key={e.id}
             onPress={() => openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali })}>
-            <Card>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
-                <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>
+            <Card style={{ borderLeftWidth: 5, borderLeftColor: e.kind === 'note' ? colours.purple : '#B24D8C' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: e.kind === 'note' ? colours.purpleSoft : '#F6ECF2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={e.kind === 'note' ? 'document-text-outline' : 'book-outline'} size={16} color={e.kind === 'note' ? colours.purple : '#5B1F4A'} />
+                </View>
+                <Text style={{ flex: 1, fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>
                   {e.kind === 'note' ? 'Note' : 'Journal'} {'·'} {when(e.created_at)}
                 </Text>
-                {e.private_to_tali ? <Text style={{ fontSize: 12, color: colours.purpleInk, fontWeight: '700' }}>Private</Text> : null}
+                {e.mood ? <Text style={{ fontSize: 12, fontWeight: '800', color: '#5B1F4A', backgroundColor: '#F6ECF2', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9, overflow: 'hidden' }}>{MOODS[e.mood - 1]}</Text> : null}
+                {e.private_to_tali ? <Ionicons name="lock-closed" size={14} color={colours.purpleInk} accessibilityLabel="Private" /> : null}
               </View>
-              {e.title ? <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text, marginTop: 4 }}>{e.title}</Text> : null}
+              {e.title ? <Text style={{ fontSize: 17, fontWeight: '800', color: colours.text, marginTop: 8 }}>{e.title}</Text> : null}
               <Text numberOfLines={3} style={{ fontSize: 15, color: colours.text, marginTop: 4, lineHeight: 21 }}>{e.body}</Text>
             </Card>
           </Pressable>

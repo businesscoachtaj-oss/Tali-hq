@@ -11,7 +11,8 @@ import { BrainGlobe } from '@/components/BrainGlobe';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink, Card, ErrorText, Label, Screen, Title, goBack, useConfirm } from '@/components/ui';
 import { FOUNDER_USER_ID } from '@/constants/business';
-import { colours, radius, space } from '@/constants/theme';
+import { SkinHeader } from '@/components/PageSkin';
+import { colours, elevation, radius, space } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemoryPrivate, settleConflict, type Brain, type BrainItem, type RegionId } from '@/lib/brain';
 import { forgetMemory } from '@/lib/data';
@@ -114,9 +115,8 @@ export default function BrainScreen() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => goBack('/me')} />
-      <Title sub={brain ? `${brain.total.toLocaleString('en-AU')} memories${brain.scope === 'main' ? ' across everyone' : ''}` : ' '}>Tali's brain</Title>
+    <Screen skin="brain" onRefresh={load}>
+      <SkinHeader id="brain" title="Tali's brain" sub={brain ? `${brain.total.toLocaleString('en-AU')} memories${brain.scope === 'main' ? ' across everyone' : ''}` : undefined} onBack={() => goBack('/me')} />
 
       {founder ? (
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
@@ -159,6 +159,17 @@ export default function BrainScreen() {
             </Pressable>
           ))}
         </Card>
+      ) : null}
+
+      {/* 9 Nov 2026 (Tuesday list item 8): which AI each part uses, now and planned. Founder only for now. */}
+      {founder ? (
+        <Pressable onPress={() => router.navigate('/brain-ai')} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.surface, borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: space.lg, marginBottom: space.md, ...elevation.card }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>How Tali thinks</Text>
+            <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>The AI each part of her brain uses, now and planned</Text>
+          </View>
+          <Text style={{ fontSize: 22, color: colours.faint, fontWeight: '600' }}>{'›'}</Text>
+        </Pressable>
       ) : null}
 
       {/* 6 Nov 2026 (Taj): laid out like the website demo. One night card holds the brain, the part you
@@ -242,6 +253,11 @@ export default function BrainScreen() {
                               {it.mine && it.private ? <Badge text="Private" colour={night.accent} /> : null}
                             </View>
                             <Text style={{ fontSize: 14, color: night.ink, lineHeight: 20, marginTop: 2 }}>{it.text}</Text>
+                            {/* 9 Nov 2026 (Tuesday list): skills show uses, wins and last used; lessons and mistakes show whether they held. */}
+                            {it.kind === 'skill' && it.uses != null ? <SkillStats it={it} colour={REGIONS[region.id].colour} /> : null}
+                            {(it.kind === 'lesson' || it.kind === 'mistake') && ((it.held ?? 0) + (it.broken ?? 0)) > 0 ? (
+                              <Text style={{ fontSize: 12, color: night.muted, marginTop: 4 }}>{heldLine(it)}</Text>
+                            ) : null}
                           </View>
                           {canForget ? (
                             <View style={{ alignItems: 'flex-end', gap: space.sm }}>
@@ -404,4 +420,30 @@ function LevelCard({ level }: { level: Level }) {
       </LinearGradient>
     </View>
   );
+}
+
+// 9 Nov 2026 (Tuesday list): how a skill is doing, and whether a lesson held.
+function lastUsed(iso?: string | null) {
+  return iso ? `last used ${ago(iso)}` : 'not used yet';
+}
+function SkillStats({ it, colour }: { it: BrainItem; colour: string }) {
+  const uses = it.uses ?? 0;
+  const wins = it.wins ?? 0;
+  const pct = uses ? Math.round((wins / uses) * 100) : 0;
+  return (
+    <View style={{ marginTop: 6, gap: 5 }}>
+      <Text style={{ fontSize: 12, color: night.muted }}>Used {uses} · worked {wins} · {lastUsed(it.last_used)}</Text>
+      <View style={{ height: 5, borderRadius: 3, backgroundColor: night.line, overflow: 'hidden' }}>
+        <View style={{ width: `${Math.max(pct, uses ? 4 : 0)}%`, height: 5, borderRadius: 3, backgroundColor: colour }} />
+      </View>
+    </View>
+  );
+}
+function heldLine(it: BrainItem) {
+  const held = it.held ?? 0;
+  const broken = it.broken ?? 0;
+  const total = held + broken;
+  if (!broken) return `Checked ${total} time${total === 1 ? '' : 's'}, held every time`;
+  if (!held) return `Checked ${total} time${total === 1 ? '' : 's'}, didn't hold`;
+  return `Held ${held} of ${total} times`;
 }

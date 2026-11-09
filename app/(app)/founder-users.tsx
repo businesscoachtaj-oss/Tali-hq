@@ -7,6 +7,7 @@ import { founderUsers, type FounderUser } from '@/lib/data';
 import { ChipPicker } from '@/components/ChipPicker';
 import { Sheet } from '@/components/Sheet';
 import { BackLink, Body, Card, ErrorText, Screen, TaliSays, Title } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 const FILTERS = ['All', 'On trial', 'Paying', 'Free', 'Ending soon'] as const;
@@ -73,9 +74,8 @@ export default function FounderUsers() {
   const cur = (users ?? []).find((u) => u.id === open) ?? null;
 
   return (
-    <Screen>
-      <BackLink onPress={() => router.back()} />
-      <Title sub="Every Tali HQ account. Only you can see this.">Users</Title>
+    <Screen skin="founder">
+      <SkinHeader id="founder" title="Users" sub="Every Tali HQ account." onBack={() => router.back()} />
       <ErrorText>{error}</ErrorText>
 
       <TextInput

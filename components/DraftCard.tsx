@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { bookEventApproval, bookOutlookApproval, decideApproval, editDraft, sendEmailApproval, sendFromTaliAddress, sendInvoiceWithStripe, sendOutlookApproval, type Approval } from '@/lib/data';
 import { INBOUND_DOMAIN } from '@/constants/business';
 import { Card, useConfirm } from '@/components/ui';
+import { SendChecks, findPlaceholders } from '@/components/SendChecks';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 const KIND_LABEL: Record<string, string> = {
@@ -67,6 +68,10 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   const [sent, setSent] = useState(false);
   const [sentNote, setSentNote] = useState('');
   const [copyOnly, setCopyOnly] = useState(false);
+  // 9 Nov 2026: check before sending. Leftover [placeholder] text holds every send and copy button.
+  const checkable = !!body && !calendarBook && !outlookBook;
+  const placeholders = checkable ? findPlaceholders(subject, body) : [];
+  const held = placeholders.length > 0;
 
   async function sendGmail() {
     setBusy(true);
@@ -208,35 +213,36 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
           {editNote && !editing ? <Text style={{ fontSize: 12, color: colours.good, marginTop: 6 }}>{editNote}</Text> : null}
         </View>
       ) : null}
+      {checkable && !sent ? <SendChecks placeholders={placeholders} approvalId={item.id} /> : null}
       {error ? <Text style={{ color: colours.danger, fontSize: 13, marginTop: 6 }}>{error}</Text> : null}
       {sent ? <Text style={{ color: colours.good, fontWeight: '700', marginTop: space.sm }}>{sentNote || 'Sent through Stripe 🙌'}</Text> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.md }}>
         {stripeSend ? (
           <>
-            {item.draft?.email ? <Chip label={busy ? 'Sending...' : 'Send with Stripe'} primary onPress={sendStripe} disabled={busy || sent} /> : null}
+            {item.draft?.email ? <Chip label={busy ? 'Sending...' : 'Send with Stripe'} primary onPress={sendStripe} disabled={busy || sent || held} /> : null}
             <Chip label={item.draft?.email ? 'Check it first' : 'Add their email'} onPress={() => router.navigate('/invoices')} disabled={busy} />
           </>
         ) : gmailSend ? (
           <>
-            <Chip label={busy ? 'Sending...' : 'Send from Gmail'} primary onPress={sendGmail} disabled={busy || sent} />
+            <Chip label={busy ? 'Sending...' : 'Send from Gmail'} primary onPress={sendGmail} disabled={busy || sent || held} />
             {body ? <Chip label={copied ? 'Copied' : 'Copy instead'} onPress={copy} disabled={busy} /> : null}
           </>
         ) : outlookSend ? (
           <>
-            <Chip label={busy ? 'Sending...' : 'Send from Outlook'} primary onPress={sendOutlook} disabled={busy || sent} />
+            <Chip label={busy ? 'Sending...' : 'Send from Outlook'} primary onPress={sendOutlook} disabled={busy || sent || held} />
             {body ? <Chip label={copied ? 'Copied' : 'Copy instead'} onPress={copy} disabled={busy} /> : null}
           </>
         ) : calendarBook || outlookBook ? (
           <Chip label={busy ? 'Booking...' : 'Book it'} primary onPress={book} disabled={busy || sent} />
         ) : taliSend && !copyOnly ? (
           <>
-            <Chip label={busy ? 'Sending...' : 'Send'} primary onPress={sendTali} disabled={busy || sent} />
+            <Chip label={busy ? 'Sending...' : 'Send'} primary onPress={sendTali} disabled={busy || sent || held} />
             {body ? <Chip label={copied ? 'Copied' : 'Copy instead'} onPress={copy} disabled={busy} /> : null}
           </>
         ) : (
           <>
-            {body ? <Chip label={copied ? 'Copied' : 'Copy'} primary onPress={copy} disabled={busy} /> : null}
-            <Chip label="Done, I sent it" onPress={() => decide('done')} disabled={busy} />
+            {body ? <Chip label={copied ? 'Copied' : 'Copy'} primary onPress={copy} disabled={busy || held} /> : null}
+            <Chip label="Done, I sent it" onPress={() => decide('done')} disabled={busy || held} />
           </>
         )}
         <Chip label={armed === 'reject' ? 'Sure?' : 'Not needed'} ghost onPress={() => confirm('reject', () => decide('rejected'))} disabled={busy || sent} />
