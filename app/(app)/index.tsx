@@ -30,8 +30,6 @@ import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
 import { TodayHero } from '@/components/TodayHero';
-import { TodayHello } from '@/components/TodayHello';
-import { NeedsYou } from '@/components/NeedsYou';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 
 function greeting() {
@@ -161,43 +159,57 @@ export default function Today() {
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
         <View ref={heroRef} collapsable={false}>
-        {/* 9 Nov 2026 (Tali's Tuesday list): a calm white card by day; the night sky stays for night mode. */}
-        {night ? (
-          <TodayHero
-            greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
-            sub={trial}
-            hello={loaded ? helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health }) : 'Just having a look at your day.'}
-            briefLabel={null}
-            onBrief={() => setBriefOpen((o) => !o)}
-            night
-            nightLine={shutdown?.tali_line}
-          />
-        ) : (
-          <TodayHello
-            greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
-            sub={trial}
-            hello={loaded ? helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health }) : 'Just having a look at your day.'}
-            briefLabel={morning ? (briefOpen ? 'Hide brief' : 'Read your brief') : null}
-            onBrief={() => setBriefOpen((o) => !o)}
-          />
-        )}
+        <TodayHero
+          greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
+          sub={trial}
+          hello={loaded ? helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health }) : 'Just having a look at your day.'}
+          briefLabel={morning && !night ? (briefOpen ? 'Hide your brief' : 'Read your brief') : null}
+          onBrief={() => setBriefOpen((o) => !o)}
+          night={night}
+          nightLine={shutdown?.tali_line}
+        />
         </View>
 
         {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
         ) : null}
 
-        {/* One strip for everything amber or red (health, drafts, emails). Green days get one line. */}
-        <View ref={yesRef} collapsable={false}>
-          {loaded ? (
-            <NeedsYou
-              health={health}
-              approvals={approvals}
-              emails={newMail}
-              onDecided={(id) => setApprovals((list) => list.filter((x) => x.id !== id))}
+        <MeetingNudge credits={credits} calendar={calendar} compact />
+
+        <NightIdeaCard />
+
+        {newMail.length ? (
+          <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">
+            <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.purple }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: colours.text }}>
+                    {newMail.length === 1 ? `Email from ${newMail[0].from_name || newMail[0].from_email || 'someone'}` : `${newMail.length} emails need a look`}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2, lineHeight: 19 }} numberOfLines={2}>
+                    {newMail.length === 1 ? newMail[0].summary || newMail[0].subject || 'Tap to read it.' : newMail.map((e) => e.from_name || e.from_email).filter(Boolean).slice(0, 3).join(', ')}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 20, color: colours.faint }}>{'›'}</Text>
+              </View>
+            </Card>
+          </Pressable>
+        ) : null}
+
+        {approvals.length ? (
+          <View ref={yesRef} collapsable={false}>
+            <Label>Needs your yes</Label>
+            <FoldList
+              folds={approvals.map((a) => ({
+                key: a.id,
+                title: a.title,
+                hint: a.draft?.to_name ? `To ${a.draft.to_name}` : a.draft?.body?.slice(0, 60),
+                body: <DraftCard item={a} onDecided={(id) => setApprovals((list) => list.filter((x) => x.id !== id))} />,
+              }))}
             />
-          ) : null}
-        </View>
+            <View style={{ height: space.sm }} />
+          </View>
+        ) : null}
 
         <View ref={dueRef} collapsable={false}>
         <Label>Due today</Label>
@@ -214,10 +226,6 @@ export default function Today() {
         )}
         <AddReminder onAdded={load} />
         </View>
-
-        <MeetingNudge credits={credits} calendar={calendar} compact />
-
-        <NightIdeaCard />
 
         <ShutdownCard />
 
