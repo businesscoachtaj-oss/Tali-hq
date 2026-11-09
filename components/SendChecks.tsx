@@ -1,7 +1,8 @@
 // "Check before sending" (9 Nov 2026, from Tali's Tuesday list). Runs on every draft before it can go:
 //   1. Leftover placeholder text like [client name] or [YOUR PRICE]. Found = red, and Send waits.
-//   2. The sending address: bounces in the last 30 days (server side, my_sending_health). A failed
-//      or missing check just doesn't show; it never blocks a send on its own.
+//   2. The sending address: bounces in the last 30 days (sending-health edge function, which asks
+//      Resend). Only known for the Tali address; for Gmail and Outlook, and on any failure, the row
+//      just doesn't show. It never blocks a send on its own.
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
@@ -21,8 +22,9 @@ export function SendChecks({ placeholders, approvalId }: { placeholders: string[
   const [sending, setSending] = useState<Sending>(null);
   useEffect(() => {
     let alive = true;
-    supabase.rpc('my_sending_health', { p_approval_id: approvalId }).then(({ data, error }) => {
-      if (alive && !error && data) setSending(data as Sending);
+    supabase.functions.invoke('sending-health', { body: { approvalId } }).then(({ data, error }) => {
+      const d = data as { address?: string; bounces_30d?: number | null } | null;
+      if (alive && !error && d?.address && typeof d.bounces_30d === 'number') setSending({ address: d.address, bounces_30d: d.bounces_30d });
     }, () => {});
     return () => { alive = false; };
   }, [approvalId]);
