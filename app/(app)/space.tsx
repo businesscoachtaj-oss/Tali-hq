@@ -9,7 +9,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { NightBackground } from '@/components/NightSky';
 import { Aurora } from '@/components/Aurora';
-import { TaliDots } from '@/components/TaliDots';
+import { BrainGlobe } from '@/components/BrainGlobe';
+import { TaliAvatar } from '@/components/TaliAvatar';
 import { myBrain, type Brain, type RegionId } from '@/lib/brain';
 import { inboundEmails, openReminders, pendingApprovals, type Approval, type InboundEmail, type Reminder } from '@/lib/data';
 import { loadMoneyPicture, type MoneyPicture } from '@/lib/money';
@@ -66,12 +67,9 @@ export default function Space() {
   if (idea) stars.push({ key: 'idea', title: 'Weekend bootcamp', sub: 'Your idea for February', area: 'growth', size: 12,
     links: [{ text: '6 clients asked about weekends', area: 'people' }, { text: 'Park permit needed', area: 'work' }], action: 'Plan it with her' });
 
-  // 9 Nov 2026: Tali herself stands in the middle of the sky, made of the same dots as her brain. Your day
-  // circles her and every star is wired to her heart. Tap her to step into her brain.
-  const stageH = 500;
-  const taliH = 360;
-  const cx = W / 2, cy = stageH / 2 - taliH * 0.47 * 0.3;
-  const pos = (i: number) => ({ x: 10 + SPOTS[i][0] * (W - 160), y: SPOTS[i][1] * (stageH - 50) });
+  const stageH = 470;
+  const cx = W / 2, cy = stageH / 2;
+  const pos = (i: number) => ({ x: 16 + SPOTS[i][0] * (W - 186), y: SPOTS[i][1] * (stageH - 50) });
   const counts: Partial<Record<RegionId, number>> = {};
   brain?.regions.forEach((r) => (counts[r.id] = r.count));
   const sel = stars.find((s) => s.key === focus) ?? null;
@@ -84,6 +82,9 @@ export default function Space() {
       <Aurora />
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         <View style={{ paddingHorizontal: 20, paddingTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 22 }}>
+            <TaliAvatar pose="head" size={40} />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
             <Text style={{ color: '#F4F1FF', fontSize: 15, marginTop: 2 }}>{profile?.first_name ? `Afternoon, ${profile.first_name}` : 'Afternoon'}</Text>
@@ -94,8 +95,8 @@ export default function Space() {
 
         {/* The stage: her brain, with your day orbiting it. */}
         <View style={{ height: stageH, marginTop: 10 }}>
-          <View style={{ position: 'absolute', left: W / 2 - 130, top: stageH / 2 - taliH / 2, opacity: sel ? 0.35 : 1 }}>
-            <TaliDots width={260} height={taliH} onPress={() => router.navigate('/tali-brain?auto=1')} />
+          <View style={{ position: 'absolute', left: cx - 150, top: cy - 150, opacity: sel ? 0.35 : 1 }}>
+            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} onSelect={() => router.navigate('/brain')} />
           </View>
           {stars.map((s, i) => {
             const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = !!focus && !on;
@@ -122,7 +123,7 @@ export default function Space() {
             const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = !!focus && !on;
             return (
               <Pressable key={s.key} onPress={() => setFocus(on ? null : s.key)} accessibilityRole="button" accessibilityLabel={s.title}
-                style={{ position: 'absolute', left: p.x, top: p.y, flexDirection: 'row', alignItems: 'flex-start', gap: 8, opacity: dim ? 0.3 : 1, maxWidth: 140 }}>
+                style={{ position: 'absolute', left: p.x, top: p.y, flexDirection: 'row', alignItems: 'flex-start', gap: 8, opacity: dim ? 0.3 : 1, maxWidth: 160 }}>
                 <Pulse colour={c} size={s.size} on={on} strong={s.area === 'money'} delay={i * 350} />
                 <View style={{ flexShrink: 1, backgroundColor: 'rgba(10,8,32,0.78)', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 9, borderWidth: 1, borderColor: c + '66' }}>
                   <Text style={{ color: '#FFFFFF', fontSize: 13.5, fontWeight: '800' }}>{s.title}</Text>

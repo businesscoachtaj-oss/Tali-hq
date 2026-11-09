@@ -30,6 +30,7 @@ import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
 import { TodayHero } from '@/components/TodayHero';
+import { BrainSky } from '@/components/BrainSky';
 import { type Room } from '@/components/RoomSwitch';
 import { SheNoticed } from '@/components/SheNoticed';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
@@ -168,7 +169,8 @@ export default function Today() {
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
         <View ref={heroRef} collapsable={false}>
-        <TodayHero
+        {night ? (
+          <TodayHero
           greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
           sub={trial}
           hello={loaded ? helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health }) : 'Just having a look at your day.'}
@@ -177,6 +179,16 @@ export default function Today() {
           night={night}
           nightLine={shutdown?.tali_line}
         />
+        ) : (
+          <View style={{ marginHorizontal: -space.lg, marginTop: -space.lg }}>
+            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} />
+            {morning ? (
+              <Pressable onPress={() => setBriefOpen((o) => !o)} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: 14, marginBottom: 6 }}>
+                <Text style={{ color: colours.purple, fontSize: 14, fontWeight: '700' }}>{briefOpen ? 'Hide your brief' : 'Read your morning brief'} {'›'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )}
         </View>
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
         <SheNoticed />

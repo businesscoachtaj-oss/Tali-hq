@@ -143,7 +143,7 @@ export async function forgetMemory(id: string): Promise<boolean> {
 export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string; deleted?: boolean };
 // meta.deep marks a Deep think reply; meta.suggest_deep is Tali offering one (6 Nov 2026).
 export type DeepLevel = 'deep' | 'deepest';
-export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null; meta?: { deep?: DeepLevel; suggest_deep?: boolean } | null };
+export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null; meta?: { deep?: DeepLevel; suggest_deep?: boolean; kept?: { text: string; part: string } | null } | null };
 export const MAX_ATTACHMENTS = 4;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 

@@ -280,8 +280,8 @@ export default function Talk() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>
           <TaliAvatar pose={thinking ? 'head_think' : 'head'} size={48} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, color: colours.text, fontFamily: 'PlusJakartaSans_800ExtraBold' }}>Tali</Text>
-            <Text style={{ fontSize: 12, color: colours.muted }}>{thinking ? 'Thinking...' : 'Here and ready'}</Text>
+            <Text style={{ fontSize: 28, color: colours.text, fontFamily: 'InstrumentSerif_400Regular' }}>Tali</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: thinking ? '#FFB04D' : '#8EF0C8' }}>{'●'} {thinking ? 'Thinking' : 'Listening'}</Text>
           </View>
           <Pressable onPress={() => setHistoryOpen(true)} accessibilityRole="button" accessibilityLabel="Your chats" style={{ borderWidth: 0, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
             <Text style={{ fontWeight: '700', fontSize: 15, color: colours.purple }}>Chats</Text>
@@ -339,7 +339,7 @@ export default function Talk() {
             ref={listRef}
             data={rows}
             keyExtractor={(m) => m.id}
-            contentContainerStyle={{ padding: space.lg, gap: space.sm, maxWidth: 680, width: '100%', alignSelf: 'center' }}
+            contentContainerStyle={{ padding: space.lg, gap: space.md, maxWidth: 680, width: '100%', alignSelf: 'center' }}
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             onContentSizeChange={settleList}
@@ -353,21 +353,22 @@ export default function Talk() {
             renderItem={({ item }) => {
               const me = item.role === 'user';
               return (
+                // 10 Nov 2026 look: you're talking to her inside her space. Her words sit in the sky with a
+                // small glowing dot, no bubble. Yours glow violet.
                 <View
-                  style={{
-                    alignSelf: me ? 'flex-end' : 'flex-start',
-                    maxWidth: '86%',
-                    backgroundColor: me ? '#6B4FD8' : colours.surface,
-                    borderWidth: me ? 0 : 1,
-                    borderColor: 'rgba(39,38,38,0.04)',
-                    borderRadius: 18,
-                    borderBottomRightRadius: me ? 6 : 18,
-                    borderBottomLeftRadius: me ? 18 : 6,
-                    paddingVertical: 10,
-                    paddingHorizontal: 14,
+                  style={me ? {
+                    alignSelf: 'flex-end',
+                    maxWidth: '84%',
+                    backgroundColor: 'rgba(122,77,255,0.35)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(200,180,255,0.6)',
+                    borderRadius: 22,
+                    paddingVertical: 11,
+                    paddingHorizontal: 16,
                     opacity: item.pending ? 0.7 : 1,
-                    ...(me ? null : elevation.card),
-                  }}>
+                    shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 18, shadowOffset: { width: 0, height: 0 },
+                  } : { alignSelf: 'stretch', paddingLeft: 20, paddingVertical: 6 }}>
+                  {!me ? <View style={{ position: 'absolute', left: 0, top: 15, width: 8, height: 8, borderRadius: 4, backgroundColor: '#D7CCFF', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }} /> : null}
                   {item.attachments?.some((a) => !isTaliMade(me, a)) ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: item.content ? 8 : 0 }}>
                       {item.attachments.map((a, i) => isTaliMade(me, a) ? null : a.kind === 'image' ? (
@@ -386,7 +387,7 @@ export default function Talk() {
                     </View>
                   ) : null}
                   {!me && item.meta?.deep ? (
-                    <Text style={{ color: colours.purpleInk, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 4 }}>{item.meta.deep === 'deepest' ? 'BIG BRAIN' : 'DEEP THINK'}</Text>
+                    <Text style={{ color: colours.purple, fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 4 }}>{item.meta.deep === 'deepest' ? 'BIG BRAIN' : 'SHE THOUGHT HARDER'}</Text>
                   ) : null}
                   {item.content ? (me
                     ? <Text style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
@@ -397,6 +398,13 @@ export default function Talk() {
                       <TaliImage a={a} drawing={drawing.has(`${item.id}:${i}`)} stale={isStaleImage(a, item.created_at)} onRetry={() => void drawImage(item.id, i)} />
                     </View>
                   ) : null)}
+                  {/* When she keeps something from this reply, say so and say where in her brain it went. */}
+                  {!me && item.meta?.kept ? (
+                    <View style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: keptColour(item.meta.kept.part) + '22', borderWidth: 1, borderColor: keptColour(item.meta.kept.part) + 'AA', shadowColor: keptColour(item.meta.kept.part), shadowOpacity: 0.8, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}>
+                      <Text style={{ color: keptColour(item.meta.kept.part), fontSize: 13 }}>{'✦'}</Text>
+                      <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>New memory</Text> {item.meta.kept.text} <Text style={{ color: keptColour(item.meta.kept.part), fontWeight: '700' }}>{'→'} {item.meta.kept.part}</Text></Text>
+                    </View>
+                  ) : null}
                   {item.failed ? (
                     <Pressable
                       accessibilityRole="button"
@@ -622,6 +630,10 @@ function ChatHistory({ visible, currentId, onClose, onOpen, onNew, onDeleted }: 
       </View>
     </Modal>
   );
+}
+
+function keptColour(part: string) {
+  return ({ 'Your people': '#5CF2C0', 'Your life and work': '#7FA8FF', 'Plans and ideas': '#FFE066', 'How you like things': '#FF7EB6' } as Record<string, string>)[part] ?? '#B9A6FF';
 }
 
 function Chip({ label, onPress, danger }: { label: string; onPress: () => void; danger?: boolean }) {

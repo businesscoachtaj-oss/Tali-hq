@@ -27,7 +27,7 @@ type Box = { w: number; h: number; dot: number; brainScale: number; brainCy: num
 const Dot = memo(function Dot({ i, d, clock, box, morphable }: { i: number; d: TaliDot; clock: Clock; box: Box; morphable: boolean }) {
   const [x, y, z, colour, kind] = d;
   const b = BRAIN_DOTS[(i * 7) % BRAIN_DOTS.length];
-  const size = box.dot * (kind === 'f' ? 1.15 : kind === 'b' ? 0.8 : 1);
+  const size = box.dot * (kind === 'f' ? 0.95 : kind === 'b' ? 0.8 : 1);
   const phase = ((i * 0.618) % 1) * Math.PI * 2;
   const style = useAnimatedStyle(() => {
     const t = clock.t.value;
@@ -36,13 +36,13 @@ const Dot = memo(function Dot({ i, d, clock, box, morphable }: { i: number; d: T
     const th = clock.think.value;
     // Tali: a slow sway and a breath. Thinking sends a ripple up through her.
     const wave = th * 0.08 * Math.sin(t * 6 - y * 7);
-    const ry = Math.sin(t * 0.45) * 0.45 + e * 1.2;
+    const ry = Math.sin(t * 0.4) * 0.8 + e * 1.2;
     const a = proj(x * (1 + wave), y + Math.sin(t * 1.4) * 0.008, z * (1 + wave) + wave * 0.04, ry, 0, box.h * 0.47, box.w / 2, box.h / 2);
     let sx = a.sx, sy = a.sy;
-    let scale = a.k;
-    const front = Math.max(0, Math.min(1, (a.z + 0.12) / 0.24));
+    const front = Math.max(0, Math.min(1, (a.z + 0.25) / 0.5));
+    let scale = a.k * (0.7 + 0.45 * front);
     const twinkle = 0.88 + 0.12 * Math.sin(t * 2.2 + phase);
-    let op = (kind === 'b' ? 0.68 : kind === 'p' ? 0.5 : 0.95) * (0.55 + front * 0.45) * twinkle * (1 + th * 0.25 * Math.max(0, Math.sin(t * 6 - y * 7)));
+    let op = (kind === 'b' ? 0.85 : kind === 'p' ? 0.5 : 0.95) * (0.4 + front * 0.6) * twinkle * (1 + th * 0.25 * Math.max(0, Math.sin(t * 6 - y * 7)));
     if (morphable && e > 0) {
       // Fly to a place in her brain, curving a little on the way so it reads as a swirl, not a slide.
       const p = proj(b.x, b.y, b.z, BRAIN_START.ry - (1 - e) * 2.2, BRAIN_START.rx * e, box.brainScale, box.w / 2, box.brainCy);
@@ -69,7 +69,7 @@ const Dot = memo(function Dot({ i, d, clock, box, morphable }: { i: number; d: T
   const glow = kind === 'f' ? '#FFFFFF' : kind === 'c' ? colour : null;
   return (
     <Animated.View style={[styles.dot, { width: size, height: size }, style]}>
-      {glow ? <Animated.View style={[styles.ring, { width: size * 2.6, height: size * 2.6, left: -size * 0.8, top: -size * 0.8, borderRadius: size * 1.3, backgroundColor: glow }, halo]} /> : null}
+      {glow ? <Animated.View style={[styles.ring, { width: size * (kind === 'f' ? 1.9 : 2.6), height: size * (kind === 'f' ? 1.9 : 2.6), left: -size * (kind === 'f' ? 0.45 : 0.8), top: -size * (kind === 'f' ? 0.45 : 0.8), borderRadius: size * 1.3, backgroundColor: glow }, halo]} /> : null}
       <View style={[styles.ring, { width: size, height: size, borderRadius: size / 2, backgroundColor: colour }]} />
       {morphable ? <Animated.View style={[styles.ring, { width: size, height: size, borderRadius: size / 2, backgroundColor: b.colour }, brainColour]} /> : null}
     </Animated.View>
@@ -82,6 +82,7 @@ export function TaliDots({
   thinking = false,
   morph,
   brainSize,
+  every = 1,
   onPress,
 }: {
   width: number;
@@ -92,6 +93,8 @@ export function TaliDots({
   morph?: SharedValue<number>;
   /** How big the brain globe she turns into is drawn, centred in the same box. */
   brainSize?: number;
+  /** Keep every nth dot (her face always stays whole), for small sizes where all of them crowd. */
+  every?: number;
   onPress?: () => void;
 }) {
   const t = useSharedValue(0);
@@ -105,12 +108,12 @@ export function TaliDots({
   }, [thinking, think]);
   const clock = { t, think, morph: morph ?? own };
   const bs = brainSize ?? width;
-  const box: Box = { w: width, h: height, dot: Math.max(2.4, height / 150), brainScale: (bs / 2) * 0.86, brainCy: height / 2 + bs * 0.02, brainDot: bs / 400 };
+  const box: Box = { w: width, h: height, dot: Math.max(1.8, height / 150), brainScale: (bs / 2) * 0.86, brainCy: height / 2 + bs * 0.02, brainDot: bs / 400 };
   const body = (
     <View style={{ width, height }} pointerEvents={onPress ? 'box-only' : 'none'}>
-      {TALI_DOTS.map((d, i) => (
+      {TALI_DOTS.map((d, i) => (every > 1 && i % (d[4] === 'f' ? 2 : every) ? null : (
         <Dot key={i} i={i} d={d} clock={clock} box={box} morphable={!!morph} />
-      ))}
+      )))}
     </View>
   );
   return onPress ? (
