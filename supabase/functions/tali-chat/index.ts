@@ -33,6 +33,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { calendarSummary, loadConnection } from '../_shared/google.ts';
 import { calendarSummary as msCalendarSummary, loadConnection as loadMsConnection } from '../_shared/microsoft.ts';
 import { capabilities, COSTS, deleteVideo, describeVideo, moderate, rerankMemories, RERANK_MODEL, secondOpinion, uploadVideo, videoCredits } from '../_shared/brainAi.ts';
+import { embedQuery } from '../_shared/brainEmbed.ts';
 
 // Vendor and model names are only ever stored or returned for the founder. Customers see plain words.
 const FOUNDER_ID = 'e89ca9de-a86e-4dd6-8094-bc518566352e';
@@ -138,7 +139,11 @@ const TOOL = {
             // CHANGED (6 Nov 2026, brain sections): 'plan' and 'seen' added, plus urgent and conflicts_with.
             kind: { type: 'string', enum: ['fact', 'preference', 'person', 'idea', 'event', 'plan', 'seen'], description: "'plan' for something they plan to do, 'seen' for what was in a photo or screenshot they sent that is worth keeping." },
             content: { type: 'string' },
-            about: { type: 'array', items: { type: 'string' }, description: 'Names of people, clients or products it is about.' },
+            // CHANGED (10 Nov 2026, brain overhaul): was 'Names of people, clients or products it is about.' Most memories came back with no names, so nothing linked up.
+            about: { type: 'array', items: { type: 'string' }, description: 'The names of every person, client, business, product or place this is about, exactly as they call them, for example ["Mum"] or ["Bayside Physio", "Dana"]. Fill it whenever the sentence names anyone or anything. Empty only when it truly names nothing.' },
+            // ADDED (10 Nov 2026, brain overhaul): memories can carry a date, so what is coming up shows on Today.
+            date: { type: 'string', description: 'Only when this memory is tied to a day: that day as YYYY-MM-DD, worked out from today\'s date. For a birthday or anniversary give the next time it comes round. Leave out when there is no clear day.' },
+            yearly: { type: 'boolean', description: 'True when the date comes round every year: a birthday, an anniversary, a yearly renewal.' },
             urgent: { type: 'boolean', description: 'True only when it needs action soon or is a real risk: money owed, a deadline this week, an unhappy client, a legal or safety issue.' },
             conflicts_with: { type: 'string', description: 'The ref (like m3 or r2) of a memory you were given that this new one contradicts. Leave out when nothing contradicts.' },
           },
@@ -374,7 +379,7 @@ type Out = {
   reply: string;
   make_image?: { prompt: string; shape?: string };
   suggest_deep?: boolean;
-  remember?: { kind: string; content: string; about?: string[]; urgent?: boolean; conflicts_with?: string }[];
+  remember?: { kind: string; content: string; about?: string[]; urgent?: boolean; conflicts_with?: string; date?: string; yearly?: boolean }[];
   lessons_used?: { ref: string; held: boolean }[];
   drafts?: { kind: string; title: string; to?: string; body: string }[];
   clients?: { name: string; kind?: string; status?: string; notes?: string; next_follow_up?: string }[];
@@ -691,11 +696,24 @@ Deno.serve(async (req) => {
         }
       }
     }
+    // ADDED (10 Nov 2026, brain overhaul): recall by meaning as well as by words. The question is
+    // turned into search numbers first (a quick call, 2.5 seconds at most). If that fails, or the
+    // database side is not there yet, recall falls back to words alone, exactly as it was.
+    const recallBy = async () => {
+      const wide = { p_user_id: user.id, p_query: recallQuery(text), p_limit: deep ? 40 : 24 };
+      if (caps.better_memory) {
+        const qvec = await embedQuery(text);
+        if (qvec) {
+          const both = await admin.rpc('tali_context', { ...wide, p_qvec: qvec });
+          if (!both.error && both.data) return both;
+        }
+        // With better memory search on, recall a wider pool and let the reranker pick the same number as before.
+        return admin.rpc('tali_context', wide);
+      }
+      return admin.rpc('tali_context', deep ? { p_user_id: user.id, p_query: recallQuery(text), p_limit: 30 } : { p_user_id: user.id, p_query: recallQuery(text) });
+    };
     const [{ data: ctx }, { data: history }, { data: work }, { data: life }, { data: stripeConn }, { data: rhythm }] = await Promise.all([
-      // With better memory search on, recall a wider pool and let the reranker pick the same number as before.
-      admin.rpc('tali_context', caps.better_memory
-        ? { p_user_id: user.id, p_query: recallQuery(text), p_limit: deep ? 40 : 24 }
-        : deep ? { p_user_id: user.id, p_query: recallQuery(text), p_limit: 30 } : { p_user_id: user.id, p_query: recallQuery(text) }),
+      recallBy(),
       admin
         .from('messages')
         .select('id, role, content, created_at, attachments')
@@ -888,14 +906,20 @@ Deno.serve(async (req) => {
     for (const m of (result.out.remember ?? []).slice(0, 3)) {
       const content = strip(String(m.content ?? '').trim());
       if (content.length < 8) continue;
-      const { data: newId, error } = await admin.rpc('brain_remember_for', {
+      const saveArgs = {
         p_user_id: user.id,
         p_kind: m.kind,
         p_content: content,
-        p_about: Array.isArray(m.about) ? m.about.slice(0, 5).map(String) : [],
+        p_about: Array.isArray(m.about) ? m.about.slice(0, 5).map((a) => String(a).trim().slice(0, 80)).filter((a) => a.length >= 2) : [],
         p_source_ref: `messages/${userMsg.id}`,
         p_urgent: m.urgent === true,
-      });
+      };
+      // ADDED (10 Nov 2026, brain overhaul): the newer save also links the names she already knows,
+      // keeps a card for each person, and keeps the memory's date. If it is not in the database yet
+      // (or refuses for any reason) the memory is saved the old way, so nothing is ever lost.
+      const day = typeof m.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.date) && !Number.isNaN(Date.parse(m.date)) ? m.date : null;
+      let { data: newId, error } = await admin.rpc('brain_remember_v2', { ...saveArgs, p_due_on: day, p_yearly: typeof m.yearly === 'boolean' ? m.yearly : null });
+      if (error) ({ data: newId, error } = await admin.rpc('brain_remember_for', saveArgs));
       if (!error) remembered++;
       // The first thing she kept from this turn is shown under her reply ("New memory ... in Your people").
       if (!error && !meta.kept) meta.kept = { text: content.slice(0, 160), part: KEPT_PART[String(m.kind)] ?? 'Your life and work' };
