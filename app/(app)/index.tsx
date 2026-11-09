@@ -34,7 +34,8 @@ import { BrainSky } from '@/components/BrainSky';
 import { type Room } from '@/components/RoomSwitch';
 import { SheNoticed } from '@/components/SheNoticed';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
-import { NightBackground } from '@/components/NightSky';
+import { PageSky } from '@/components/NightSky';
+import { setDayShut } from '@/lib/sky';
 import { Aurora } from '@/components/Aurora';
 
 function greeting() {
@@ -155,12 +156,13 @@ export default function Today() {
   const others = briefs.filter((b) => b !== morning && b.kind !== 'journal' && (b.kind as string) !== 'patterns');
   const trial = trialLine(credits);
   const night = !!shutdown;
+  useEffect(() => { setDayShut(night); }, [night]);
   const allTiles = glanceTiles({ credits, money, health, week, goals });
   const tiles = allTiles;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
-      <NightBackground />
+      <PageSky />
       <Aurora />
       <ScrollView
         ref={scrollRef}
