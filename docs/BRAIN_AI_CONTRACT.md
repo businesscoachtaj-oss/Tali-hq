@@ -91,7 +91,7 @@ Assistant `messages.meta` (all optional):
 
 ## Not built, on purpose
 
-- **The checker that turns her mistakes into lessons.** TODO. There is no nightly job that runs for every user (night school only runs for people who switched it on, weekly review is started by the user), so a checker needs its own scheduled function and a decision on who pays for it. Too big to add safely without a deploy to test on. Suggested shape: a nightly function on the same cron key as night school, founder first, that samples that user's own replies from the last day, asks the cheap OpenAI model whether any were wrong on the facts it was given, and saves a `mistake` memory for that same user through `brain_remember_for`.
+- (Built later the same day, see "The checker" below.)
 - **Embeddings.** Still gte-small. Voyage is only used to rerank, so nothing in the database changed.
 - **Perplexity, ElevenLabs, Mistral.** Not set up. Capabilities report false.
 
@@ -103,3 +103,15 @@ Assistant `messages.meta` (all optional):
 - Gemini accepts `video/mov` for iPhone .mov files (the bucket stores them as `video/quicktime`, which is mapped).
 - A 200 MB video through an edge function: memory is fine (8 MB at a time) but the function's time and CPU limits have not been tested with a big file. Worth having the app compress videos before upload and testing a 10 minute one first.
 - Moderation thresholds are a first guess set high on purpose. Watch the logs for `declined` messages in the first week.
+
+## The checker (added 10 Nov 2026, later)
+
+Function `tali-checker`, migration `20261110000057_checker.sql`. Deploy with verify JWT off.
+
+- Every 30 minutes cron calls it only when `public.due_checker()` has someone due: onboarded, chatted at least twice since their last check, between 1am and 5am their time, not checked in the last 20 hours.
+- It reads that one user's own messages since the last check (up to 60, at most 2 days back) and asks OpenAI (`TALI_CHECKER_MODEL`, default `gpt-5.4-nano`, falling back to `TALI_SECOND_MODEL`) for places Tali was wrong and the person corrected her.
+- A finding is kept only if its evidence is a real quote from one of the person's own messages, it is not already in `checker_findings`, and there are at most 2 a night.
+- Each one is saved to that user's brain as a `mistake` memory ("... Next time: ...") through `brain_remember_for`, source `checker/<date>`.
+- Costs the user nothing. Logged in `usage` as feature `checker` with 0 credits, and in `job_runs` as job `checker`.
+- Off switch: `select cron.unschedule('tali-checker');`
+- Tested against stubbed services only (real mistake kept, invented evidence dropped, repeat dropped, model fallback, OpenAI outage). Never run live. The model id `gpt-5.4-nano` is proven by `tali-ai-selftest`.

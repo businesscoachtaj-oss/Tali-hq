@@ -21,6 +21,7 @@ Everything below is on one pull request: https://github.com/businesscoachtaj-oss
 | Second opinion | OpenAI | A second AI checks her answer: "Agrees" and "Would change". | 20 credits |
 | Better memory | Voyage | She pulls a wider set of memories and reranks them, so the right one surfaces as her brain grows. No database change. | Included |
 | Safety screen | OpenAI | Typed text is screened. Only the two worst categories block. | Free |
+| Learns from her mistakes | OpenAI | Each night a second AI reads back that person's chats. Where she got something wrong and they corrected her, it becomes a lesson in their brain so she does not repeat it. | Included |
 | New memory tag | (none) | After a reply, a tag shows what she kept and which part of her brain it went to. | Included |
 
 - Credits are reserved before each extra and refunded if the extra fails. Free plan gets a clear "not on your plan" answer and is charged nothing.
@@ -42,17 +43,19 @@ The app asks the server what is switched on. When you add a key, the feature tur
 ## 2. What you need to do, in order
 
 1. **Merge** https://github.com/businesscoachtaj-oss/Tali-hq/pull/31
-2. **Run two migrations** in the SQL editor (https://supabase.com/dashboard/project/jbyzblwrywgxilhmfyjt/sql/new). Paste each file's contents and press Run:
+2. **Run three migrations** in the SQL editor (https://supabase.com/dashboard/project/jbyzblwrywgxilhmfyjt/sql/new). Paste each file's contents and press Run:
    - `supabase/migrations/20261110000055_chat_video_uploads.sql` (lets the chat bucket take videos up to 200 MB)
    - `supabase/migrations/20261110000056_welcome_email.sql` (the welcome email record and its 5 minute job)
+   - `supabase/migrations/20261110000057_checker.sql` (the nightly checker and its job)
 3. **Storage size limit.** In Supabase, Storage, Settings, check the global upload limit is at least 200 MB. The default is 50 MB, which would stop longer videos.
-4. **Deploy three functions** from your Tali HQ folder:
+4. **Deploy four functions** from your Tali HQ folder:
 
 ```
 git pull origin main
 npx supabase functions deploy tali-ai-selftest --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
 npx supabase functions deploy tali-chat --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
 npx supabase functions deploy tali-welcome --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
+npx supabase functions deploy tali-checker --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
 ```
 
 5. **Tell Claude it's deployed.** Claude runs the self test (four tiny calls, under a cent) to prove the Gemini, Voyage and OpenAI keys and model names really work, and fixes any model name that is wrong.
@@ -73,7 +76,7 @@ Safe order: if you only do steps 1 to 5 first, the live app keeps working as it 
 - **A big video has not been tested** through the server. Try a 30 second clip first, then a long one.
 - **The welcome email has never run.** It is written to the same pattern as the morning brief.
 - **Emails were checked in a browser only**, not in Gmail, Apple Mail or Outlook.
-- **The checker that turns her mistakes into lessons is not built.** There is no nightly job that runs for every user to hang it on. It needs its own small job; the shape is written up in `docs/BRAIN_AI_CONTRACT.md`.
+- **The checker has only run against stand-in services.** It kept a real mistake, dropped one with invented evidence, dropped a repeat, and coped with a refused model and an outage. It has never run live. Its first real run is the first night after you deploy, and you can read what it found in the `checker_findings` table.
 - Photos and screenshots still go to her current vision. Only video moved to Gemini.
 - Three things change for the live app the moment `tali-chat` is deployed: reranked memories, the safety screen, and source links after web searches.
 
@@ -100,7 +103,7 @@ The safety screen never blocks someone who mentions self-harm. It tells Tali to 
 4. **Memories flying into her brain**: when the "New memory" tag appears in Talk, a few dots drift down to the Her brain tab. Mocked yesterday, quick to add.
 5. **Tap Tali, she becomes her brain** (the dot Tali morph). Parked, works, needs her made rounder.
 6. **Video compress before upload** on phones, so a 2 minute phone video is 20 MB, not 200.
-7. **The mistakes checker** as a weekly job per user.
+7. **Show her mistakes on Her brain** as their own row ("What I got wrong, and what I do now"), so people can see her learning.
 8. **A star for today's calendar** on the brain (first meeting, free gaps) for people with Google or Outlook connected.
 9. **Free plan teaser**: let Free watch one short video a month, the same way it gets one Deep think.
 10. **Pricing**: once the self test passes, set the premium tier. Rough costs to you per use: video about A$0.015 a minute (you charge 5 credits), second opinion about A$0.035 (you charge 20 credits), chat about A$0.0015 a message.

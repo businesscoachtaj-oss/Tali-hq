@@ -34,6 +34,10 @@ Deno.serve(async (req) => {
   const oCall = (reason: boolean) => tryIt(() => fetch("https://api.openai.com/v1/responses", { method: "POST", headers: { Authorization: `Bearer ${O}`, "Content-Type": "application/json" }, body: JSON.stringify(oBody(reason)) }), (j) => ({ model: j?.model, status: j?.status, text: short(JSON.stringify((j?.output ?? []).flatMap((o: any) => (o?.content ?? []).map((c: any) => c?.text)).filter(Boolean))) }));
   out.openai_with_reasoning = await oCall(true);
   if (!(out.openai_with_reasoning as any).ok) out.openai_plain = await oCall(false);
+  const cm = body.checker ?? Deno.env.get("TALI_CHECKER_MODEL") ?? "gpt-5.4-nano";
+  const cCall = (reason: boolean) => tryIt(() => fetch("https://api.openai.com/v1/responses", { method: "POST", headers: { Authorization: `Bearer ${O}`, "Content-Type": "application/json" }, body: JSON.stringify({ ...oBody(reason), model: cm }) }), (j) => ({ model: j?.model, status: j?.status }));
+  out.checker_with_reasoning = await cCall(true);
+  if (!(out.checker_with_reasoning as any).ok) out.checker_plain = await cCall(false);
   out.moderation = await tryIt(() => fetch("https://api.openai.com/v1/moderations", { method: "POST", headers: { Authorization: `Bearer ${O}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "omni-moderation-latest", input: "What should I charge for a catering job?" }) }), (j) => ({ flagged: j?.results?.[0]?.flagged, has_scores: !!j?.results?.[0]?.category_scores }));
   return Response.json(out);
 });

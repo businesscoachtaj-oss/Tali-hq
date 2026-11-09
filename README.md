@@ -184,3 +184,4 @@ Asked for by Taj, so the brain can be used to train Tali's own open model one da
 - Extra AIs through tali-chat and supabase/functions/_shared/brainAi.ts: watch a video (5 credits a started minute), second opinion (20 credits), reranked memory search, safety screen. The app asks what is switched on (lib/capabilities.ts), so features without a key show as Coming soon. Contract in docs/BRAIN_AI_CONTRACT.md.
 - Emails: welcome email (tali-welcome) and redesigned auth templates. Steps in docs/EMAILS.md.
 - Full report and the steps to put it live: docs/BUILD_REPORT_2026-11-10.md.
+- The checker: tali-checker runs nightly for everyone who chatted and turns Tali's corrected mistakes into lessons in that person's own brain (migration 20261110000057, free to the user).
