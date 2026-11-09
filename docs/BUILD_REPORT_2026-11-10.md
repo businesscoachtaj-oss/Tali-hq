@@ -1,6 +1,6 @@
 # Tali HQ build report, 10 November 2026
 
-Everything below is on one pull request: https://github.com/businesscoachtaj-oss/Tali-hq/pull/31 (branch `brain-build-10nov`, 53 files). Nothing is live yet. Claude was blocked from deploying to production, so the last steps are Taj's (section 2).
+Everything below is on one pull request: https://github.com/businesscoachtaj-oss/Tali-hq/pull/31 (branch `brain-build-10nov`). Nothing is live yet. Claude was blocked from deploying to production, so the last steps are Taj's (section 2).
 
 ## 1. What was built
 
@@ -40,25 +40,52 @@ The app asks the server what is switched on. When you add a key, the feature tur
 - Safety: only people who confirm after it goes live get it, never twice, and there is a pause switch. Existing members get nothing.
 - Day 3 and trial-ending emails are drafted as copy in `docs/EMAILS.md`, not wired.
 
-## 2. What you need to do, in order
+### The brain overhaul (added later the same day)
+What was found first:
+- **Chat was finding memories by matching words only.** The meaning-based index existed but chat never used it.
+- **She rarely recorded who a memory was about**, so "what's connected" had little to go on.
+- **Customers had no tidy.** The nightly "sleep" job runs only on Taj's own brain, from outside the database.
 
-1. **Merge** https://github.com/businesscoachtaj-oss/Tali-hq/pull/31
-2. **Run three migrations** in the SQL editor (https://supabase.com/dashboard/project/jbyzblwrywgxilhmfyjt/sql/new). Paste each file's contents and press Run:
-   - `supabase/migrations/20261110000055_chat_video_uploads.sql` (lets the chat bucket take videos up to 200 MB)
-   - `supabase/migrations/20261110000056_welcome_email.sql` (the welcome email record and its 5 minute job)
-   - `supabase/migrations/20261110000057_checker.sql` (the nightly checker and its job)
-3. **Storage size limit.** In Supabase, Storage, Settings, check the global upload limit is at least 200 MB. The default is 50 MB, which would stop longer videos.
-4. **Deploy four functions** from your Tali HQ folder:
+What was built:
+| What | What the customer gets |
+|---|---|
+| Better memory search | Chat now searches by words and meaning together (Voyage), with the reranker on top. Old memories re-index themselves in a few minutes. Falls back to today's search if anything fails. |
+| Real connections | Tap a star on Today and her brain returns what is genuinely connected: same person, same name, close in meaning. She now records who each memory is about when she saves it. |
+| Dates become stars | A memory with a date (a birthday, a renewal) shows on Today as it gets close: "In 2 weeks, every year". |
+| Fix a memory | On Me, "Fix" beside any memory changes what it says in place. It is re-indexed and marked as corrected by you. |
+| Weekly tidy for everyone | Every Saturday, near-identical memories are merged for each customer. Nothing is deleted. |
+| Get me up to speed | On a connected Gmail or Outlook account: she reads the last two weeks of mail (sender, subject and preview only) and the next two weeks of calendar, and keeps up to 15 facts. Opt in, 10 credits, once every 30 days, paid plans and trial. Disconnecting the account forgets them. |
+| Forward anything to her | Pro users can forward an email to their own Tali address. If the sender check passes she keeps what matters (1 credit). If it cannot be verified, it waits in Email with a "Remember what matters in this" button. |
+| Day 3 email | "What I've learned about you so far", sent on day 3 to new sign-ups who have at least 3 memories. Sensitive ones are left out. |
+| Download her brain | On Me. Everything she knows about you as a text file. |
+| Share her brain | On Me. A card with the brain, the day count and the numbers. No memory text on it. |
+
+Two plans for you to approve, not built:
+- `docs/PLAN_ONE_BRAIN.md`: one brain across your apps. Recommendation: Tali HQ is the one brain, opt in, one way from Totality and Nutrition, and health details, client data and payments never cross. About 3 to 4 days.
+- `docs/PLAN_BRAIN_IN_CLAUDE.md`: her brain inside Claude. Recommendation: a "Tali HQ" connector with four tools (search my brain, what's coming up, remember this, forget this), read tools first. About 3 days, then directory review.
+
+## 2. Everything to merge and run, in order
+
+Nothing has been merged or run yet, so this is the whole list, start to finish.
+
+1. **Merge** https://github.com/businesscoachtaj-oss/Tali-hq/pull/31 (it now holds everything, including the brain overhaul).
+2. **Run the SQL, once.** Open https://supabase.com/dashboard/project/jbyzblwrywgxilhmfyjt/sql/new, paste the whole of `docs/RUN_10NOV_ALL.sql` and press Run. It is the five migrations (055 to 059) in order. It runs as one go: if any part fails, nothing changes. Send Claude the error.
+3. **Storage size limit.** In Supabase, Storage, Settings, set the global upload limit to at least 200 MB (the default is 50 MB), or longer videos will not upload.
+4. **Deploy eight functions** from your Tali HQ folder:
 
 ```
 git pull origin main
 npx supabase functions deploy tali-ai-selftest --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
 npx supabase functions deploy tali-chat --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
-npx supabase functions deploy tali-welcome --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
+npx supabase functions deploy tali-brain-embed --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
 npx supabase functions deploy tali-checker --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
+npx supabase functions deploy tali-welcome --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
+npx supabase functions deploy inbound-email --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
+npx supabase functions deploy google-connect --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
+npx supabase functions deploy ms-connect --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt
 ```
 
-5. **Tell Claude it's deployed.** Claude runs the self test (four tiny calls, under a cent) to prove the Gemini, Voyage and OpenAI keys and model names really work, and fixes any model name that is wrong.
+5. **Tell Claude it's deployed.** Claude runs the self test (a handful of tiny calls, under a cent) to prove the Gemini, Voyage and OpenAI keys and model names, watches her memories re-index for the better search, and fixes anything that is wrong.
 6. **Put the app live** (Vercel rebuilds from main when you merge; this pushes the phone update):
 
 ```
@@ -66,9 +93,15 @@ git push origin main:ota-publish
 ```
 
 7. **Sign-in emails.** Open https://supabase.com/dashboard/project/jbyzblwrywgxilhmfyjt/auth/templates and paste each file from `supabase/templates/` over its template. Subjects stay the same.
-8. Optional: set the secret `WELCOME_REPLY_TO` to a mailbox you read, so people can reply to the welcome email.
+8. Optional: set the secret `WELCOME_REPLY_TO` to a mailbox you read, so people can reply to the welcome and day 3 emails.
 
-Safe order: if you only do steps 1 to 5 first, the live app keeps working as it does now. The old app sends none of the new fields.
+If you stop after step 5, the live app keeps working as it does now. The app people have today sends none of the new fields.
+
+Off switches, if you ever need them:
+- Welcome email: `update public.welcome_settings set paused = true;`
+- Day 3 email: `update public.welcome_settings set day3_paused = true;`
+- The checker: `select cron.unschedule('tali-checker');`
+- The weekly tidy: `select cron.unschedule('tali-brain-tidy');`
 
 ## 3. Not verified yet (be aware)
 
@@ -79,6 +112,14 @@ Safe order: if you only do steps 1 to 5 first, the live app keeps working as it 
 - **The checker has only run against stand-in services.** It kept a real mistake, dropped one with invented evidence, dropped a repeat, and coped with a refused model and an outage. It has never run live. Its first real run is the first night after you deploy, and you can read what it found in the `checker_findings` table.
 - Photos and screenshots still go to her current vision. Only video moved to Gemini.
 - Three things change for the live app the moment `tali-chat` is deployed: reranked memories, the safety screen, and source links after web searches.
+
+Added with the brain overhaul:
+- **None of the overhaul has run on the live database or with live keys.** The brain core migration ran on a local copy of the brain tables. The other migrations were checked for syntax only.
+- **The better search has not been measured.** It can now return memories that share no words with the question. All its thresholds are first guesses.
+- **Forwarding depends on a sender check from the email provider** that has not been seen on your account. If it is missing, every forwarded email simply waits for the tap.
+- **Day one fill has never read a real mailbox.** If a field name is wrong, it carries on with the calendar only.
+- **Private calendar entries are not filtered out** before she reads their titles for the day one fill. Only a health-word check guards that. Worth fixing before promoting the feature.
+- **A real day 3 email will read flatter than the preview**, because memories are stored in the third person.
 
 ## 4. A decision for you: self-harm wording
 
@@ -116,6 +157,7 @@ The safety screen never blocks someone who mentions self-harm. It tells Tali to 
 ## 8. Where things are
 
 - Pull request: https://github.com/businesscoachtaj-oss/Tali-hq/pull/31
-- Server contract: `docs/BRAIN_AI_CONTRACT.md`
+- Server contract: `docs/BRAIN_AI_CONTRACT.md`, `docs/BRAIN_OVERHAUL.md`, `docs/BRAIN_OUTSIDE.md`
+- The SQL to run: `docs/RUN_10NOV_ALL.sql`
 - Emails: `docs/EMAILS.md`
 - Earlier pull request #30 (founder lock on How Tali thinks) is included in this one and can be closed.

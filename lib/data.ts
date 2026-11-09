@@ -582,6 +582,7 @@ export async function deleteRule(id: string) {
 
 // ---------- Pro: Tali's email address ----------
 export type InboundEmail = {
+  forwarded?: 'remembered' | 'waiting' | 'unverified' | null;
   id: string;
   from_email: string | null;
   from_name: string | null;
@@ -617,13 +618,27 @@ export async function suggestInboxAlias(): Promise<string> {
 }
 
 export async function inboundEmails(): Promise<InboundEmail[]> {
-  const { data, error } = await supabase
-    .from('inbound_emails')
-    .select('id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at, source, category, snippet')
-    .order('received_at', { ascending: false })
-    .limit(80);
+  const cols = 'id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at, source, category, snippet';
+  const read = (c: string) => supabase.from('inbound_emails').select(c).order('received_at', { ascending: false }).limit(80);
+  // `forwarded` (10 Nov 2026) marks mail the owner sent to their own Tali address for her to remember.
+  // Until that column exists server side, read without it so Email keeps working.
+  let { data, error } = await read(`${cols}, forwarded`);
+  if (error) ({ data, error } = await read(cols));
   if (error) throw error;
-  return (data as InboundEmail[]) ?? [];
+  return (data as unknown as InboundEmail[]) ?? [];
+}
+
+// Have Tali remember what matters in something you forwarded to her address.
+export async function rememberForwarded(id: string): Promise<{ ok: boolean; remembered?: number; message?: string }> {
+  const { data, error } = await supabase.functions.invoke('inbound-email', { body: { action: 'remember', id } });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, message: b.message };
+    } catch {}
+    return { ok: false, message: "I couldn't do that just now. Nothing was charged." };
+  }
+  return data as { ok: boolean; remembered?: number; message?: string };
 }
 
 export async function setEmailStatus(id: string, status: InboundEmail['status']) {

@@ -185,3 +185,4 @@ Asked for by Taj, so the brain can be used to train Tali's own open model one da
 - Emails: welcome email (tali-welcome) and redesigned auth templates. Steps in docs/EMAILS.md.
 - Full report and the steps to put it live: docs/BUILD_REPORT_2026-11-10.md.
 - The checker: tali-checker runs nightly for everyone who chatted and turns Tali's corrected mistakes into lessons in that person's own brain (migration 20261110000057, free to the user).
+- Brain overhaul (same PR): Voyage embeddings beside the old index, my_connections, my_upcoming, my_memory_update, weekly tidy for customers, day one fill, forward to Tali, day 3 email, my_brain_export, share card. Docs: docs/BRAIN_OVERHAUL.md, docs/BRAIN_OUTSIDE.md. One file to run: docs/RUN_10NOV_ALL.sql.
