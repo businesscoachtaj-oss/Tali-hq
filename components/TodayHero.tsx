@@ -54,12 +54,12 @@ export function TodayHero({
     return (
       <View style={[h.card, { paddingBottom: 18 }]}>
         <LinearGradient colors={['#4A2160', colours.purple, '#8A4A9E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: RADIUS }]} />
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
+        <Text style={[h.greeting, { fontSize: 30 }]}>{greeting}</Text>
+        {sub ? <Text style={h.sub}>{sub}</Text> : null}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 6 }}>
           <TaliAvatar pose="wave" size={112} />
           <View style={{ flex: 1, paddingBottom: 8 }}>
-            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, fontWeight: '600' }}>{greeting}</Text>
-            {sub ? <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 }}>{sub}</Text> : null}
-            <Text style={{ color: '#FFFFFF', fontSize: 20, lineHeight: 27, marginTop: 6, fontFamily: 'PlusJakartaSans_700Bold' }}>{line}</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontFamily: 'PlusJakartaSans_700Bold' }}>{line}</Text>
             {briefLabel && onBrief ? (
               <Pressable onPress={onBrief} accessibilityRole="button" style={{ marginTop: 10 }}>
                 <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' }}>{briefLabel} {'›'}</Text>
