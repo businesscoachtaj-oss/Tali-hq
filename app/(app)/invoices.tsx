@@ -437,7 +437,7 @@ export default function Invoices() {
   // ---------- List ----------
   return (
     <Screen skin="receipt" onRefresh={load}>
-      <SkinHeader id="receipt" title="Invoices" sub="Or just tell Tali: invoice Jordan for 4 PT sessions at $80." onBack={() => goBack('/me')} backLabel="Back" />
+      <SkinHeader id="receipt" title="Invoices" sub="Or just tell Tali: invoice Jordan for 4 hours at $80." onBack={() => goBack('/me')} backLabel="Back" />
       {note ? <Text style={{ color: colours.good, fontWeight: '700', marginBottom: space.md, lineHeight: 20 }}>{note}</Text> : null}
       {loaded && !stripeOn ? (
         <Pressable onPress={() => router.navigate({ pathname: '/settings', params: { section: 'connections' } })} accessibilityRole="button">
