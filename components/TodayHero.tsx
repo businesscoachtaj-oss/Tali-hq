@@ -11,6 +11,7 @@ import { NightBackground, night as sky } from '@/components/NightSky';
 import { taliLevel, type Level } from '@/lib/level';
 import { registerTarget } from '@/lib/tourTargets';
 import { colours, elevation, space } from '@/constants/theme';
+import { myBrain } from '@/lib/brain';
 
 const RADIUS = 22;
 
@@ -44,9 +45,62 @@ export function TodayHero({
     }, []),
   );
 
+  const [brainTotal, setBrainTotal] = useState<number | null>(null);
+  const [brainNew, setBrainNew] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      myBrain('mine').then((b) => {
+        setBrainTotal(b.total);
+        const weekAgo = Date.now() - 7 * 86400000;
+        setBrainNew(b.regions.reduce((n2, r) => n2 + r.items.filter((it) => it.mine && it.at && new Date(it.at).getTime() > weekAgo).length, 0));
+      }).catch(() => setBrainTotal(null));
+    }, []),
+  );
   const n = !!night;
   const line = n ? nightLine?.trim() || "Day's done. Bed time?" : hello;
   const pct = level ? Math.max(4, Math.round(level.progress * 100)) : 0;
+
+  // 9 Nov 2026 look refresh: in the day, Tali stands on the page and talks to you. No purple card,
+  // no level (that lives on Brain now). Night mode keeps the night sky card below.
+  if (!n) {
+    return (
+      <View style={{ marginBottom: 22, paddingTop: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
+            <Text style={{ color: '#F4F1FF', fontSize: 50, lineHeight: 52, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{greeting.replace(', ', ',\n')}</Text>
+          </View>
+          <View>
+            <View style={{ position: 'absolute', left: 4, top: 14, width: 108, height: 108, borderRadius: 54, backgroundColor: 'rgba(185,166,255,0.18)', shadowColor: '#B9A6FF', shadowOpacity: 0.8, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }} />
+            <TaliAvatar pose="wave" size={118} />
+          </View>
+        </View>
+        {/* Her note to you, on warm paper (the HQ desk), pinned in her sky. */}
+        <View style={{ marginTop: 16, backgroundColor: '#F3ECDD', borderRadius: 6, padding: 18, transform: [{ rotate: '-0.6deg' }], shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } }}>
+          <Text style={{ color: '#7A6A9A', fontSize: 11, fontWeight: '700', letterSpacing: 1.6 }}>A NOTE FROM TALI</Text>
+          <Text style={{ color: '#2A2340', fontSize: 25, lineHeight: 30, marginTop: 8, fontFamily: 'InstrumentSerif_400Regular' }}>{line}</Text>
+          {briefLabel && onBrief ? (
+            <Pressable onPress={onBrief} accessibilityRole="button" style={{ marginTop: 12 }}>
+              <Text style={{ color: '#5A2A6E', fontSize: 15, fontWeight: '700' }}>{briefLabel} {'›'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {brainTotal !== null ? (
+          <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 44, height: 40 }}>
+              {[[4, 6, '#8EF0C8'], [16, 2, '#9FB7FF'], [28, 8, '#D7B5FF'], [8, 18, '#FFE38A'], [22, 18, '#7FD1FF'], [34, 22, '#FF9EC4'], [14, 30, '#FFC37A'], [28, 32, '#B9A6FF']].map(([x, y, c], k) => (
+                <View key={k} style={{ position: 'absolute', left: x as number, top: y as number, width: 7, height: 7, borderRadius: 4, backgroundColor: c as string, shadowColor: c as string, shadowOpacity: 1, shadowRadius: 6 }} />
+              ))}
+            </View>
+            <Text style={{ flex: 1, color: '#B9B2D9', fontSize: 14 }}>
+              <Text style={{ color: '#F4F1FF', fontWeight: '700' }}>{brainTotal.toLocaleString('en-AU')} memories</Text>{brainNew ? `, ${brainNew} new this week` : ''}. Step into her brain {'›'}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+    );
+  }
+
 
   return (
     <View style={[h.card, n && h.cardNight]}>
@@ -100,7 +154,7 @@ export function TodayHero({
 const h = StyleSheet.create({
   card: { borderRadius: RADIUS, padding: space.lg, paddingTop: space.xl, marginBottom: space.lg, overflow: 'hidden', backgroundColor: colours.purple, ...elevation.card, shadowOpacity: 0.18 },
   cardNight: { backgroundColor: sky.sky[1], shadowColor: sky.accent2, shadowOpacity: 0.25 },
-  greeting: { color: '#FFFFFF', fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  greeting: { color: '#FFFFFF', fontSize: 28, letterSpacing: -0.5, fontFamily: 'PlusJakartaSans_800ExtraBold' },
   sub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
   hello: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: space.sm },
   bubble: { flex: 1, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 16, borderBottomLeftRadius: 4, padding: space.md },

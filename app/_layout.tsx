@@ -12,6 +12,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { Loading } from '@/components/ui';
 import { colours } from '@/constants/theme';
+import { useFonts, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold } from '@expo-google-fonts/plus-jakarta-sans';
+import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
 
 // Where a tapped push goes (4 Nov 2026). Pushes carry data.url ('/', '/inbox', ...), the same shape
 // the web service worker (public/sw.js) opens. Phone builds land here instead.
@@ -29,7 +31,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <RootNavigator />
       </AuthProvider>
     </SafeAreaProvider>
@@ -51,7 +53,8 @@ function RootNavigator() {
   }, [ready]);
 
   // Wait for the signed-in user's profile too, or onboarding flashes up for a moment after sign in.
-  if (isLoading || !profileReady) return <Loading />;
+  const [fontsReady] = useFonts({ PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, InstrumentSerif_400Regular });
+  if (isLoading || !profileReady || !fontsReady) return <Loading />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colours.bg } }}>

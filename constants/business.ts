@@ -1,4 +1,6 @@
-export const BUSINESS_TYPES = ['Personal trainer', 'Gym or studio', 'Coach or consultant', 'Trades', 'Health and beauty', 'Online business', 'Something else'];
+// Order only (10 Nov 2026): Tali HQ is for any small business, so no one trade leads the list. The values
+// are unchanged, so everyone's saved answer still matches.
+export const BUSINESS_TYPES = ['Trades', 'Coach or consultant', 'Health and beauty', 'Online business', 'Personal trainer', 'Gym or studio', 'Something else'];
 
 // Times offered for the morning brief (local time, stored as HH:MM:SS).
 export const BRIEF_TIMES = ['05:30', '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00'];

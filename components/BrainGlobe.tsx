@@ -109,6 +109,11 @@ function makeBrain(): { dots: Dot[]; centres: Record<RegionId, P3> } {
 
 const BRAIN = makeBrain();
 
+/** The brain's dots and their part colours, so dot Tali can turn into her brain (9 Nov 2026 concept). */
+export const BRAIN_DOTS = BRAIN.dots.map((d) => ({ x: d.x, y: d.y, z: d.z, size: d.size, colour: REGIONS[d.region].colour }));
+/** Where the brain globe opens: turned side on, looking down a touch. */
+export const BRAIN_START = { ry: 1.9, rx: 0.18 };
+
 // ---------------------------------------------------------------------------------------------
 // Projection, shared by every dot (runs on the UI thread).
 const FOCAL = 3.2;

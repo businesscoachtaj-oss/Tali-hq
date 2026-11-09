@@ -143,12 +143,12 @@ export default function Settings() {
       ) : null}
 
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
-      <Field label="Business name" value={businessName} onChangeText={setBusinessName} />
+      <Field label="Business name (if you have one)" value={businessName} onChangeText={setBusinessName} />
       <TaliAddressNote />
       <Label>What kind of business</Label>
       <ChipPicker options={BUSINESS_TYPES} value={businessType} onChange={setBusinessType} />
       <Field
-        label="About you and your business"
+        label="About you"
         value={aboutMe}
         onChangeText={setAboutMe}
         multiline

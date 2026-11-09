@@ -27,7 +27,7 @@ export const SKINS: Record<SkinId, Skin> = {
   // ADDED (9 Nov 2026): the pages that had no banner yet, so every page off Me matches.
   founder: { colors: ['#272626', '#5A524B'], bg: '#EFEDEA', icon: 'stats-chart-outline', kicker: 'ONLY YOU SEE THIS' },
   affiliate: { colors: ['#6C3483', '#ED8008'], bg: '#F6EEEA', icon: 'pricetags-outline', kicker: 'PEOPLE SHARING YOUR APPS' },
-  settings: { colors: ['#3B3F46', '#6B7280'], bg: '#EEEFF1', icon: 'settings-outline', kicker: 'YOU AND YOUR BUSINESS' },
+  settings: { colors: ['#3B3F46', '#6B7280'], bg: '#EEEFF1', icon: 'settings-outline', kicker: 'ABOUT YOU' },
   plans: { colors: ['#4A2160', '#6C3483'], bg: '#F3EEF6', icon: 'sparkles-outline', kicker: 'YOUR PLAN' },
   journal: { colors: ['#5B1F4A', '#B24D8C'], bg: '#F6ECF2', icon: 'book-outline', kicker: 'YOUR THOUGHTS, YOUR WEEK' },
   brain: { colors: ['#17133A', '#46307E'], bg: '#ECE8F6', icon: 'bulb-outline', kicker: 'EVERYTHING TALI KNOWS' },
@@ -39,29 +39,20 @@ export function SkinProvider({ id, children }: { id?: SkinId; children: ReactNod
   return <SkinCtx.Provider value={id ? SKINS[id] : null}>{children}</SkinCtx.Provider>;
 }
 
+// 9 Nov 2026 concept "Inside her mind": no banner boxes. A small kicker and a big serif title, floating
+// in her sky like everything else.
 export function SkinHeader({ id, title, sub, onBack, backLabel = 'Back' }: { id: SkinId; title: string; sub?: string; onBack?: () => void; backLabel?: string }) {
   const t = SKINS[id];
   return (
-    <View style={{ marginHorizontal: -16, marginTop: -16, marginBottom: 16 }}>
-      <LinearGradient colors={t.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 26, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>
-        <View style={{ position: 'absolute', right: -30, top: -20, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.07)' }} />
-        <View style={{ position: 'absolute', right: 40, bottom: -50, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-        {onBack ? (
-          <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button">
-            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 15, fontWeight: '700' }}>{'\u2039'} {backLabel}</Text>
-          </Pressable>
-        ) : null}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: onBack ? 18 : 4 }}>
-          <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name={t.icon} size={28} color="#FFFFFF" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>{t.kicker}</Text>
-            <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '800', marginTop: 2 }}>{title}</Text>
-          </View>
-        </View>
-        {sub ? <Text style={{ color: 'rgba(255,255,255,0.88)', fontSize: 14, lineHeight: 20, marginTop: 12 }}>{sub}</Text> : null}
-      </LinearGradient>
+    <View style={{ marginBottom: 20, marginTop: 6 }}>
+      {onBack ? (
+        <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" style={{ marginBottom: 18 }}>
+          <Text style={{ color: '#B9A6FF', fontSize: 15, fontWeight: '600' }}>{'\u2039'} {backLabel}</Text>
+        </Pressable>
+      ) : null}
+      <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{t.kicker}</Text>
+      <Text style={{ color: '#F4F1FF', fontSize: 46, lineHeight: 50, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{title}</Text>
+      {sub ? <Text style={{ color: '#B9B2D9', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{sub}</Text> : null}
     </View>
   );
 }

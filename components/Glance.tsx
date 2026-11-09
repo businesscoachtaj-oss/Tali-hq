@@ -135,7 +135,7 @@ const g = StyleSheet.create({
   chipOn: { backgroundColor: colours.purple, borderColor: colours.purple },
   chipText: { fontSize: 14, fontWeight: '700', color: colours.text },
   chipHint: { fontSize: 13, color: colours.muted, marginBottom: space.sm, marginLeft: 2 },
-  list: { backgroundColor: colours.surface, borderRadius: radius.card, ...elevation.card, overflow: 'hidden' },
+  list: { backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border, borderTopColor: 'rgba(230,220,255,0.55)', ...elevation.card, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: space.lg, gap: space.md },
   rowBorder: { borderTopWidth: 1, borderTopColor: colours.border },
   rowTitle: { fontSize: 15, fontWeight: '700', color: colours.text },

@@ -1,15 +1,18 @@
 import { useCallback, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { forgetMemory, freeMessagesLeft, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
+import { brainExport, exportAsText, updateMemory } from '@/lib/brain';
+import { saveTextFile } from '@/lib/saveFile';
 import { isPaid, isPro } from '@/lib/plan';
 import { resetTour } from '@/lib/tour';
 import { Body, Button, Card, Label, Screen, useConfirm } from '@/components/ui';
 import { PatternsRow } from '@/components/PatternsCard';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { FOUNDER_USER_ID } from '@/constants/business';
+import { RoomSwitch, type Room } from '@/components/RoomSwitch';
 
 const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Tali HQ', pro: 'Tali HQ Pro' };
 
@@ -22,6 +25,7 @@ export default function Me() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const { armed, confirm } = useConfirm();
+  const [room, setRoom] = useState<Room>('business');
 
   const load = useCallback(async () => {
     setError('');
@@ -39,6 +43,32 @@ export default function Me() {
       load();
     }, [load]),
   );
+
+  // 10 Nov 2026: fix what a memory says without losing it, and take the whole brain with you.
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportNote, setExportNote] = useState('');
+  async function saveEdit() {
+    const id = editId; const next = editText.trim();
+    if (!id || next.length < 3) return setError('A memory needs a few words.');
+    setSaving(true);
+    try {
+      if (await updateMemory(id, next)) { setMemories((m) => m.map((x) => (x.id === id ? { ...x, content: next } : x))); setEditId(null); }
+      else setError("I couldn't change that one.");
+    } catch (e: any) { setError(/my_memory_update/.test(String(e?.message)) ? "Fixing a memory isn't switched on yet." : e?.message ?? "I couldn't change that one."); }
+    setSaving(false);
+  }
+  async function download() {
+    setExporting(true); setExportNote('');
+    try {
+      const e = await brainExport();
+      await saveTextFile(`tali-brain-${new Date().toISOString().slice(0, 10)}.txt`, exportAsText(e));
+      setExportNote(`Done. ${e.memories.length} memories.`);
+    } catch (e: any) { setExportNote(e?.message ?? "I couldn't put your download together just now."); }
+    setExporting(false);
+  }
 
   async function forget(id: string) {
     if (confirmId !== id) return setConfirmId(id);
@@ -127,43 +157,14 @@ export default function Me() {
         ) : null}
       </Card>
 
-      {/* Tali's brain */}
-      <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel="See Tali's brain"
-        style={{ marginTop: space.md, borderRadius: radius.card, overflow: 'hidden', backgroundColor: '#1F1D4A', padding: space.lg, flexDirection: 'row', alignItems: 'center', gap: space.md, ...elevation.card }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: '#CFC6FF', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }}>WHAT TALI KNOWS</Text>
-          <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', marginTop: 4 }}>Tali's brain</Text>
-          <Text style={{ color: '#E6E1FF', fontSize: 13, lineHeight: 19, marginTop: 4 }}>{memories.length ? `${memories.length} memories in 13 parts. Private to you.` : 'Everything she learns, filed in 13 parts. Private to you.'}</Text>
-          <View style={{ flexDirection: 'row', alignSelf: 'flex-start', marginTop: space.md, backgroundColor: '#FFFFFF', borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 }}>
-            <Text style={{ color: '#1F1D4A', fontWeight: '800', fontSize: 13 }}>Open her brain {'›'}</Text>
-          </View>
-        </View>
-        <BrainDots />
-      </Pressable>
+      {/* 9 Nov 2026 look refresh: Tali's brain has its own tab now, so the big card here is gone. */}
 
-      <JobGroup title="Your day">
-        <Tile icon="flag-outline" tint="purple" title="Goals" sub="What you're chasing" locked={!paid} onPress={() => router.navigate('/goals')} />
-        <Tile icon="calendar-outline" tint="purple" title="Weekly review" sub="What moved and what's next" locked={!paid} onPress={() => router.navigate('/review')} />
-        <Tile icon="moon-outline" tint="purple" title="Shut down" sub="Two minutes, then off" onPress={() => router.navigate('/shutdown')} />
-        <Tile icon="git-branch-outline" tint="purple" title="Decisions" sub="What you decided and why" onPress={() => router.navigate('/decisions')} />
-      </JobGroup>
-
-      <JobGroup title="Your business">
-        <Tile icon="people-outline" tint="orange" title="Clients" sub="Your people" onPress={() => router.navigate('/clients')} />
-        <Tile icon="document-text-outline" tint="orange" title="Invoices" sub="Make, share, track" locked={!paid} onPress={() => router.navigate('/invoices')} />
-        <Tile icon="wallet-outline" tint="orange" title="Money" sub="In, owed and runway" locked={!paid} onPress={() => router.navigate('/money')} />
-        <Tile icon="file-tray-full-outline" tint="orange" title="Receipts" sub="Ready for tax time" locked={!paid} onPress={() => router.navigate('/receipts' as any)} />
-        <Tile icon="mail-outline" tint="orange" title="Email" sub="Sorted, replies drafted" locked={!paid} onPress={() => router.navigate('/inbox')} />
-        <Tile icon="flash-outline" tint="orange" title="Rules" sub="What she does on her own" locked={!pro} pro onPress={() => router.navigate('/rules')} />
-        <Tile icon="link-outline" tint="orange" title="Connections" sub="Google, Microsoft, Stripe" locked={!paid} onPress={() => router.navigate({ pathname: '/settings', params: { section: 'connections' } })} />
-      </JobGroup>
-
-      <JobGroup title="You">
-        <Tile icon="barbell-outline" tint="green" title="Food and training" sub="Logged by chatting" onPress={() => router.navigate('/life')} />
-        <Tile icon="bed-outline" tint="green" title="Sleep" sub="Sounds with a timer" onPress={() => router.navigate('/sleep')} />
-        <Tile icon="school-outline" tint="green" title="Night school" sub="What she studies tonight" locked={!pro} pro onPress={() => router.navigate('/night-school')} />
-        {founder ? <Tile icon="stats-chart-outline" tint="green" title="Founder" sub="Only you see this" onPress={() => router.navigate('/founder')} /> : null}
-      </JobGroup>
+      {/* 9 Nov 2026 "life with a growing brain": everything she helps with lives in Your world now. */}
+      {founder ? (
+        <JobGroup title="Only you">
+          <Tile icon="stats-chart-outline" title="Founder" sub="Only you see this" onPress={() => router.navigate('/founder')} />
+        </JobGroup>
+      ) : null}
 
       <View style={{ marginTop: space.lg }}>
         <PatternsRow credits={credits} />
@@ -185,8 +186,24 @@ export default function Me() {
             <View key={m.id} style={{ flexDirection: 'row', gap: space.md, alignItems: 'flex-start', paddingVertical: space.md, borderTopWidth: 1, borderTopColor: colours.border, marginTop: space.sm }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 11, color: colours.purpleInk, fontWeight: '700', textTransform: 'uppercase' }}>{m.kind}</Text>
-                <Text style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 2 }}>{m.content}</Text>
+                {editId === m.id ? (
+                  <>
+                    <TextInput value={editText} onChangeText={setEditText} multiline maxLength={600} autoFocus accessibilityLabel="Fix this memory"
+                      style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 4, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colours.purple, backgroundColor: colours.bg, minHeight: 64, textAlignVertical: 'top' }} />
+                    <View style={{ flexDirection: 'row', gap: space.lg, marginTop: 8 }}>
+                      <Pressable onPress={saveEdit} disabled={saving} accessibilityRole="button" hitSlop={8}><Text style={{ color: colours.purple, fontWeight: '800', fontSize: 13 }}>{saving ? 'Saving...' : 'Save'}</Text></Pressable>
+                      <Pressable onPress={() => setEditId(null)} accessibilityRole="button" hitSlop={8}><Text style={{ color: colours.muted, fontWeight: '700', fontSize: 13 }}>Cancel</Text></Pressable>
+                    </View>
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 14, color: colours.text, lineHeight: 20, marginTop: 2 }}>{m.content}</Text>
+                )}
               </View>
+              {editId === m.id ? null : (
+                <Pressable onPress={() => { setEditId(m.id); setEditText(m.content); setConfirmId(null); }} accessibilityRole="button" hitSlop={8}>
+                  <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 13 }}>Fix</Text>
+                </Pressable>
+              )}
               <Pressable onPress={() => forget(m.id)} accessibilityRole="button" hitSlop={8}>
                 <Text style={{ color: confirmId === m.id ? colours.danger : colours.muted, fontWeight: '700', fontSize: 13 }}>{confirmId === m.id ? 'Sure?' : 'Forget'}</Text>
               </Pressable>
@@ -197,6 +214,8 @@ export default function Me() {
       </Card>
 
       <Card style={{ marginTop: space.md, paddingVertical: 4 }}>
+        <MenuRow title="Share her brain" sub="A card of how much she knows, with nothing private on it" onPress={() => router.navigate('/brain-card')} />
+        <MenuRow title={exporting ? 'Putting it together...' : 'Download her brain'} sub={exportNote || 'Everything she knows about you, as a file you keep'} onPress={() => { if (!exporting) void download(); }} />
         <MenuRow title="Settings" sub="Your details, rhythm, notifications" onPress={() => router.navigate('/settings')} />
         <MenuRow title="Show me around again" sub="The quick tour of Tali HQ" onPress={async () => {
           if (!session) return;
@@ -231,33 +250,36 @@ function Stat({ icon, value, label }: { icon: React.ComponentProps<typeof Ionico
   );
 }
 
+// 9 Nov 2026 look refresh: each group is one card of plain rows (was a grid of coloured tiles).
 function JobGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  const rows = (Array.isArray(children) ? children : [children]).filter(Boolean);
   return (
     <View style={{ marginTop: space.lg }}>
       <Label>{title}</Label>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>{children}</View>
+      <View style={{ backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border, overflow: 'hidden' }}>
+        {rows.map((r, i) => (
+          <View key={i} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>{r}</View>
+        ))}
+      </View>
     </View>
   );
 }
 
-function Tile({ icon, tint, title, sub, locked, pro, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; tint: keyof typeof TINTS; title: string; sub: string; locked?: boolean; pro?: boolean; onPress: () => void }) {
-  const t = TINTS[tint];
+function Tile({ icon, title, sub, locked, pro, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; tint?: string; title: string; sub: string; locked?: boolean; pro?: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title}
-      style={{ flexBasis: '48%', flexGrow: 1, backgroundColor: colours.surface, borderRadius: 16, padding: space.md, minHeight: 104, ...elevation.card }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name={icon} size={19} color={t.fg} />
-        </View>
-        {locked ? <Text style={{ fontSize: 10, fontWeight: '800', color: colours.purpleInk, backgroundColor: colours.purpleSoft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' }}>{pro ? 'PRO' : 'TALI HQ'}</Text> : null}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 13, paddingHorizontal: space.lg }}>
+      <Ionicons name={icon} size={21} color={colours.purple} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: colours.text }} numberOfLines={1}>{title}</Text>
+        <Text style={{ fontSize: 13, color: colours.muted, marginTop: 1 }} numberOfLines={1}>{sub}</Text>
       </View>
-      <Text style={{ fontSize: 15, fontWeight: '800', color: colours.text, marginTop: space.sm }} numberOfLines={1}>{title}</Text>
-      <Text style={{ fontSize: 12, color: colours.muted, marginTop: 2 }} numberOfLines={2}>{sub}</Text>
+      {locked ? <Text style={{ fontSize: 11, fontWeight: '700', color: colours.purpleInk }}>{pro ? 'Pro' : 'HQ'}</Text> : null}
+      <Ionicons name="chevron-forward" size={18} color={colours.faint} />
     </Pressable>
   );
 }
 
-// A little static constellation for the brain card (no 3D, so the Me tab stays light).
 function BrainDots() {
   const dots = [[30, 14, '#8EF0C8'], [44, 10, '#8EF0C8'], [58, 12, '#9FB7FF'], [70, 18, '#B9A6FF'], [22, 26, '#8EF0C8'], [36, 26, '#7FD1FF'], [52, 24, '#D7B5FF'], [66, 30, '#B9A6FF'], [78, 30, '#D7B5FF'], [28, 40, '#FFE38A'], [42, 40, '#9FB7FF'], [56, 38, '#FFC37A'], [70, 44, '#9FB7FF'], [24, 54, '#FF9EC4'], [36, 58, '#FF9EC4'], [50, 54, '#FF7A6E'], [62, 58, '#FF9EC4'], [46, 70, '#A6B0C8']] as const;
   return (

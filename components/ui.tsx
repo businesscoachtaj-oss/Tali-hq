@@ -14,9 +14,11 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
+import { colours, elevation, NO_BOTTOM, radius, space, heading, headingSemi } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
+import { NightBackground } from '@/components/NightSky';
+import { Aurora } from '@/components/Aurora';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -28,7 +30,7 @@ export const tali = {
 
 // 4 Nov 2026: optional pull to refresh (pass the screen's load) so every list screen can refresh, not just Today.
 export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
-  if (skin) bg = SKINS[skin].bg;
+  // 9 Nov 2026 look refresh: one page colour everywhere (was a tint per page).
   const [refreshing, setRefreshing] = useState(false);
   const body = <SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider>;
   const refresh = onRefresh
@@ -45,6 +47,8 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
     : undefined;
   return (
     <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
+      <NightBackground style={StyleSheet.absoluteFill} />
+      <Aurora />
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -184,11 +188,12 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.bg },
   scroll: { flexGrow: 1 },
   inner: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center', padding: space.lg },
-  title: { fontSize: 28, fontWeight: '800', color: colours.text },
+  title: { fontSize: 40, lineHeight: 44, color: colours.text, ...heading },
   sub: { fontSize: 15, color: colours.muted, marginTop: space.xs, lineHeight: 21 },
   card: {
     backgroundColor: colours.surface,
-    borderColor: 'rgba(39,38,38,0.04)',
+    borderColor: 'rgba(196,178,255,0.30)',
+    borderTopColor: 'rgba(230,220,255,0.55)',
     borderWidth: 1,
     borderRadius: radius.card,
     padding: space.lg,
@@ -196,7 +201,7 @@ const styles = StyleSheet.create({
     ...elevation.card,
   },
   body: { fontSize: 15, lineHeight: 22, color: colours.text },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: colours.muted, marginBottom: 6 },
+  label: { fontSize: 24, color: colours.text, marginBottom: 10, marginTop: 10, ...headingSemi },
   input: {
     backgroundColor: colours.surface,
     borderColor: colours.borderStrong,

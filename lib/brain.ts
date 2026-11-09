@@ -132,3 +132,52 @@ export async function deleteVisualMemory(v: VisualMemory): Promise<void> {
   if (error) throw error;
   if (typeof path === 'string' && path) await supabase.storage.from('chat-uploads').remove([path]);
 }
+
+// ---------- 10 Nov 2026 brain overhaul ----------
+
+// Memories with a date on them that is coming up (a birthday, a deadline, a renewal).
+export type Upcoming = { id: string; text: string; kind: string; date: string; days_away: number; yearly: boolean };
+export async function myUpcoming(days = 45): Promise<Upcoming[]> {
+  const { data, error } = await supabase.rpc('my_upcoming', { p_days: days });
+  if (error || !Array.isArray(data)) return [];
+  return data as Upcoming[];
+}
+
+// What she knows that genuinely connects to a name or a piece of text.
+export type Connection = { id: string; text: string; kind: string; region: RegionId };
+export async function myConnections(text: string, limit = 3): Promise<Connection[]> {
+  if (!text || text.trim().length < 3) return [];
+  const { data, error } = await supabase.rpc('my_connections', { p_text: text.slice(0, 300), p_limit: limit });
+  if (error || !Array.isArray(data)) return [];
+  return data as Connection[];
+}
+
+// Fix what a memory says, in place.
+export async function updateMemory(id: string, content: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('my_memory_update', { p_id: id, p_content: content.trim() });
+  if (error) throw error;
+  return data === true;
+}
+
+// Everything she holds about you, to keep or take elsewhere.
+export type BrainExport = { exported_at: string; truncated?: boolean; person?: { first_name?: string | null }; memories: { text: string; kind: string; part?: string; saved_at?: string; source?: string; private?: boolean }[]; counts?: Record<string, number> };
+export async function brainExport(): Promise<BrainExport> {
+  const { data, error } = await supabase.rpc('my_brain_export');
+  if (error || !data) throw new Error("I couldn't put your download together just now. Try again in a minute.");
+  return data as BrainExport;
+}
+
+// The export as a plain text file anyone can read.
+export function exportAsText(e: BrainExport): string {
+  const when = new Date(e.exported_at || Date.now()).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const lines = [`Everything Tali knows about ${e.person?.first_name || 'you'}`, `Downloaded ${when} from Tali HQ. ${e.memories.length} memories${e.truncated ? ' (the newest 5,000)' : ''}.`, ''];
+  const groups = new Map<string, string[]>();
+  for (const m of e.memories) {
+    const g = m.part || m.kind || 'Other';
+    if (!groups.has(g)) groups.set(g, []);
+    const day = m.saved_at ? new Date(m.saved_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    groups.get(g)!.push(`- ${m.text}${day ? ` (${day})` : ''}${m.private ? ' [private]' : ''}`);
+  }
+  for (const [g, rows] of groups) lines.push(g.toUpperCase(), ...rows, '');
+  return lines.join('\n');
+}

@@ -140,18 +140,39 @@ export async function forgetMemory(id: string): Promise<boolean> {
 // `url` is a signed link filled in when messages load (good for an hour).
 // Images Tali makes (6 Nov 2026) start as a placeholder with no path: making is true while she draws
 // it, failed holds the reason if it did not come through, prompt is what she asked for.
-export type Attachment = { kind: 'image' | 'pdf'; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string; deleted?: boolean };
+export type Attachment = { kind: 'image' | 'pdf' | 'video'; seconds?: number; path: string; name: string; size?: number; url?: string; making?: boolean; failed?: string | null; prompt?: string; shape?: string; deleted?: boolean };
 // meta.deep marks a Deep think reply; meta.suggest_deep is Tali offering one (6 Nov 2026).
 export type DeepLevel = 'deep' | 'deepest';
-export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null; meta?: { deep?: DeepLevel; suggest_deep?: boolean } | null };
+export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content: string; created_at: string; attachments?: Attachment[] | null; meta?: {
+  deep?: DeepLevel; suggest_deep?: boolean;
+  // What she kept from this reply and which part of her brain it went to.
+  kept?: { text: string; part: string } | null;
+  // The extra AIs (10 Nov 2026). routed names the AI behind a reply and is only ever sent to the founder.
+  second_opinion?: { by: string; agree: string; differ: string; credits: number };
+  sources?: { title: string; url: string }[];
+  watched?: { seconds: number; credits: number };
+  routed?: { part: string; ai: string; credits: number };
+} | null };
 export const MAX_ATTACHMENTS = 4;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 // Uploads one file for a chat and returns the attachment to send with the message.
-export async function uploadAttachment(conversationId: string, file: { blob: Blob; name: string; mime: string }): Promise<Attachment> {
+export const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+export const MAX_VIDEO_SECONDS = 10 * 60;
+export async function uploadAttachment(conversationId: string, file: { blob: Blob; name: string; mime: string; seconds?: number }): Promise<Attachment> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
   if (!uid) throw new Error('Not signed in');
+  if (file.mime.startsWith('video/')) {
+    if (file.blob.size > MAX_VIDEO_BYTES) throw new Error(`${file.name} is over 200 MB. Trim it or send a shorter clip.`);
+    if ((file.seconds ?? 0) > MAX_VIDEO_SECONDS) throw new Error('Videos up to 10 minutes for now. Trim it and send it again.');
+    const vext = file.mime === 'video/quicktime' ? 'mov' : file.mime === 'video/webm' ? 'webm' : 'mp4';
+    const vid = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const vpath = `${uid}/${conversationId}/${vid}.${vext}`;
+    const { error: verr } = await supabase.storage.from('chat-uploads').upload(vpath, file.blob, { contentType: file.mime, upsert: false });
+    if (verr) throw new Error('That video would not upload. Try a shorter or smaller one.');
+    return { kind: 'video', path: vpath, name: file.name.slice(0, 80), size: file.blob.size, seconds: file.seconds ?? 0 };
+  }
   const isPdf = file.mime === 'application/pdf' || /\.pdf$/i.test(file.name);
   if (!isPdf && !file.mime.startsWith('image/')) throw new Error('Photos and PDFs only for now.');
   if (file.blob.size > MAX_FILE_BYTES) throw new Error(`${file.name} is over 10 MB.`);
@@ -238,9 +259,9 @@ export type ChatResult =
 
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
 // remembers anything worth keeping in this user's private brain.
-export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = [], deep: DeepLevel | null = null): Promise<ChatResult> {
-  const files = attachments.map(({ kind, path, name, size }) => ({ kind, path, name, size }));
-  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text, attachments: files, ...(deep ? { deep } : {}) } });
+export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = [], deep: DeepLevel | null = null, secondOpinion = false): Promise<ChatResult> {
+  const files = attachments.map(({ kind, path, name, size, seconds }) => ({ kind, path, name, size, ...(kind === 'video' ? { seconds: seconds ?? 0 } : {}) }));
+  const { data, error } = await supabase.functions.invoke('tali-chat', { body: { conversationId, text, attachments: files, ...(deep ? { deep } : {}), ...(secondOpinion ? { second_opinion: true } : {}) } });
   if (error) {
     // Non-2xx answers still carry our JSON body with a friendly message.
     try {
@@ -561,6 +582,7 @@ export async function deleteRule(id: string) {
 
 // ---------- Pro: Tali's email address ----------
 export type InboundEmail = {
+  forwarded?: 'remembered' | 'waiting' | 'unverified' | null;
   id: string;
   from_email: string | null;
   from_name: string | null;
@@ -596,13 +618,27 @@ export async function suggestInboxAlias(): Promise<string> {
 }
 
 export async function inboundEmails(): Promise<InboundEmail[]> {
-  const { data, error } = await supabase
-    .from('inbound_emails')
-    .select('id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at, source, category, snippet')
-    .order('received_at', { ascending: false })
-    .limit(80);
+  const cols = 'id, from_email, from_name, subject, body_text, summary, status, approval_id, received_at, source, category, snippet';
+  const read = (c: string) => supabase.from('inbound_emails').select(c).order('received_at', { ascending: false }).limit(80);
+  // `forwarded` (10 Nov 2026) marks mail the owner sent to their own Tali address for her to remember.
+  // Until that column exists server side, read without it so Email keeps working.
+  let { data, error } = await read(`${cols}, forwarded`);
+  if (error) ({ data, error } = await read(cols));
   if (error) throw error;
-  return (data as InboundEmail[]) ?? [];
+  return (data as unknown as InboundEmail[]) ?? [];
+}
+
+// Have Tali remember what matters in something you forwarded to her address.
+export async function rememberForwarded(id: string): Promise<{ ok: boolean; remembered?: number; message?: string }> {
+  const { data, error } = await supabase.functions.invoke('inbound-email', { body: { action: 'remember', id } });
+  if (error) {
+    try {
+      const b = await (error as any).context?.json?.();
+      if (b?.message) return { ok: false, message: b.message };
+    } catch {}
+    return { ok: false, message: "I couldn't do that just now. Nothing was charged." };
+  }
+  return data as { ok: boolean; remembered?: number; message?: string };
 }
 
 export async function setEmailStatus(id: string, status: InboundEmail['status']) {
@@ -942,4 +978,13 @@ export function freeMessagesLeft(c: Credits | null): { left: number; limit: numb
   const limit = c.freeMessages ?? c.messagesMonth ?? 0;
   if (!limit) return null;
   return { left: Math.max(limit - (c.messagesUsed ?? 0), 0), limit };
+}
+
+// Day one fill (10 Nov 2026): Tali reads the last two weeks of mail and the next two of calendar from
+// an account that is already connected, and remembers the people and commitments in it.
+export async function learnRecent(provider: 'google' | 'microsoft'): Promise<{ ok: boolean; learned?: number; message?: string }> {
+  const r = (await (provider === 'google' ? googleCall : msCall)({ action: 'learn_recent' })) as { ok: boolean; learned?: number; message?: string };
+  // An older server ignores the action and answers with something else; treat that as not available yet.
+  if (r.ok && typeof r.learned !== 'number' && !r.message) return { ok: false, message: "That isn't switched on yet. Nothing was charged." };
+  return r;
 }

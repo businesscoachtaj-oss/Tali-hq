@@ -11,11 +11,17 @@ import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { myCredits, startTopup, type Credits } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
+import { VOICE_ADDON } from '@/lib/brainAiPlan';
+
+// Tali's voice is not on sale yet (10 Nov 2026): it shows on Plans as Coming soon. Flip this once the
+// add-on can really be bought and the minutes are counted server side.
+const VOICE_FOR_SALE = false;
 
 const APP_WEB_URL = 'https://talihq.com.au';
 
-type Pack = { id: string; credits: number; images: number; price: number; title: string; note: string; best?: boolean; save?: string };
-const PACKS: Record<'credits' | 'images' | 'bundles', Pack[]> = {
+type Pack = { id: string; credits: number; images: number; price: number; title: string; note: string; best?: boolean; save?: string; monthly?: boolean };
+type TabId = 'credits' | 'images' | 'bundles' | 'voice';
+const PACKS: Record<TabId, Pack[]> = {
   credits: [
     { id: 'c500', credits: 500, images: 0, price: 9.99, title: '500 credits', note: 'About 500 chats · 2.0c each' },
     { id: 'c1500', credits: 1500, images: 0, price: 24.99, title: '1,500 credits', note: 'About 1,500 chats · 1.7c each', best: true },
@@ -29,11 +35,17 @@ const PACKS: Record<'credits' | 'images' | 'bundles', Pack[]> = {
     { id: 'b-busy', credits: 1500, images: 30, price: 29.99, title: 'Busy month', note: '1,500 credits and 30 images', best: true, save: 'Save $5' },
     { id: 'b-big', credits: 5000, images: 100, price: 79.99, title: 'Big month', note: '5,000 credits and 100 images', save: 'Save $10' },
   ],
+  // Planned (9 Nov 2026 mockups). Not in _shared/topups.ts or Stripe yet.
+  voice: [
+    { id: 'v-addon', credits: 0, images: 0, price: VOICE_ADDON.price, title: "Tali's voice", note: `${VOICE_ADDON.speakMinutes} min of her voice and ${VOICE_ADDON.listenHours} hrs of listening, every month`, best: true, monthly: true },
+    { id: 'v-pack', credits: 0, images: 0, price: VOICE_ADDON.packPrice, title: `${VOICE_ADDON.packMinutes} more minutes`, note: 'For a chatty month. Never expires.' },
+  ],
 };
 const TABS = [
   { id: 'credits', label: 'Credits' },
   { id: 'images', label: 'Images' },
   { id: 'bundles', label: 'Bundles' },
+  ...(VOICE_FOR_SALE ? [{ id: 'voice', label: 'Voice' }] as const : []),
 ] as const;
 
 export default function TopUp() {
@@ -42,8 +54,8 @@ export default function TopUp() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const done = Array.isArray(params.done) ? params.done[0] : params.done;
-  const [tab, setTab] = useState<'credits' | 'images' | 'bundles'>(params.tab === 'images' || params.tab === 'bundles' ? params.tab : 'credits');
-  const [picks, setPicks] = useState<Record<string, string>>({ credits: 'c1500', images: 'i50', bundles: 'b-busy' });
+  const [tab, setTab] = useState<TabId>(params.tab === 'images' || params.tab === 'bundles' || params.tab === 'voice' ? params.tab : 'credits');
+  const [picks, setPicks] = useState<Record<string, string>>({ credits: 'c1500', images: 'i50', bundles: 'b-busy', voice: 'v-addon' });
   const load = useCallback(() => { myCredits().then(setCredits).catch(() => null); }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
   const left = credits ? Math.max(0, credits.creditsMonth - credits.used) : 0;
@@ -89,6 +101,16 @@ export default function TopUp() {
             <Text style={{ color: colours.text, fontSize: 26, fontWeight: '800', marginTop: 2 }}>{imagesLeft.toLocaleString('en-AU')}</Text>
             <Text style={{ color: colours.muted, fontSize: 12.5 }}>left this month{extraImages ? `, plus ${extraImages} extra` : ''}</Text>
           </View>
+          {VOICE_FOR_SALE ? (
+            <>
+              <View style={{ width: 1, backgroundColor: colours.border }} />
+              <View style={{ flex: 1, paddingLeft: space.sm }}>
+                <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.6 }}>VOICE</Text>
+                <Text style={{ color: colours.text, fontSize: 26, fontWeight: '800', marginTop: 2 }}>14</Text>
+                <Text style={{ color: colours.muted, fontSize: 12.5 }}>minutes left this month</Text>
+              </View>
+            </>
+          ) : null}
         </View>
         <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 17 }}>Tali uses this month's first, then the extras. A normal message is 1 credit. Extras never expire and work any month you're on Tali HQ or Pro.</Text>
       </Card>
@@ -104,6 +126,9 @@ export default function TopUp() {
           );
         })}
       </View>
+      {tab === 'voice' ? (
+        <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>Tali reads her replies out loud in a natural voice, and you can talk to her instead of typing. Voice is the dearest AI she uses, so it's an add-on rather than part of the plan.</Text>
+      ) : null}
       <View style={{ gap: space.sm }}>
         {list.map((p) => {
           const on = p.id === chosen.id;
@@ -118,14 +143,17 @@ export default function TopUp() {
                   <Text style={{ color: colours.text, fontSize: 18, fontWeight: '800' }}>{p.title}</Text>
                   {p.best ? (
                     <View style={{ backgroundColor: colours.orange, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 }}>
-                      <Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>{tab === 'bundles' ? 'POPULAR' : 'BEST VALUE'}</Text>
+                      <Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>{tab === 'bundles' ? 'POPULAR' : tab === 'voice' ? 'ADD-ON' : 'BEST VALUE'}</Text>
                     </View>
                   ) : null}
                 </View>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: 1 }}>{p.note}</Text>
                 {p.save ? <Text style={{ color: colours.good, fontSize: 13, fontWeight: '800', marginTop: 1 }}>{p.save}</Text> : null}
               </View>
-              <Text style={{ color: colours.text, fontSize: 18, fontWeight: '800' }}>${p.price.toFixed(2)}</Text>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ color: colours.text, fontSize: 18, fontWeight: '800' }}>${p.price.toFixed(2)}</Text>
+                {p.monthly ? <Text style={{ color: colours.muted, fontSize: 11.5 }}>a month</Text> : null}
+              </View>
             </Pressable>
           );
         })}
@@ -134,9 +162,9 @@ export default function TopUp() {
       <ErrorText>{error}</ErrorText>
       {credits && !paid ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.md, textAlign: 'center' }}>Top ups are for Tali HQ and Pro. Pick a plan first.</Text> : null}
       <Pressable onPress={buy} disabled={busy || !paid} accessibilityRole="button" style={{ opacity: busy || !paid ? 0.6 : 1, marginTop: space.lg, height: 54, borderRadius: radius.pill, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', ...elevation.button(colours.purple) }}>
-        {busy ? <ActivityIndicator color={colours.onPurple} /> : <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 16 }}>Buy {chosen.title} for ${chosen.price.toFixed(2)}</Text>}
+        {busy ? <ActivityIndicator color={colours.onPurple} /> : <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 16 }}>{chosen.monthly ? `Add ${chosen.title} for $${chosen.price.toFixed(2)} a month` : `Buy ${chosen.title} for $${chosen.price.toFixed(2)}`}</Text>}
       </Pressable>
-      <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: 8 }}>Paid by card through Stripe. One payment, not a subscription.</Text>
+      <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: 8 }}>Paid by card through Stripe. {chosen.monthly ? 'Added to your plan. Cancel any time in Manage billing.' : 'One payment, not a subscription.'}</Text>
 
       {!pro ? (
         <Pressable onPress={() => router.navigate('/plans')} accessibilityRole="button">

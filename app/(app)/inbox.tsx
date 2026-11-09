@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useFocusEffect } from 'expo-router';
-import { googleConnection, inboundEmails, microsoftConnection, myCredits, myInbox, setEmailStatus, type GoogleConnection, type InboundEmail, type MicrosoftConnection } from '@/lib/data';
+import { rememberForwarded, googleConnection, inboundEmails, microsoftConnection, myCredits, myInbox, setEmailStatus, type GoogleConnection, type InboundEmail, type MicrosoftConnection } from '@/lib/data';
 import { friendlyTime } from '@/lib/dates';
 import { isPaid, isPro } from '@/lib/plan';
 import { INBOUND_DOMAIN } from '@/constants/business';
@@ -26,6 +26,16 @@ export default function Inbox() {
   const [alias, setAlias] = useState<string | null>(null);
   const [emails, setEmails] = useState<InboundEmail[]>([]);
   const [open, setOpen] = useState<InboundEmail | null>(null);
+  // 10 Nov 2026: something you forwarded to her own address, waiting for you to say "remember this".
+  const [keeping, setKeeping] = useState(false);
+  const [keepNote, setKeepNote] = useState('');
+  async function keep(e: InboundEmail) {
+    setKeeping(true); setKeepNote('');
+    const r = await rememberForwarded(e.id);
+    setKeeping(false);
+    setKeepNote(r.message || (r.ok ? `Done. I kept ${r.remembered ?? 0} ${r.remembered === 1 ? 'thing' : 'things'} from it.` : "I couldn't do that just now."));
+    if (r.ok) setOpen({ ...e, forwarded: 'remembered' });
+  }
   const [tab, setTab] = useState<Tab>('needs_you');
   const [showSpam, setShowSpam] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -101,6 +111,14 @@ export default function Inbox() {
         </Text>
         <Title sub={open.from_name ? `${open.from_name} <${open.from_email}>` : open.from_email ?? undefined}>{open.subject || '(no subject)'}</Title>
         {open.summary ? <TaliSays pose="idle">{open.summary}</TaliSays> : null}
+        {open.forwarded === 'waiting' || open.forwarded === 'unverified' ? (
+          <Card style={{ borderColor: colours.purple, borderWidth: 1 }}>
+            <Body>{open.forwarded === 'unverified' ? "This looks like something you forwarded to me, but I couldn't be sure it was really from you, so I haven't kept anything from it." : 'You forwarded this to me. I have not kept anything from it yet.'}</Body>
+            <Button title={keeping ? 'Reading...' : 'Remember what matters in this'} onPress={() => keep(open)} busy={keeping} />
+          </Card>
+        ) : null}
+        {open.forwarded === 'remembered' ? <Hint>You forwarded this. What mattered in it is in her brain.</Hint> : null}
+        {keepNote ? <Hint>{keepNote}</Hint> : null}
         {open.approval_id && open.status !== 'handled' ? (
           <Card style={{ backgroundColor: colours.purpleSoft, borderColor: colours.purpleSoft }}>
             <Body>{isGmail ? `I drafted a reply. It's waiting on Today with a "Send from ${providerName}" button.` : gmailOn ? "I drafted a reply. It's waiting on Today with a Send button." : "I drafted a reply. It's waiting on Today for you to check, copy and send."}</Body>

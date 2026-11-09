@@ -17,6 +17,8 @@ import { useAuth } from '@/lib/auth';
 import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemoryPrivate, settleConflict, type Brain, type BrainItem, type RegionId } from '@/lib/brain';
 import { forgetMemory } from '@/lib/data';
 import { LEVELS, taliLevel, type Level } from '@/lib/level';
+import { KnowsAbout } from '@/components/KnowsAbout';
+import { BRAIN_AI_PREVIEW, partAi } from '@/lib/brainAiPlan';
 
 const MEMORY_KINDS = ['fact', 'event', 'person', 'lesson', 'mistake', 'rule', 'preference', 'idea', 'plan', 'seen'];
 
@@ -116,7 +118,8 @@ export default function BrainScreen() {
 
   return (
     <Screen skin="brain" onRefresh={load}>
-      <SkinHeader id="brain" title="Tali's brain" sub={brain ? `${brain.total.toLocaleString('en-AU')} memories${brain.scope === 'main' ? ' across everyone' : ''}` : undefined} onBack={() => goBack('/me')} />
+      <SkinHeader id="brain" title="Her brain" sub={brain ? `Everything she knows about you. ${brain.total.toLocaleString('en-AU')} memories and growing.` : undefined} />
+      {brain?.scope === 'mine' ? <KnowsAbout brain={brain} /> : null}
 
       {founder ? (
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
@@ -133,7 +136,6 @@ export default function BrainScreen() {
         </View>
       ) : null}
 
-      {level ? <LevelCard level={level} /> : null}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.border, borderRadius: radius.pill, paddingHorizontal: 14, marginBottom: space.md }}>
         <Ionicons name="search" size={17} color={colours.muted} />
@@ -166,7 +168,7 @@ export default function BrainScreen() {
         <Pressable onPress={() => router.navigate('/brain-ai')} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.surface, borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: space.lg, marginBottom: space.md, ...elevation.card }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text }}>How Tali thinks</Text>
-            <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>The AI each part of her brain uses, now and planned</Text>
+            <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>{BRAIN_AI_PREVIEW ? 'Which AI each part runs on, and who handled what today' : 'The AI each part of her brain uses, now and planned'}</Text>
           </View>
           <Text style={{ fontSize: 22, color: colours.faint, fontWeight: '600' }}>{'›'}</Text>
         </Pressable>
@@ -208,6 +210,13 @@ export default function BrainScreen() {
             </Text>
             {/* 6 Nov 2026 (Taj): Tali's education, a part of the brain each night. */}
             <Text style={{ color: night.faint, fontSize: 13, lineHeight: 18, marginTop: 4 }}>Studies at night: {REGIONS[region.id].studies}</Text>
+            {BRAIN_AI_PREVIEW && founder && partAi(region.id) ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: space.sm, alignSelf: 'flex-start', backgroundColor: night.glass, borderWidth: 1, borderColor: night.line, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
+                <Text style={{ color: night.faint, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 }}>RUNS ON</Text>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>{partAi(region.id)!.ai}</Text>
+                <Text style={{ color: night.accent, fontSize: 12, fontWeight: '700' }}>{partAi(region.id)!.cost}</Text>
+              </View>
+            ) : null}
 
             <Pressable
               onPress={() => { setKeepsOpen((o) => !o); setKeepsShown(5); }}
@@ -322,6 +331,8 @@ export default function BrainScreen() {
         </Text>
       ) : null}
 
+      {/* 9 Nov 2026 look refresh: her level sits under the brain now, so the brain is the first thing you see. */}
+      {level ? <><View style={{ height: space.lg }} /><LevelCard level={level} /></> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       {brain?.scope === 'mine' && fresh.length ? (
@@ -403,17 +414,7 @@ function LevelCard({ level }: { level: Level }) {
           <LinearGradient colors={['#F6B04C', '#FFD9A0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ width: `${pct}%`, height: '100%', borderRadius: 4 }} />
         </View>
         {level.next ? <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 6 }}>{level.toNext.toLocaleString('en-AU')} XP to {level.next}</Text> : null}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: space.md }}>
-          {LEVELS.map((l, i) => {
-            const done = i + 1 < level.level;
-            const now = i + 1 === level.level;
-            return (
-              <View key={l.name} style={{ paddingVertical: 3, paddingHorizontal: 9, borderRadius: radius.pill, backgroundColor: now ? '#F6B04C' : done ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.18)' }}>
-                <Text style={{ color: now ? '#2A1235' : done ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '800' }}>{l.name}</Text>
-              </View>
-            );
-          })}
-        </View>
+        {/* 9 Nov 2026 look refresh: the row of every rank name is gone; the bar and next rank say enough. */}
         <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 17, marginTop: space.md }}>
           She earns XP for every memory, night school class, journal entry and job she does for you.
         </Text>

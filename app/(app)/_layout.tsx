@@ -28,13 +28,15 @@ export default function AppTabs() {
         headerShown: false,
         tabBarActiveTintColor: colours.purple,
         tabBarInactiveTintColor: colours.faint,
-        tabBarStyle: { backgroundColor: colours.surface, borderTopColor: colours.border, ...elevation.tabBar },
+        tabBarStyle: { backgroundColor: '#0D0B22', borderTopColor: colours.border, ...elevation.tabBar },
         sceneStyle: { backgroundColor: colours.bg },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 0) }} />
       <Tabs.Screen name="talk" options={{ title: 'Talk', tabBarIcon: icon('chatbubble-ellipses-outline', 1) }} />
-      <Tabs.Screen name="clients" options={{ title: 'Clients', tabBarIcon: icon('people-outline', 2) }} />
-      <Tabs.Screen name="journal" options={{ title: 'Journal', tabBarIcon: icon('book-outline', 3) }} />
+      {/* 9 Nov 2026 look refresh: her brain gets a tab of its own, in the middle. Clients moves into Me. */}
+      <Tabs.Screen name="brain" options={{ title: 'Her brain', tabBarIcon: icon('sparkles-outline', 2) }} />
+      <Tabs.Screen name="world" options={{ title: 'Your world', tabBarIcon: icon('planet-outline', 3) }} />
+      <Tabs.Screen name="journal" options={{ href: null, title: 'Journal' }} />
       <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline', 4) }} />
       <Tabs.Screen name="settings" options={{ href: null, title: 'Settings' }} />
       <Tabs.Screen name="plans" options={{ href: null, title: 'Plans' }} />
@@ -46,7 +48,8 @@ export default function AppTabs() {
       <Tabs.Screen name="founder" options={{ href: null, title: 'Founder' }} />
       <Tabs.Screen name="founder-users" options={{ href: null, title: 'Users' }} />
       <Tabs.Screen name="sleep" options={{ href: null, title: 'Sleep' }} />
-      <Tabs.Screen name="brain" options={{ href: null, title: "Tali's brain" }} />
+      <Tabs.Screen name="clients" options={{ href: null, title: 'Clients' }} />
+      <Tabs.Screen name="brain-card" options={{ href: null, title: 'Share her brain' }} />
       <Tabs.Screen name="brain-ai" options={{ href: null, title: 'How Tali thinks' }} />
       <Tabs.Screen name="shutdown" options={{ href: null, title: 'Shut the day down' }} />
       <Tabs.Screen name="review" options={{ href: null, title: 'Weekly review' }} />
