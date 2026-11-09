@@ -29,7 +29,7 @@ export const SKINS: Record<SkinId, Skin> = {
   affiliate: { colors: ['#6C3483', '#ED8008'], bg: '#F6EEEA', icon: 'pricetags-outline', kicker: 'PEOPLE SHARING YOUR APPS' },
   settings: { colors: ['#3B3F46', '#6B7280'], bg: '#EEEFF1', icon: 'settings-outline', kicker: 'YOU AND YOUR BUSINESS' },
   plans: { colors: ['#4A2160', '#6C3483'], bg: '#F3EEF6', icon: 'sparkles-outline', kicker: 'YOUR PLAN' },
-  journal: { colors: ['#7A3B1E', '#D0814A'], bg: '#F7EFE8', icon: 'book-outline', kicker: 'YOUR THOUGHTS, YOUR WEEK' },
+  journal: { colors: ['#5B1F4A', '#B24D8C'], bg: '#F6ECF2', icon: 'book-outline', kicker: 'YOUR THOUGHTS, YOUR WEEK' },
   brain: { colors: ['#17133A', '#46307E'], bg: '#ECE8F6', icon: 'bulb-outline', kicker: 'EVERYTHING TALI KNOWS' },
 };
 

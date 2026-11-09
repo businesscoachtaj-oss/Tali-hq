@@ -190,7 +190,7 @@ export default function Journal() {
       <View style={{ flexDirection: 'row', backgroundColor: colours.surface, borderRadius: radius.pill, padding: 4, marginBottom: space.md, ...elevation.tile }}>
         {(['mine', 'tali'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
-            style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? '#7A3B1E' : 'transparent', alignItems: 'center' }}>
+            style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? '#5B1F4A' : 'transparent', alignItems: 'center' }}>
             <Text style={{ fontWeight: '700', color: tab === k ? '#FFFFFF' : colours.muted }}>
               {k === 'mine' ? 'Yours' : "Tali's"}{k === 'tali' && hers.some((h) => !h.read_at) ? ' \u2022' : ''}
             </Text>
@@ -242,15 +242,15 @@ export default function Journal() {
           <Pressable
             key={e.id}
             onPress={() => openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali })}>
-            <Card style={{ borderLeftWidth: 5, borderLeftColor: e.kind === 'note' ? colours.purple : '#D0814A' }}>
+            <Card style={{ borderLeftWidth: 5, borderLeftColor: e.kind === 'note' ? colours.purple : '#B24D8C' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: e.kind === 'note' ? colours.purpleSoft : '#F7EFE8', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name={e.kind === 'note' ? 'document-text-outline' : 'book-outline'} size={16} color={e.kind === 'note' ? colours.purple : '#7A3B1E'} />
+                <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: e.kind === 'note' ? colours.purpleSoft : '#F6ECF2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={e.kind === 'note' ? 'document-text-outline' : 'book-outline'} size={16} color={e.kind === 'note' ? colours.purple : '#5B1F4A'} />
                 </View>
                 <Text style={{ flex: 1, fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>
                   {e.kind === 'note' ? 'Note' : 'Journal'} {'·'} {when(e.created_at)}
                 </Text>
-                {e.mood ? <Text style={{ fontSize: 12, fontWeight: '800', color: '#7A3B1E', backgroundColor: '#F7EFE8', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9, overflow: 'hidden' }}>{MOODS[e.mood - 1]}</Text> : null}
+                {e.mood ? <Text style={{ fontSize: 12, fontWeight: '800', color: '#5B1F4A', backgroundColor: '#F6ECF2', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9, overflow: 'hidden' }}>{MOODS[e.mood - 1]}</Text> : null}
                 {e.private_to_tali ? <Ionicons name="lock-closed" size={14} color={colours.purpleInk} accessibilityLabel="Private" /> : null}
               </View>
               {e.title ? <Text style={{ fontSize: 17, fontWeight: '800', color: colours.text, marginTop: 8 }}>{e.title}</Text> : null}
