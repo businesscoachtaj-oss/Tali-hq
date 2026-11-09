@@ -11,6 +11,7 @@ import { BrainGlobe } from '@/components/BrainGlobe';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink, Card, ErrorText, Label, Screen, Title, goBack, useConfirm } from '@/components/ui';
 import { FOUNDER_USER_ID } from '@/constants/business';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemoryPrivate, settleConflict, type Brain, type BrainItem, type RegionId } from '@/lib/brain';
@@ -114,9 +115,8 @@ export default function BrainScreen() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => goBack('/me')} />
-      <Title sub={brain ? `${brain.total.toLocaleString('en-AU')} memories${brain.scope === 'main' ? ' across everyone' : ''}` : ' '}>Tali's brain</Title>
+    <Screen skin="brain" onRefresh={load}>
+      <SkinHeader id="brain" title="Tali's brain" sub={brain ? `${brain.total.toLocaleString('en-AU')} memories${brain.scope === 'main' ? ' across everyone' : ''}` : undefined} onBack={() => goBack('/me')} />
 
       {founder ? (
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>

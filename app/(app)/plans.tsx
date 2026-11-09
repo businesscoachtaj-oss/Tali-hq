@@ -3,6 +3,7 @@ import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from 'rea
 import { useFocusEffect } from 'expo-router';
 import { myCredits, mySubscription, openBillingPortal, plans as loadPlans, startCheckout, type Credits, type Plan } from '@/lib/data';
 import { BackLink, Button, Card, ErrorText, Screen, Title, goBack } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
 
 const APP_WEB_URL = 'https://talihq.com.au';
@@ -71,11 +72,8 @@ export default function Plans() {
   }
 
   return (
-    <Screen onRefresh={load}>
-      <BackLink onPress={() => goBack('/me')} />
-      <Title sub={founding ? 'You are a founding member: 42.5% off Tali HQ and Pro for as long as you stay.' : 'Start free. Upgrade when Tali is pulling her weight.'}>
-        Plans
-      </Title>
+    <Screen skin="plans" onRefresh={load}>
+      <SkinHeader id="plans" title="Plans" sub={founding ? 'You are a founding member: 42.5% off Tali HQ and Pro for as long as you stay.' : 'Start free. Upgrade when Tali is pulling her weight.'} onBack={() => goBack('/me')} />
 
       <View style={{ flexDirection: 'row', alignSelf: 'flex-start', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, gap: 4, marginBottom: space.sm }}>
         {([false, true] as const).map((y) => (

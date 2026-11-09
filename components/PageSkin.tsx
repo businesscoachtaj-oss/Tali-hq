@@ -6,7 +6,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, Text, View } from 'react-native';
 
-export type SkinId = 'gym' | 'finish' | 'planner' | 'dusk' | 'crossroads' | 'cork' | 'receipt' | 'banknote' | 'airmail' | 'control' | 'nightschool' | 'shoebox' | 'topup';
+export type SkinId = 'gym' | 'finish' | 'planner' | 'dusk' | 'crossroads' | 'cork' | 'receipt' | 'banknote' | 'airmail' | 'control' | 'nightschool' | 'shoebox' | 'topup' | 'founder' | 'affiliate' | 'settings' | 'plans' | 'brain';
 
 type Skin = { colors: [string, string]; bg: string; icon: React.ComponentProps<typeof Ionicons>['name']; kicker: string };
 
@@ -24,6 +24,12 @@ export const SKINS: Record<SkinId, Skin> = {
   shoebox: { colors: ['#6E4A0C', '#C98A1E'], bg: '#F7F0E2', icon: 'file-tray-full-outline', kicker: 'READY FOR TAX TIME' },
   airmail: { colors: ['#1D3A7A', '#3F7BD6'], bg: '#EAF0FA', icon: 'mail-outline', kicker: 'SORTED FOR YOU' },
   control: { colors: ['#2A238F', '#5B54E8'], bg: '#ECECFB', icon: 'flash-outline', kicker: 'TALI ON AUTOPILOT' },
+  // ADDED (9 Nov 2026): the pages that had no banner yet, so every page off Me matches.
+  founder: { colors: ['#272626', '#5A524B'], bg: '#EFEDEA', icon: 'stats-chart-outline', kicker: 'ONLY YOU SEE THIS' },
+  affiliate: { colors: ['#6C3483', '#ED8008'], bg: '#F6EEEA', icon: 'pricetags-outline', kicker: 'PEOPLE SHARING YOUR APPS' },
+  settings: { colors: ['#3B3F46', '#6B7280'], bg: '#EEEFF1', icon: 'settings-outline', kicker: 'YOU AND YOUR BUSINESS' },
+  plans: { colors: ['#4A2160', '#6C3483'], bg: '#F3EEF6', icon: 'sparkles-outline', kicker: 'YOUR PLAN' },
+  brain: { colors: ['#17133A', '#46307E'], bg: '#ECE8F6', icon: 'bulb-outline', kicker: 'EVERYTHING TALI KNOWS' },
 };
 
 const SkinCtx = createContext<Skin | null>(null);

@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { founderAffiliates, founderApproveAffiliate, type Affiliate, type FounderAffiliates } from '@/lib/founderOps';
 import { BackLink, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 const RATES: [string, string][] = [
@@ -57,9 +58,8 @@ export default function FounderAffiliatesScreen() {
   }
 
   return (
-    <Screen>
-      <BackLink onPress={() => router.navigate('/founder')} />
-      <Title sub="Applications, codes, referrals and what's owed. Only you can see this.">Affiliates</Title>
+    <Screen skin="affiliate">
+      <SkinHeader id="affiliate" title="Affiliates" sub="Applications, codes, referrals and what's owed. Only you can see this." onBack={() => router.navigate('/founder')} />
       <ErrorText>{error}</ErrorText>
       {!d ? (
         <TaliSays pose="think">Getting the affiliate numbers.</TaliSays>

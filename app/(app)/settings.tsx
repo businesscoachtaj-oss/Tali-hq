@@ -14,6 +14,7 @@ import { MicrosoftConnectCard } from '@/components/MicrosoftConnectCard';
 import { StripeConnectCard } from '@/components/StripeConnectCard';
 import { TaliAddressCard, TaliAddressNote } from '@/components/TaliAddressCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title, goBack } from '@/components/ui';
+import { SkinHeader } from '@/components/PageSkin';
 import { colours, space } from '@/constants/theme';
 
 export default function Settings() {
@@ -130,9 +131,8 @@ export default function Settings() {
   );
 
   return (
-    <Screen>
-      <BackLink onPress={() => goBack('/me')} />
-      <Title sub="Tali reads this before every chat and brief.">Settings</Title>
+    <Screen skin="settings">
+      <SkinHeader id="settings" title="Settings" sub="Tali reads this before every chat and brief." onBack={() => goBack('/me')} />
 
       {connectionsFirst ? (
         <>
