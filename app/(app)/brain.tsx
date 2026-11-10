@@ -20,6 +20,7 @@ import { LEVELS, taliLevel, type Level } from '@/lib/level';
 import { KnowsAbout } from '@/components/KnowsAbout';
 import { LastNightCard } from '@/components/LastNightCard';
 import { LinkTotalityCard } from '@/components/LinkTotalityCard';
+import { LibraryShelf } from '@/components/LibraryShelf';
 import { BRAIN_AI_PREVIEW, partAi } from '@/lib/brainAiPlan';
 
 const MEMORY_KINDS = ['fact', 'event', 'person', 'lesson', 'mistake', 'rule', 'preference', 'idea', 'plan', 'seen'];
@@ -124,6 +125,7 @@ export default function BrainScreen() {
       {brain?.scope === 'mine' ? <LastNightCard onChanged={load} /> : null}
       {brain?.scope === 'mine' ? <KnowsAbout brain={brain} /> : null}
       {brain?.scope === 'mine' ? <LinkTotalityCard onChanged={load} /> : null}
+      {brain?.scope === 'mine' ? <LibraryShelf /> : null}
 
       {founder ? (
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
