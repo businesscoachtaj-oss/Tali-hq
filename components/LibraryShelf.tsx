@@ -2,7 +2,8 @@
 // night. Every one is out of copyright and free to read, and each row links to the book itself.
 // Folded to the three she is closest to; "See the whole shelf" opens the rest.
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { Card } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 import { REGIONS } from '@/lib/brain';
@@ -18,7 +19,7 @@ function Book({ b }: { b: LibraryBook }) {
   const colour = REGIONS[b.region]?.colour ?? colours.purple;
   const pct = b.passages ? Math.min(1, b.studied / b.passages) : 0;
   return (
-    <Pressable onPress={() => Linking.openURL(b.source_url)} accessibilityRole="link" accessibilityLabel={`${b.title} by ${b.author}. Opens the book.`} style={{ flexDirection: 'row', gap: space.md, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colours.border }}>
+    <Pressable onPress={() => router.push({ pathname: '/(app)/library', params: { book: b.id } } as any)} accessibilityRole="button" accessibilityLabel={`${b.title} by ${b.author}. Opens it in her library.`} style={{ flexDirection: 'row', gap: space.md, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colours.border }}>
       <View style={{ width: 8, borderRadius: 4, backgroundColor: colour, opacity: b.state === 'reading' || b.state === 'finished' ? 1 : 0.45 }} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ color: colours.text, fontSize: 15, fontWeight: '800' }}>{b.title}</Text>
@@ -64,8 +65,12 @@ export function LibraryShelf() {
           <Text style={{ color: colours.purple, fontWeight: '800', fontSize: 14 }}>{all ? 'Show less' : `See the whole shelf (${books.length})`}</Text>
         </Pressable>
       ) : null}
+      {/* ADDED (11 Nov 2026): the whole bookcase, where finished books open to read. */}
+      <Pressable onPress={() => router.push('/(app)/library' as any)} accessibilityRole="button" style={{ marginTop: space.md, backgroundColor: colours.purple, borderRadius: 999, paddingVertical: 12, alignItems: 'center' }}>
+        <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 15 }}>Open her library</Text>
+      </Pressable>
       <Text style={{ color: colours.faint, fontSize: 12, lineHeight: 17, marginTop: space.md }}>
-        Every book here is out of copyright and free to read. Tap one to open it. I leave old health and medical books off the shelf, because a lot of that advice has since been proven wrong.
+        Every book here is out of copyright and free to read. Tap one to see what I kept from it. I leave old health and medical books off the shelf, because a lot of that advice has since been proven wrong.
       </Text>
     </Card>
   );

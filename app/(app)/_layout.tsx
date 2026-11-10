@@ -44,6 +44,7 @@ export default function AppTabs() {
       <Tabs.Screen name="rules" options={{ href: null, title: 'Rules' }} />
       <Tabs.Screen name="inbox" options={{ href: null, title: 'Tali email' }} />
       <Tabs.Screen name="night-school" options={{ href: null, title: 'Night school' }} />
+      <Tabs.Screen name="library" options={{ href: null, title: "Tali's library" }} />
       <Tabs.Screen name="life" options={{ href: null, title: 'Food and training' }} />
       <Tabs.Screen name="founder" options={{ href: null, title: 'Founder' }} />
       <Tabs.Screen name="founder-users" options={{ href: null, title: 'Users' }} />
