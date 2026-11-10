@@ -16,6 +16,9 @@ export const today = () => isoDate(new Date());
 
 // "Today", "Tomorrow", "Yesterday", "3 days ago", or "Mon 16 Nov".
 export function friendlyDate(iso: string) {
+  // A full timestamp used to come out as "Invalid Date" (10 Nov 2026): only the day part is used.
+  iso = String(iso ?? '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
   const t = today();
   if (iso === t) return 'Today';
   if (iso === isoDate(addDays(new Date(), 1))) return 'Tomorrow';

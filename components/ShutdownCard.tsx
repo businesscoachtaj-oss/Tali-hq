@@ -42,20 +42,20 @@ export function useShutdownCard(now: () => Date = realNow): ShutdownCardState & 
   return { ...state, reload };
 }
 
-export function ShutdownCard({ now }: { now?: () => Date }) {
+export function ShutdownCard({ now, hideLine }: { now?: () => Date; hideLine?: boolean }) {
   const { show, done } = useShutdownCard(now);
   if (!show) return null;
   return (
     <>
       <View style={{ height: space.sm }} />
       <Label>{done ? 'Day closed' : 'Tonight'}</Label>
-      <ShutdownCardView done={done} />
+      <ShutdownCardView done={done} hideLine={hideLine} />
     </>
   );
 }
 
 // The card itself, with no loading, for Today and for tests.
-export function ShutdownCardView({ done }: { done: Shutdown | null }) {
+export function ShutdownCardView({ done, hideLine }: { done: Shutdown | null; hideLine?: boolean }) {
   if (done) {
     const m = MOODS.find((x) => x.value === done.mood);
     const lines = done.tomorrow.map((t) => t.text).filter(Boolean);
@@ -66,7 +66,7 @@ export function ShutdownCardView({ done }: { done: Shutdown | null }) {
             <Text style={{ fontSize: 28 }}>{m?.emoji ?? '🌙'}</Text>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Day closed{m ? `, ${m.label.toLowerCase()}` : ''}</Text>
-              {done.tali_line ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2, lineHeight: 18 }}>{done.tali_line}</Text> : null}
+              {done.tali_line && !hideLine ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2, lineHeight: 18 }}>{done.tali_line}</Text> : null}
             </View>
           </View>
           {lines.length ? (

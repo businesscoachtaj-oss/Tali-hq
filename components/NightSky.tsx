@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSkyBlend } from '@/lib/sky';
 
 export const night = {
   ink: '#EEE9FF',
@@ -54,6 +55,20 @@ export function NightBackground({ style }: { style?: StyleProp<ViewStyle> }) {
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }, style]} pointerEvents="none">
       <LinearGradient colors={[...night.sky]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <Stars stars={CARD_STARS} />
+    </View>
+  );
+}
+
+// The sky behind a whole page (10 Nov 2026). Lighter through the day, fading into the night sky above
+// as shut-off gets close (see lib/sky.ts). The stars come out as it darkens.
+export const daySky = ['#5236C8', '#3D48C2', '#2C5CB4'] as const;
+export function PageSky({ style }: { style?: StyleProp<ViewStyle> }) {
+  const blend = useSkyBlend();
+  return (
+    <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }, style]} pointerEvents="none">
+      <LinearGradient colors={[...night.sky]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      {blend < 1 ? <LinearGradient colors={[...daySky]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { opacity: 1 - blend }]} /> : null}
+      <View style={[StyleSheet.absoluteFill, { opacity: 0.35 + 0.65 * blend }]}><Stars stars={CARD_STARS} /></View>
     </View>
   );
 }

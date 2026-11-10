@@ -27,7 +27,10 @@ type Link = { text: string; area: Area; full?: string };
 
 const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.76], [1, 0.86]] as const;
 
-export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | null }) {
+export type Lens = 'people' | 'work' | 'money' | 'health' | 'growth';
+export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { greeting: string; sub?: string | null; nightLine?: string | null; lens?: Lens | null; onLens?: (l: Lens | null) => void }) {
+  // 10 Nov 2026: once the day is shut down her brain stays, with her goodnight line in place of the count.
+  const closed = nightLine !== undefined;
   const { width } = useWindowDimensions();
   const W = Math.min(width, 640);
   const [brain, setBrain] = useState<Brain | null>(null);
@@ -104,7 +107,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
   // Six places in the sky. What needs you comes first, so an idea is the first to wait for a quiet day.
   stars.length = Math.min(stars.length, SPOTS.length);
 
-  const stageH = 470;
+  const stageH = closed ? 360 : 470;
   const cx = W / 2, cy = stageH / 2;
   const pos = (i: number) => ({ x: 16 + SPOTS[i][0] * (W - 186), y: SPOTS[i][1] * (stageH - 50) });
   const counts: Partial<Record<RegionId, number>> = {};
@@ -125,8 +128,16 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickedKey, seed]);
+  // Day closed (Taj, 10 Nov 2026): just her brain, turning slowly. Nothing to do orbits it.
+  const shownStars = closed ? [] : stars;
+  // The lens (10 Nov 2026): tap People, Work, Money, Health or Growth and only that part of your
+  // day stays lit. Tap it again for everything. Nothing is hidden for good, it is a filter, not a mode.
+  const [lensOwn, setLensOwn] = useState<Area | null>(null);
+  const lens = (onLens ? lensIn ?? null : lensOwn) as Area | null;
+  const setLens = (l: Area | null) => (onLens ? onLens(l) : setLensOwn(l));
+  const inLens = lens ? stars.filter((x) => x.area === lens).length : 0;
   const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
-  const line = sel ? "Here's everything I know that touches this." : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
+  const line = sel ? "Here's everything I know that touches this." : closed ? (nightLine?.trim() || "Day's done. Bed time?") : lens ? (inLens ? `${inLens} ${inLens === 1 ? 'thing' : 'things'} for ${AREA[lens].name.toLowerCase()} today.` : `Nothing for ${AREA[lens].name.toLowerCase()} today. Tell me something.`) : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
 
   // Spots the first-run tour points at (10 Nov 2026).
   const brainRef = useRef<View>(null);
@@ -145,7 +156,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
             <TaliAvatar pose="head" size={42} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
+            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{closed ? 'DAY CLOSED  ·  ' : ''}{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
             <Text style={{ color: '#F4F1FF', fontSize: 15, marginTop: 2 }}>{greeting}{sub ? `  ·  ${sub}` : ''}</Text>
           </View>
         </View>
@@ -156,10 +167,10 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
         {/* Tapping the empty sky closes whatever is open. */}
         <Pressable ref={brainRef} collapsable={false} onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
           <View style={{ position: 'absolute', left: cx - 150, top: cy - 150, opacity: sel ? 0.35 : 1 }}>
-            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
+            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} speed={closed ? 0.5 : 1} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
           </View>
-          {stars.map((s, i) => {
-            const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = !!focus && !on;
+          {shownStars.map((s, i) => {
+            const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = (!!focus && !on) || (!!lens && !focus && s.area !== lens);
             const sx = p.x + 8, sy = p.y + 8;
             return <Beam key={'l' + s.key} x1={sx} y1={sy} x2={cx} y2={cy} colour={c} opacity={dim ? 0.08 : on ? 0.9 : 0.35} />;
           })}
@@ -182,8 +193,8 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
               </View>
             );
           }) : null}
-          {stars.map((s, i) => {
-            const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = !!focus && !on;
+          {shownStars.map((s, i) => {
+            const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = (!!focus && !on) || (!!lens && !focus && s.area !== lens);
             return (
               <Pressable key={s.key} onPress={() => pick(on ? null : s.key)} accessibilityRole="button" accessibilityLabel={s.full ?? s.title}
                 style={{ position: 'absolute', left: p.x, top: p.y, flexDirection: 'row', alignItems: 'flex-start', gap: 8, opacity: dim ? 0.12 : 1, maxWidth: 160 }}>
@@ -225,19 +236,32 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
               ) : null}
             </View>
           );
-        })() : (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 18, paddingHorizontal: 16, marginTop: 28 }}>
-            {(Object.keys(AREA) as Area[]).map((a) => (
-              <Pressable key={a} onPress={() => router.navigate('/world')} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }} accessibilityRole="button">
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: AREA[a].colour, shadowColor: AREA[a].colour, shadowOpacity: 1, shadowRadius: 8 }} />
-                <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '700' }}>{AREA[a].name}</Text>
+        })() : closed ? (
+          <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginTop: 8 }}>
+            {([['Sleep sounds', '/sleep'], ['Write in your journal', '/journal']] as const).map(([label, to]) => (
+              <Pressable key={to} onPress={() => router.navigate(to)} accessibilityRole="button"
+                style={{ flex: 1, alignItems: 'center', borderRadius: 999, paddingVertical: 15, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '700' }}>{label}</Text>
               </Pressable>
             ))}
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: 12, marginTop: 28 }}>
+            {(Object.keys(AREA) as Area[]).map((a) => {
+              const on = lens === a; const n = stars.filter((x) => x.area === a).length;
+              return (
+                <Pressable key={a} onPress={() => setLens(on ? null : a)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${AREA[a].name}, ${n} today`}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: on ? AREA[a].colour : 'rgba(214,200,255,0.3)', backgroundColor: on ? AREA[a].colour : 'rgba(255,255,255,0.06)', opacity: lens && !on ? 0.55 : 1 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: on ? '#0C0A24' : AREA[a].colour }} />
+                  <Text style={{ color: on ? '#0C0A24' : 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '800' }}>{AREA[a].name}{n ? ` ${n}` : ''}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         )}
 
         {/* Tali's level stays (Taj, 10 Nov 2026): it's how you see her grow. */}
-        {level ? (
+        {level && !closed ? (
           <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}
             style={{ marginHorizontal: 16, marginTop: 22, padding: 14, borderRadius: 20, backgroundColor: 'rgba(107,79,216,0.38)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -257,11 +281,13 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
           </Pressable>
         ) : null}
 
-        <Pressable ref={tellRef} collapsable={false} onPress={() => router.navigate('/talk')} accessibilityRole="button"
+{closed ? null : (
+                <Pressable ref={tellRef} collapsable={false} onPress={() => router.navigate('/talk')} accessibilityRole="button"
           style={{ marginHorizontal: 16, marginTop: 22, borderRadius: 999, paddingVertical: 16, paddingHorizontal: 22, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Text style={{ flex: 1, color: 'rgba(255,255,255,0.65)', fontSize: 16 }}>Tell her anything...</Text>
+          <Text style={{ flex: 1, color: 'rgba(255,255,255,0.65)', fontSize: 16 }}>{lens ? `Tell her about ${AREA[lens].name.toLowerCase()}...` : 'Tell her anything...'}</Text>
           <Text style={{ color: '#B9A6FF', fontSize: 18 }}>{'●'}</Text>
         </Pressable>
+        )}
     </View>
   );
 }

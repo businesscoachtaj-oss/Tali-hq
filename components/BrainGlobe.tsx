@@ -188,6 +188,7 @@ export function BrainGlobe({
   links,
   selected,
   onSelect,
+  speed = 1,
 }: {
   size: number;
   counts: Partial<Record<RegionId, number>>;
@@ -196,6 +197,8 @@ export function BrainGlobe({
   selected: RegionId | null;
   /** The part tapped, or null for a tap on empty space. */
   onSelect: (id: RegionId | null) => void;
+  /** How fast she turns on her own. 1 is normal, 0.5 is the slow night turn. */
+  speed?: number;
 }) {
   const half = size / 2;
   const scale = size / 400;
@@ -211,7 +214,7 @@ export function BrainGlobe({
 
   // A slow turn on its own, paused while a finger is on it.
   useFrameCallback((f) => {
-    if (!dragging.value) ry.value += ((f.timeSincePreviousFrame ?? 16) / 1000) * 0.35;
+    if (!dragging.value) ry.value += ((f.timeSincePreviousFrame ?? 16) / 1000) * 0.35 * speed;
   });
 
   // How bright each part is: a log scale so 5 memories glow and 500 don't blind.

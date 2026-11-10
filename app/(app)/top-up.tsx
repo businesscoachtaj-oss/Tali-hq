@@ -32,8 +32,8 @@ const PACKS: Record<TabId, Pack[]> = {
     { id: 'i50', credits: 0, images: 50, price: 9.99, title: '50 images', note: 'About 20c each', best: true },
   ],
   bundles: [
-    { id: 'b-busy', credits: 1500, images: 30, price: 29.99, title: 'Busy month', note: '1,500 credits and 30 images', best: true, save: 'Save $5' },
-    { id: 'b-big', credits: 5000, images: 100, price: 79.99, title: 'Big month', note: '5,000 credits and 100 images', save: 'Save $10' },
+    { id: 'b-busy', credits: 1500, images: 30, price: 29.99, title: 'Busy month', note: '1,500 credits and 30 images', best: true, save: 'Save A$5' },
+    { id: 'b-big', credits: 5000, images: 100, price: 79.99, title: 'Big month', note: '5,000 credits and 100 images', save: 'Save A$10' },
   ],
   // Planned (9 Nov 2026 mockups). Not in _shared/topups.ts or Stripe yet.
   voice: [
@@ -151,7 +151,7 @@ export default function TopUp() {
                 {p.save ? <Text style={{ color: colours.good, fontSize: 13, fontWeight: '800', marginTop: 1 }}>{p.save}</Text> : null}
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: colours.text, fontSize: 18, fontWeight: '800' }}>${p.price.toFixed(2)}</Text>
+                <Text style={{ color: colours.text, fontSize: 18, fontWeight: '800' }}>A${p.price.toFixed(2)}</Text>
                 {p.monthly ? <Text style={{ color: colours.muted, fontSize: 11.5 }}>a month</Text> : null}
               </View>
             </Pressable>
@@ -162,7 +162,7 @@ export default function TopUp() {
       <ErrorText>{error}</ErrorText>
       {credits && !paid ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.md, textAlign: 'center' }}>Top ups are for Tali HQ and Pro. Pick a plan first.</Text> : null}
       <Pressable onPress={buy} disabled={busy || !paid} accessibilityRole="button" style={{ opacity: busy || !paid ? 0.6 : 1, marginTop: space.lg, height: 54, borderRadius: radius.pill, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', ...elevation.button(colours.purple) }}>
-        {busy ? <ActivityIndicator color={colours.onPurple} /> : <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 16 }}>{chosen.monthly ? `Add ${chosen.title} for $${chosen.price.toFixed(2)} a month` : `Buy ${chosen.title} for $${chosen.price.toFixed(2)}`}</Text>}
+        {busy ? <ActivityIndicator color={colours.onPurple} /> : <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 16 }}>{chosen.monthly ? `Add ${chosen.title} for A$${chosen.price.toFixed(2)} a month` : `Buy ${chosen.title} for A$${chosen.price.toFixed(2)}`}</Text>}
       </Pressable>
       <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: 8 }}>Paid by card through Stripe. {chosen.monthly ? 'Added to your plan. Cancel any time in Manage billing.' : 'One payment, not a subscription.'}</Text>
 

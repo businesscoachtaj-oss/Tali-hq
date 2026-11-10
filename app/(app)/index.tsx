@@ -30,11 +30,13 @@ import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
 import { TodayHero } from '@/components/TodayHero';
-import { BrainSky } from '@/components/BrainSky';
+import { BrainSky, type Lens } from '@/components/BrainSky';
+import { useHasBusiness } from '@/lib/business';
 import { type Room } from '@/components/RoomSwitch';
 import { SheNoticed } from '@/components/SheNoticed';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
-import { NightBackground } from '@/components/NightSky';
+import { PageSky } from '@/components/NightSky';
+import { setDayShut } from '@/lib/sky';
 import { Aurora } from '@/components/Aurora';
 
 function greeting() {
@@ -54,6 +56,9 @@ function trialLine(c: Credits | null) {
   }
   return null;
 }
+
+// Which At a glance tiles belong to which lens. The 'health' tile is business health, so it sits with work.
+const LENS_TILES: Record<string, string[]> = { money: ['money'], work: ['health', 'money'], growth: ['week', 'goals'], health: [], people: [] };
 
 export default function Today() {
   const { profile, session, refreshProfile } = useAuth();
@@ -101,6 +106,9 @@ export default function Today() {
   // 4 Nov 2026 (Taj): new emails (Tali's address, or Gmail/Outlook "needs you") get a nudge on Today.
   const [newMail, setNewMail] = useState<InboundEmail[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
+  // The lens (10 Nov 2026): pick a part of your life under her brain and the whole page follows.
+  const [lens, setLens] = useState<Lens | null>(null);
+  const hide = (...areas: Lens[]) => (lens && !areas.includes(lens) ? ({ display: 'none' } as const) : null);
   // 4 Nov 2026: an earlier note opens in full the same way the morning brief does.
   const [noteOpen, setNoteOpen] = useState<string | null>(null);
   // 4 Nov 2026: once today's shutdown is done, Today goes into night mode (see TodayHero).
@@ -155,12 +163,15 @@ export default function Today() {
   const others = briefs.filter((b) => b !== morning && b.kind !== 'journal' && (b.kind as string) !== 'patterns');
   const trial = trialLine(credits);
   const night = !!shutdown;
-  const allTiles = glanceTiles({ credits, money, health, week, goals });
+  useEffect(() => { setDayShut(night); }, [night]);
+  // With no business there is no business health to show (10 Nov 2026).
+  const biz = useHasBusiness();
+  const allTiles = glanceTiles({ credits, money, health, week, goals }).filter((t) => biz || t.key !== 'health');
   const tiles = allTiles;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
-      <NightBackground />
+      <PageSky />
       <Aurora />
       <ScrollView
         ref={scrollRef}
@@ -169,20 +180,10 @@ export default function Today() {
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
         <View ref={heroRef} collapsable={false}>
-        {night ? (
-          <TodayHero
-          greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
-          sub={trial}
-          hello={loaded ? helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health }) : 'Just having a look at your day.'}
-          briefLabel={morning && !night ? (briefOpen ? 'Hide your brief' : 'Read your brief') : null}
-          onBrief={() => setBriefOpen((o) => !o)}
-          night={night}
-          nightLine={shutdown?.tali_line}
-        />
-        ) : (
+        {(
           <View style={{ marginHorizontal: -space.lg, marginTop: -space.lg }}>
-            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} />
-            {morning ? (
+            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} nightLine={night ? shutdown?.tali_line ?? null : undefined} lens={lens} onLens={setLens} />
+            {morning && !night ? (
               <Pressable onPress={() => setBriefOpen((o) => !o)} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: 14, marginBottom: 6 }}>
                 <Text style={{ color: colours.purple, fontSize: 14, fontWeight: '700' }}>{briefOpen ? 'Hide your brief' : 'Read your morning brief'} {'›'}</Text>
               </Pressable>
@@ -190,17 +191,28 @@ export default function Today() {
           </View>
         )}
         </View>
+        {/* Day closed (Taj, 10 Nov 2026): only her brain and the two bedtime buttons. The day's lists come back in the morning. */}
+        {night ? <View style={{ marginTop: space.lg }}><ShutdownCard hideLine /></View> : (<>
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
-        <SheNoticed />
+        <View style={hide()}><SheNoticed /></View>
 
         {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
         ) : null}
 
-        <MeetingNudge credits={credits} calendar={calendar} compact />
+        {/* Health lens: food and training come up to the top, so the lens has something to show. */}
+        {lens === 'health' && life ? (
+          <>
+            <Label>Your day</Label>
+            <YourDayCard life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} />
+          </>
+        ) : null}
 
-        <NightIdeaCard />
+        <View style={hide('work', 'people')}><MeetingNudge credits={credits} calendar={calendar} compact /></View>
 
+        <View style={hide('growth')}><NightIdeaCard /></View>
+
+        <View style={hide('work', 'people')}>
         {newMail.length || approvals.length ? <Label>Needs you</Label> : null}
         {newMail.length ? (
           <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">
@@ -233,8 +245,9 @@ export default function Today() {
             <View style={{ height: space.sm }} />
           </View>
         ) : null}
+        </View>
 
-        <View ref={dueRef} collapsable={false}>
+        <View ref={dueRef} collapsable={false} style={hide('work', 'people')}>
         <Label>Due today</Label>
         {reminders.length + followUps.length > 0 ? (
           <DueList reminders={reminders} followUps={followUps} onChange={load} />
@@ -256,7 +269,7 @@ export default function Today() {
             <View style={{ height: space.md }} />
             <View ref={glanceRef} collapsable={false}>
               <Label>At a glance</Label>
-              <GlanceGrid tiles={tiles} />
+              <GlanceGrid tiles={lens ? tiles.filter((t) => (LENS_TILES[lens] ?? []).includes(t.key)) : tiles} />
             </View>
           </>
         ) : (
@@ -292,6 +305,7 @@ export default function Today() {
           </Card>
         ) : null}
         <View style={{ height: space.xl }} />
+        </>)}
       </ScrollView>
       {showTour ? <AppTour steps={TOUR_STEPS} onDone={closeTour} firstName={profile?.first_name} /> : null}
     </SafeAreaView>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useHasBusiness } from '@/lib/business';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { clients as loadClients, deleteClient, saveClient, type Client } from '@/lib/data';
@@ -30,6 +31,8 @@ const blank = (kind: 'client' | 'lead'): Draft => ({ name: '', kind, status: kin
 export default function Clients() {
   const [list, setList] = useState<Client[]>([]);
   const [tab, setTab] = useState<'client' | 'lead'>('client');
+  // 10 Nov 2026: with no business this is simply your people, with no clients and leads split.
+  const hasBusiness = useHasBusiness();
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,7 +73,7 @@ export default function Clients() {
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
     return list
-      .filter((c) => c.kind === tab)
+      .filter((c) => !hasBusiness || c.kind === tab)
       .filter((c) => !q || c.name.toLowerCase().includes(q) || c.notes.toLowerCase().includes(q))
       .sort((a, b) => {
         const fa = a.next_follow_up ?? '9999', fb = b.next_follow_up ?? '9999';
@@ -127,13 +130,18 @@ export default function Clients() {
     return (
       <Screen skin="cork">
         <BackLink onPress={() => closeEditor(draft.id)} label={fromPerson ? draft.name || 'Back' : 'Back'} />
-        <Title>{draft.id ? draft.name || 'Edit' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
-        <ChipPicker options={['client', 'lead'] as const} value={draft.kind} label={(k) => (k === 'lead' ? 'Lead' : 'Client')}
-          onChange={(k) => setDraft({ ...draft, kind: k, status: k === 'lead' ? 'new' : 'active' })} />
+        <Title>{draft.id ? draft.name || 'Edit' : !hasBusiness ? 'New person' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
+        {/* Client or lead, and their status, only mean something when you run a business. */}
+        {hasBusiness ? <ChipPicker options={['client', 'lead'] as const} value={draft.kind} label={(k) => (k === 'lead' ? 'Lead' : 'Client')}
+          onChange={(k) => setDraft({ ...draft, kind: k, status: k === 'lead' ? 'new' : 'active' })} /> : null}
         <Field label="Name" value={draft.name} onChangeText={(t) => setDraft({ ...draft, name: t })} maxLength={120} />
-        <Label>Status</Label>
-        <ChipPicker options={statuses} value={draft.status as any} label={(s) => STATUS_LABEL[s]} onChange={(s) => setDraft({ ...draft, status: s })} />
-        <Label>Follow up</Label>
+        {hasBusiness ? (
+          <>
+            <Label>Status</Label>
+            <ChipPicker options={statuses} value={draft.status as any} label={(s) => STATUS_LABEL[s]} onChange={(s) => setDraft({ ...draft, status: s })} />
+          </>
+        ) : null}
+        <Label>{hasBusiness ? 'Follow up' : 'Check in'}</Label>
         <ChipPicker
           options={FOLLOW_UP_PICKS.map((p) => p.label)}
           value={followUpPickFor(draft.next_follow_up)}
@@ -157,8 +165,8 @@ export default function Clients() {
 
   return (
     <Screen skin="cork" onRefresh={load}>
-      <SkinHeader id="cork" title="Your people" sub="Clients, leads and the people who matter. Tell her about anyone: add Mia as a new lead, or Mum's birthday is 14 December." onBack={() => router.navigate('/world')} />
-      <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
+      <SkinHeader id="cork" title="Your people" sub={hasBusiness ? "Clients, leads and the people who matter. Tell her about anyone: add Mia as a new lead, or Mum's birthday is 14 December." : "Family, friends and the people who matter. Tell her about anyone: Mum's birthday is 14 December, or Dan is moving to Perth."} onBack={() => router.navigate('/world')} />
+      <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md, display: hasBusiness ? 'flex' : 'none' }}>
         {(['client', 'lead'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
             style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? colours.surface : 'transparent', alignItems: 'center' }}>
@@ -172,15 +180,15 @@ export default function Clients() {
         <TextInput value={search} onChangeText={setSearch} placeholder="Search" placeholderTextColor={colours.faint}
           style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, marginBottom: space.md, color: colours.text }} />
       ) : null}
-      <Button title={tab === 'lead' ? 'Add a lead' : 'Add a client'} onPress={() => setDraft(blank(tab))} />
-      <Button title="Invoices" kind="ghost" onPress={() => router.navigate('/invoices')} />
+      <Button title={!hasBusiness ? 'Add a person' : tab === 'lead' ? 'Add a lead' : 'Add a client'} onPress={() => setDraft(blank(hasBusiness ? tab : 'client'))} />
+      {hasBusiness ? <Button title="Invoices" kind="ghost" onPress={() => router.navigate('/invoices')} /> : null}
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.md }} />
       {shown.length === 0 ? (
         list.length === 0 ? (
           <TaliSays pose="idle">Add the people you work with and I'll keep track of who needs a follow-up.</TaliSays>
         ) : (
-          <Card><Body muted>{search ? 'No one matches that.' : tab === 'lead' ? 'No leads yet.' : 'No clients yet.'}</Body></Card>
+          <Card><Body muted>{search ? 'No one matches that.' : !hasBusiness ? 'No one yet. Tell Tali about someone in Talk and they land here.' : tab === 'lead' ? 'No leads yet.' : 'No clients yet.'}</Body></Card>
         )
       ) : (
         shown.map((c) => {
@@ -190,7 +198,7 @@ export default function Clients() {
               <Card style={due ? { borderLeftWidth: 5, borderLeftColor: colours.orange } : undefined}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
                   <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text, flex: 1 }} numberOfLines={1}>{c.name}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: colours.purpleInk }}>{STATUS_LABEL[c.status] ?? c.status}</Text>
+                  {hasBusiness ? <Text style={{ fontSize: 12, fontWeight: '700', color: colours.purpleInk }}>{STATUS_LABEL[c.status] ?? c.status}</Text> : null}
                 </View>
                 {c.next_follow_up ? (
                   <Text style={{ fontSize: 13, color: due ? colours.orange : colours.muted, marginTop: 3, fontWeight: due ? '700' : '400' }}>

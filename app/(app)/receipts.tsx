@@ -17,8 +17,8 @@ import {
   receiptsZip, saveReceipt, uploadReceipt, type Receipt,
 } from '@/lib/grow';
 
-const BROWN = '#6E4A0C';
-const aud = (n: number) => `$${n.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const BROWN = '#B9A6FF'; // 10 Nov 2026: was a brown from the old paper look, unreadable on her night sky
+const aud = (n: number) => `A$${n.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const monthName = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
 const dayName = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 const todayIso = () => new Intl.DateTimeFormat('en-CA').format(new Date());
@@ -147,7 +147,7 @@ export default function Receipts() {
 
       {draft ? (
         <Card style={{ borderWidth: 2, borderColor: '#C98A1E' }}>
-          <Text style={{ color: '#8A5A0E', fontSize: 12, fontWeight: '800', letterSpacing: 0.6 }}>CHECK THIS BEFORE IT'S SAVED</Text>
+          <Text style={{ color: '#B9A6FF', fontSize: 12, fontWeight: '800', letterSpacing: 0.6 }}>CHECK THIS BEFORE IT'S SAVED</Text>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2, marginBottom: space.md }}>Here's what I read. Fix anything I got wrong.</Text>
           <Field label="Who you paid" value={draft.vendor} onChangeText={(v) => setDraft({ ...draft, vendor: v })} placeholder="e.g. Officeworks" maxLength={120} />
           <View style={{ flexDirection: 'row', gap: space.sm }}>
@@ -175,8 +175,8 @@ export default function Receipts() {
               <Stat value={String(inFy.length)} label={inFy.length === 1 ? 'receipt' : 'receipts'} />
             </View>
             <Pressable onPress={download} disabled={zipping || !inFy.length} accessibilityRole="button" style={{ marginTop: space.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: radius.pill, borderWidth: 1.5, borderColor: '#C98A1E', opacity: inFy.length ? 1 : 0.5 }}>
-              {zipping ? <ActivityIndicator color="#8A5A0E" /> : <Ionicons name="download-outline" size={18} color="#8A5A0E" />}
-              <Text style={{ color: '#8A5A0E', fontWeight: '800', fontSize: 15 }}>{zipping ? 'Putting it together' : `Download ${fy.label} for tax time`}</Text>
+              {zipping ? <ActivityIndicator color="#B9A6FF" /> : <Ionicons name="download-outline" size={18} color="#B9A6FF" />}
+              <Text style={{ color: '#B9A6FF', fontWeight: '800', fontSize: 15 }}>{zipping ? 'Putting it together' : `Download ${fy.label} for tax time`}</Text>
             </Pressable>
             <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: 6 }}>One zip with every file and a spreadsheet of the totals.</Text>
           </Card>
@@ -213,8 +213,8 @@ export default function Receipts() {
             {g.items.map((r, i) => (
               <View key={r.id} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
                 <Pressable onPress={() => setOpen(open === r.id ? null : r.id)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 11 }}>
-                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: '#F7F0E2', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name={r.file_kind === 'pdf' ? 'document-text-outline' : 'image-outline'} size={19} color="#8A5A0E" />
+                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name={r.file_kind === 'pdf' ? 'document-text-outline' : 'image-outline'} size={19} color="#B9A6FF" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colours.text, fontWeight: '700', fontSize: 15 }} numberOfLines={1}>{r.vendor}</Text>
@@ -228,7 +228,7 @@ export default function Receipts() {
                 {open === r.id ? (
                   <View style={{ flexDirection: 'row', gap: space.lg, paddingBottom: space.md, paddingLeft: 38 + space.md }}>
                     <Pressable onPress={() => view(r)} accessibilityRole="button" hitSlop={8}>
-                      <Text style={{ color: '#8A5A0E', fontWeight: '800' }}>View file</Text>
+                      <Text style={{ color: '#B9A6FF', fontWeight: '800' }}>View file</Text>
                     </Pressable>
                     <Pressable onPress={() => confirm(r.id, () => deleteReceipt(r).then(load).catch((e) => setError(e.message)))} accessibilityRole="button" hitSlop={8}>
                       <Text style={{ color: armed === r.id ? colours.danger : colours.muted, fontWeight: '800' }}>{armed === r.id ? 'Tap again to delete' : 'Delete'}</Text>
@@ -256,7 +256,7 @@ function Chip({ text, on, onPress }: { text: string; on: boolean; onPress: () =>
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: '#F7F0E2', borderRadius: 12, padding: space.sm, paddingHorizontal: space.md }}>
+    <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.25)', borderRadius: 12, padding: space.sm, paddingHorizontal: space.md }}>
       <Text style={{ color: colours.text, fontWeight: '800', fontSize: 17 }}>{value}</Text>
       <Text style={{ color: colours.muted, fontSize: 12 }}>{label}</Text>
     </View>
@@ -266,8 +266,8 @@ function Stat({ value, label }: { value: string; label: string }) {
 function AddButton({ icon, title, primary, onPress, disabled }: { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; primary?: boolean; onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" style={{ flex: 1, height: 50, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: disabled ? 0.6 : 1, backgroundColor: primary ? BROWN : colours.surface, borderWidth: primary ? 0 : 1, borderColor: colours.border, ...(primary ? elevation.button(BROWN) : elevation.lift) }}>
-      <Ionicons name={icon} size={19} color={primary ? '#fff' : colours.text} />
-      <Text style={{ color: primary ? '#fff' : colours.text, fontWeight: '800', fontSize: 15 }}>{title}</Text>
+      <Ionicons name={icon} size={19} color={primary ? '#0C0A24' : colours.text} />
+      <Text style={{ color: primary ? '#0C0A24' : colours.text, fontWeight: '800', fontSize: 15 }}>{title}</Text>
     </Pressable>
   );
 }

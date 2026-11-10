@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colours, elevation, NO_BOTTOM, radius, space, heading, headingSemi } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
-import { NightBackground } from '@/components/NightSky';
+import { PageSky } from '@/components/NightSky';
 import { Aurora } from '@/components/Aurora';
 
 export const tali = {
@@ -47,7 +47,7 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
     : undefined;
   return (
     <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
-      <NightBackground style={StyleSheet.absoluteFill} />
+      <PageSky style={StyleSheet.absoluteFill} />
       <Aurora />
       {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh}>{body}</ScrollView> : body}
     </SafeAreaView>
@@ -163,6 +163,7 @@ export function BackLink({ onPress, label = 'Back' }: { onPress: () => void; lab
 export function TaliSays({ children, pose = 'idle' }: PropsWithChildren<{ pose?: keyof typeof tali }>) {
   return (
     <View style={styles.says}>
+      {/* Her full sprite stays (Taj, 10 Nov 2026): it moves and changes expression; her head alone only blinks. */}
       <TaliAvatar pose={pose} size={64} />
       <View style={styles.bubble}>
         <Text style={styles.body}>{children}</Text>

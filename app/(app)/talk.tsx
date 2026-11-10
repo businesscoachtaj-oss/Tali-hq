@@ -17,7 +17,7 @@ import { useAuth } from '@/lib/auth';
 import { pickFiles, type PickedFile } from '@/lib/pickFiles';
 import { tali } from '@/components/ui';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
-import { NightBackground } from '@/components/NightSky';
+import { PageSky } from '@/components/NightSky';
 import { Aurora } from '@/components/Aurora';
 
 // An image Tali made (it carries her prompt, or is still a placeholder with no file yet).
@@ -283,7 +283,7 @@ export default function Talk() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
-      <NightBackground />
+      <PageSky />
       <Aurora />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>

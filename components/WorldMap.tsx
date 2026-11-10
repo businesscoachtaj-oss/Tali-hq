@@ -2,6 +2,7 @@
 // per thing she knows, so the parts she knows best are the brightest and biggest. Tap one to go in.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import Reanimated, { Easing as REasing, cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { NightBackground } from '@/components/NightSky';
@@ -10,7 +11,7 @@ import { myBrain, type Brain } from '@/lib/brain';
 import { NO_BOTTOM } from '@/constants/theme';
 
 const CLUSTERS = [
-  { name: 'People', colour: '#5CF2C0', kinds: ['person', 'client', 'lead'], to: '/clients', at: [0.0, 0.0], line: 'Clients, leads, Mum, May' },
+  { name: 'People', colour: '#5CF2C0', kinds: ['person', 'client', 'lead'], to: '/clients', at: [0.0, 0.0], line: 'Family, friends, clients' },
   { name: 'Work', colour: '#7FA8FF', kinds: ['fact', 'note', 'email', 'skill'], to: '/invoices', at: [1.0, 0.2], line: 'Invoices, email, money, rules' },
   { name: 'Health', colour: '#FF7EB6', kinds: ['event'], to: '/life', at: [0.0, 0.42], line: 'Training, food, sleep' },
   { name: 'Growth', colour: '#FFE066', kinds: ['idea', 'plan', 'goal', 'decision'], to: '/goals', at: [1.0, 0.62], line: 'Goals, ideas, decisions' },
@@ -72,14 +73,35 @@ export function WorldMap() {
 //  People: a living network, friends orbiting and linked.   Work: an ordered grid, lighting up like activity.
 //  Health: a breathing ring, like a heartbeat.               Growth: a spiral galaxy, turning outward.
 //  Your words: fireflies drifting up, like thoughts.
-function useLoop(ms: number) {
-  const v = useRef(new Animated.Value(0)).current;
+// 10 Nov 2026 (Taj: "work and health aren't moving anymore" on his phone): the shapes now move with
+// Reanimated on the UI thread, the same way her brain does, instead of looped Animated values that
+// stopped after the screen re-rendered. Each shape only starts the one movement it uses.
+function useTurn(ms: number) {
+  const v = useSharedValue(0);
   useEffect(() => {
-    const a = Animated.loop(Animated.timing(v, { toValue: 1, duration: ms, easing: Easing.linear, useNativeDriver: true }));
-    a.start();
-    return () => a.stop();
+    v.value = 0;
+    v.value = withRepeat(withTiming(360, { duration: ms, easing: REasing.linear }), -1, false);
+    return () => cancelAnimation(v);
   }, [v, ms]);
-  return v;
+  return useAnimatedStyle(() => ({ transform: [{ rotate: `${v.value}deg` }] }));
+}
+// A heartbeat: a quick swell, back down, then a rest.
+function useBeat() {
+  const v = useSharedValue(1);
+  useEffect(() => {
+    v.value = withRepeat(withSequence(withTiming(1.14, { duration: 260, easing: REasing.out(REasing.quad) }), withTiming(1, { duration: 300, easing: REasing.in(REasing.quad) }), withDelay(1240, withTiming(1, { duration: 0 }))), -1, false);
+    return () => cancelAnimation(v);
+  }, [v]);
+  return useAnimatedStyle(() => ({ transform: [{ scale: v.value }] }));
+}
+// A slow glow that goes up and comes back, offset so two groups of cells take turns.
+function useGlow(offset: number) {
+  const v = useSharedValue(0);
+  useEffect(() => {
+    v.value = withDelay(offset, withRepeat(withTiming(1, { duration: 1500, easing: REasing.inOut(REasing.sin) }), -1, true));
+    return () => cancelAnimation(v);
+  }, [v, offset]);
+  return useAnimatedStyle(() => ({ opacity: 0.3 + 0.7 * v.value }));
 }
 function Dot({ x, y, r, colour, opacity = 1 }: { x: number; y: number; r: number; colour: string; opacity?: number }) {
   return <View style={{ position: 'absolute', left: x - r / 2, top: y - r / 2, width: r, height: r, borderRadius: r, backgroundColor: colour, opacity, shadowColor: colour, shadowOpacity: 1, shadowRadius: 6 }} />;
@@ -90,57 +112,81 @@ function Link({ x1, y1, x2, y2, colour }: { x1: number; y1: number; x2: number; 
 }
 
 function Form({ kind, colour, n }: { kind: string; colour: string; n: number }) {
-  const spin = useLoop(kind === 'Growth' ? 26000 : 40000);
-  const beat = useLoop(kind === 'Health' ? 1800 : 3000);
-  const C = 70;
-  if (kind === 'People') {
-    const pts = useMemo(() => scatter(7, Math.min(n, 18)).map((p) => ({ x: C + p.x * 0.9, y: C + p.y * 1.1, r: p.r + 2 })), [n]);
-    const rot = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-    return (
-      <Animated.View style={{ position: 'absolute', width: 140, height: 140, transform: [{ rotate: rot }] }}>
-        {pts.map((p, i) => i ? <Link key={'l' + i} x1={pts[i - 1].x} y1={pts[i - 1].y} x2={p.x} y2={p.y} colour={colour} /> : null)}
-        {pts.map((p, i) => i % 3 === 0 ? <Link key={'c' + i} x1={C} y1={C} x2={p.x} y2={p.y} colour={colour} /> : null)}
-        {pts.map((p, i) => <Dot key={i} x={p.x} y={p.y} r={p.r} colour={colour} />)}
-        <Dot x={C} y={C} r={12} colour="#FFFFFF" />
-      </Animated.View>
-    );
-  }
-  if (kind === 'Work') {
-    const cells: { x: number; y: number; on: boolean }[] = [];
-    for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) cells.push({ x: 22 + c * 19, y: 22 + r * 19, on: (r * 7 + c * 3) % 5 < 2 });
-    const glow = beat.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.35, 1, 0.35] });
-    return (
-      <View style={{ position: 'absolute', width: 140, height: 140, transform: [{ rotate: '-12deg' }] }}>
-        {cells.map((c, i) => c.on ? (
-          <Animated.View key={i} style={{ position: 'absolute', left: c.x, top: c.y, width: 11, height: 11, borderRadius: 3, backgroundColor: colour, opacity: glow, shadowColor: colour, shadowOpacity: 1, shadowRadius: 8 }} />
-        ) : (
-          <View key={i} style={{ position: 'absolute', left: c.x + 3, top: c.y + 3, width: 5, height: 5, borderRadius: 1, backgroundColor: colour, opacity: 0.35 }} />
-        ))}
-      </View>
-    );
-  }
-  if (kind === 'Health') {
-    const scale = beat.interpolate({ inputRange: [0, 0.15, 0.3, 1], outputRange: [1, 1.14, 1, 1] });
-    const ring = Array.from({ length: Math.max(14, n) }, (_, i) => { const a = (i / Math.max(14, n)) * Math.PI * 2; return { x: C + Math.cos(a) * 46, y: C + Math.sin(a) * 46 }; });
-    return (
-      <Animated.View style={{ position: 'absolute', width: 140, height: 140, transform: [{ scale }] }}>
-        <View style={{ position: 'absolute', left: C - 46, top: C - 46, width: 92, height: 92, borderRadius: 46, borderWidth: 1, borderColor: colour, opacity: 0.4 }} />
-        {ring.map((p, i) => <Dot key={i} x={p.x} y={p.y} r={i % 4 === 0 ? 7 : 4} colour={colour} />)}
-        <Dot x={C} y={C} r={16} colour={colour} />
-      </Animated.View>
-    );
-  }
-  if (kind === 'Growth') {
-    const rot = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-    const arms = Array.from({ length: Math.max(24, n * 2) }, (_, i) => { const t = i / 4; const a = t * 0.9 + (i % 2) * Math.PI; const d = 6 + t * 5; return { x: C + Math.cos(a) * d, y: C + Math.sin(a) * d, r: 2 + (i % 5) }; }).filter((p) => Math.hypot(p.x - C, p.y - C) < 66);
-    return (
-      <Animated.View style={{ position: 'absolute', width: 140, height: 140, transform: [{ rotate: rot }] }}>
-        {arms.map((p, i) => <Dot key={i} x={p.x} y={p.y} r={p.r} colour={colour} opacity={0.5 + (i % 3) * 0.2} />)}
-        <Dot x={C} y={C} r={14} colour="#FFFFFF" />
-      </Animated.View>
-    );
-  }
-  // Your words: fireflies drifting upward, each on its own rhythm.
+  if (kind === 'People') return <PeopleForm colour={colour} n={n} />;
+  if (kind === 'Work') return <WorkForm colour={colour} />;
+  if (kind === 'Health') return <HealthForm colour={colour} n={n} />;
+  if (kind === 'Growth') return <GrowthForm colour={colour} n={n} />;
+  return <WordsForm colour={colour} n={n} />;
+}
+const C = 70;
+
+// People: friends around you, evenly spread so the whole network turns on the spot instead of swinging
+// out of its circle (the old random scatter was lopsided).
+function PeopleForm({ colour, n }: { colour: string; n: number }) {
+  const turn = useTurn(40000);
+  const pts = useMemo(() => {
+    const count = Math.max(8, Math.min(n, 14));
+    return Array.from({ length: count }, (_, i) => {
+      const a = (i / count) * Math.PI * 2 + (i % 2 ? 0.22 : -0.1);
+      const d = i % 3 === 0 ? 30 : i % 3 === 1 ? 50 : 41;
+      return { x: C + Math.cos(a) * d, y: C + Math.sin(a) * d, r: i % 3 === 0 ? 8 : 6 };
+    });
+  }, [n]);
+  return (
+    <Reanimated.View style={[{ position: 'absolute', width: 140, height: 140 }, turn]}>
+      {pts.map((p, i) => <Link key={'l' + i} x1={pts[(i + 1) % pts.length].x} y1={pts[(i + 1) % pts.length].y} x2={p.x} y2={p.y} colour={colour} />)}
+      {pts.map((p, i) => i % 3 === 0 ? <Link key={'c' + i} x1={C} y1={C} x2={p.x} y2={p.y} colour={colour} /> : null)}
+      {pts.map((p, i) => <Dot key={i} x={p.x} y={p.y} r={p.r} colour={colour} />)}
+      <Dot x={C} y={C} r={12} colour="#FFFFFF" />
+    </Reanimated.View>
+  );
+}
+
+// Work: an ordered grid. Two sets of cells light up in turn, like activity moving across a board.
+function WorkForm({ colour }: { colour: string }) {
+  const glowA = useGlow(0);
+  const glowB = useGlow(750);
+  const cells: { x: number; y: number; on: boolean; b: boolean }[] = [];
+  for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) cells.push({ x: 22 + c * 19, y: 22 + r * 19, on: (r * 7 + c * 3) % 5 < 2, b: (r + c) % 2 === 0 });
+  return (
+    <View style={{ position: 'absolute', width: 140, height: 140, transform: [{ rotate: '-12deg' }] }}>
+      {cells.map((c, i) => c.on ? (
+        <Reanimated.View key={i} style={[{ position: 'absolute', left: c.x, top: c.y, width: 11, height: 11, borderRadius: 3, backgroundColor: colour }, c.b ? glowB : glowA]} />
+      ) : (
+        <View key={i} style={{ position: 'absolute', left: c.x + 3, top: c.y + 3, width: 5, height: 5, borderRadius: 1, backgroundColor: colour, opacity: 0.35 }} />
+      ))}
+    </View>
+  );
+}
+
+// Health: a ring that beats like a heart.
+function HealthForm({ colour, n }: { colour: string; n: number }) {
+  const beat = useBeat();
+  const count = Math.max(14, n);
+  const ring = Array.from({ length: count }, (_, i) => { const a = (i / count) * Math.PI * 2; return { x: C + Math.cos(a) * 46, y: C + Math.sin(a) * 46 }; });
+  return (
+    <Reanimated.View style={[{ position: 'absolute', width: 140, height: 140 }, beat]}>
+      <View style={{ position: 'absolute', left: C - 46, top: C - 46, width: 92, height: 92, borderRadius: 46, borderWidth: 1, borderColor: colour, opacity: 0.4 }} />
+      {ring.map((p, i) => <Dot key={i} x={p.x} y={p.y} r={i % 4 === 0 ? 7 : 4} colour={colour} />)}
+      <Dot x={C} y={C} r={16} colour={colour} />
+    </Reanimated.View>
+  );
+}
+
+// Growth: a spiral galaxy, turning outward.
+function GrowthForm({ colour, n }: { colour: string; n: number }) {
+  const turn = useTurn(26000);
+  const arms = Array.from({ length: Math.max(24, n * 2) }, (_, i) => { const t = i / 4; const a = t * 0.9 + (i % 2) * Math.PI; const d = 6 + t * 5; return { x: C + Math.cos(a) * d, y: C + Math.sin(a) * d, r: 2 + (i % 5) }; }).filter((p) => Math.hypot(p.x - C, p.y - C) < 66);
+  return (
+    <Reanimated.View style={[{ position: 'absolute', width: 140, height: 140 }, turn]}>
+      {arms.map((p, i) => <Dot key={i} x={p.x} y={p.y} r={p.r} colour={colour} opacity={0.5 + (i % 3) * 0.2} />)}
+      <Dot x={C} y={C} r={14} colour="#FFFFFF" />
+    </Reanimated.View>
+  );
+}
+
+// Your words: fireflies drifting upward, each on its own rhythm.
+function WordsForm({ colour, n }: { colour: string; n: number }) {
   const flies = useMemo(() => scatter(31, Math.min(n, 16)), [n]);
   return (
     <View style={{ position: 'absolute', width: 140, height: 140 }}>
