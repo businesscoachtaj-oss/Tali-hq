@@ -12,7 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Sky, night } from '@/components/NightSky';
 import { useAuth } from '@/lib/auth';
-import { CATEGORIES, MAX_PICKS, SOUNDS, TIMERS, extend, fadeFactor, loadPrefs, pause, preview, resume, setFade, setLevel, setTimer, setVolume, soundsIn, start, stop, stopPreview, timeLeft, togglePick, useSleep, type CategoryId, type SoundId } from '@/lib/sleep';
+import { BrainGlobe } from '@/components/BrainGlobe';
+import { CATEGORIES, MAX_PICKS, SCENES, SOUNDS, TIMERS, extend, fadeFactor, isSaved, loadPrefs, mixName, pause, playMix, removeMix, resume, saveMix, setFade, setLevel, setTimer, setVolume, soundsIn, start, stop, stopPreview, timeLeft, toggleLive, useSleep, type CategoryId, type SoundId } from '@/lib/sleep';
 
 // 4 Nov 2026: the sky, stars and palette moved to components/NightSky.tsx so Today can use them too.
 const { ink, muted, faint, glass, line, accent, accent2 } = night;
@@ -43,8 +44,10 @@ export default function Sleep() {
   const st = useSleep();
   const [dim, setDim] = useState(false);
   const [cat, setCat] = useState<CategoryId>('noise');
-  // While a sound plays, the player shows; "Sounds" flips back to the picker without leaving the screen.
-  const [showPicker, setShowPicker] = useState(false);
+  // 11 Nov 2026 (Taj: "a bit finicky"). Three views of one screen: the front page (one tap to sleep),
+  // the player (mix by ear while it plays) and the builder (make your own, heard as you tap).
+  const [view, setView] = useState<'home' | 'build'>('home');
+  const [showPlayer, setShowPlayer] = useState(true);
   const dimTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clock = useMemo(() => new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(' ', ' '), [st.status]);
 
@@ -59,11 +62,14 @@ export default function Sleep() {
     return () => stopPreview();
   }, []);
 
+  const playing = st.status !== 'idle';
+  const onPlayer = playing && showPlayer && view === 'home';
+
   // Dim the screen after a while when playing. Any tap brings it back.
   const wake = () => {
     setDim(false);
     if (dimTimer.current) clearTimeout(dimTimer.current);
-    if (st.status === 'playing' && !showPicker) dimTimer.current = setTimeout(() => setDim(true), DIM_AFTER_MS);
+    if (st.status === 'playing' && onPlayer) dimTimer.current = setTimeout(() => setDim(true), DIM_AFTER_MS);
   };
   useEffect(() => {
     wake();
@@ -71,106 +77,218 @@ export default function Sleep() {
       if (dimTimer.current) clearTimeout(dimTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [st.status, showPicker]);
+  }, [st.status, onPlayer]);
 
-  // A fresh start always lands on the player.
+  // A fresh start from the front page lands on the player. Starting inside the builder stays in the builder.
   const prevStatus = useRef(st.status);
   useEffect(() => {
-    if (prevStatus.current === 'idle' && st.status !== 'idle') setShowPicker(false);
+    if (prevStatus.current === 'idle' && st.status !== 'idle') setShowPlayer(true);
     prevStatus.current = st.status;
   }, [st.status]);
 
-  const playing = st.status !== 'idle';
-  const names = st.picks.map((p) => SOUNDS.find((x) => x.id === p.id)?.name).filter(Boolean);
+  const soundName = (id: SoundId) => SOUNDS.find((x) => x.id === id)?.name ?? '';
+  const names = st.picks.map((p) => soundName(p.id)).filter(Boolean);
+  const title = mixName(st.picks) ?? names.join(' + ');
   const left = timeLeft(st);
   const fading = st.fade && st.endsAt ? fadeFactor(st) < 1 : false;
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/me' as any));
+  const timerLabel = st.timerMinutes ? TIMERS.find((t) => t.minutes === st.timerMinutes)?.label : 'until morning';
+  const saved = isSaved(st.picks);
 
-  if (playing && !showPicker) {
+  const timerChips = (
+    <View style={s.seg}>
+      {TIMERS.map((t) => {
+        const on = st.timerMinutes === t.minutes;
+        return (
+          <Pressable key={t.label} onPress={() => setTimer(t.minutes)} style={[s.segItem, on && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={t.label}>
+            {t.minutes === null ? (
+              <Ionicons name="infinite" size={17} color={on ? '#1B1340' : muted} />
+            ) : (
+              <Text style={[s.segText, on && { color: '#1B1340' }]}>{t.minutes === 60 ? '1 hr' : String(t.minutes)}</Text>
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  // ---------------------------------------------------------------------------------------------
+  // The player: her brain asleep, the time left, and a slider for each sound you can move while it plays.
+  if (onPlayer) {
     return (
       <Sky dark={dim}>
         <SafeAreaView style={s.safe}>
-          <Pressable style={{ flex: 1 }} onPress={wake}>
-            {dim ? (
+          {dim ? (
+            <Pressable style={{ flex: 1 }} onPress={wake}>
               <View style={s.dimWrap}>
                 <Text style={s.dimTime}>{left ?? '∞'}</Text>
                 <Text style={s.dimSub}>{fading ? 'fading out' : 'tap to see controls'}</Text>
               </View>
-            ) : (
-              <View style={s.inner}>
-                <View style={s.top}>
-                  <Pressable onPress={() => setShowPicker(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back to sounds">
-                    <Text style={s.back}>{'‹'} Sounds</Text>
-                  </Pressable>
-                  <Text style={s.clock}>{clock}</Text>
-                </View>
-                <View style={s.orbWrap}>
-                  <View style={s.ring2} />
-                  <View style={s.ring1} />
-                  <View style={s.glow} />
-                  <View style={s.orb}>
-                    <View style={s.orbInner} />
-                    <View style={s.orbShine} />
-                    <Text style={s.orbTime}>{left ?? '∞'}</Text>
-                    <Text style={s.orbSub}>{left ? (fading ? 'fading out now' : st.fade ? 'left, then a slow fade' : 'left') : 'until you stop it'}</Text>
+            </Pressable>
+          ) : (
+            <ScrollView contentContainerStyle={s.inner} onTouchStart={wake} onScrollBeginDrag={wake}>
+              <View style={s.top}>
+                <Pressable onPress={() => setShowPlayer(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back to sounds">
+                  <Text style={s.back}>{'‹'} Sounds</Text>
+                </Pressable>
+                <Text style={s.clock}>{clock}</Text>
+              </View>
+              <View style={s.brainWrap}>
+                <View style={s.brainGlow} />
+                <BrainGlobe size={230} counts={{}} links={[]} selected={null} onSelect={() => {}} speed={st.status === 'paused' ? 0.15 : 0.4} />
+              </View>
+              <Text style={s.bigTime}>{left ?? '∞'}</Text>
+              <Text style={s.npSub}>{st.status === 'paused' ? 'Paused' : left ? (fading ? 'Fading out now' : st.fade ? 'left, then a slow fade' : 'left') : 'Until you stop it'}</Text>
+              <Text style={s.np}>{title}</Text>
+
+              <View style={s.mixBox}>
+                <Text style={s.mixTitle}>Your mix</Text>
+                {st.picks.map((p) => (
+                  <View key={p.id} style={{ marginTop: 4 }}>
+                    <View style={s.capRow}>
+                      <Text style={s.mixText}>{soundName(p.id)}</Text>
+                      {st.picks.length > 1 ? (
+                        <Pressable onPress={() => void toggleLive(p.id)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Take ${soundName(p.id)} out`}>
+                          <Text style={s.takeOut}>Take out</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    <Bar value={p.level} onChange={(v) => setLevel(p.id as SoundId, v)} />
                   </View>
-                </View>
-                <Text style={s.np}>{names.join(' + ')}</Text>
-                <Text style={s.npSub}>{st.status === 'paused' ? 'Paused' : 'Looping gently until the timer ends'}</Text>
-                {st.picks.length === 2 ? (
-                  <View style={s.mixRow}>
-                    {st.picks.map((p) => (
-                      <View key={p.id} style={s.mixChip}>
-                        <Text style={s.mixText}>
-                          {SOUNDS.find((x) => x.id === p.id)?.name.split(' ')[0]} {Math.round(p.level * 100)}%
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-                <View style={{ marginTop: 10 }}>
-                  <Bar value={st.volume} onChange={setVolume} />
-                  <View style={s.capRow}>
-                    <Text style={s.cap}>Quieter</Text>
-                    <Text style={s.cap}>Louder</Text>
-                  </View>
-                </View>
-                <View style={s.ctl}>
-                  <Pressable style={s.small} onPress={() => extend(15)} accessibilityLabel="Add 15 minutes">
-                    <Text style={s.smallText}>+15</Text>
+                ))}
+                <View style={s.mixActions}>
+                  <Pressable style={s.pill} onPress={() => { setView('build'); }} accessibilityRole="button">
+                    <Ionicons name="add" size={15} color={ink} />
+                    <Text style={s.pillText}>{st.picks.length < MAX_PICKS ? 'Add a sound' : 'Swap a sound'}</Text>
                   </Pressable>
-                  <Pressable style={s.big} onPress={() => (st.status === 'paused' ? resume() : pause())} accessibilityLabel={st.status === 'paused' ? 'Resume' : 'Pause'}>
-                    <Text style={s.bigText}>{st.status === 'paused' ? '▶' : '❚❚'}</Text>
+                  <Pressable style={[s.pill, saved && s.pillOn]} onPress={saveMix} accessibilityRole="button" accessibilityState={{ selected: saved }}>
+                    <Ionicons name={saved ? 'heart' : 'heart-outline'} size={14} color={saved ? '#1B1340' : ink} />
+                    <Text style={[s.pillText, saved && { color: '#1B1340' }]}>{saved ? 'Saved' : 'Save this mix'}</Text>
                   </Pressable>
-                  <Pressable style={s.small} onPress={stop} accessibilityLabel="Stop">
-                    <Text style={s.smallText}>✕</Text>
-                  </Pressable>
-                </View>
-                <Text style={s.note}>
-                  Screen dims in 20 seconds. Tap anywhere to see the time.{'\n'}
-                  {Platform.OS === 'web' ? 'Keep this tab open. Sound stops if the browser is closed.' : "Tali won't send anything or make a sound until morning."}
-                </Text>
-                <View style={s.taliRow}>
-                  <View style={s.bubble}>
-                    <Text style={s.bubbleText}>G'night 😊 I'll be here in the morning.</Text>
-                  </View>
-                  <Image source={require('@/assets/tali/tali_idle.png')} style={{ width: 54, height: 54 }} resizeMode="contain" />
                 </View>
               </View>
-            )}
-          </Pressable>
+
+              <Text style={s.label}>Volume</Text>
+              <Bar value={st.volume} onChange={setVolume} />
+              <Text style={s.label}>How long</Text>
+              {timerChips}
+
+              <View style={s.ctl}>
+                <Pressable style={s.small} onPress={() => extend(15)} accessibilityLabel="Add 15 minutes">
+                  <Text style={s.smallText}>+15</Text>
+                </Pressable>
+                <Pressable style={s.big} onPress={() => (st.status === 'paused' ? resume() : pause())} accessibilityLabel={st.status === 'paused' ? 'Resume' : 'Pause'}>
+                  <Text style={s.bigText}>{st.status === 'paused' ? '▶' : '❚❚'}</Text>
+                </Pressable>
+                <Pressable style={s.small} onPress={stop} accessibilityLabel="Stop">
+                  <Text style={s.smallText}>✕</Text>
+                </Pressable>
+              </View>
+              <Text style={s.note}>
+                Screen dims in 20 seconds. Tap anywhere to see the time.{'\n'}
+                {Platform.OS === 'web' ? 'Keep this tab open. Sound stops if the browser is closed.' : "Tali won't send anything or make a sound until morning."}
+              </Text>
+              <View style={s.taliRow}>
+                <View style={s.bubble}>
+                  <Text style={s.bubbleText}>G'night 😊 I'll be here in the morning.</Text>
+                </View>
+                <Image source={require('@/assets/tali/tali_idle.png')} style={{ width: 54, height: 54 }} resizeMode="contain" />
+              </View>
+            </ScrollView>
+          )}
         </SafeAreaView>
       </Sky>
     );
   }
 
-  const timerLabel = st.timerMinutes ? TIMERS.find((t) => t.minutes === st.timerMinutes)?.label : 'until morning';
+  // ---------------------------------------------------------------------------------------------
+  // The builder: tap a sound and it joins the mix and plays. Tap it again and it leaves. No Start button.
+  if (view === 'build') {
+    return (
+      <Sky>
+        <SafeAreaView style={s.safe}>
+          <ScrollView contentContainerStyle={s.inner}>
+            <View style={s.top}>
+              <Pressable onPress={() => { setView('home'); setShowPlayer(true); }} hitSlop={12} accessibilityRole="button">
+                <Text style={s.back}>{'‹'} {playing ? 'Back to the player' : 'Sleep'}</Text>
+              </Pressable>
+              <Text style={s.clock}>{clock}</Text>
+            </View>
+            <Text style={[s.h1c, { marginTop: 14 }]}>Make your own</Text>
+            <Text style={s.subc}>Tap a sound to hear it. Pick up to {MAX_PICKS}.</Text>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow} style={{ marginHorizontal: -20, flexGrow: 0, marginTop: 8 }}>
+              {CATEGORIES.map((c) => {
+                const on = c.id === cat;
+                const count = st.picks.filter((p) => SOUNDS.find((x) => x.id === p.id)?.category === c.id).length;
+                return (
+                  <Pressable key={c.id} onPress={() => setCat(c.id)} style={s.catBtn} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={c.name}>
+                    <View style={[s.catCircle, on && s.catCircleOn]}>
+                      <Ionicons name={CAT_ICON[c.id]} size={19} color={on ? '#1B1340' : ink} />
+                      {count ? (
+                        <View style={s.badge}>
+                          <Text style={s.badgeText}>{count}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={[s.catName, on && { color: ink }]}>{c.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={s.list}>
+              {soundsIn(cat).map((snd, i) => {
+                const on = st.picks.some((p) => p.id === snd.id);
+                return (
+                  <Pressable key={snd.id} onPress={() => void toggleLive(snd.id)} style={[s.item, i > 0 && s.itemLine]} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.itemName} numberOfLines={1}>{snd.name}</Text>
+                      <Text style={s.itemSub} numberOfLines={1}>{on ? 'Playing now. Tap to take it out.' : snd.sub}</Text>
+                    </View>
+                    {on ? (
+                      <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.radio}>
+                        <Ionicons name="volume-medium" size={14} color="#1B1340" />
+                      </LinearGradient>
+                    ) : (
+                      <View style={[s.radio, s.radioOff]} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {st.picks.length && playing ? (
+              <View style={s.mixBox}>
+                <Text style={s.mixTitle}>Playing now</Text>
+                {st.picks.map((p) => (
+                  <View key={p.id}>
+                    <View style={s.capRow}>
+                      <Text style={s.mixText}>{soundName(p.id)}</Text>
+                      <Text style={s.cap}>{Math.round(p.level * 100)}%</Text>
+                    </View>
+                    <Bar value={p.level} onChange={(v) => setLevel(p.id as SoundId, v)} />
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            <Pressable style={[s.cta, !playing && { opacity: 0.5 }]} disabled={!playing} onPress={() => { setView('home'); setShowPlayer(true); }} accessibilityRole="button">
+              <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[StyleSheet.absoluteFill, { borderRadius: 18 }]} />
+              <Text style={s.ctaText}>{playing ? 'That sounds right' : 'Tap a sound to begin'}</Text>
+            </Pressable>
+          </ScrollView>
+        </SafeAreaView>
+      </Sky>
+    );
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // The front page: one tap plays last night's mix, a scene, or one of your own.
   return (
     <Sky>
       <SafeAreaView style={s.safe}>
         <ScrollView contentContainerStyle={s.inner}>
-          {/* 6 Nov 2026 (Taj): a blend of the night sky look with a calmer layout. Tali asleep in the moon up top,
-              round sound type buttons, one list of sounds, a segmented timer. */}
           <View style={s.top}>
             <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button">
               <Text style={s.back}>{'‹'} Me</Text>
@@ -188,102 +306,65 @@ export default function Sleep() {
             <Image source={require('@/assets/tali/tali_blink.png')} style={s.heroTali} resizeMode="contain" />
           </View>
           <Text style={s.h1c}>Sleep</Text>
-          <Text style={s.subc} numberOfLines={1}>
-            {names.length ? `${names.join(' + ')} · ${timerLabel}` : `Pick up to ${MAX_PICKS} sounds. Tali fades them out.`}
-          </Text>
+          <Text style={s.subc}>One tap and Tali plays you to sleep.</Text>
 
           {playing ? (
-            <Pressable style={s.nowRow} onPress={() => setShowPicker(false)} accessibilityRole="button">
+            <Pressable style={s.nowRow} onPress={() => setShowPlayer(true)} accessibilityRole="button">
               <View style={{ flex: 1 }}>
-                <Text style={s.nowTitle}>{st.status === 'paused' ? 'Paused' : 'Now playing'}: {names.join(' + ')}</Text>
-                <Text style={s.nowSub}>{left ? `${left} left` : 'Until you stop it'}. Tap to go back to the timer.</Text>
+                <Text style={s.nowTitle}>{st.status === 'paused' ? 'Paused' : 'Now playing'}: {title}</Text>
+                <Text style={s.nowSub}>{left ? `${left} left` : 'Until you stop it'}. Tap to go back to the player.</Text>
               </View>
               <Text style={s.nowArrow}>{'›'}</Text>
             </Pressable>
-          ) : null}
+          ) : (
+            <Pressable style={s.last} onPress={() => void start()} disabled={!st.picks.length} accessibilityRole="button" accessibilityLabel={`Play last night's mix: ${title}`}>
+              <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.lastPlay}>
+                <Ionicons name="play" size={22} color="#141033" style={{ marginLeft: 3 }} />
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={s.lastKicker}>Last night's mix</Text>
+                <Text style={s.lastTitle} numberOfLines={1}>{title}</Text>
+                <Text style={s.lastSub} numberOfLines={1}>{st.timerMinutes ? `${timerLabel}, then a slow fade` : 'Plays until morning'}</Text>
+              </View>
+            </Pressable>
+          )}
 
-          <Text style={[s.label, { marginBottom: 0 }]}>Pick a sound</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow} style={{ marginHorizontal: -20, flexGrow: 0 }}>
-            {CATEGORIES.map((c) => {
-              const on = c.id === cat;
-              const count = st.picks.filter((p) => SOUNDS.find((x) => x.id === p.id)?.category === c.id).length;
-              return (
-                <Pressable key={c.id} onPress={() => setCat(c.id)} style={s.catBtn} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={c.name}>
-                  <View style={[s.catCircle, on && s.catCircleOn]}>
-                    <Ionicons name={CAT_ICON[c.id]} size={19} color={on ? '#1B1340' : ink} />
-                    {count ? (
-                      <View style={s.badge}>
-                        <Text style={s.badgeText}>{count}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text style={[s.catName, on && { color: ink }]}>{c.name}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <View style={s.list}>
-            {soundsIn(cat).map((snd, i) => {
-              const on = st.picks.some((p) => p.id === snd.id);
-              const full = !on && st.picks.length >= MAX_PICKS;
-              const hearing = st.previewId === snd.id;
-              return (
-                <Pressable key={snd.id} onPress={() => togglePick(snd.id)} style={[s.item, i > 0 && s.itemLine, full && { opacity: 0.5 }]} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.itemName} numberOfLines={1}>{snd.name}</Text>
-                    <Text style={s.itemSub} numberOfLines={1}>{snd.sub}</Text>
-                  </View>
-                  <Pressable onPress={() => void preview(snd.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={hearing ? `Stop hearing ${snd.name}` : `Hear ${snd.name}`} style={[s.hear, { position: 'relative', top: 0, right: 0 }, hearing && s.hearOn]}>
-                    <Ionicons name={hearing ? 'stop' : 'play'} size={12} color={hearing ? '#1B1340' : ink} />
-                  </Pressable>
-                  {on ? (
-                    <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.radio}>
-                      <Ionicons name="checkmark" size={15} color="#1B1340" />
-                    </LinearGradient>
-                  ) : (
-                    <View style={[s.radio, s.radioOff]} />
-                  )}
-                </Pressable>
-              );
-            })}
+          <Text style={s.label}>Tap a scene</Text>
+          <View style={s.sceneGrid}>
+            {SCENES.map((sc) => (
+              <Pressable key={sc.id} style={s.scene} onPress={() => void playMix(sc.picks)} accessibilityRole="button" accessibilityLabel={`Play ${sc.name}`}>
+                <View style={s.sceneIcon}>
+                  <Ionicons name={sc.icon as ComponentProps<typeof Ionicons>['name']} size={19} color={ink} />
+                </View>
+                <Text style={s.sceneName} numberOfLines={2}>{sc.name}</Text>
+                <Text style={s.sceneSub} numberOfLines={1}>{sc.picks.length > 1 ? sc.picks.map((p) => soundName(p.id)).join(' + ') : SOUNDS.find((x) => x.id === sc.picks[0].id)?.sub}</Text>
+              </Pressable>
+            ))}
           </View>
 
-          {st.picks.length === 2 ? (
-            <View style={s.mixBox}>
-              <Text style={s.mixTitle}>Mix</Text>
-              {st.picks.map((p) => (
-                <View key={p.id}>
-                  <View style={s.capRow}>
-                    <Text style={s.mixText}>{SOUNDS.find((x) => x.id === p.id)?.name}</Text>
-                    <Text style={s.cap}>{Math.round(p.level * 100)}%</Text>
-                  </View>
-                  <Bar value={p.level} onChange={(v) => setLevel(p.id as SoundId, v)} />
-                </View>
+          <Text style={s.label}>Your mixes</Text>
+          {st.saved.length ? (
+            <View style={s.list}>
+              {st.saved.map((m, i) => (
+                <Pressable key={m.id} onPress={() => void playMix(m.picks)} style={[s.item, i > 0 && s.itemLine, { paddingVertical: 11 }]} accessibilityRole="button" accessibilityLabel={`Play ${m.name}`}>
+                  <Ionicons name="heart" size={15} color={accent} />
+                  <Text style={[s.itemName, { flex: 1 }]} numberOfLines={1}>{m.name}</Text>
+                  <Pressable onPress={() => removeMix(m.id)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Remove ${m.name}`}>
+                    <Ionicons name="close" size={17} color={faint} />
+                  </Pressable>
+                </Pressable>
               ))}
             </View>
-          ) : null}
+          ) : (
+            <Text style={s.empty}>Tap Save this mix on the player and it lands here.</Text>
+          )}
+          <Pressable style={s.makeOwn} onPress={() => setView('build')} accessibilityRole="button">
+            <Ionicons name="options-outline" size={17} color={ink} />
+            <Text style={s.makeOwnText}>Make your own</Text>
+          </Pressable>
 
           <Text style={s.label}>How long</Text>
-          <View style={s.seg}>
-            {TIMERS.map((t) => {
-              const on = st.timerMinutes === t.minutes;
-              return (
-                <Pressable key={t.label} onPress={() => setTimer(t.minutes)} style={[s.segItem, on && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={t.label}>
-                  {t.minutes === null ? (
-                    <Ionicons name="infinite" size={17} color={on ? '#1B1340' : muted} />
-                  ) : (
-                    <Text style={[s.segText, on && { color: '#1B1340' }]}>{t.minutes === 60 ? '1 hr' : String(t.minutes)}</Text>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Pressable style={[s.cta, !st.picks.length && { opacity: 0.5 }]} disabled={!st.picks.length} onPress={() => void start()} accessibilityRole="button">
-            <LinearGradient colors={[accent, accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[StyleSheet.absoluteFill, { borderRadius: 18 }]} />
-            <Text style={s.ctaText}>{playing ? 'Restart' : 'Start'}</Text>
-          </Pressable>
+          {timerChips}
           <View style={s.fadeRow}>
             <Text style={s.ghostL}>{st.timerMinutes ? 'Gets quieter for the last 5 minutes' : 'Plays until you stop it'}</Text>
             {st.timerMinutes ? <Switch value={st.fade} onValueChange={setFade} trackColor={{ true: accent, false: 'rgba(255,255,255,0.2)' }} thumbColor="#fff" style={{ transform: [{ scale: 0.8 }] }} /> : null}
@@ -400,4 +481,26 @@ const s = StyleSheet.create({
   ghostL: { color: muted, fontSize: 12 },
   dimTime: { color: 'rgba(238,233,255,0.35)', fontSize: 40, fontWeight: '700', fontVariant: ['tabular-nums'] },
   dimSub: { color: 'rgba(238,233,255,0.22)', fontSize: 12, marginTop: 6 },
+  // 11 Nov 2026 overhaul
+  last: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14, backgroundColor: 'rgba(185,166,255,0.16)', borderWidth: 1, borderColor: 'rgba(185,166,255,0.5)', borderRadius: 22, padding: 14, shadowColor: accent, shadowOpacity: 0.35, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  lastPlay: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' },
+  lastKicker: { color: accent, fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  lastTitle: { color: ink, fontSize: 17, fontWeight: '800', marginTop: 2 },
+  lastSub: { color: muted, fontSize: 12.5, marginTop: 2 },
+  sceneGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  scene: { width: '47%', flexGrow: 1, backgroundColor: 'rgba(255,255,255,0.09)', borderWidth: 1, borderColor: line, borderRadius: 18, padding: 13, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
+  sceneIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(185,166,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  sceneName: { color: ink, fontSize: 14.5, fontWeight: '800', marginTop: 9 },
+  sceneSub: { color: muted, fontSize: 11.5, marginTop: 2 },
+  empty: { color: muted, fontSize: 12.5 },
+  makeOwn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, height: 46, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(238,233,255,0.4)' },
+  makeOwnText: { color: ink, fontSize: 14.5, fontWeight: '800' },
+  brainWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 4, height: 236 },
+  brainGlow: { position: 'absolute', width: 210, height: 210, borderRadius: 105, backgroundColor: 'rgba(127,209,255,0.08)', shadowColor: accent2, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 50 },
+  bigTime: { color: ink, fontSize: 46, fontWeight: '800', letterSpacing: -1, textAlign: 'center', fontVariant: ['tabular-nums'], marginTop: -4 },
+  takeOut: { color: faint, fontSize: 12, fontWeight: '700' },
+  mixActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 13, borderRadius: 999, borderWidth: 1, borderColor: line, backgroundColor: glass },
+  pillOn: { backgroundColor: accent, borderColor: accent },
+  pillText: { color: ink, fontSize: 13, fontWeight: '700' },
 });
