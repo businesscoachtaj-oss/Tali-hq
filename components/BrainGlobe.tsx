@@ -7,9 +7,9 @@
 // Drawn with plain Views moved by Reanimated on the UI thread, so it needs no 3D library and ships
 // as an over the air update on iPhone, Android and the web. Names shared by more than one part
 // (a client who shows up in lessons and in facts) are drawn as lines between those parts on the whole brain.
-import { memo, useEffect, useMemo } from 'react';
+import { Component, memo, useEffect, useMemo, type ReactNode } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -309,14 +309,33 @@ const SparkView = memo(function SparkView({ i, spin, half, scale, pool, pace }: 
   );
 });
 
-// 11 Nov 2026 (Taj: "make it EXACTLY how it is on the website"): on the web she is the website's brain,
-// drawn on a canvas by BrainCanvas. The phone apps have no canvas, so they keep the Views version below.
-export function BrainGlobe(props: Parameters<typeof BrainGlobeViews>[0]) {
-  if (Platform.OS !== 'web') return <BrainGlobeViews {...props} />;
-  return <BrainGlobeWeb {...props} />;
+// 11 Nov 2026 (Taj: "make it EXACTLY how it is on the website", then "let's do it for the apps"):
+// she is the website's brain everywhere now. BrainCanvas draws it on a browser canvas on the web and
+// with Skia on iPhone and Android (store builds from 1.0.2). If the drawing ever fails on a phone,
+// she falls back to the Views version below instead of leaving a hole in the screen.
+type GlobeProps = Parameters<typeof BrainGlobeViews>[0];
+class DrawGuard extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(e: unknown) {
+    console.warn('BrainGlobe: canvas failed, using the plain version', String(e));
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
 }
 
-function BrainGlobeWeb({ size, counts, links, selected, lit, onSelect, speed = 1 }: Parameters<typeof BrainGlobeViews>[0]) {
+export function BrainGlobe(props: GlobeProps) {
+  return (
+    <DrawGuard fallback={<BrainGlobeViews {...props} />}>
+      <BrainGlobeCanvas {...props} />
+    </DrawGuard>
+  );
+}
+
+function BrainGlobeCanvas({ size, counts, links, selected, lit, onSelect, speed = 1 }: GlobeProps) {
   const glow = useMemo(() => {
     const max = Math.max(1, ...Object.values(counts).map((n) => n ?? 0));
     const out = {} as Record<RegionId, number>;
