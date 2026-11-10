@@ -9,11 +9,12 @@
 // (a client who shows up in lessons and in facts) are drawn as lines between those parts on the whole brain.
 import { memo, useEffect, useMemo } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { REGIONS, type RegionId } from '@/lib/brain';
+import { BrainCanvas } from '@/components/BrainCanvas';
 
 type P3 = { x: number; y: number; z: number };
 type Dot = P3 & { region: RegionId; size: number };
@@ -308,7 +309,36 @@ const SparkView = memo(function SparkView({ i, spin, half, scale, pool, pace }: 
   );
 });
 
-export function BrainGlobe({
+// 11 Nov 2026 (Taj: "make it EXACTLY how it is on the website"): on the web she is the website's brain,
+// drawn on a canvas by BrainCanvas. The phone apps have no canvas, so they keep the Views version below.
+export function BrainGlobe(props: Parameters<typeof BrainGlobeViews>[0]) {
+  if (Platform.OS !== 'web') return <BrainGlobeViews {...props} />;
+  return <BrainGlobeWeb {...props} />;
+}
+
+function BrainGlobeWeb({ size, counts, links, selected, lit, onSelect, speed = 1 }: Parameters<typeof BrainGlobeViews>[0]) {
+  const glow = useMemo(() => {
+    const max = Math.max(1, ...Object.values(counts).map((n) => n ?? 0));
+    const out = {} as Record<RegionId, number>;
+    for (const id of Object.keys(REGIONS) as RegionId[]) {
+      const n = counts[id] ?? 0;
+      out[id] = n <= 0 ? 0 : 0.25 + 0.75 * (Math.log(1 + n) / Math.log(1 + max));
+    }
+    return out;
+  }, [counts]);
+  const pairs = useMemo(() => {
+    const out: { a: RegionId; b: RegionId; strength: number }[] = [];
+    const max = Math.max(1, ...links.map((l) => l.count));
+    for (const l of links.slice(0, 12)) {
+      const rs = l.regions.filter((x) => BRAIN.centres[x]);
+      for (let i = 0; i + 1 < rs.length; i++) out.push({ a: rs[i], b: rs[i + 1], strength: l.count / max });
+    }
+    return out.slice(0, 18);
+  }, [links]);
+  return <BrainCanvas size={size} dots={BRAIN.dots} centres={BRAIN.centres} glow={glow} links={pairs} selected={selected} lit={lit} onSelect={onSelect} speed={speed} />;
+}
+
+function BrainGlobeViews({
   size,
   counts,
   links,
