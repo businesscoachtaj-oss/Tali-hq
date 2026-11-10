@@ -183,7 +183,7 @@ export default function Today() {
         )}
         </View>
         {/* Day closed (Taj, 10 Nov 2026): only her brain and the two bedtime buttons. The day's lists come back in the morning. */}
-        {night ? null : (<>
+        {night ? <View style={{ marginTop: space.lg }}><ShutdownCard /></View> : (<>
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
         <SheNoticed />
 
