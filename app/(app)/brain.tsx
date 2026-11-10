@@ -18,6 +18,8 @@ import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemory
 import { forgetMemory } from '@/lib/data';
 import { LEVELS, taliLevel, type Level } from '@/lib/level';
 import { KnowsAbout } from '@/components/KnowsAbout';
+import { LastNightCard } from '@/components/LastNightCard';
+import { LinkTotalityCard } from '@/components/LinkTotalityCard';
 import { BRAIN_AI_PREVIEW, partAi } from '@/lib/brainAiPlan';
 
 const MEMORY_KINDS = ['fact', 'event', 'person', 'lesson', 'mistake', 'rule', 'preference', 'idea', 'plan', 'seen'];
@@ -119,7 +121,9 @@ export default function BrainScreen() {
   return (
     <Screen skin="brain" onRefresh={load}>
       <SkinHeader id="brain" title="Her brain" sub={brain ? `Everything she knows about you. ${brain.total.toLocaleString('en-AU')} memories and growing.` : undefined} />
+      {brain?.scope === 'mine' ? <LastNightCard onChanged={load} /> : null}
       {brain?.scope === 'mine' ? <KnowsAbout brain={brain} /> : null}
+      {brain?.scope === 'mine' ? <LinkTotalityCard onChanged={load} /> : null}
 
       {founder ? (
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
