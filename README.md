@@ -252,3 +252,8 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 ### 10 Nov 2026 (later): caps switched on, founder pricing closed
 
 `tali-chat` was deployed with the cap changes (version 31), so the web search limits and the Max half price limit are now enforced. The website shows the new prices. Founder pricing is closed to new sign-ups: the three people who signed up while the website promised it were marked as founding members, and the one email on the founding list still gets it (migration `20261110000070_founder_pricing_closed.sql`, applied).
+
+### 11 Nov 2026: her brain moves like the website one
+
+- `components/BrainGlobe.tsx`: sparks run from dot to dot (12 at once), every dot twinkles, she breathes, and a flick keeps her turning before easing back to the slow spin. Sparks start in the part you picked or the parts the Today lens lit. All of it is off when the phone asks for reduced motion.
+- `supabase/migrations/20261111000071_recall_library_weight.sql` (already applied): book lessons from her library count for half their match score in recall, so what she knows first hand comes first. Recall check after the big library run: right answer in the top five back to 100%.
