@@ -265,3 +265,7 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 - `components/BrainCanvas.tsx` draws the website's brain with Skia (`@shopify/react-native-skia` 2.2.12, the version Expo SDK 54 picks). `components/BrainCanvas.web.tsx` is the browser canvas version. `BrainGlobe` uses them everywhere and falls back to the old Views version if drawing fails.
 - Skia is a native library, so the app version is now **1.0.2**. Updates over the air only reach builds of the same version, so 1.0.1 builds never receive this code. A new store build is needed.
 - Tested: the iPhone bundle builds, and the phone drawing code was run in a browser through CanvasKit and drew the brain with its sparks. Not yet seen on a real phone.
+
+### 11 Nov 2026: "Done with this" on Today
+
+- An idea or a date Tali is reminding you of now has a **Done with this** button on its card (`components/BrainSky.tsx`). It takes that one off Today and the next one gets its turn. She still remembers it. The list of what you are done with is kept on the device.
