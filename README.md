@@ -257,3 +257,4 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 
 - `components/BrainGlobe.tsx`: sparks run from dot to dot (12 at once), every dot twinkles, she breathes, and a flick keeps her turning before easing back to the slow spin. Sparks start in the part you picked or the parts the Today lens lit. All of it is off when the phone asks for reduced motion.
 - `supabase/migrations/20261111000071_recall_library_weight.sql` (already applied): book lessons from her library count for half their match score in recall, so what she knows first hand comes first. Recall check after the big library run: right answer in the top five back to 100%.
+- Later the same day: sparks now jump to dots a little further away and leave a fading streak, so they shoot through the brain like the website one. 16 at once. Nothing moves while you are on another tab.
