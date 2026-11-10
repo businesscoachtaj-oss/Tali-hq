@@ -248,3 +248,7 @@ A shelf of 12 out of copyright books she reads a few passages of each night, kee
 ### 10 Nov 2026: caps and prices
 
 Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90 a year). Tali HQ stays A$19.99. New Stripe prices are in `_shared/stripe.ts`; the old ones are still recognised. Two caps: web searches a month on paid plans and the trial (Tali HQ 150, Pro 400, Max 1,000), and on Max half price thinking for the first 100 a month. Migration `20261110000069_caps_and_prices.sql` (applied). `create-checkout` and `stripe-webhook` are deployed (version 17 each). `tali-chat` has the cap changes in this repo but is NOT deployed yet, so the caps are not enforced until it is. The website still shows the old Pro and Max prices.
+
+### 10 Nov 2026 (later): caps switched on, founder pricing closed
+
+`tali-chat` was deployed with the cap changes (version 31), so the web search limits and the Max half price limit are now enforced. The website shows the new prices. Founder pricing is closed to new sign-ups: the three people who signed up while the website promised it were marked as founding members, and the one email on the founding list still gets it (migration `20261110000070_founder_pricing_closed.sql`, applied).
