@@ -9,6 +9,7 @@ import { INBOUND_DOMAIN } from '@/constants/business';
 import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title, Hint, goBack } from '@/components/ui';
 import { AliasPicker, useAliasClaim } from '@/components/TaliAddressCard';
 import { SkinHeader } from '@/components/PageSkin';
+import { ForwardGmailGuide } from '@/components/ForwardGmailGuide';
 import { colours, radius, space } from '@/constants/theme';
 
 // Email: two sources in one place.
@@ -212,6 +213,8 @@ export default function Inbox() {
     <Screen skin="airmail" onRefresh={load}>
       <SkinHeader id="airmail" title="Email" sub={gmailOn ? `${mailAccount}. I sort what comes in and draft replies. Nothing is sent until you tap it on Today.` : 'Connect your Gmail or Outlook and I\'ll sort it for you. On Pro I get my own address for enquiries too.'} onBack={() => goBack('/me')} backLabel="Back" />
       <ErrorText>{error}</ErrorText>
+
+      <ForwardGmailGuide />
 
       {/* 4 Nov 2026: on Pro with nothing connected, Tali's address comes first and the connect card after. */}
       {pro && !gmailOn ? taliSection : null}
