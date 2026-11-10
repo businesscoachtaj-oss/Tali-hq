@@ -8,6 +8,7 @@
 // as an over the air update on iPhone, Android and the web. Names shared by more than one part
 // (a client who shows up in lessons and in facts) are drawn as lines between those parts on the whole brain.
 import { memo, useEffect, useMemo } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from 'react-native-reanimated';
@@ -115,28 +116,21 @@ export const BRAIN_DOTS = BRAIN.dots.map((d) => ({ x: d.x, y: d.y, z: d.z, size:
 // 11 Nov 2026 (Taj: "I bloody love how the brain moves on the website now. Is that possible on the app?").
 // The same life as the website brain: sparks that run from dot to dot like a thought firing, a soft
 // twinkle on every dot, a slow breath, and a flick that keeps turning. Flat number lists, so the
-// sparks can read them on the UI thread: where each dot is, its four nearest dots, and its colour.
+// sparks can read them on the UI thread: where each dot is, four dots it can jump to, and its colour.
 const PTS: number[] = [];
 const NEAR: number[] = [];
 const COLS: string[] = [];
 BRAIN.dots.forEach((d, i) => {
   PTS.push(d.x, d.y, d.z);
   COLS.push(REGIONS[d.region].colour);
-  const best: { j: number; dd: number }[] = [];
-  BRAIN.dots.forEach((o, j) => {
-    if (j === i) return;
-    const dd = (o.x - d.x) ** 2 + (o.y - d.y) ** 2 + (o.z - d.z) ** 2;
-    if (best.length < 4 || dd < best[best.length - 1].dd) {
-      best.push({ j, dd });
-      best.sort((a, b) => a.dd - b.dd);
-      if (best.length > 4) best.pop();
-    }
-  });
-  for (let k = 0; k < 4; k++) NEAR.push(best[k % best.length].j);
+  // Not the very nearest dots: those are a few pixels away and a hop that short cannot be seen. A spark
+  // jumps to one of four dots a little further off, so each hop leaves a streak you can follow.
+  const order = BRAIN.dots.map((o, j) => ({ j, dd: (o.x - d.x) ** 2 + (o.y - d.y) ** 2 + (o.z - d.z) ** 2 })).filter((o) => o.j !== i).sort((p, q) => p.dd - q.dd);
+  for (const rank of [8, 14, 20, 28]) NEAR.push(order[Math.min(rank, order.length - 1)].j);
 });
 const ALL_DOTS = BRAIN.dots.map((_, i) => i);
 /** How many sparks run at once. Kept small so older phones stay smooth. */
-const SPARKS = 12;
+const SPARKS = 16;
 
 /** Where the brain globe opens: turned side on, looking down a touch. */
 export const BRAIN_START = { ry: 1.9, rx: 0.18 };
@@ -218,6 +212,8 @@ const LinkView = memo(function LinkView({ a, b, spin, half, strength }: { a: P3;
 const SparkView = memo(function SparkView({ i, spin, half, scale, pool, pace }: { i: number; spin: Spin; half: number; scale: number; pool: SharedValue<number[]>; pace: SharedValue<number> }) {
   const a = useSharedValue(0);
   const b = useSharedValue(0);
+  // Where she was before `a`, so the streak she leaves behind can fade out along the last hop.
+  const c = useSharedValue(-1);
   const t0 = useSharedValue(0);
   const dur = useSharedValue(400);
   const hops = useSharedValue(0);
@@ -230,9 +226,10 @@ const SparkView = memo(function SparkView({ i, spin, half, scale, pool, pace }: 
       const list = pool.value;
       const from = list[Math.floor(Math.random() * list.length)] ?? 0;
       a.value = from;
+      c.value = -1;
       b.value = NEAR[from * 4 + Math.floor(Math.random() * 4)];
-      dur.value = (280 + Math.random() * 260) / pace.value;
-      hops.value = 3 + Math.floor(Math.random() * 5);
+      dur.value = (300 + Math.random() * 240) / pace.value;
+      hops.value = 4 + Math.floor(Math.random() * 6);
       t0.value = now;
       return;
     }
@@ -240,13 +237,14 @@ const SparkView = memo(function SparkView({ i, spin, half, scale, pool, pace }: 
       if (hops.value > 0) {
         const next = NEAR[b.value * 4 + Math.floor(Math.random() * 4)];
         const to = next === a.value ? NEAR[b.value * 4] : next;
+        c.value = a.value;
         a.value = b.value;
         b.value = to;
         hops.value -= 1;
         t0.value = now;
       } else {
         t0.value = 0;
-        wake.value = now + (300 + Math.random() * 1400) / pace.value;
+        wake.value = now + (150 + Math.random() * 700) / pace.value;
       }
     }
   });
@@ -256,9 +254,9 @@ const SparkView = memo(function SparkView({ i, spin, half, scale, pool, pace }: 
     const p = project({ x: PTS[a.value * 3], y: PTS[a.value * 3 + 1], z: PTS[a.value * 3 + 2] }, spin.ry.value, spin.rx.value, z, half);
     const q = project({ x: PTS[b.value * 3], y: PTS[b.value * 3 + 1], z: PTS[b.value * 3 + 2] }, spin.ry.value, spin.rx.value, z, half);
     const t = t0.value === 0 ? 0 : Math.min(1, (spin.clock.value - t0.value) / dur.value);
-    return { p, x: p.sx + (q.sx - p.sx) * t, y: p.sy + (q.sy - p.sy) * t, k: q.k };
+    return { p, x: p.sx + (q.sx - p.sx) * t, y: p.sy + (q.sy - p.sy) * t, k: q.k, t };
   };
-  const head = 7 * scale;
+  const head = 9 * scale;
   const headStyle = useAnimatedStyle(() => {
     if (t0.value === 0) return { opacity: 0, transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 1 }], zIndex: 200 };
     const s = at();
@@ -272,15 +270,34 @@ const SparkView = memo(function SparkView({ i, spin, half, scale, pool, pace }: 
     const dy = s.y - s.p.sy;
     const len = Math.sqrt(dx * dx + dy * dy);
     return {
-      opacity: 0.55,
+      opacity: 0.9,
       width: len,
       backgroundColor: COLS[b.value],
       transform: [{ translateX: (s.p.sx + s.x) / 2 - len / 2 }, { translateY: (s.p.sy + s.y) / 2 }, { rotate: `${Math.atan2(dy, dx)}rad` }],
       zIndex: 199,
     };
   });
+  // The streak behind her: the hop she just finished, fading as she runs the next one. This is what
+  // makes a spark look like it shoots through the brain (11 Nov 2026, Taj: "it doesn't shoot like the website").
+  const tailStyle = useAnimatedStyle(() => {
+    if (t0.value === 0 || c.value < 0) return { opacity: 0, width: 0, backgroundColor: COLS[a.value], transform: [{ translateX: 0 }, { translateY: 0 }, { rotate: '0rad' }], zIndex: 198 };
+    const s = at();
+    const z = spin.zoom.value * spin.breathe.value;
+    const o = project({ x: PTS[c.value * 3], y: PTS[c.value * 3 + 1], z: PTS[c.value * 3 + 2] }, spin.ry.value, spin.rx.value, z, half);
+    const dx = s.p.sx - o.sx;
+    const dy = s.p.sy - o.sy;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    return {
+      opacity: 0.6 * (1 - s.t),
+      width: len,
+      backgroundColor: COLS[a.value],
+      transform: [{ translateX: (o.sx + s.p.sx) / 2 - len / 2 }, { translateY: (o.sy + s.p.sy) / 2 }, { rotate: `${Math.atan2(dy, dx)}rad` }],
+      zIndex: 198,
+    };
+  });
   return (
     <>
+      <Animated.View pointerEvents="none" style={[styles.trail, tailStyle]} />
       <Animated.View pointerEvents="none" style={[styles.trail, trailStyle]} />
       <Animated.View pointerEvents="none" style={[styles.dot, { width: head, height: head }, headStyle]}>
         <Animated.View style={[styles.ring, { width: head * 3.4, height: head * 3.4, left: -head * 1.2, top: -head * 1.2, borderRadius: head * 1.7, opacity: 0.22 }, glowStyle]} />
@@ -331,7 +348,7 @@ export function BrainGlobe({
   const spin = useMemo(() => ({ ry, rx, zoom, clock, breathe }), [ry, rx, zoom, clock, breathe]);
 
   // A slow turn on its own, paused while a finger is on it.
-  useFrameCallback((f) => {
+  const frames = useFrameCallback((f) => {
     const dt = (f.timeSincePreviousFrame ?? 16) / 1000;
     if (!still) {
       clock.value += dt * 1000;
@@ -345,6 +362,12 @@ export function BrainGlobe({
       flick.value *= Math.pow(0.04, dt);
     }
   });
+
+  // Nothing moves while you are on another tab, so she costs nothing when you cannot see her.
+  const focused = useIsFocused();
+  useEffect(() => {
+    frames.setActive(focused);
+  }, [focused, frames]);
 
   // Sparks start in the part you picked (or the parts the lens lit), and anywhere on the whole brain.
   const sparkPool = useMemo(() => {
@@ -466,5 +489,5 @@ const styles = StyleSheet.create({
   dot: { position: 'absolute', left: 0, top: 0 },
   ring: { position: 'absolute' },
   link: { position: 'absolute', left: 0, top: 0, height: 1, backgroundColor: '#EEE9FF', borderRadius: 1 },
-  trail: { position: 'absolute', left: 0, top: 0, height: 1.5, borderRadius: 1 },
+  trail: { position: 'absolute', left: 0, top: 0, height: 2.5, borderRadius: 2 },
 });
