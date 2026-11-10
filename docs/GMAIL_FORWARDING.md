@@ -48,3 +48,20 @@ npx supabase functions deploy inbound-email --no-verify-jwt --project-ref jbyzbl
 - **A real forwarded email end to end.** Three things are unknown until one arrives: the exact wording of Gmail's confirmation email (the parser is written from the known format), whether Resend's received email includes the `X-Forwarded-For` header, and whether the webhook's `to` shows our address for auto-forwarded mail (there is a fallback that looks in the delivery headers).
 - A reply to a forwarded email landing in the right Gmail thread. It is sent with `In-Reply-To` but without Gmail's own thread id.
 - Sending needs Google connected. Someone who forwards without connecting Google gets drafts but is told to connect Gmail when they tap send.
+
+## Phase 2: Gmail reading wound down (10 Nov 2026)
+
+Taj asked for the full change in one go, before the first real forwarding test.
+
+- Tali no longer asks Google for permission to read Gmail. The Google sign-in now asks for sending (`gmail.send`), the calendar and the email address only. `include_granted_scopes` is off, so a reconnect never carries the old read permission along.
+- In `google_connections.scopes`, `gmail` now means "can send replies from their Gmail".
+- New column `google_connections.gmail_read`: true only for people who connected before this change. The old 10 minute read keeps going for them until their first forwarded email arrives (it then switches off for good) or until the end of 24 Nov 2026 Sydney time, when it stops for everyone. The cron job stops waking after that too.
+- Email screen: the sorted list shows when forwarding is working. People still on the old read see a card saying it stops on 24 November. People forwarding with no Google connected see a card asking them to connect Google so replies go out from their own address.
+- Settings Google card and "Get me up to speed" reworded: she can send from Gmail, she cannot read it. For Google, "Get me up to speed" is the calendar only.
+- Disconnecting Google now only forgets mail read the old way. Forwarded mail stays.
+- Founder screen: "Email coming in" (received today, this month, people forwarding, people still on the old read), from `founder_mail()`.
+- Migration `20261110000067_gmail_read_wind_down.sql` applied. `google-connect` deployed as version 13.
+
+Still for Taj to do in Google Cloud (project `starry-runner-513523-r0`) once the old read has ended: remove the `gmail.readonly` scope from the consent screen's data access list, then reply to Google's email.
+
+Not tested for real: a real forwarded Gmail, and a fresh Google sign-in with the smaller permission list.

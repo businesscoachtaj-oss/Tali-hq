@@ -1,5 +1,6 @@
 // Settings card: connect Google (Gmail and Google Calendar) with one sign-in, like Claude's connectors.
-// Tali reads new mail and sorts it, drafts replies, reads the calendar and drafts invites.
+// Tali sends the replies she drafts from their Gmail, reads the calendar and drafts invites.
+// CHANGED (10 Nov 2026, Taj): she no longer reads Gmail. Mail reaches her by forwarding (Email screen).
 // Nothing is sent or booked until the user taps the button on Today.
 import { LearnRecent } from '@/components/LearnRecent';
 import { useCallback, useEffect, useState } from 'react';
@@ -11,7 +12,7 @@ import { Button, Card } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 
 const RESULT: Record<string, { text: string; good: boolean }> = {
-  connected: { text: "Connected. I'll sort new mail as it lands and keep an eye on your calendar. Nothing goes out without your tap.", good: true },
+  connected: { text: "Connected. Replies I draft go out from your own Gmail, and I keep an eye on your calendar. Nothing goes out without your tap.", good: true },
   cancelled: { text: 'No worries, nothing was connected.', good: false },
   expired: { text: 'That link timed out. Give it another go.', good: false },
   error: { text: "Google didn't finish connecting. Give it another go, and tick every box Google asks about.", good: false },
@@ -80,7 +81,7 @@ export function GoogleConnectCard() {
     setConfirmOff(false);
     if (!res.ok) return setNote({ text: res.message ?? 'Could not disconnect.', good: false });
     setConn(null);
-    setNote({ text: "Disconnected. I've forgotten everything that came from your Gmail. Your emails and calendar are untouched.", good: true });
+    setNote({ text: "Disconnected. Your emails and calendar are untouched.", good: true });
   }
 
   if (paid === null) return null;
@@ -98,17 +99,17 @@ export function GoogleConnectCard() {
           </Text>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
             {hasGmail && hasCal
-              ? 'Gmail and Google Calendar. I sort new mail into needs you, FYI and junk, and draft replies for your tap. Your calendar is in your brief, and I can draft invites.'
+              ? 'Gmail sending and Google Calendar. Replies I draft go out from your own Gmail when you tap Send. Your calendar is in your brief, and I can draft invites. To have me sort your inbox, send your Gmail to me on the Email page.'
               : hasCal
-                ? 'Google Calendar only. Your calendar is in your brief and I can draft invites. Connect Gmail too if you want me sorting your email.'
-                : 'Gmail only.'}
+                ? 'Google Calendar only. Your calendar is in your brief and I can draft invites. Add Gmail sending if you want replies to go out from your own address.'
+                : 'Gmail sending only.'}
           </Text>
           {NATIVE && (conn.last_error === 'revoked' || (hasCal && !hasGmail)) ? (
             <WebOnly />
           ) : (
             <>
               {conn.last_error === 'revoked' ? <Button title="Reconnect Google" onPress={() => connect(hasGmail ? 'both' : 'calendar')} busy={busy} /> : null}
-              {hasCal && !hasGmail && !conn.last_error ? <Button title="Add Gmail too" kind="ghost" onPress={() => connect('both')} busy={busy} /> : null}
+              {hasCal && !hasGmail && !conn.last_error ? <Button title="Add Gmail sending" kind="ghost" onPress={() => connect('both')} busy={busy} /> : null}
             </>
           )}
           {confirmOff ? (
@@ -118,7 +119,7 @@ export function GoogleConnectCard() {
             </View>
           ) : (
             <>
-              {conn.last_error ? null : <LearnRecent provider="google" />}
+              {conn.last_error ? null : <LearnRecent provider="google" mail={conn.gmail_read === true} />}
               <Button title="Disconnect" kind="ghost" onPress={() => setConfirmOff(true)} />
             </>
           )}
@@ -126,13 +127,13 @@ export function GoogleConnectCard() {
       ) : paid ? (
         <>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
-            One sign-in for Gmail and Google Calendar. I'll sort your new email, draft replies, put your day in the brief and draft bookings. I only read new mail from the moment you connect, I never delete or move anything, and nothing is sent or booked until you tap it.
+            One sign-in for Gmail and Google Calendar. Replies I draft go out from your own Gmail, your day goes in the brief and I can draft bookings. I can send from your Gmail but I cannot read it. To have me sort your inbox, send your Gmail to me on the Email page. Nothing is sent or booked until you tap it.
           </Text>
           {NATIVE ? (
             <WebOnly />
           ) : (
             <>
-              <Button title="Connect Gmail and Calendar" onPress={() => connect('both')} busy={busy} />
+              <Button title="Connect Google" onPress={() => connect('both')} busy={busy} />
               <Button title="Just the calendar" kind="ghost" onPress={() => connect('calendar')} busy={busy} />
               <Text style={{ color: colours.faint, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
                 While Tali HQ is in beta, Google may show a "Google hasn't verified this app" page. Tap Advanced, then Continue.

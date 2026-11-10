@@ -9,7 +9,8 @@ import { colours, space } from '@/constants/theme';
 
 export const LEARN_RECENT_CREDITS = 10;
 
-export function LearnRecent({ provider }: { provider: 'google' | 'microsoft' }) {
+// mail={false} (10 Nov 2026): Google no longer gives Tali Gmail to read, so for Google this is the calendar only.
+export function LearnRecent({ provider, mail = true }: { provider: 'google' | 'microsoft'; mail?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
   const [note, setNote] = useState<{ text: string; good: boolean } | null>(null);
@@ -27,9 +28,11 @@ export function LearnRecent({ provider }: { provider: 'google' | 'microsoft' }) 
     <View style={{ marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: colours.border }}>
       <Text style={{ color: colours.text, fontWeight: '700', fontSize: 14.5 }}>Get me up to speed</Text>
       <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2, lineHeight: 19 }}>
-        I'll look at your last two weeks of mail and your next two weeks of calendar, and remember the people and commitments that matter. I skip newsletters and never keep passwords, codes or card details.
+        {mail
+          ? "I'll look at your last two weeks of mail and your next two weeks of calendar, and remember the people and commitments that matter. I skip newsletters and never keep passwords, codes or card details."
+          : "I'll look at your next two weeks of calendar and remember the people and commitments that matter."}
       </Text>
-      <Button title={busy ? 'Reading...' : armed ? `Yes, use ${LEARN_RECENT_CREDITS} credits` : 'Learn from my last two weeks'} kind="ghost" onPress={go} busy={busy} />
+      <Button title={busy ? 'Reading...' : armed ? `Yes, use ${LEARN_RECENT_CREDITS} credits` : mail ? 'Learn from my last two weeks' : 'Learn from my calendar'} kind="ghost" onPress={go} busy={busy} />
       {note ? <Text style={{ color: note.good ? colours.good : colours.danger, fontSize: 13, marginTop: 6, lineHeight: 19 }}>{note.text}</Text> : null}
     </View>
   );

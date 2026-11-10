@@ -10,10 +10,11 @@ import { BackLink, Body, Button, Card, ErrorText, Label, Screen, TaliSays, Title
 import { AliasPicker, useAliasClaim } from '@/components/TaliAddressCard';
 import { SkinHeader } from '@/components/PageSkin';
 import { ForwardGmailGuide } from '@/components/ForwardGmailGuide';
+import { myForwarding, type Forwarding } from '@/lib/forwarding';
 import { colours, radius, space } from '@/constants/theme';
 
 // Email: two sources in one place.
-//  - Gmail, when they have connected Google (Tali HQ and Pro): sorted into Needs you, FYI and Junk,
+//  - Gmail, once they forward it to Tali (every paid plan, 10 Nov 2026): sorted into Needs you, FYI and Junk,
 //    replies drafted on Today with a "Send from Gmail" button.
 //  - Tali's own address (Pro): enquiries sent to it, summed up with a drafted reply. The reply sends
 //    from their Gmail or Outlook when connected, otherwise from the Tali address (4 Nov 2026).
@@ -24,6 +25,7 @@ export default function Inbox() {
   const [pro, setPro] = useState(false);
   const [google, setGoogle] = useState<GoogleConnection | null>(null);
   const [microsoft, setMicrosoft] = useState<MicrosoftConnection | null>(null);
+  const [forwarding, setForwarding] = useState<Forwarding | null>(null);
   const [alias, setAlias] = useState<string | null>(null);
   const [emails, setEmails] = useState<InboundEmail[]>([]);
   const [open, setOpen] = useState<InboundEmail | null>(null);
@@ -49,7 +51,8 @@ export default function Inbox() {
       setPaid(isPaid(c));
       setPro(isPro(c));
       if (!isPaid(c)) return;
-      const [g, ms, a, list] = await Promise.all([googleConnection().catch(() => null), microsoftConnection().catch(() => null), isPro(c) ? myInbox() : Promise.resolve(null), inboundEmails()]);
+      const [g, ms, a, list, fwd] = await Promise.all([googleConnection().catch(() => null), microsoftConnection().catch(() => null), isPro(c) ? myInbox() : Promise.resolve(null), inboundEmails(), myForwarding().catch(() => null)]);
+      setForwarding(fwd);
       setGoogle(g);
       setMicrosoft(ms);
       setAlias(a);
@@ -68,7 +71,14 @@ export default function Inbox() {
   // Outlook (2 Nov 2026) shows in the same sorted list as Gmail.
   const outlookOn = !!microsoft?.scopes.includes('mail');
   const gmailOn = !!google?.scopes.includes('gmail') || outlookOn;
-  const mailAccount = google?.scopes.includes('gmail') ? google.google_email : microsoft?.ms_email;
+  // 10 Nov 2026: Gmail arrives by forwarding now. fwdOn = their forwarded Gmail is coming in;
+  // readOn = still on the old way of reading Gmail, which ends 24 Nov 2026; gmailOn = replies can go
+  // out from their own mailbox. The sorted list shows for any of forwarding, the old read or Outlook.
+  const fwdOn = forwarding?.state === 'working';
+  const readOn = google?.gmail_read === true;
+  const listOn = fwdOn || readOn || outlookOn;
+  const canSendGmail = !!google?.scopes.includes('gmail') && !google?.last_error;
+  const mailAccount = fwdOn ? forwarding?.gmail ?? google?.google_email : readOn ? google?.google_email : microsoft?.ms_email;
   const address = alias && INBOUND_DOMAIN ? `${alias}@${INBOUND_DOMAIN}` : null;
   // 4 Nov 2026: they pick the word before the @, pre-filled from their business name.
   const picker = useAliasClaim(pro && paid === true && !alias, setAlias);
@@ -94,7 +104,7 @@ export default function Inbox() {
     return (
       <Screen skin="airmail" onRefresh={load}>
         <SkinHeader id="airmail" title="Email" onBack={() => goBack('/me')} backLabel="Back" />
-        <TaliSays pose="wave">On Tali HQ you can connect your Gmail or Outlook and I'll sort it for you: what needs you, what's just FYI, what's junk. I draft the replies and you tap send. On Pro I get my own address for your enquiries too.</TaliSays>
+        <TaliSays pose="wave">On Tali HQ you can send your Gmail to me, or connect Outlook, and I'll sort it for you: what needs you, what's just FYI, what's junk. I draft the replies and you tap send. On Pro I get my own address for your enquiries too.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );
@@ -211,15 +221,36 @@ export default function Inbox() {
 
   return (
     <Screen skin="airmail" onRefresh={load}>
-      <SkinHeader id="airmail" title="Email" sub={gmailOn ? `${mailAccount}. I sort what comes in and draft replies. Nothing is sent until you tap it on Today.` : 'Connect your Gmail or Outlook and I\'ll sort it for you. On Pro I get my own address for enquiries too.'} onBack={() => goBack('/me')} backLabel="Back" />
+      <SkinHeader id="airmail" title="Email" sub={listOn ? `${mailAccount}. I sort what comes in and draft replies. Nothing is sent until you tap it on Today.` : 'Send your Gmail to me, or connect Outlook, and I\'ll sort it for you. On Pro I get my own address for enquiries too.'} onBack={() => goBack('/me')} backLabel="Back" />
       <ErrorText>{error}</ErrorText>
 
       <ForwardGmailGuide />
 
-      {/* 4 Nov 2026: on Pro with nothing connected, Tali's address comes first and the connect card after. */}
-      {pro && !gmailOn ? taliSection : null}
+      {/* 10 Nov 2026: still on the old way of reading Gmail. Say plainly when it stops. */}
+      {readOn && !fwdOn ? (
+        <Card style={{ marginBottom: space.md }}>
+          <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>One change to make by 24 November</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
+            I am still reading {google?.google_email} the old way, and that stops on 24 November. Follow the three steps above once and your email keeps coming to me with no gap.
+          </Text>
+        </Card>
+      ) : null}
 
-      {gmailOn ? (
+      {/* Forwarded Gmail is coming in, but replies have nowhere to go out from yet. */}
+      {fwdOn && !canSendGmail ? (
+        <Card style={{ marginBottom: space.md }}>
+          <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>Send replies from your Gmail</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
+            Connect Google once so the replies I draft go out from your own address when you tap Send. I can send from your Gmail but I cannot read it.
+          </Text>
+          <Button title="Connect in Settings" onPress={() => router.navigate('/settings')} />
+        </Card>
+      ) : null}
+
+      {/* 4 Nov 2026: on Pro with nothing connected, Tali's address comes first and the connect card after. */}
+      {pro && !listOn ? taliSection : null}
+
+      {listOn ? (
         <>
           <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
             {(['needs_you', 'fyi', 'spam'] as Tab[]).map((t) => (
@@ -240,9 +271,11 @@ export default function Inbox() {
               {tab === 'needs_you'
                 ? gmail.length
                   ? 'Nothing needs you right now. Nice.'
-                  : google?.last_mail_sync_at || microsoft?.last_mail_sync_at
-                    ? 'Nothing new since you connected. I check every 10 minutes.'
-                    : 'Just connected. I\'ll have your first lot sorted within 10 minutes, and I only read mail from now on.'
+                  : fwdOn
+                    ? 'Nothing has come in yet. The next email you get will show up here.'
+                    : google?.last_mail_sync_at || microsoft?.last_mail_sync_at
+                      ? 'Nothing new since you connected. I check every 10 minutes.'
+                      : 'Just connected. I\'ll have your first lot sorted within 10 minutes, and I only read mail from now on.'
                 : tab === 'fyi'
                   ? 'Nothing filed under FYI yet.'
                   : 'No junk. Lovely.'}
@@ -255,16 +288,16 @@ export default function Inbox() {
         <>
           {pro ? <View style={{ height: space.xl }} /> : null}
           <Card>
-            <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>Connect your Gmail or Outlook</Text>
+            <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>On Outlook instead?</Text>
             <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
-              One sign-in with Google or Microsoft. I only read new mail from the moment you connect, never delete or move anything, and every reply waits for your tap.
+              One sign-in with Microsoft. I only read new mail from the moment you connect, never delete or move anything, and every reply waits for your tap.
             </Text>
             <Button title="Connect in Settings" onPress={() => router.navigate('/settings')} />
           </Card>
         </>
       )}
 
-      {pro && gmailOn ? (
+      {pro && listOn ? (
         <>
           <View style={{ height: space.xl }} />
           {taliSection}

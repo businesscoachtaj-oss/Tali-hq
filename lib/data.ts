@@ -786,10 +786,11 @@ export const disconnectStripe = () => stripeCall({ action: 'disconnect' });
 export const sendInvoiceWithStripe = (invoiceId: string) => stripeCall({ action: 'send', invoiceId });
 
 // ---------- Google: Gmail and Google Calendar, one sign-in ----------
-export type GoogleConnection = { google_email: string; scopes: string[]; last_mail_sync_at: string | null; last_error: string | null; connected_at: string };
+// gmail_read (10 Nov 2026): true only for people still on the old way of reading Gmail, which ends 24 Nov 2026.
+export type GoogleConnection = { google_email: string; scopes: string[]; last_mail_sync_at: string | null; last_error: string | null; connected_at: string; gmail_read?: boolean };
 
 export async function googleConnection(): Promise<GoogleConnection | null> {
-  const { data, error } = await supabase.from('google_connections').select('google_email, scopes, last_mail_sync_at, last_error, connected_at').maybeSingle();
+  const { data, error } = await supabase.from('google_connections').select('google_email, scopes, last_mail_sync_at, last_error, connected_at, gmail_read').maybeSingle();
   if (error) throw error;
   return (data as GoogleConnection | null) ?? null;
 }
@@ -871,6 +872,15 @@ export type FounderStats = {
   top_users: { first_name: string | null; business_name: string | null; plan_id: string | null; status: string | null; credits: number; tokens_in: number; tokens_out: number }[];
   generated_at: string;
 };
+
+// 10 Nov 2026: email reaching Tali through Resend (free plan: 100 a day, 3,000 a month, shared with
+// everything else Resend sends or receives for us).
+export type FounderMail = { today: number; month: number; forwarding_on: number; old_read_left: number };
+export async function founderMail(): Promise<FounderMail | null> {
+  const { data, error } = await supabase.rpc('founder_mail');
+  if (error || !data) return null;
+  return data as FounderMail;
+}
 
 export async function founderStats(): Promise<FounderStats> {
   const { data, error } = await supabase.rpc('founder_stats');

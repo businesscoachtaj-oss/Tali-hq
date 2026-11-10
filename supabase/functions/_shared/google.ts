@@ -10,8 +10,10 @@ export const GOOGLE_CLIENT_SECRET = (Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '')
 export const googleReady = () => GOOGLE_CLIENT_ID.length > 0 && GOOGLE_CLIENT_SECRET.length > 0;
 
 // What each scope set asks Google for. 'both' is the Tali HQ default; Totality asks for calendar only.
+// 10 Nov 2026 (Taj): Tali no longer asks to read Gmail. Mail reaches her by the owner's own Gmail
+// auto-forward (see inbound-email), so the only Gmail permission asked for is sending their replies.
 export const SCOPES = {
-  gmail: ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
+  gmail: ['https://www.googleapis.com/auth/gmail.send'],
   calendar: ['https://www.googleapis.com/auth/calendar.events'],
   identity: ['openid', 'email'],
 };
