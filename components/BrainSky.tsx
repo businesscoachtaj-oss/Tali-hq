@@ -106,7 +106,7 @@ export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?:
   // Six places in the sky. What needs you comes first, so an idea is the first to wait for a quiet day.
   stars.length = Math.min(stars.length, SPOTS.length);
 
-  const stageH = 470;
+  const stageH = closed ? 360 : 470;
   const cx = W / 2, cy = stageH / 2;
   const pos = (i: number) => ({ x: 16 + SPOTS[i][0] * (W - 186), y: SPOTS[i][1] * (stageH - 50) });
   const counts: Partial<Record<RegionId, number>> = {};
@@ -127,6 +127,8 @@ export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?:
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickedKey, seed]);
+  // Day closed (Taj, 10 Nov 2026): just her brain, turning slowly. Nothing to do orbits it.
+  const shownStars = closed ? [] : stars;
   const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
   const line = sel ? "Here's everything I know that touches this." : closed ? (nightLine?.trim() || "Day's done. Bed time?") : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
 
@@ -154,18 +156,13 @@ export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?:
         {/* Her words float in the space. */}
         <Text style={{ color: '#FFFFFF', fontSize: 32, lineHeight: 36, paddingHorizontal: 20, marginTop: 10, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 }}>{line}</Text>
 
-        {closed && !sel ? (
-          <Pressable onPress={() => router.navigate('/sleep')} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginLeft: 20, marginTop: 10 }}>
-            <Text style={{ color: '#B9A6FF', fontSize: 14, fontWeight: '700' }}>Sleep sounds {'›'}</Text>
-          </Pressable>
-        ) : null}
         {/* The stage: her brain, with your day orbiting it. */}
         {/* Tapping the empty sky closes whatever is open. */}
         <Pressable ref={brainRef} collapsable={false} onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
           <View style={{ position: 'absolute', left: cx - 150, top: cy - 150, opacity: sel ? 0.35 : 1 }}>
-            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
+            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} speed={closed ? 0.5 : 1} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
           </View>
-          {stars.map((s, i) => {
+          {shownStars.map((s, i) => {
             const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = !!focus && !on;
             const sx = p.x + 8, sy = p.y + 8;
             return <Beam key={'l' + s.key} x1={sx} y1={sy} x2={cx} y2={cy} colour={c} opacity={dim ? 0.08 : on ? 0.9 : 0.35} />;
@@ -189,7 +186,7 @@ export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?:
               </View>
             );
           }) : null}
-          {stars.map((s, i) => {
+          {shownStars.map((s, i) => {
             const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = !!focus && !on;
             return (
               <Pressable key={s.key} onPress={() => pick(on ? null : s.key)} accessibilityRole="button" accessibilityLabel={s.full ?? s.title}
@@ -232,7 +229,16 @@ export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?:
               ) : null}
             </View>
           );
-        })() : (
+        })() : closed ? (
+          <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginTop: 8 }}>
+            {([['Sleep sounds', '/sleep'], ['Write in your journal', '/journal']] as const).map(([label, to]) => (
+              <Pressable key={to} onPress={() => router.navigate(to)} accessibilityRole="button"
+                style={{ flex: 1, alignItems: 'center', borderRadius: 999, paddingVertical: 15, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '700' }}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 18, paddingHorizontal: 16, marginTop: 28 }}>
             {(Object.keys(AREA) as Area[]).map((a) => (
               <Pressable key={a} onPress={() => router.navigate('/world')} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }} accessibilityRole="button">
@@ -244,7 +250,7 @@ export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?:
         )}
 
         {/* Tali's level stays (Taj, 10 Nov 2026): it's how you see her grow. */}
-        {level ? (
+        {level && !closed ? (
           <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}
             style={{ marginHorizontal: 16, marginTop: 22, padding: 14, borderRadius: 20, backgroundColor: 'rgba(107,79,216,0.38)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -264,11 +270,13 @@ export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?:
           </Pressable>
         ) : null}
 
-        <Pressable ref={tellRef} collapsable={false} onPress={() => router.navigate('/talk')} accessibilityRole="button"
+{closed ? null : (
+                <Pressable ref={tellRef} collapsable={false} onPress={() => router.navigate('/talk')} accessibilityRole="button"
           style={{ marginHorizontal: 16, marginTop: 22, borderRadius: 999, paddingVertical: 16, paddingHorizontal: 22, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={{ flex: 1, color: 'rgba(255,255,255,0.65)', fontSize: 16 }}>Tell her anything...</Text>
           <Text style={{ color: '#B9A6FF', fontSize: 18 }}>{'●'}</Text>
         </Pressable>
+        )}
     </View>
   );
 }

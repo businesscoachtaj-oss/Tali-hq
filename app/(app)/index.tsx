@@ -182,6 +182,8 @@ export default function Today() {
           </View>
         )}
         </View>
+        {/* Day closed (Taj, 10 Nov 2026): only her brain and the two bedtime buttons. The day's lists come back in the morning. */}
+        {night ? null : (<>
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
         <SheNoticed />
 
@@ -284,6 +286,7 @@ export default function Today() {
           </Card>
         ) : null}
         <View style={{ height: space.xl }} />
+        </>)}
       </ScrollView>
       {showTour ? <AppTour steps={TOUR_STEPS} onDone={closeTour} firstName={profile?.first_name} /> : null}
     </SafeAreaView>
