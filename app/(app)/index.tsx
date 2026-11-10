@@ -35,7 +35,7 @@ import { useHasBusiness } from '@/lib/business';
 import { type Room } from '@/components/RoomSwitch';
 import { SheNoticed } from '@/components/SheNoticed';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
-import { PageSky } from '@/components/NightSky';
+import { PageSky, skyScroll } from '@/components/NightSky';
 import { setDayShut } from '@/lib/sky';
 import { Aurora } from '@/components/Aurora';
 
@@ -175,7 +175,7 @@ export default function Today() {
       <Aurora />
       <ScrollView
         ref={scrollRef}
-        onScroll={(e) => (scrollY.current = e.nativeEvent.contentOffset.y)}
+        onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; skyScroll.setValue(scrollY.current); }}
         scrollEventThrottle={16}
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
