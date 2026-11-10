@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BrainGlobe } from '@/components/BrainGlobe';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { myBrain, myConnections, myUpcoming, type Brain, type RegionId, type Upcoming } from '@/lib/brain';
@@ -21,7 +22,10 @@ const AREA = {
   growth: { name: 'Growth', colour: '#FFE066' },
 } as const;
 type Area = keyof typeof AREA;
-type Star = { key: string; title: string; sub: string; area: Area; size: number; full?: string; links: Link[]; action?: string; to?: string; ask?: string; seed?: string; fallback?: Link[] };
+type Star = { key: string; title: string; sub: string; area: Area; size: number; full?: string; links: Link[]; action?: string; to?: string; ask?: string; seed?: string; fallback?: Link[]; done?: string };
+// `done` is set on things she is only reminding you of (an idea, a date). It is what gets remembered
+// when you tap "Done with this", so that one stops coming back to Today. She still remembers it.
+const DONE_KEY = 'tali.today.done';
 // `full` is the whole memory, shown when a star or one of its connections is opened.
 type Link = { text: string; area: Area; full?: string };
 
@@ -59,6 +63,17 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
   // A connection that has been tapped open, so it can be read in full.
   const [openLink, setOpenLink] = useState<Link | null>(null);
   const pick = (key: string | null) => { setOpenLink(null); setFocus(key); };
+  // 11 Nov 2026 (Taj: an idea he had already talked through kept coming back). Things you are done with.
+  const [doneWith, setDoneWith] = useState<string[]>([]);
+  useEffect(() => {
+    AsyncStorage.getItem(DONE_KEY).then((raw) => { const list = raw ? JSON.parse(raw) : []; if (Array.isArray(list)) setDoneWith(list.map(String)); }).catch(() => {});
+  }, []);
+  const finish = (what: string) => {
+    const next = [...doneWith.filter((d) => d !== what), what].slice(-200);
+    setDoneWith(next);
+    AsyncStorage.setItem(DONE_KEY, JSON.stringify(next)).catch(() => {});
+    pick(null);
+  };
 
   useFocusEffect(useCallback(() => {
     const end = addDays(new Date(new Date().setHours(0, 0, 0, 0)), 1).toISOString();
@@ -72,8 +87,9 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
   }, []));
 
   const items = brain?.regions.flatMap((r) => r.items) ?? [];
-  const person = items.find((i) => i.kind === 'person' && /birthday/i.test(i.text));
-  const idea = items.find((i) => i.kind === 'idea');
+  const person = items.find((i) => i.kind === 'person' && /birthday/i.test(i.text) && !doneWith.includes(i.text));
+  // The first idea you have not said you are done with, so the next one gets its turn.
+  const idea = items.find((i) => i.kind === 'idea' && !doneWith.includes(i.text));
   const late = money?.overdueInvoices?.[0];
 
   // Everything on a star is real: what is late, waiting, new or due, plus what she remembers that touches it.
@@ -109,12 +125,12 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
   }
   // Dates she remembers, as they get close (a birthday, a renewal, a deadline). Soonest two.
   const soon = (n: number) => (n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : n < 14 ? `In ${n} days` : `In ${Math.round(n / 7)} weeks`);
-  for (const u of upcoming.slice(0, 2)) {
-    stars.push({ key: `date-${u.id}`, full: u.text, ask: `Help me plan for this: ${u.text}`, title: short(u.text, 46), sub: `${soon(u.days_away)}${u.yearly ? ', every year' : ''}`, area: areaOf(u.kind), size: u.days_away <= 7 ? 17 : 14, links: [], seed: u.text, action: 'Plan it with her', to: '/talk' });
+  for (const u of upcoming.filter((x) => !doneWith.includes(x.text)).slice(0, 2)) {
+    stars.push({ key: `date-${u.id}`, full: u.text, ask: `Help me plan for this: ${u.text}`, title: short(u.text, 46), sub: `${soon(u.days_away)}${u.yearly ? ', every year' : ''}`, area: areaOf(u.kind), size: u.days_away <= 7 ? 17 : 14, links: [], seed: u.text, action: 'Plan it with her', to: '/talk', done: u.text });
   }
   // Until the dates are switched on server side, a birthday she remembers still shows.
-  if (!upcoming.length && person) stars.push({ key: 'person', full: person.text, ask: `Let's talk about this: ${person.text}`, title: short(person.text, 46), sub: 'Something she remembers for you', area: 'people', size: 14, links: [], seed: person.text, fallback: related(person.text.split(/[\s']/)[0], person.text), action: 'Talk it through', to: '/talk' });
-  if (idea) stars.push({ key: 'idea', full: idea.text, ask: `Let's plan this idea: ${idea.text}`, title: short(idea.text, 46), sub: /night school/i.test(idea.text) ? 'An idea from her night school' : 'An idea you had', area: 'growth', size: 12, links: [], seed: idea.text, action: 'Plan it with her', to: '/talk' });
+  if (!upcoming.length && person) stars.push({ key: 'person', full: person.text, ask: `Let's talk about this: ${person.text}`, title: short(person.text, 46), sub: 'Something she remembers for you', area: 'people', size: 14, links: [], seed: person.text, fallback: related(person.text.split(/[\s']/)[0], person.text), action: 'Talk it through', to: '/talk' , done: person.text });
+  if (idea) stars.push({ key: 'idea', full: idea.text, ask: `Let's plan this idea: ${idea.text}`, title: short(idea.text, 46), sub: /night school/i.test(idea.text) ? 'An idea from her night school' : 'An idea you had', area: 'growth', size: 12, links: [], seed: idea.text, action: 'Plan it with her', to: '/talk', done: idea.text });
 
   // Six places in the sky. What needs you comes first, so an idea is the first to wait for a quiet day.
   stars.length = Math.min(stars.length, SPOTS.length);
@@ -240,12 +256,21 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
               <Text style={{ color: '#FFFFFF', fontSize: words.length > 70 ? 19 : 26, lineHeight: words.length > 70 ? 26 : 31, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{words}</Text>
               {!openLink ? <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginTop: 4 }}>{sel.sub}</Text> : null}
               {!openLink && sel.links.length ? <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12.5, marginTop: 8 }}>Tap a connection to read it.</Text> : null}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
               {openLink || sel.action ? (
                 <Pressable accessibilityRole="button" disabled={!to} onPress={go}
                   style={{ marginTop: 16, alignSelf: 'flex-start', backgroundColor: to ? c : 'rgba(255,255,255,0.12)', borderRadius: 999, paddingVertical: 12, paddingHorizontal: 20, shadowColor: c, shadowOpacity: to ? 0.8 : 0, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } }}>
                   <Text style={{ color: to ? '#0C0A24' : 'rgba(255,255,255,0.8)', fontWeight: '800', fontSize: 15 }}>{openLink ? 'Talk about this' : sel.action}</Text>
                 </Pressable>
               ) : null}
+              {!openLink && sel.done ? (
+                <Pressable accessibilityRole="button" accessibilityHint="Takes this off Today. Tali still remembers it." onPress={() => finish(sel.done!)}
+                  style={{ marginTop: 16, borderRadius: 999, paddingVertical: 11, paddingHorizontal: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)' }}>
+                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Done with this</Text>
+                </Pressable>
+              ) : null}
+              </View>
+              {!openLink && sel.done ? <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, marginTop: 10 }}>Done takes it off Today. She still remembers it.</Text> : null}
             </View>
           );
         })() : closed ? (
