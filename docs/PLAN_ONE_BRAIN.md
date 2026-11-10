@@ -42,3 +42,11 @@ Match by email automatically and copy across with no sign-in. Faster to build, b
 1. Opt in with a sign-in (recommended), or automatic by email?
 2. Is the "what crosses" list right, or do you want weight and food trends included?
 3. One way for now (recommended), or should Totality's Tali also read the Tali HQ brain? That roughly doubles the job.
+
+## Decided (10 Nov 2026, Taj)
+
+1. Opt in with a sign in.
+2. Basics only.
+3. One way for now.
+
+Built the same day. See `docs/ONE_BRAIN.md`. One change from the plan: Tali's weekly summaries do not cross, because they are free text about weight and food.

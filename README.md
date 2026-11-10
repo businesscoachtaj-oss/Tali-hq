@@ -227,3 +227,8 @@ Full notes: `docs/BRAIN_OVERHAUL_2.md`. Applied to the database and tested. Noth
 - **Memories that age.** Each memory tracks when it was last confirmed. Old facts, plans and events that nobody has confirmed in 45 days are handed to Tali with the date they were noted.
 - **Sleep for everyone.** A nightly job (`tali-brain-sleep`) that merges repeats, lets a newer fact replace the older one it updates, folds scattered notes into one, lets small stale notes fade, and writes what she learnt. Every change can be undone (`my_sleeps`, `my_sleep_undo`). Built and tested, but **not switched on** until Her brain shows each night with an undo.
 - Migrations: `20261110000062_brain_eval.sql`, `20261110000063_brain_ageing_and_sleep.sql`. Function: `supabase/functions/tali-brain-sleep`.
+
+## One brain and sleep on Her brain (10 Nov 2026, night)
+
+- **While you slept.** A card at the top of Her brain: what Tali learnt overnight and each note she tidied, with Undo (`components/LastNightCard.tsx`, `lib/sleeps.ts`). The nightly job is now switched on (migration 065).
+- **Use Totality too?** A card on Her brain that links a Totality or Totality Nutrition account by signing in, and brings across picked sign-up answers only (`components/LinkTotalityCard.tsx`, `lib/appLinks.ts`, function `tali-link-app`, migration 064). Notes: `docs/ONE_BRAIN.md`.
