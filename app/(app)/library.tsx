@@ -2,7 +2,7 @@
 // she has finished are open for anyone to read, with what she kept from them beside the text.
 // The books, counts, notes and text below are real ones from her shelf, typed in for the mockup.
 // Nothing here talks to the server yet.
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { BackLink, Button, Card, Screen, TaliSays, Title, goBack } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
@@ -41,52 +41,80 @@ function Spine({ b, h = 64 }: { b: Book; h?: number }) {
   );
 }
 
+// The bookcase: timber shelves, books standing on them with the title down the spine, a brass
+// plaque over each shelf. A ribbon bookmark shows how far she is through a book she is still reading.
+const WOOD = { back: '#24150E', plank: '#7A4A2A', plankTop: '#A06A40', post: '#5B3620', brass: '#D4AE5C', brassInk: '#3B2A0A' };
+
+function Plaque({ children }: { children: string }) {
+  return (
+    <View style={{ alignSelf: 'center', backgroundColor: WOOD.brass, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 4, marginBottom: 10, borderWidth: 1, borderColor: '#F1D58F', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+      <Text style={{ color: WOOD.brassInk, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 }}>{children}</Text>
+    </View>
+  );
+}
+
+function Standing({ b, w, h, onPress }: { b: Book; w: number; h: number; onPress?: () => void }) {
+  const done = b.studied >= b.passages;
+  const pct = Math.round((b.studied / b.passages) * 100);
+  return (
+    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={`${b.title} by ${b.author}. ${done ? 'Finished. Open.' : `${pct}% read.`}`} style={{ alignItems: 'center' }}>
+      <View style={{ width: w, height: h, backgroundColor: hue(b), borderTopLeftRadius: 5, borderTopRightRadius: 5, borderRadius: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 5, shadowOffset: { width: 2, height: 0 } }}>
+        {/* shading down the left edge and bands top and bottom, like a cloth bound spine */}
+        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, backgroundColor: 'rgba(255,255,255,0.28)' }} />
+        <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, backgroundColor: 'rgba(0,0,0,0.16)' }} />
+        <View style={{ position: 'absolute', left: 0, right: 0, top: 12, height: 3, backgroundColor: 'rgba(40,24,60,0.45)' }} />
+        <View style={{ position: 'absolute', left: 0, right: 0, top: 18, height: 1, backgroundColor: 'rgba(40,24,60,0.45)' }} />
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 12, height: 3, backgroundColor: 'rgba(40,24,60,0.45)' }} />
+        <View style={{ width: h - 52, height: w - 8, transform: [{ rotate: '-90deg' }], alignItems: 'center', justifyContent: 'center' }}>
+          <Text numberOfLines={2} style={{ color: '#1C1433', fontSize: w > 50 ? 15 : 12, lineHeight: w > 50 ? 17 : 14, fontFamily: serif, textAlign: 'center' }}>{b.title}</Text>
+        </View>
+        {!done ? <View style={{ position: 'absolute', top: 0, right: 9, width: 8, height: 16 + Math.round(pct * 0.34), backgroundColor: '#C8372D', borderBottomLeftRadius: 4, borderBottomRightRadius: 4 }} /> : null}
+      </View>
+    </Pressable>
+  );
+}
+
+function ShelfRow({ books, widths, heights, open, extra }: { books: Book[]; widths: number[]; heights: number[]; open: (b: Book) => void; extra?: React.ReactNode }) {
+  return (
+    <View style={{ marginBottom: 18 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5, paddingHorizontal: 12, minHeight: 176 }}>
+        {books.map((b, i) => (
+          <Standing key={b.id} b={b} w={widths[i % widths.length]} h={heights[i % heights.length]} onPress={b.studied >= b.passages ? () => open(b) : undefined} />
+        ))}
+        {extra}
+      </View>
+      <View style={{ height: 5, backgroundColor: WOOD.plankTop, borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
+      <View style={{ height: 11, backgroundColor: WOOD.plank, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 8, shadowOffset: { width: 0, height: 6 } }} />
+      <View style={{ flexDirection: 'row', gap: 5, paddingHorizontal: 12, marginTop: 6 }}>
+        {books.map((b, i) => {
+          const done = b.studied >= b.passages;
+          return (
+            <Text key={b.id} style={{ width: widths[i % widths.length], textAlign: 'center', color: done ? '#F1D58F' : '#C9B8A6', fontSize: 10, fontWeight: '800' }}>
+              {done ? 'OPEN' : `${Math.round((b.studied / b.passages) * 100)}%`}
+            </Text>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 function Shelf({ open }: { open: (b: Book) => void }) {
   const done = BOOKS.filter((b) => b.studied >= b.passages);
   const reading = BOOKS.filter((b) => b.studied < b.passages);
   return (
     <>
       <BackLink onPress={() => goBack('/(app)/brain')} label="Her brain" />
-      <Title sub="Every book I have read or am reading. The ones I have finished are open for you to read too.">Tali's library</Title>
+      <Title sub="Every book I have read or am reading. Tap a finished one to take it off the shelf.">Tali's library</Title>
       <TaliSays pose="idle">12 books on my shelf. I have finished 2 and kept 901 things so far. I read a few pages every night.</TaliSays>
 
-      <Text style={{ color: colours.faint, fontSize: 12, fontWeight: '800', letterSpacing: 1.2, marginTop: space.lg, marginBottom: space.sm }}>FINISHED, OPEN TO READ</Text>
-      {done.map((b) => (
-        <Pressable key={b.id} onPress={() => open(b)} accessibilityRole="button" accessibilityLabel={`${b.title} by ${b.author}. Open.`}>
-          <Card style={{ flexDirection: 'row', gap: space.md, alignItems: 'center', marginBottom: space.md }}>
-            <Spine b={b} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ color: colours.text, fontSize: 20, lineHeight: 24, fontFamily: serif }}>{b.title}</Text>
-              <Text style={{ color: colours.muted, fontSize: 13, marginTop: 3 }}>{b.author} · {b.subject}</Text>
-              <Text style={{ color: colours.good, fontSize: 12, fontWeight: '700', marginTop: 6 }}>Finished · {b.lessons} things kept</Text>
-            </View>
-            <View style={{ backgroundColor: colours.purple, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 }}>
-              <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 13 }}>Open</Text>
-            </View>
-          </Card>
-        </Pressable>
-      ))}
-
-      <Text style={{ color: colours.faint, fontSize: 12, fontWeight: '800', letterSpacing: 1.2, marginTop: space.md, marginBottom: space.sm }}>STILL READING</Text>
-      <Card>
-        {reading.map((b, i) => {
-          const pct = Math.round((b.studied / b.passages) * 100);
-          return (
-            <View key={b.id} style={{ flexDirection: 'row', gap: space.md, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: colours.border, opacity: 0.92 }}>
-              <View style={{ width: 8, borderRadius: 4, backgroundColor: hue(b) }} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ color: colours.text, fontSize: 15, fontWeight: '800' }}>{b.title}</Text>
-                <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>{b.author} · {b.subject}</Text>
-                <View style={{ height: 5, borderRadius: 3, backgroundColor: colours.border, marginTop: 8, overflow: 'hidden' }}>
-                  <View style={{ width: `${Math.max(3, pct)}%`, height: 5, borderRadius: 3, backgroundColor: hue(b) }} />
-                </View>
-                <Text style={{ color: colours.faint, fontSize: 12, marginTop: 6 }}>{pct}% read · opens when I finish it</Text>
-              </View>
-            </View>
-          );
-        })}
-      </Card>
-      <Text style={{ color: colours.faint, fontSize: 12, lineHeight: 17, marginTop: space.md }}>Every book here is out of copyright and free to read.</Text>
+      <View style={{ marginTop: space.lg, backgroundColor: WOOD.back, borderRadius: 14, borderWidth: 6, borderColor: WOOD.post, paddingTop: 16, paddingBottom: 4, shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } }}>
+        <Plaque>FINISHED · OPEN TO READ</Plaque>
+        <ShelfRow books={done} widths={[62, 58]} heights={[168, 156]} open={open} extra={<View style={{ flex: 1, alignItems: 'flex-end', paddingRight: 6 }}><Text style={{ color: '#C9B8A6', fontSize: 12, lineHeight: 16, textAlign: 'right', marginBottom: 10, maxWidth: 150 }}>Room on this shelf for the next one I finish.</Text></View>} />
+        <Plaque>STILL READING</Plaque>
+        <ShelfRow books={reading} widths={[47, 44, 48, 46, 44, 48]} heights={[170, 158, 166, 160, 172, 164]} open={open} />
+      </View>
+      <Text style={{ color: colours.faint, fontSize: 12, lineHeight: 17, marginTop: space.md }}>The red ribbon is my bookmark. A book opens for you the night I finish it. Every book here is out of copyright and free to read.</Text>
     </>
   );
 }
@@ -95,14 +123,19 @@ function BookPage({ b, back, read }: { b: Book; back: () => void; read: () => vo
   return (
     <>
       <BackLink onPress={back} label="Library" />
-      <Card style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center', marginBottom: space.lg }}>
-        <Spine b={b} h={110} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ color: colours.text, fontSize: 28, lineHeight: 31, fontFamily: serif }}>{b.title}</Text>
-          <Text style={{ color: colours.muted, fontSize: 14, marginTop: 6 }}>{b.author}</Text>
-          <Text style={{ color: colours.faint, fontSize: 12, marginTop: 8 }}>{b.passages} passages · finished 10 November</Text>
+      {/* An old library card: cream stock, ruled lines, a date stamp */}
+      <View style={{ backgroundColor: colours.paper, borderRadius: 10, padding: 18, marginBottom: space.lg, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } }}>
+        <Text style={{ color: '#8A7B66', fontSize: 10, fontWeight: '900', letterSpacing: 1.6 }}>TALI'S LIBRARY · {b.subject.toUpperCase()}</Text>
+        <Text style={{ color: colours.ink, fontSize: 30, lineHeight: 33, fontFamily: serif, marginTop: 8 }}>{b.title}</Text>
+        <View style={{ borderBottomWidth: 1, borderBottomColor: '#CDBFA6', marginTop: 10, paddingBottom: 6 }}><Text style={{ color: colours.ink, fontSize: 15 }}>{b.author}</Text></View>
+        <View style={{ borderBottomWidth: 1, borderBottomColor: '#CDBFA6', marginTop: 8, paddingBottom: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={{ color: '#6B5E4C', fontSize: 13 }}>{b.passages} passages</Text>
+          <Text style={{ color: '#6B5E4C', fontSize: 13 }}>{b.lessons} things kept</Text>
         </View>
-      </Card>
+        <View style={{ alignSelf: 'flex-end', marginTop: 12, borderWidth: 2, borderColor: '#B23A30', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: '-6deg' }] }}>
+          <Text style={{ color: '#B23A30', fontSize: 12, fontWeight: '900', letterSpacing: 1.2 }}>READ · 10 NOV 2026</Text>
+        </View>
+      </View>
       <Button title="Read the book" onPress={read} />
       <Text style={{ color: colours.text, fontSize: 22, fontFamily: serif, marginTop: space.xl, marginBottom: 4 }}>What I kept</Text>
       <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20, marginBottom: space.md }}>{b.lessons} things from this book went into my brain. These are four of them.</Text>
