@@ -61,7 +61,7 @@ export function NightBackground({ style }: { style?: StyleProp<ViewStyle> }) {
 
 // The sky behind a whole page (10 Nov 2026). Lighter through the day, fading into the night sky above
 // as shut-off gets close (see lib/sky.ts). The stars come out as it darkens.
-export const daySky = ['#8A6CF5', '#5F7FF0', '#4BA6DE'] as const;
+export const daySky = ['#5236C8', '#3D48C2', '#2C5CB4'] as const;
 export function PageSky({ style }: { style?: StyleProp<ViewStyle> }) {
   const blend = useSkyBlend();
   return (
