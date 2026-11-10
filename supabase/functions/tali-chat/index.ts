@@ -565,8 +565,11 @@ Deno.serve(async (req) => {
   // checks twice as many memories on every answer. Only a paying Max member, never a trial.
   const { data: planRow } = await admin.from('subscriptions').select('plan_id, status').eq('user_id', user.id).maybeSingle();
   const isMax = planRow?.plan_id === 'max' && ['active', 'past_due'].includes(String(planRow?.status));
-  const deepCost = (d: DeepLevel) => (isMax ? Math.ceil(DEEP_CREDITS[d] / 2) : DEEP_CREDITS[d]);
-  const secondCost = isMax ? Math.ceil(COSTS.second_opinion / 2) : COSTS.second_opinion;
+  // 10 Nov 2026 (caps): half price for the first 100 a month, then the normal credits (half_price_left).
+  const { data: halfLeft } = isMax ? await admin.rpc('half_price_left', { p_user_id: user.id }) : { data: 0 };
+  const half = isMax && Number(halfLeft ?? 0) > 0;
+  const deepCost = (d: DeepLevel) => (half ? Math.ceil(DEEP_CREDITS[d] / 2) : DEEP_CREDITS[d]);
+  const secondCost = half ? Math.ceil(COSTS.second_opinion / 2) : COSTS.second_opinion;
   const recallX = isMax ? 2 : 1;
 
   // Deep think: work out what this person may use before charging anything.
@@ -800,7 +803,9 @@ Deno.serve(async (req) => {
         ? (freeSearch.remaining > 0
             ? `Web search: they are on Free, with ${freeSearch.remaining} of ${freeSearch.allowance} searches left this month. Use one only when it really needs a current answer.`
             : `Web search: they are on Free and have used all ${freeSearch.allowance} searches this month. You cannot search. If they ask for something current (prices, rules, news, local businesses), say so plainly, give what you do know and say it may be out of date, and mention once that Tali HQ has web search built in. Never invent current facts.`)
-        : '',
+        : freeSearch?.capped && freeSearch.remaining <= 0
+          ? `Web search: they have used all ${freeSearch.allowance} web searches on their plan this month. You cannot search until the 1st. If they ask for something current (prices, rules, news, local businesses), say so plainly, give what you do know and say it may be out of date. Never invent current facts.`
+          : '',
       images?.allowance
         ? `Image allowance this month: ${images.remaining} of ${images.allowance} left${images.trial ? ' (trial)' : ''}.`
         : 'Image allowance: their plan has no images. Images come with Tali HQ (30 a month) and Pro (100 a month).',
@@ -852,10 +857,12 @@ Deno.serve(async (req) => {
     }
 
     // Web search is built into Tali HQ and Pro (and the trial). Free gets 10 a month (search_allowance_for).
+    // 10 Nov 2026 (caps): paid plans and the trial have a monthly limit too (150, 400 or 1,000).
     const onFree = consume.plan === 'free';
     const freeLeft = Number(freeSearch?.remaining ?? 0);
-    const web = !onFree || freeLeft > 0;
-    const result = await callClaude(system, turns, { web, tz, maxSearches: onFree ? Math.min(3, freeLeft) : 3, model: deep ? DEEP_MODEL[deep] : undefined, maxTokens: deep ? 4000 : undefined });
+    const searchCapped = onFree || freeSearch?.capped === true;
+    const web = !searchCapped || freeLeft > 0;
+    const result = await callClaude(system, turns, { web, tz, maxSearches: searchCapped ? Math.min(3, freeLeft) : 3, model: deep ? DEEP_MODEL[deep] : undefined, maxTokens: deep ? 4000 : undefined });
     const reply = strip(String(result.out.reply ?? '').trim()) || "Sorry, I lost my train of thought. Try me again?";
 
     // Second opinion: another AI reads the question and her answer. If it fails, the 20 credits go back.
