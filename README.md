@@ -212,3 +212,8 @@ Asked for by Taj, so the brain can be used to train Tali's own open model one da
 - The glows are two small pictures in `assets/sky/` (`glow.png`, `bokeh.png`), tinted and stretched, so nothing new is installed and it looks the same on phones and the web.
 - `Aurora` is now empty: its colour light lives inside the sky. JavaScript and images only, so it can go out as an OTA.
 - Fix, same day: on Android Chrome the whole sky flashed off and on. Each glow was one white picture tinted in code, which on the web is a filter the browser redraws whenever the layer moves, and the layers were being moved from JavaScript every frame. Now each glow is its own ready-coloured picture (no filters), and on the web the drift is a CSS animation on a layer the browser slides without redrawing. Phones keep the native animation.
+
+## The lens lights her brain (10 Nov 2026)
+
+- Taj: pick a focus on Today and "lit up the appropriate brain parts only with the white dots in them". `BrainGlobe` takes a new `lit` list of parts; those draw in the picked look (bigger, white core, glow) and the rest dim. The lines between parts hide while a lens is on.
+- Which parts each lens lights is `LENS_REGIONS` in `components/BrainSky.tsx`, chosen by what each part holds: People is the temporal lobe; Work is prefrontal, frontal and parietal; Money is hippocampus and amygdala; Health is hypothalamus and brainstem; Growth is cerebellum and basal ganglia.
