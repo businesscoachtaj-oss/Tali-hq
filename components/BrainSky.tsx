@@ -28,6 +28,18 @@ type Link = { text: string; area: Area; full?: string };
 const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.76], [1, 0.86]] as const;
 
 export type Lens = 'people' | 'work' | 'money' | 'health' | 'growth';
+// The parts of her brain each lens lights up (10 Nov 2026, Taj: "lit up the appropriate brain parts
+// only with the white dots in them"). Chosen by what each part holds (lib/brain REGIONS):
+//   People: the people in your world. Work: plans, goals and decisions, rules, and Gmail and Calendar.
+//   Money: facts and events she remembers, and anything urgent (a late invoice).
+//   Health: her body clock and health checks, and the core. Growth: lessons, and skills and routines.
+const LENS_REGIONS: Record<Lens, RegionId[]> = {
+  people: ['temporal'],
+  work: ['prefrontal', 'frontal', 'parietal'],
+  money: ['hippocampus', 'amygdala'],
+  health: ['hypothalamus', 'brainstem'],
+  growth: ['cerebellum', 'basal_ganglia'],
+};
 export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { greeting: string; sub?: string | null; nightLine?: string | null; lens?: Lens | null; onLens?: (l: Lens | null) => void }) {
   // 10 Nov 2026: once the day is shut down her brain stays, with her goodnight line in place of the count.
   const closed = nightLine !== undefined;
@@ -167,7 +179,7 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
         {/* Tapping the empty sky closes whatever is open. */}
         <Pressable ref={brainRef} collapsable={false} onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
           <View style={{ position: 'absolute', left: cx - 150, top: cy - 150, opacity: sel ? 0.35 : 1 }}>
-            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} speed={closed ? 0.5 : 1} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
+            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} lit={lens && !focus ? LENS_REGIONS[lens] : null} speed={closed ? 0.5 : 1} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
           </View>
           {shownStars.map((s, i) => {
             const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = (!!focus && !on) || (!!lens && !focus && s.area !== lens);

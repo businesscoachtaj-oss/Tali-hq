@@ -187,6 +187,7 @@ export function BrainGlobe({
   counts,
   links,
   selected,
+  lit,
   onSelect,
   speed = 1,
 }: {
@@ -195,6 +196,8 @@ export function BrainGlobe({
   links: { regions: RegionId[]; count: number }[];
   /** null is the whole brain. */
   selected: RegionId | null;
+  /** Several parts lit at once (10 Nov 2026, the Today lens). The rest of the brain dims. Wins over `selected`. */
+  lit?: RegionId[] | null;
   /** The part tapped, or null for a tap on empty space. */
   onSelect: (id: RegionId | null) => void;
   /** How fast she turns on her own. 1 is normal, 0.5 is the slow night turn. */
@@ -291,7 +294,7 @@ export function BrainGlobe({
       <GestureDetector gesture={gesture}>
         <View style={{ width: size, height: size }} accessibilityLabel="Tali's brain in 3D. Drag to spin, pinch to zoom, tap a part to see what is in it.">
           {/* The lines between parts only show on the whole brain, so a picked part stays clean. */}
-          {selected ? null : linkPairs.map((l) => (
+          {selected || lit ? null : linkPairs.map((l) => (
             <LinkView key={l.key} a={l.a} b={l.b} spin={spin} half={half} strength={l.strength} />
           ))}
           {BRAIN.dots.map((d, i) => (
@@ -303,7 +306,7 @@ export function BrainGlobe({
               scale={scale}
               glow={glow[d.region]}
               colour={REGIONS[d.region].colour}
-              mode={selected == null ? 'all' : selected === d.region ? 'on' : 'off'}
+              mode={lit ? (lit.includes(d.region) ? 'on' : 'off') : selected == null ? 'all' : selected === d.region ? 'on' : 'off'}
             />
           ))}
         </View>
