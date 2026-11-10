@@ -171,20 +171,10 @@ export default function Today() {
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
         <View ref={heroRef} collapsable={false}>
-        {night ? (
-          <TodayHero
-          greeting={`${greeting()}, ${profile?.first_name || 'mate'}`}
-          sub={trial}
-          hello={loaded ? helloLine({ morning, reminders: reminders.length + followUps.length, approvals: approvals.length, health }) : 'Just having a look at your day.'}
-          briefLabel={morning && !night ? (briefOpen ? 'Hide your brief' : 'Read your brief') : null}
-          onBrief={() => setBriefOpen((o) => !o)}
-          night={night}
-          nightLine={shutdown?.tali_line}
-        />
-        ) : (
+        {(
           <View style={{ marginHorizontal: -space.lg, marginTop: -space.lg }}>
-            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} />
-            {morning ? (
+            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} nightLine={night ? shutdown?.tali_line ?? null : undefined} />
+            {morning && !night ? (
               <Pressable onPress={() => setBriefOpen((o) => !o)} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: 14, marginBottom: 6 }}>
                 <Text style={{ color: colours.purple, fontSize: 14, fontWeight: '700' }}>{briefOpen ? 'Hide your brief' : 'Read your morning brief'} {'›'}</Text>
               </Pressable>

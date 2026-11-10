@@ -27,7 +27,9 @@ type Link = { text: string; area: Area; full?: string };
 
 const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.76], [1, 0.86]] as const;
 
-export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | null }) {
+export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?: string | null; nightLine?: string | null }) {
+  // 10 Nov 2026: once the day is shut down her brain stays, with her goodnight line in place of the count.
+  const closed = nightLine !== undefined;
   const { width } = useWindowDimensions();
   const W = Math.min(width, 640);
   const [brain, setBrain] = useState<Brain | null>(null);
@@ -126,7 +128,7 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickedKey, seed]);
   const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
-  const line = sel ? "Here's everything I know that touches this." : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
+  const line = sel ? "Here's everything I know that touches this." : closed ? (nightLine?.trim() || "Day's done. Bed time?") : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
 
   // Spots the first-run tour points at (10 Nov 2026).
   const brainRef = useRef<View>(null);
@@ -145,13 +147,18 @@ export function BrainSky({ greeting, sub }: { greeting: string; sub?: string | n
             <TaliAvatar pose="head" size={42} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
+            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{closed ? 'DAY CLOSED  ·  ' : ''}{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
             <Text style={{ color: '#F4F1FF', fontSize: 15, marginTop: 2 }}>{greeting}{sub ? `  ·  ${sub}` : ''}</Text>
           </View>
         </View>
         {/* Her words float in the space. */}
         <Text style={{ color: '#FFFFFF', fontSize: 32, lineHeight: 36, paddingHorizontal: 20, marginTop: 10, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 }}>{line}</Text>
 
+        {closed && !sel ? (
+          <Pressable onPress={() => router.navigate('/sleep')} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginLeft: 20, marginTop: 10 }}>
+            <Text style={{ color: '#B9A6FF', fontSize: 14, fontWeight: '700' }}>Sleep sounds {'›'}</Text>
+          </Pressable>
+        ) : null}
         {/* The stage: her brain, with your day orbiting it. */}
         {/* Tapping the empty sky closes whatever is open. */}
         <Pressable ref={brainRef} collapsable={false} onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
