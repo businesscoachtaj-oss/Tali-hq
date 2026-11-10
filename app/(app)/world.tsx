@@ -10,6 +10,7 @@ import { Screen } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
 import { WorldMap } from '@/components/WorldMap';
 import { colours, radius, space } from '@/constants/theme';
+import { useAuth } from '@/lib/auth';
 
 type Row = { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; sub: string; to: string; locked?: boolean; pro?: boolean };
 
@@ -18,17 +19,29 @@ export default function World() {
   useFocusEffect(useCallback(() => { myCredits().then(setCredits).catch(() => {}); }, []));
   const paid = isPaid(credits);
   const pro = isPro(credits);
+  // 10 Nov 2026 mock: someone who said "No, just me" at sign-up does not get the business tools.
+  // Work is their job and their inbox. They can switch the rest on in Settings by adding a business.
+  const { profile } = useAuth();
+  const hasBusiness = !!(profile as any)?.business_type || !!(profile as any)?.business_name;
   const areas: { title: string; line: string; colour: string; rows: Row[] }[] = [
-    { title: 'People', line: 'Clients, leads and everyone who matters to you', colour: '#8EF0C8', rows: [
-      { icon: 'people-outline', title: 'Your people', sub: 'Clients, leads, family and friends', to: '/clients' },
+    { title: 'People', line: hasBusiness ? 'Clients, leads and everyone who matters to you' : 'Family, friends and everyone who matters to you', colour: '#8EF0C8', rows: [
+      { icon: 'people-outline', title: 'Your people', sub: hasBusiness ? 'Clients, leads, family and friends' : 'Family, friends and the people you mention', to: '/clients' },
     ] },
+    ...(hasBusiness ? [
     { title: 'Work', line: 'The business, handled', colour: '#9FB7FF', rows: [
       { icon: 'mail-outline', title: 'Email', sub: 'Sorted, replies drafted', to: '/inbox', locked: !paid },
       { icon: 'document-text-outline', title: 'Invoices', sub: 'Make, share, track', to: '/invoices', locked: !paid },
       { icon: 'wallet-outline', title: 'Money', sub: 'In, owed and runway', to: '/money', locked: !paid },
       { icon: 'file-tray-full-outline', title: 'Receipts', sub: 'Ready for tax time', to: '/receipts', locked: !paid },
       { icon: 'flash-outline', title: 'Rules', sub: 'What she does on her own', to: '/rules', locked: !pro, pro: true },
-    ] },
+    ] as Row[] },
+    ] : [
+    { title: 'Work', line: 'Your job, your inbox, your money', colour: '#9FB7FF', rows: [
+      { icon: 'mail-outline', title: 'Email', sub: 'Sorted, replies drafted', to: '/inbox', locked: !paid },
+      { icon: 'wallet-outline', title: 'Money', sub: 'What comes in and what goes out', to: '/money', locked: !paid },
+      { icon: 'briefcase-outline', title: 'Run a business?', sub: 'Add it in Settings for invoices, clients and receipts', to: '/settings' },
+    ] as Row[] },
+    ]),
     { title: 'Health', line: 'Body, food and sleep', colour: '#FF9EC4', rows: [
       { icon: 'barbell-outline', title: 'Food and training', sub: 'Logged by chatting', to: '/life' },
       { icon: 'bed-outline', title: 'Sleep', sub: 'Sounds with a timer', to: '/sleep' },
