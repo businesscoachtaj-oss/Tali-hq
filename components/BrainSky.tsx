@@ -27,7 +27,8 @@ type Link = { text: string; area: Area; full?: string };
 
 const SPOTS = [[0, 0.02], [1, 0.2], [0, 0.42], [1, 0.62], [0, 0.76], [1, 0.86]] as const;
 
-export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?: string | null; nightLine?: string | null }) {
+export type Lens = 'people' | 'work' | 'money' | 'health' | 'growth';
+export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { greeting: string; sub?: string | null; nightLine?: string | null; lens?: Lens | null; onLens?: (l: Lens | null) => void }) {
   // 10 Nov 2026: once the day is shut down her brain stays, with her goodnight line in place of the count.
   const closed = nightLine !== undefined;
   const { width } = useWindowDimensions();
@@ -131,7 +132,9 @@ export function BrainSky({ greeting, sub, nightLine }: { greeting: string; sub?:
   const shownStars = closed ? [] : stars;
   // The lens (10 Nov 2026 mock): tap People, Work, Money, Health or Growth and only that part of your
   // day stays lit. Tap it again for everything. Nothing is hidden for good, it is a filter, not a mode.
-  const [lens, setLens] = useState<Area | null>(null);
+  const [lensOwn, setLensOwn] = useState<Area | null>(null);
+  const lens = (onLens ? lensIn ?? null : lensOwn) as Area | null;
+  const setLens = (l: Area | null) => (onLens ? onLens(l) : setLensOwn(l));
   const inLens = lens ? stars.filter((x) => x.area === lens).length : 0;
   const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
   const line = sel ? "Here's everything I know that touches this." : closed ? (nightLine?.trim() || "Day's done. Bed time?") : lens ? (inLens ? `${inLens} ${inLens === 1 ? 'thing' : 'things'} for ${AREA[lens].name.toLowerCase()} today.` : `Nothing for ${AREA[lens].name.toLowerCase()} today. Tell me something.`) : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
