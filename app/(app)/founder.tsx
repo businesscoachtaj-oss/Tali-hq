@@ -65,7 +65,7 @@ export default function Founder() {
   const monthCost = m ? costAud(m.tokens_in, m.tokens_out) : 0;
   const perActive = m && m.active_users ? monthCost / m.active_users : 0;
   const conversion = s && s.accounts ? Math.round((s.paid_active / Math.max(1, s.accounts)) * 100) : 0;
-  const mrr = s ? s.paid_hq * 19.99 + s.paid_pro * 39.99 : 0;
+  const mrr = s ? s.paid_hq * 19.99 + s.paid_pro * 49.99 : 0;
   // 6 Nov 2026 (Taj): top ups count in revenue too.
   const topMonth = Number(topups?.month_aud ?? 0);
 

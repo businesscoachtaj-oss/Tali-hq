@@ -244,3 +244,7 @@ Tali no longer asks to read Gmail. Mail reaches her by forwarding, and Google is
 ### 10 Nov 2026: Tali's library
 
 A shelf of 12 out of copyright books she reads a few passages of each night, keeping short lessons in the shared brain. Shown on Her brain as "Her library". See `docs/LIBRARY.md`.
+
+### 10 Nov 2026: caps and prices
+
+Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90 a year). Tali HQ stays A$19.99. New Stripe prices are in `_shared/stripe.ts`; the old ones are still recognised. Two caps: web searches a month on paid plans and the trial (Tali HQ 150, Pro 400, Max 1,000), and on Max half price thinking for the first 100 a month. Migration `20261110000069_caps_and_prices.sql` (applied). `create-checkout` and `stripe-webhook` are deployed (version 17 each). `tali-chat` has the cap changes in this repo but is NOT deployed yet, so the caps are not enforced until it is. The website still shows the old Pro and Max prices.

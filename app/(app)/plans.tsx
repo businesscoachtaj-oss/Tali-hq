@@ -181,7 +181,7 @@ const EXTRAS: { icon: string; name: string; what: string; cost: string; needs?: 
   { icon: '⚖️', name: 'Second opinion', what: 'A second AI checks her answer and says where it would change it.', cost: `${COST.secondOpinion} credits`, needs: 'second_opinion' },
   { icon: '🧠', name: 'Deep think', what: 'A smarter Tali with more of her memory.', cost: '20 credits' },
   { icon: '🚀', name: 'Big brain (Pro)', what: 'Her strongest thinking, for the big calls.', cost: '40 credits' },
-  { icon: '🔎', name: 'Web search', what: 'Looks it up now, with sources you can tap.', cost: `${COST.webSearch} credits a search` },
+  { icon: '🔎', name: 'Web search', what: 'Looks it up now, with sources you can tap. Up to 150 searches a month on Tali HQ, 400 on Pro and 1,000 on Max.', cost: `${COST.webSearch} credits a search` },
   { icon: '📄', name: 'Reads long documents', what: 'Contracts, statements and scans, read properly page by page.', cost: 'Coming soon', needs: 'documents' },
 ];
 
