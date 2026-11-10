@@ -14,6 +14,8 @@
 // Called by cron 'tali-library' with x-tali-key (checked with brain_check_key). Server job only,
 // no credits are charged. Deployed with verify_jwt false.
 // { "load_only": true } loads a book and reads nothing. { "selftest": true } changes nothing.
+// { "rounds": 6 } (10 Nov 2026, asked for by Taj: "a huge run") does several nights' reading in one
+// call, one round after another, and stops after 45 seconds so two calls never overlap.
 // Secrets: ANTHROPIC_API_KEY (required for reading), TALI_MODEL (optional).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -163,6 +165,30 @@ Deno.serve(async (req) => {
     } catch (e) {
       return json({ ok: false, selftest: String(e).slice(0, 200) }, 500);
     }
+  }
+
+  // A catch-up run: several rounds in one call, loading a waiting book before each round.
+  const rounds = Math.min(20, Math.max(0, Math.floor(Number(body?.rounds ?? 0))));
+  if (rounds > 1) {
+    const started = Date.now();
+    let read = 0, kept = 0, done = 0;
+    const books: string[] = [];
+    for (let i = 0; i < rounds && Date.now() - started < 45000; i++) {
+      const l: any = await loadOne();
+      if (l?.loaded) books.push(String(l.loaded));
+      if (Date.now() - started > 45000) break;
+      try {
+        const r: any = await readTonight();
+        if (!r?.read) break;
+        read += Number(r.read ?? 0);
+        kept += Number(r.kept ?? 0);
+        done++;
+      } catch (e) {
+        console.error('tali-library: catch-up round failed', String(e));
+        break;
+      }
+    }
+    return json({ ok: true, rounds: done, read, kept, loaded: books });
   }
 
   const loaded = await loadOne();
