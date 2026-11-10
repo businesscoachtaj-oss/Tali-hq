@@ -218,3 +218,12 @@ Asked for by Taj, so the brain can be used to train Tali's own open model one da
 - Taj: pick a focus on Today and "lit up the appropriate brain parts only with the white dots in them". `BrainGlobe` takes a new `lit` list of parts; those draw in the picked look (bigger, white core, glow) and the rest dim. The lines between parts hide while a lens is on.
 - Which parts each lens lights is `LENS_REGIONS` in `components/BrainSky.tsx`, chosen by what each part holds: People is the temporal lobe; Work is prefrontal, frontal and parietal; Money is hippocampus and amygdala; Health is hypothalamus and brainstem; Growth is cerebellum and basal ganglia.
 - Fix, same day, second go: the CSS drift kept eight sky layers in the phone's graphics memory, each bigger than the screen. Phones ran out and the browser dropped pieces of the page (half of Me missing, Your world blank). On the web the sky is now completely still: no drift, no scroll shift, no layers of its own. Phone apps keep the motion, which runs natively.
+
+## Brain overhaul, part 2 (10 Nov 2026, evening)
+
+Full notes: `docs/BRAIN_OVERHAUL_2.md`. Applied to the database and tested. Nothing changes in the app yet.
+
+- **Recall test.** 40 real questions with known right answers (`brain.eval_cases`), scored by `brain.eval_run()`. First score: words only put the right memory first 50% of the time and in the top 5 60% of the time. Words and meaning together (live since this morning): 80% and 100%.
+- **Memories that age.** Each memory tracks when it was last confirmed. Old facts, plans and events that nobody has confirmed in 45 days are handed to Tali with the date they were noted.
+- **Sleep for everyone.** A nightly job (`tali-brain-sleep`) that merges repeats, lets a newer fact replace the older one it updates, folds scattered notes into one, lets small stale notes fade, and writes what she learnt. Every change can be undone (`my_sleeps`, `my_sleep_undo`). Built and tested, but **not switched on** until Her brain shows each night with an undo.
+- Migrations: `20261110000062_brain_eval.sql`, `20261110000063_brain_ageing_and_sleep.sql`. Function: `supabase/functions/tali-brain-sleep`.
