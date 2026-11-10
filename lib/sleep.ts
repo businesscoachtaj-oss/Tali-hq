@@ -93,6 +93,21 @@ export const TIMERS: { label: string; minutes: number | null }[] = [
   { label: 'Until morning', minutes: null },
 ];
 
+// 11 Nov 2026 (Taj: Sleep was "a bit finicky"). Ready made scenes: tap one and it plays straight away.
+// Each is two sounds already balanced, so nobody has to build a mix at bedtime.
+export type Scene = { id: string; name: string; icon: string; picks: Pick[] };
+export const SCENES: Scene[] = [
+  { id: 'tin_roof', name: 'Rain on a tin roof', icon: 'rainy-outline', picks: [{ id: 'rain_tin_roof', level: 0.7 }, { id: 'noise_brown', level: 0.3 }] },
+  { id: 'campfire_sea', name: 'Campfire by the sea', icon: 'flame-outline', picks: [{ id: 'fire_campfire', level: 0.55 }, { id: 'water_beach', level: 0.45 }] },
+  { id: 'brown', name: 'Brown noise', icon: 'pulse-outline', picks: [{ id: 'noise_brown', level: 1 }] },
+  { id: 'storm', name: 'Storm outside', icon: 'thunderstorm-outline', picks: [{ id: 'rain_storm', level: 0.6 }, { id: 'rain_window', level: 0.4 }] },
+  { id: 'bush_night', name: 'Night in the bush', icon: 'moon-outline', picks: [{ id: 'night_crickets', level: 0.5 }, { id: 'wind_trees', level: 0.5 }] },
+  { id: 'fan', name: 'Fan on', icon: 'radio-outline', picks: [{ id: 'hum_ceiling_fan', level: 1 }] },
+];
+/** A mix you saved from the player. Kept with your other sleep settings, per account. */
+export type SavedMix = { id: string; name: string; picks: Pick[] };
+export const MAX_SAVED = 8;
+
 export const MAX_PICKS = 2;
 const FADE_SECONDS = 5 * 60;
 const PREFS_KEY = 'thq.sleep.prefs';
@@ -108,9 +123,11 @@ export type SleepState = {
   now: number;
   /** The sound a five second preview is playing for, if any (4 Nov 2026). */
   previewId: SoundId | null;
+  /** Mixes you saved (11 Nov 2026). */
+  saved: SavedMix[];
 };
 
-let state: SleepState = { picks: [{ id: 'noise_brown', level: 0.6 }, { id: 'rain_tin_roof', level: 0.4 }], timerMinutes: 45, fade: true, volume: 0.6, status: 'idle', endsAt: null, now: Date.now(), previewId: null };
+let state: SleepState = { picks: [{ id: 'noise_brown', level: 0.6 }, { id: 'rain_tin_roof', level: 0.4 }], timerMinutes: 45, fade: true, volume: 0.6, status: 'idle', endsAt: null, now: Date.now(), previewId: null, saved: [] };
 // Seamless looping (3 Nov 2026). Every loop restarts with a tiny gap (AAC padding plus the player's
 // own loop seek) and a few have a hard jump where the end meets the start. So each sound plays as
 // two copies half a loop apart. A copy is faded right down around its own restart point while the
@@ -197,7 +214,7 @@ async function savePrefs() {
   try {
     const key = prefsKey();
     if (!key) return;
-    await AsyncStorage.setItem(key, JSON.stringify({ picks: state.picks, timerMinutes: state.timerMinutes, fade: state.fade, volume: state.volume }));
+    await AsyncStorage.setItem(key, JSON.stringify({ picks: state.picks, timerMinutes: state.timerMinutes, fade: state.fade, volume: state.volume, saved: state.saved }));
   } catch {}
 }
 
@@ -206,7 +223,7 @@ export async function loadPrefs(userId: string | null | undefined) {
   const switching = loadedFor !== null;
   loadedFor = userId;
   // A different account on this phone starts from the defaults, not the last account's mix.
-  if (switching && state.status === 'idle') set({ ...DEFAULT_PREFS });
+  if (switching && state.status === 'idle') set({ ...DEFAULT_PREFS, saved: [] });
   try {
     let raw = await AsyncStorage.getItem(`${PREFS_KEY}.${userId}`);
     if (!raw) {
@@ -220,7 +237,8 @@ export async function loadPrefs(userId: string | null | undefined) {
     if (!raw) return;
     const p = JSON.parse(raw);
     const picks = Array.isArray(p.picks) ? p.picks.filter((x: Pick) => SOUNDS.some((s) => s.id === x.id)).slice(0, MAX_PICKS) : state.picks;
-    set({ picks: picks.length ? picks : state.picks, timerMinutes: 'timerMinutes' in p ? p.timerMinutes : state.timerMinutes, fade: p.fade ?? state.fade, volume: typeof p.volume === 'number' ? p.volume : state.volume });
+    set({ picks: picks.length ? picks : state.picks, timerMinutes: 'timerMinutes' in p ? p.timerMinutes : state.timerMinutes, fade: p.fade ?? state.fade, volume: typeof p.volume === 'number' ? p.volume : state.volume,
+      saved: Array.isArray(p.saved) ? p.saved.filter((m: SavedMix) => m && typeof m.name === 'string' && Array.isArray(m.picks) && m.picks.every((x) => SOUNDS.some((s) => s.id === x.id))).slice(0, MAX_SAVED) : state.saved });
   } catch {}
 }
 
@@ -436,6 +454,48 @@ export async function start() {
   }
   if (tick) clearInterval(tick);
   tick = setInterval(onTick, MIX_TICK_MS);
+}
+
+/** Play a ready made scene or a saved mix straight away. */
+export async function playMix(picks: Pick[]) {
+  const clean = picks.filter((p) => SOUNDS.some((s) => s.id === p.id)).slice(0, MAX_PICKS);
+  if (!clean.length) return;
+  set({ picks: clean.map((p) => ({ ...p })) });
+  savePrefs();
+  await start();
+}
+
+const sameMix = (a: Pick[], b: Pick[]) => a.length === b.length && a.every((p) => b.some((q) => q.id === p.id));
+
+/** The name of the scene or saved mix that is playing, if the picks match one. */
+export function mixName(picks: Pick[] = state.picks) {
+  return state.saved.find((m) => sameMix(m.picks, picks))?.name ?? SCENES.find((m) => sameMix(m.picks, picks))?.name ?? null;
+}
+
+/** Keep what is playing as one of your mixes. Saving the same sounds again updates the levels. */
+export function saveMix() {
+  if (!state.picks.length) return;
+  const name = SCENES.find((m) => sameMix(m.picks, state.picks))?.name ?? state.picks.map((p) => SOUNDS.find((s) => s.id === p.id)?.name).filter(Boolean).join(' + ');
+  const rest = state.saved.filter((m) => !sameMix(m.picks, state.picks));
+  set({ saved: [{ id: `m${Date.now()}`, name, picks: state.picks.map((p) => ({ ...p })) }, ...rest].slice(0, MAX_SAVED) });
+  savePrefs();
+}
+
+export function removeMix(id: string) {
+  set({ saved: state.saved.filter((m) => m.id !== id) });
+  savePrefs();
+}
+
+export function isSaved(picks: Pick[] = state.picks) {
+  return state.saved.some((m) => sameMix(m.picks, picks));
+}
+
+/** Tap a sound while building a mix: it joins or leaves the mix and you hear it straight away. */
+export async function toggleLive(id: SoundId) {
+  stopPreview();
+  togglePick(id);
+  if (!state.picks.length) stop();
+  else if (state.status === 'idle') await start();
 }
 
 export function pause() {

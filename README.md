@@ -269,3 +269,10 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 ### 11 Nov 2026: "Done with this" on Today
 
 - An idea or a date Tali is reminding you of now has a **Done with this** button on its card (`components/BrainSky.tsx`). It takes that one off Today and the next one gets its turn. She still remembers it. The list of what you are done with is kept on the device.
+
+### 11 Nov 2026: Sleep overhaul
+
+- **Front page** (`app/(app)/sleep.tsx`): one big play button for last night's mix, six ready made scenes that play on a tap (`SCENES` in `lib/sleep.ts`), your saved mixes, and one "Make your own" button. Sleeping Tali stays at the top.
+- **Player**: her brain asleep with the time left, a slider for each sound that changes the mix while it plays, Take out, Add a sound, Save this mix, and How long.
+- **Make your own**: tap a sound and it joins the mix and plays, tap again and it leaves. No separate hear button and no Start button.
+- Saved mixes are kept with the other sleep settings, per account on the device. Still two sounds at once. The sound engine is unchanged.
