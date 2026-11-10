@@ -2,7 +2,7 @@
 // is shut down. A dark blue gradient with a fixed scatter of small stars, the same every render so
 // nothing twinkles. `Sky` fills the screen (Sleep); `NightBackground` sits behind a card (Today's hero).
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Easing, Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Image, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSkyBlend } from '@/lib/sky';
 
@@ -81,15 +81,24 @@ const nightDeep = ['#120C2E', '#1B1B4A', '#16224F', '#1C2E63'] as const;
 /** Pages feed their scroll position in here so the sky layers can move by different amounts. */
 export const skyScroll = new Animated.Value(0);
 
-const GLOW = require('@/assets/sky/glow.png');
-const BOKEH = require('@/assets/sky/bokeh.png');
+// FIX (10 Nov 2026): each glow is its own ready-coloured picture. They used to be one white picture
+// tinted in code, and on the web a tint is a filter the browser re-draws every time the layer moves.
+// With the layers drifting, Android Chrome could not keep up and the whole sky flashed off and on.
+const GLOWS = {
+  violet: require('@/assets/sky/glow_violet.png'),
+  magenta: require('@/assets/sky/glow_magenta.png'),
+  teal: require('@/assets/sky/glow_teal.png'),
+  pink: require('@/assets/sky/glow_pink.png'),
+  white: require('@/assets/sky/glow_white.png'),
+};
+const BOKEH = require('@/assets/sky/bokeh_lilac.png');
 
 // Positions are % of the screen so every phone gets the same picture. Sizes are points.
 const FAR_LIGHT = [
-  { x: 50, y: 44, size: 640, colour: '#A99BFF', day: 0.5, night: 0.3 },   // behind her brain
-  { x: 4, y: 8, size: 520, colour: '#C55CFF', day: 0.42, night: 0.3 },
-  { x: 98, y: 58, size: 480, colour: '#2FD6C8', day: 0.3, night: 0.2 },
-  { x: 8, y: 92, size: 460, colour: '#FF6FB5', day: 0.24, night: 0.16 },
+  { x: 50, y: 44, size: 640, glow: 'violet' as const, day: 0.5, night: 0.3 },   // behind her brain
+  { x: 4, y: 8, size: 520, glow: 'magenta' as const, day: 0.42, night: 0.3 },
+  { x: 98, y: 58, size: 480, glow: 'teal' as const, day: 0.3, night: 0.2 },
+  { x: 8, y: 92, size: 460, glow: 'pink' as const, day: 0.24, night: 0.16 },
 ];
 type Dot = { x: number; y: number; r: number; o: number };
 function scatter(n: number, seed: number, rMin: number, rMax: number, oMin: number, oMax: number): Dot[] {
@@ -109,7 +118,7 @@ const NEAR_BOKEH = [
 function useDrift(range: number, ms: number, still: boolean) {
   const v = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (still) return;
+    if (still || Platform.OS === 'web') return; // the web drifts with CSS, see webDrift
     const loop = Animated.loop(Animated.sequence([
       Animated.timing(v, { toValue: 1, duration: ms, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       Animated.timing(v, { toValue: 0, duration: ms, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
@@ -119,9 +128,47 @@ function useDrift(range: number, ms: number, still: boolean) {
   }, [v, ms, still]);
   return v.interpolate({ inputRange: [0, 1], outputRange: [-range, range] });
 }
+// FIX (10 Nov 2026): on the web the drift is a CSS animation, which the browser runs by sliding an
+// already drawn layer, with no JavaScript each frame and nothing redrawn.
+// The keyframes are added to the page once, and each layer is pointed at them through its element.
+function ensureSkyCss() {
+  if (typeof document === 'undefined' || document.getElementById('tali-sky-css')) return;
+  const el = document.createElement('style');
+  el.id = 'tali-sky-css';
+  el.textContent = '@keyframes taliSkyDrift{from{transform:translateX(calc(var(--sky-r) * -1))}to{transform:translateX(var(--sky-r))}}@keyframes taliSkyTwinkle{from{opacity:.6}to{opacity:1}}';
+  document.head.appendChild(el);
+}
+function useWebAnimation(animation: string | null, range?: number) {
+  const ref = useRef<any>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const node: any = ref.current;
+    if (!node?.style) return;
+    ensureSkyCss();
+    if (range != null) node.style.setProperty('--sky-r', `${range}px`);
+    node.style.willChange = animation?.includes('Twinkle') ? 'opacity' : 'transform';
+    node.style.animation = animation ?? 'none';
+  }, [animation, range]);
+  return ref;
+}
+const WEB = Platform.OS === 'web';
+const LAYER: any = WEB ? { willChange: 'transform' } : null;
 const parallax = (factor: number) => skyScroll.interpolate({ inputRange: [0, 3000], outputRange: [0, -3000 * factor], extrapolate: 'clamp' });
 // Layers are a little bigger than the screen so drifting never shows an edge.
 const BLEED = { position: 'absolute' as const, left: -40, right: -40, top: -60, bottom: -60 };
+
+// One depth layer. It moves up a little as the page scrolls (far layers least) and drifts side to
+// side. On phones both run on the native thread. On the web the scroll shift is the outer box and
+// the drift is a CSS animation on the inner one.
+function Layer({ drift, range, ms, depth, still, opacity, children }: { drift: Animated.AnimatedInterpolation<number>; range: number; ms: number; depth: number; still: boolean; opacity?: number; children: ReactNode }) {
+  const driftRef = useWebAnimation(still ? null : `taliSkyDrift ${ms}ms ease-in-out infinite alternate`, range);
+  const move = WEB ? [{ translateY: parallax(depth) }] : [{ translateX: drift }, { translateY: parallax(depth) }];
+  return (
+    <Animated.View style={[BLEED, LAYER, opacity != null ? { opacity } : null, { transform: move }]}>
+      <View ref={driftRef} style={StyleSheet.absoluteFill}>{children}</View>
+    </Animated.View>
+  );
+}
 
 export function PageSky({ style }: { style?: StyleProp<ViewStyle> }) {
   const blend = useSkyBlend(); // 0 day, 1 night
@@ -135,6 +182,7 @@ export function PageSky({ style }: { style?: StyleProp<ViewStyle> }) {
   const midX = useDrift(16, 31000, still);
   const nearX = useDrift(30, 23000, still);
   const twinkle = useDrift(0.5, 3800, still); // -0.5..0.5, turned into brightness below
+  const twinkleRef = useWebAnimation(still ? null : 'taliSkyTwinkle 3800ms ease-in-out infinite alternate');
   const day = 1 - blend;
   const mix = (d: number, n: number) => d * day + n * blend;
 
@@ -145,37 +193,39 @@ export function PageSky({ style }: { style?: StyleProp<ViewStyle> }) {
       {blend < 1 ? <LinearGradient colors={[...daySky]} locations={[0, 0.32, 0.68, 1]} style={[StyleSheet.absoluteFill, { opacity: day }]} /> : null}
 
       {/* 2. far light */}
-      <Animated.View style={[BLEED, { transform: [{ translateX: farX }, { translateY: parallax(0.03) }] }]}>
+      <Layer drift={farX} range={8} ms={42000} depth={0.03} still={still}>
         {FAR_LIGHT.map((g, i) => (
-          <Image key={i} source={GLOW} resizeMode="stretch" style={{ position: 'absolute', left: `${g.x}%`, top: `${g.y}%`, width: g.size, height: g.size, marginLeft: -g.size / 2, marginTop: -g.size / 2, tintColor: g.colour, opacity: mix(g.day, g.night) }} />
+          <Image key={i} source={GLOWS[g.glow]} resizeMode="stretch" style={{ position: 'absolute', left: `${g.x}%`, top: `${g.y}%`, width: g.size, height: g.size, marginLeft: -g.size / 2, marginTop: -g.size / 2, opacity: mix(g.day, g.night) }} />
         ))}
-      </Animated.View>
+      </Layer>
 
       {/* 3. far dust */}
-      <Animated.View style={[BLEED, { opacity: mix(0.55, 1), transform: [{ translateX: farX }, { translateY: parallax(0.05) }] }]}>
+      <Layer drift={farX} range={8} ms={42000} depth={0.05} still={still} opacity={mix(0.55, 1)}>
         {FAR_DUST.map((d, i) => (
           <View key={i} style={{ position: 'absolute', left: `${d.x}%`, top: `${d.y}%`, width: d.r, height: d.r, borderRadius: d.r / 2, backgroundColor: '#fff', opacity: d.o }} />
         ))}
-      </Animated.View>
+      </Layer>
 
       {/* 4. mid points */}
-      <Animated.View style={[BLEED, { opacity: mix(0.5, 1), transform: [{ translateX: midX }, { translateY: parallax(0.1) }] }]}>
+      <Layer drift={midX} range={16} ms={31000} depth={0.1} still={still} opacity={mix(0.5, 1)}>
         {MID_POINTS.map((d, i) => (
           <View key={i} style={{ position: 'absolute', left: `${d.x}%`, top: `${d.y}%`, width: d.r, height: d.r, borderRadius: d.r / 2, backgroundColor: '#EDE8FF', opacity: d.o }} />
         ))}
-      </Animated.View>
+      </Layer>
 
       {/* 5. near light: bright stars with a halo at night, soft out of focus discs all day */}
-      <Animated.View style={[BLEED, { transform: [{ translateX: nearX }, { translateY: parallax(0.2) }] }]}>
+      <Layer drift={nearX} range={30} ms={23000} depth={0.2} still={still}>
         {NEAR_BOKEH.map((b, i) => (
-          <Image key={`b${i}`} source={BOKEH} resizeMode="stretch" style={{ position: 'absolute', left: `${b.x}%`, top: `${b.y}%`, width: b.size, height: b.size, marginLeft: -b.size / 2, marginTop: -b.size / 2, tintColor: '#D9CFFF', opacity: b.o * mix(1, 0.6) }} />
+          <Image key={`b${i}`} source={BOKEH} resizeMode="stretch" style={{ position: 'absolute', left: `${b.x}%`, top: `${b.y}%`, width: b.size, height: b.size, marginLeft: -b.size / 2, marginTop: -b.size / 2, opacity: b.o * mix(1, 0.6) }} />
         ))}
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: Animated.multiply(Animated.add(twinkle, 1.1), mix(0.35, 0.8)) }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, WEB ? { opacity: mix(0.4, 0.9) } : { opacity: Animated.multiply(Animated.add(twinkle, 1.1), mix(0.35, 0.8)) }]}>
+          <View ref={twinkleRef} style={StyleSheet.absoluteFill}>
           {NEAR_STARS.map((d, i) => (
-            <Image key={`s${i}`} source={GLOW} resizeMode="stretch" style={{ position: 'absolute', left: `${d.x}%`, top: `${d.y}%`, width: d.r, height: d.r, tintColor: '#fff', opacity: d.o }} />
+            <Image key={`s${i}`} source={GLOWS.white} resizeMode="stretch" style={{ position: 'absolute', left: `${d.x}%`, top: `${d.y}%`, width: d.r, height: d.r, opacity: d.o }} />
           ))}
+          </View>
         </Animated.View>
-      </Animated.View>
+      </Layer>
 
       {/* 6. the edges fall away */}
       <LinearGradient colors={['rgba(8,5,40,0.55)', 'rgba(8,5,40,0)']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '26%' }} />
