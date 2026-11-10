@@ -2,14 +2,15 @@
 // hemispheres folded like a cortex, the cerebellum and brainstem underneath, and the deep parts
 // (hippocampus, amygdala, thalamus and friends) glowing inside. Each part lights up by how much
 // Tali holds there. It turns slowly on its own; drag to spin it, pinch to zoom, tap a part.
+// 11 Nov 2026: sparks run between the dots, every dot twinkles, she breathes, and a flick keeps her turning.
 //
 // Drawn with plain Views moved by Reanimated on the UI thread, so it needs no 3D library and ships
 // as an over the air update on iPhone, Android and the web. Names shared by more than one part
 // (a client who shows up in lessons and in facts) are drawn as lines between those parts on the whole brain.
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { REGIONS, type RegionId } from '@/lib/brain';
 
@@ -111,6 +112,32 @@ const BRAIN = makeBrain();
 
 /** The brain's dots and their part colours, so dot Tali can turn into her brain (9 Nov 2026 concept). */
 export const BRAIN_DOTS = BRAIN.dots.map((d) => ({ x: d.x, y: d.y, z: d.z, size: d.size, colour: REGIONS[d.region].colour }));
+// 11 Nov 2026 (Taj: "I bloody love how the brain moves on the website now. Is that possible on the app?").
+// The same life as the website brain: sparks that run from dot to dot like a thought firing, a soft
+// twinkle on every dot, a slow breath, and a flick that keeps turning. Flat number lists, so the
+// sparks can read them on the UI thread: where each dot is, its four nearest dots, and its colour.
+const PTS: number[] = [];
+const NEAR: number[] = [];
+const COLS: string[] = [];
+BRAIN.dots.forEach((d, i) => {
+  PTS.push(d.x, d.y, d.z);
+  COLS.push(REGIONS[d.region].colour);
+  const best: { j: number; dd: number }[] = [];
+  BRAIN.dots.forEach((o, j) => {
+    if (j === i) return;
+    const dd = (o.x - d.x) ** 2 + (o.y - d.y) ** 2 + (o.z - d.z) ** 2;
+    if (best.length < 4 || dd < best[best.length - 1].dd) {
+      best.push({ j, dd });
+      best.sort((a, b) => a.dd - b.dd);
+      if (best.length > 4) best.pop();
+    }
+  });
+  for (let k = 0; k < 4; k++) NEAR.push(best[k % best.length].j);
+});
+const ALL_DOTS = BRAIN.dots.map((_, i) => i);
+/** How many sparks run at once. Kept small so older phones stay smooth. */
+const SPARKS = 12;
+
 /** Where the brain globe opens: turned side on, looking down a touch. */
 export const BRAIN_START = { ry: 1.9, rx: 0.18 };
 
@@ -130,7 +157,7 @@ function project(p: P3, ry: number, rx: number, zoom: number, half: number) {
   return { sx: half + x1 * scale, sy: half - y2 * scale + half * 0.04, k, z: z2 };
 }
 
-type Spin = { ry: SharedValue<number>; rx: SharedValue<number>; zoom: SharedValue<number> };
+type Spin = { ry: SharedValue<number>; rx: SharedValue<number>; zoom: SharedValue<number>; clock: SharedValue<number>; breathe: SharedValue<number> };
 
 // 6 Nov 2026 (Taj: "looks so much cooler on the website"): drawn like the website demo. Every dot is a
 // crisp circle. The part you picked gets bigger dots with a white core and a soft glow behind them,
@@ -138,15 +165,18 @@ type Spin = { ry: SharedValue<number>; rx: SharedValue<number>; zoom: SharedValu
 // more Tali keeps there. The glow is three faint rings, since React Native has no radial gradient.
 // Each dot is drawn once at a fixed size and only moved and scaled per frame.
 type Mode = 'on' | 'off' | 'all';
-const DotView = memo(function DotView({ d, spin, half, scale, glow, colour, mode }: { d: Dot; spin: Spin; half: number; scale: number; glow: number; colour: string; mode: Mode }) {
+const DotView = memo(function DotView({ d, spin, half, scale, glow, colour, mode, ph }: { d: Dot; spin: Spin; half: number; scale: number; glow: number; colour: string; mode: Mode; ph: number }) {
   const base = d.size * 2 * scale; // diameter at zoom 1, front of the brain
   const style = useAnimatedStyle(() => {
-    const p = project(d, spin.ry.value, spin.rx.value, spin.zoom.value, half);
+    const z = spin.zoom.value * spin.breathe.value;
+    const p = project(d, spin.ry.value, spin.rx.value, z, half);
     const depth = (p.z + 1.1) / 2.2; // 0 at the back, 1 at the front
     const bright = mode === 'on' ? 1 : mode === 'off' ? 0.22 : 0.6 + glow * 0.4;
-    const s = p.k * spin.zoom.value * (mode === 'on' ? 0.95 : 0.78);
+    const s = p.k * z * (mode === 'on' ? 0.95 : 0.78);
+    // The twinkle: each dot drifts a little brighter and dimmer on its own beat. The clock stays at 0 with reduced motion.
+    const twinkle = spin.clock.value > 0 ? 0.86 + 0.14 * Math.sin(spin.clock.value * 0.0021 + ph) : 1;
     return {
-      opacity: Math.max(0.06, Math.min(1, bright * (0.3 + depth * 0.8))),
+      opacity: Math.max(0.06, Math.min(1, bright * (0.3 + depth * 0.8) * twinkle)),
       transform: [{ translateX: p.sx - base / 2 }, { translateY: p.sy - base / 2 }, { scale: s }],
       zIndex: Math.round(depth * 100),
     };
@@ -168,8 +198,9 @@ const DotView = memo(function DotView({ d, spin, half, scale, glow, colour, mode
 
 const LinkView = memo(function LinkView({ a, b, spin, half, strength }: { a: P3; b: P3; spin: Spin; half: number; strength: number }) {
   const style = useAnimatedStyle(() => {
-    const p = project(a, spin.ry.value, spin.rx.value, spin.zoom.value, half);
-    const q = project(b, spin.ry.value, spin.rx.value, spin.zoom.value, half);
+    const z = spin.zoom.value * spin.breathe.value;
+    const p = project(a, spin.ry.value, spin.rx.value, z, half);
+    const q = project(b, spin.ry.value, spin.rx.value, z, half);
     const dx = q.sx - p.sx;
     const dy = q.sy - p.sy;
     const len = Math.sqrt(dx * dx + dy * dy);
@@ -180,6 +211,84 @@ const LinkView = memo(function LinkView({ a, b, spin, half, strength }: { a: P3;
     };
   });
   return <Animated.View style={[styles.link, style]} />;
+});
+
+// One spark. It waits its turn, picks a dot, runs to one of that dot's neighbours, then hops on a few
+// more times before resting. A thin line trails behind a bright point. All of it runs on the UI thread.
+const SparkView = memo(function SparkView({ i, spin, half, scale, pool, pace }: { i: number; spin: Spin; half: number; scale: number; pool: SharedValue<number[]>; pace: SharedValue<number> }) {
+  const a = useSharedValue(0);
+  const b = useSharedValue(0);
+  const t0 = useSharedValue(0);
+  const dur = useSharedValue(400);
+  const hops = useSharedValue(0);
+  const wake = useSharedValue(i * 260);
+  useFrameCallback(() => {
+    const now = spin.clock.value;
+    if (now <= 0) return;
+    if (t0.value === 0) {
+      if (now < wake.value) return;
+      const list = pool.value;
+      const from = list[Math.floor(Math.random() * list.length)] ?? 0;
+      a.value = from;
+      b.value = NEAR[from * 4 + Math.floor(Math.random() * 4)];
+      dur.value = (280 + Math.random() * 260) / pace.value;
+      hops.value = 3 + Math.floor(Math.random() * 5);
+      t0.value = now;
+      return;
+    }
+    if (now - t0.value >= dur.value) {
+      if (hops.value > 0) {
+        const next = NEAR[b.value * 4 + Math.floor(Math.random() * 4)];
+        const to = next === a.value ? NEAR[b.value * 4] : next;
+        a.value = b.value;
+        b.value = to;
+        hops.value -= 1;
+        t0.value = now;
+      } else {
+        t0.value = 0;
+        wake.value = now + (300 + Math.random() * 1400) / pace.value;
+      }
+    }
+  });
+  const at = () => {
+    'worklet';
+    const z = spin.zoom.value * spin.breathe.value;
+    const p = project({ x: PTS[a.value * 3], y: PTS[a.value * 3 + 1], z: PTS[a.value * 3 + 2] }, spin.ry.value, spin.rx.value, z, half);
+    const q = project({ x: PTS[b.value * 3], y: PTS[b.value * 3 + 1], z: PTS[b.value * 3 + 2] }, spin.ry.value, spin.rx.value, z, half);
+    const t = t0.value === 0 ? 0 : Math.min(1, (spin.clock.value - t0.value) / dur.value);
+    return { p, x: p.sx + (q.sx - p.sx) * t, y: p.sy + (q.sy - p.sy) * t, k: q.k };
+  };
+  const head = 7 * scale;
+  const headStyle = useAnimatedStyle(() => {
+    if (t0.value === 0) return { opacity: 0, transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 1 }], zIndex: 200 };
+    const s = at();
+    return { opacity: 0.95, transform: [{ translateX: s.x - head / 2 }, { translateY: s.y - head / 2 }, { scale: s.k }], zIndex: 200 };
+  });
+  const glowStyle = useAnimatedStyle(() => ({ backgroundColor: COLS[b.value] }));
+  const trailStyle = useAnimatedStyle(() => {
+    if (t0.value === 0) return { opacity: 0, width: 0, backgroundColor: COLS[b.value], transform: [{ translateX: 0 }, { translateY: 0 }, { rotate: '0rad' }], zIndex: 199 };
+    const s = at();
+    const dx = s.x - s.p.sx;
+    const dy = s.y - s.p.sy;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    return {
+      opacity: 0.55,
+      width: len,
+      backgroundColor: COLS[b.value],
+      transform: [{ translateX: (s.p.sx + s.x) / 2 - len / 2 }, { translateY: (s.p.sy + s.y) / 2 }, { rotate: `${Math.atan2(dy, dx)}rad` }],
+      zIndex: 199,
+    };
+  });
+  return (
+    <>
+      <Animated.View pointerEvents="none" style={[styles.trail, trailStyle]} />
+      <Animated.View pointerEvents="none" style={[styles.dot, { width: head, height: head }, headStyle]}>
+        <Animated.View style={[styles.ring, { width: head * 3.4, height: head * 3.4, left: -head * 1.2, top: -head * 1.2, borderRadius: head * 1.7, opacity: 0.22 }, glowStyle]} />
+        <Animated.View style={[styles.ring, { width: head * 1.8, height: head * 1.8, left: -head * 0.4, top: -head * 0.4, borderRadius: head, opacity: 0.45 }, glowStyle]} />
+        <View style={[styles.ring, { width: head, height: head, left: 0, top: 0, borderRadius: head / 2, backgroundColor: '#FFFFFF' }]} />
+      </Animated.View>
+    </>
+  );
 });
 
 export function BrainGlobe({
@@ -213,12 +322,44 @@ export function BrainGlobe({
   const startRy = useSharedValue(0);
   const startRx = useSharedValue(0);
   const startZoom = useSharedValue(1);
-  const spin = useMemo(() => ({ ry, rx, zoom }), [ry, rx, zoom]);
+  // What makes her feel alive (11 Nov 2026): a clock for the twinkle and the sparks, a slow breath, and
+  // the speed left over from a flick. All of it is off when the phone asks for reduced motion.
+  const still = useReducedMotion();
+  const clock = useSharedValue(0);
+  const breathe = useSharedValue(1);
+  const flick = useSharedValue(0);
+  const spin = useMemo(() => ({ ry, rx, zoom, clock, breathe }), [ry, rx, zoom, clock, breathe]);
 
   // A slow turn on its own, paused while a finger is on it.
   useFrameCallback((f) => {
-    if (!dragging.value) ry.value += ((f.timeSincePreviousFrame ?? 16) / 1000) * 0.35 * speed;
+    const dt = (f.timeSincePreviousFrame ?? 16) / 1000;
+    if (!still) {
+      clock.value += dt * 1000;
+      breathe.value = 1 + 0.014 * Math.sin(clock.value / 1700);
+    }
+    if (dragging.value) return;
+    ry.value += dt * 0.35 * speed;
+    // Keeps turning after a flick, easing back to her slow spin.
+    if (Math.abs(flick.value) > 0.02) {
+      ry.value += flick.value * dt;
+      flick.value *= Math.pow(0.04, dt);
+    }
   });
+
+  // Sparks start in the part you picked (or the parts the lens lit), and anywhere on the whole brain.
+  const sparkPool = useMemo(() => {
+    const want = lit && lit.length ? lit : selected ? [selected] : null;
+    if (!want) return ALL_DOTS;
+    const pool = ALL_DOTS.filter((i) => want.includes(BRAIN.dots[i].region));
+    return pool.length ? pool : ALL_DOTS;
+  }, [lit, selected]);
+  // Kept in shared values so the sparks see a new pick straight away.
+  const poolSV = useSharedValue<number[]>(ALL_DOTS);
+  const paceSV = useSharedValue(1);
+  useEffect(() => {
+    poolSV.value = sparkPool;
+    paceSV.value = Math.max(0.4, speed);
+  }, [sparkPool, speed, poolSV, paceSV]);
 
   // How bright each part is: a log scale so 5 memories glow and 500 don't blind.
   const glow = useMemo(() => {
@@ -249,6 +390,7 @@ export function BrainGlobe({
     .minDistance(4)
     .onStart(() => {
       dragging.value = true;
+      flick.value = 0;
       startRy.value = ry.value;
       startRx.value = rx.value;
     })
@@ -256,8 +398,9 @@ export function BrainGlobe({
       ry.value = startRy.value + e.translationX / 120;
       rx.value = Math.max(-1.2, Math.min(1.2, startRx.value + e.translationY / 160));
     })
-    .onFinalize(() => {
+    .onFinalize((e) => {
       dragging.value = false;
+      flick.value = still ? 0 : Math.max(-9, Math.min(9, (e.velocityX ?? 0) / 120));
     });
   const pinch = Gesture.Pinch()
     .onStart(() => {
@@ -307,7 +450,11 @@ export function BrainGlobe({
               glow={glow[d.region]}
               colour={REGIONS[d.region].colour}
               mode={lit ? (lit.includes(d.region) ? 'on' : 'off') : selected == null ? 'all' : selected === d.region ? 'on' : 'off'}
+              ph={(i * 2.399) % 6.283}
             />
+          ))}
+          {still ? null : Array.from({ length: SPARKS }, (_, i) => (
+            <SparkView key={`spark-${i}`} i={i} spin={spin} half={half} scale={scale} pool={poolSV} pace={paceSV} />
           ))}
         </View>
       </GestureDetector>
@@ -319,4 +466,5 @@ const styles = StyleSheet.create({
   dot: { position: 'absolute', left: 0, top: 0 },
   ring: { position: 'absolute' },
   link: { position: 'absolute', left: 0, top: 0, height: 1, backgroundColor: '#EEE9FF', borderRadius: 1 },
+  trail: { position: 'absolute', left: 0, top: 0, height: 1.5, borderRadius: 1 },
 });
