@@ -232,3 +232,7 @@ Full notes: `docs/BRAIN_OVERHAUL_2.md`. Applied to the database and tested. Noth
 
 - **While you slept.** A card at the top of Her brain: what Tali learnt overnight and each note she tidied, with Undo (`components/LastNightCard.tsx`, `lib/sleeps.ts`). The nightly job is now switched on (migration 065).
 - **Use Totality too?** A card on Her brain that links a Totality or Totality Nutrition account by signing in, and brings across picked sign-up answers only (`components/LinkTotalityCard.tsx`, `lib/appLinks.ts`, function `tali-link-app`, migration 064). Notes: `docs/ONE_BRAIN.md`.
+
+## Gmail by forwarding (10 Nov 2026)
+
+Google needs a paid yearly security assessment for apps that read Gmail. Sending is a lighter permission, so on paid plans mail can now reach Tali by Gmail's own auto-forward to a Tali address, with replies still sent from the owner's Gmail. Phase 1 only: it sits alongside the current Gmail reading. Full notes, the deploy command and what is not yet verified: `docs/GMAIL_FORWARDING.md`. Migration `20261110000066_gmail_forwarding.sql` (applied). Function `inbound-email` (needs deploying). Screen: `components/ForwardGmailGuide.tsx` on Email.
