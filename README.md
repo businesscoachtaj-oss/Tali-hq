@@ -259,3 +259,9 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 - `supabase/migrations/20261111000071_recall_library_weight.sql` (already applied): book lessons from her library count for half their match score in recall, so what she knows first hand comes first. Recall check after the big library run: right answer in the top five back to 100%.
 - Later the same day: sparks now jump to dots a little further away and leave a fading streak, so they shoot through the brain like the website one. 16 at once. Nothing moves while you are on another tab.
 - 11 Nov 2026, later again: on the web her brain is now the website's brain copied across (`components/BrainCanvas.tsx`, a canvas). Same glow, sparks, twinkle, breath, spin speed and flick. The phone apps have no canvas, so they keep the Views version until a store build adds a drawing library.
+
+### 11 Nov 2026: the same brain on iPhone and Android (version 1.0.2)
+
+- `components/BrainCanvas.tsx` draws the website's brain with Skia (`@shopify/react-native-skia` 2.2.12, the version Expo SDK 54 picks). `components/BrainCanvas.web.tsx` is the browser canvas version. `BrainGlobe` uses them everywhere and falls back to the old Views version if drawing fails.
+- Skia is a native library, so the app version is now **1.0.2**. Updates over the air only reach builds of the same version, so 1.0.1 builds never receive this code. A new store build is needed.
+- Tested: the iPhone bundle builds, and the phone drawing code was run in a browser through CanvasKit and drew the brain with its sparks. Not yet seen on a real phone.
