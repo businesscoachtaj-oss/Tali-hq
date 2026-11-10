@@ -203,3 +203,11 @@ Asked for by Taj, so the brain can be used to train Tali's own open model one da
 - **The lens** (`components/BrainSky.tsx`, `app/(app)/index.tsx`): People, Work, Money, Health and Growth under her brain are filters. Tap one and the stars, her line and the sections below follow. Tap again for everything.
 - **Business switch** (`lib/business.ts`, `profiles.has_business`, migration 061, already applied): "Do you run a business?" in onboarding and Settings. Off, Your world drops Invoices, Receipts and Rules, Your people is one list with no clients and leads, follow-ups read "Check in with", and the business health tile goes. Nothing is deleted.
 - **Fixes**: Her brain cards open; Your world shapes keep moving (Reanimated); receipts readable; prices say A$ everywhere; safe dates; Vercel builds `main` only (`ignoreCommand` in `vercel.json`).
+
+## The sky has depth (10 Nov 2026)
+
+- Taj: "the background doesn't feel like it has depth", worst by day when the stars are gone. The page sky (`PageSky` in `components/NightSky.tsx`) was one smooth gradient with 28 same-size stars.
+- It is now built in layers, back to front: the sky (darker overhead, lighter toward the horizon), far colour light with one glow behind her brain, far dust, mid points, a few near out of focus discs and bright stars, then a vignette.
+- Each layer drifts at its own speed and moves by its own amount on scroll (`skyScroll`, fed by Today and by `Screen` in `components/ui.tsx`). Drift is off when the phone has Reduce Motion on.
+- The glows are two small pictures in `assets/sky/` (`glow.png`, `bokeh.png`), tinted and stretched, so nothing new is installed and it looks the same on phones and the web.
+- `Aurora` is now empty: its colour light lives inside the sky. JavaScript and images only, so it can go out as an OTA.
