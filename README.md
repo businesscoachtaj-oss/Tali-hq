@@ -240,3 +240,7 @@ Google needs a paid yearly security assessment for apps that read Gmail. Sending
 ### 10 Nov 2026: Gmail reading wound down
 
 Tali no longer asks to read Gmail. Mail reaches her by forwarding, and Google is only asked for sending and the calendar. People already connected keep the old read until their forwarding works or 24 Nov 2026, whichever comes first. See `docs/GMAIL_FORWARDING.md`.
+
+### 10 Nov 2026: Tali's library
+
+A shelf of 12 out of copyright books she reads a few passages of each night, keeping short lessons in the shared brain. Shown on Her brain as "Her library". See `docs/LIBRARY.md`.
