@@ -138,21 +138,17 @@ function ensureSkyCss() {
   el.textContent = '@keyframes taliSkyDrift{from{transform:translateX(calc(var(--sky-r) * -1))}to{transform:translateX(var(--sky-r))}}@keyframes taliSkyTwinkle{from{opacity:.6}to{opacity:1}}';
   document.head.appendChild(el);
 }
-function useWebAnimation(animation: string | null, range?: number) {
-  const ref = useRef<any>(null);
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const node: any = ref.current;
-    if (!node?.style) return;
-    ensureSkyCss();
-    if (range != null) node.style.setProperty('--sky-r', `${range}px`);
-    node.style.willChange = animation?.includes('Twinkle') ? 'opacity' : 'transform';
-    node.style.animation = animation ?? 'none';
-  }, [animation, range]);
-  return ref;
+// FIX (10 Nov 2026, second go): on the web the sky is now completely still. The CSS drift needed each
+// layer kept as its own picture in the phone's graphics memory (eight of them, each bigger than the
+// screen at three times the pixels). Phones ran out, and the browser started dropping pieces of the
+// page itself: half of Me went missing and Your world came up blank. A still sky is drawn once as
+// part of the page and costs nothing. Phone apps keep the drift and the scroll shift, which run
+// natively and do not have this problem.
+function useWebAnimation(_animation: string | null, _range?: number) {
+  return useRef<any>(null);
 }
 const WEB = Platform.OS === 'web';
-const LAYER: any = WEB ? { willChange: 'transform' } : null;
+const LAYER: any = null;
 const parallax = (factor: number) => skyScroll.interpolate({ inputRange: [0, 3000], outputRange: [0, -3000 * factor], extrapolate: 'clamp' });
 // Layers are a little bigger than the screen so drifting never shows an edge.
 const BLEED = { position: 'absolute' as const, left: -40, right: -40, top: -60, bottom: -60 };
@@ -162,9 +158,10 @@ const BLEED = { position: 'absolute' as const, left: -40, right: -40, top: -60, 
 // the drift is a CSS animation on the inner one.
 function Layer({ drift, range, ms, depth, still, opacity, children }: { drift: Animated.AnimatedInterpolation<number>; range: number; ms: number; depth: number; still: boolean; opacity?: number; children: ReactNode }) {
   const driftRef = useWebAnimation(still ? null : `taliSkyDrift ${ms}ms ease-in-out infinite alternate`, range);
-  const move = WEB ? [{ translateY: parallax(depth) }] : [{ translateX: drift }, { translateY: parallax(depth) }];
+  // The web gets a plain still box: no transform, so the browser never lifts it into its own layer.
+  if (WEB) return <View style={[BLEED, opacity != null ? { opacity } : null]}>{children}</View>;
   return (
-    <Animated.View style={[BLEED, LAYER, opacity != null ? { opacity } : null, { transform: move }]}>
+    <Animated.View style={[BLEED, LAYER, opacity != null ? { opacity } : null, { transform: [{ translateX: drift }, { translateY: parallax(depth) }] }]}>
       <View ref={driftRef} style={StyleSheet.absoluteFill}>{children}</View>
     </Animated.View>
   );
@@ -218,7 +215,7 @@ export function PageSky({ style }: { style?: StyleProp<ViewStyle> }) {
         {NEAR_BOKEH.map((b, i) => (
           <Image key={`b${i}`} source={BOKEH} resizeMode="stretch" style={{ position: 'absolute', left: `${b.x}%`, top: `${b.y}%`, width: b.size, height: b.size, marginLeft: -b.size / 2, marginTop: -b.size / 2, opacity: b.o * mix(1, 0.6) }} />
         ))}
-        <Animated.View style={[StyleSheet.absoluteFill, WEB ? { opacity: mix(0.4, 0.9) } : { opacity: Animated.multiply(Animated.add(twinkle, 1.1), mix(0.35, 0.8)) }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: WEB ? mix(0.4, 0.9) : Animated.multiply(Animated.add(twinkle, 1.1), mix(0.35, 0.8)) }]}>
           <View ref={twinkleRef} style={StyleSheet.absoluteFill}>
           {NEAR_STARS.map((d, i) => (
             <Image key={`s${i}`} source={GLOWS.white} resizeMode="stretch" style={{ position: 'absolute', left: `${d.x}%`, top: `${d.y}%`, width: d.r, height: d.r, opacity: d.o }} />

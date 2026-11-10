@@ -1,6 +1,6 @@
 import { NightIdeaCard } from '@/components/NightIdeaCard';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -175,7 +175,7 @@ export default function Today() {
       <Aurora />
       <ScrollView
         ref={scrollRef}
-        onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; skyScroll.setValue(scrollY.current); }}
+        onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; if (Platform.OS !== 'web') skyScroll.setValue(scrollY.current); }}
         scrollEventThrottle={16}
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
