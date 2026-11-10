@@ -76,7 +76,7 @@ export function ForwardGmailGuide() {
 
       <Step n={1} title="Add my address in Gmail" done={stage > 1} active={stage === 1}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.purpleSoft, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 }}>
-          <Text selectable style={{ flex: 1, color: colours.text, fontSize: 14, fontWeight: '700' }}>{f.address}</Text>
+          <Text selectable numberOfLines={2} style={{ flex: 1, flexShrink: 1, minWidth: 0, color: colours.text, fontSize: 13, fontWeight: '700' }}>{f.address}</Text>
           <Pressable onPress={() => copy('address', f.address!)} hitSlop={8} accessibilityRole="button">
             <Text style={{ color: colours.purple, fontWeight: '800', fontSize: 13 }}>{copied === 'address' ? 'Copied' : 'Copy'}</Text>
           </Pressable>
