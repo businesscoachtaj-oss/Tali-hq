@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { founderStats, founderTopups, type FounderStats, type FounderTopups } from '@/lib/data';
+import { founderMail, founderStats, founderTopups, type FounderMail, type FounderStats, type FounderTopups } from '@/lib/data';
 import { BackLink, Body, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { FounderOps } from '@/components/FounderOps';
 import { SkinHeader } from '@/components/PageSkin';
@@ -41,6 +41,7 @@ export default function Founder() {
   const [s, setS] = useState<FounderStats | null>(null);
   const [error, setError] = useState('');
   const [topups, setTopups] = useState<FounderTopups | null>(null);
+  const [mail, setMail] = useState<FounderMail | null>(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -48,6 +49,7 @@ export default function Founder() {
       const [st, tu] = await Promise.all([founderStats(), founderTopups()]);
       setS(st);
       setTopups(tu);
+      founderMail().then(setMail).catch(() => setMail(null));
     } catch (e: any) {
       setError(e?.message ?? 'Could not load.');
     }
@@ -96,10 +98,24 @@ export default function Founder() {
             <Text style={{ fontSize: 22, color: colours.faint, fontWeight: '600' }}>{'›'}</Text>
           </Pressable>
 
+          {mail ? (
+            <>
+              <View style={{ height: space.lg }} />
+              <Label>Email coming in</Label>
+              <Card>
+                <Row k="Received today (limit 100 a day)" v={n(mail.today)} />
+                <Row k="Received this month (limit 3,000)" v={n(mail.month)} />
+                <Row k="People forwarding their Gmail" v={n(mail.forwarding_on)} />
+                <Row k="Still on the old Gmail read (ends 24 Nov)" v={n(mail.old_read_left)} last />
+              </Card>
+              <Text style={{ color: colours.faint, fontSize: 12, marginTop: 6, lineHeight: 17 }}>The limits are Resend's free plan and are shared with every email the three apps send.</Text>
+            </>
+          ) : null}
+
           <View style={{ height: space.lg }} />
           <Label>Connected</Label>
           <Card>
-            <Row k="Google (Gmail and Calendar)" v={n(s.google_connected)} />
+            <Row k="Google (sending and Calendar)" v={n(s.google_connected)} />
             <Row k="Stripe (their own account)" v={n(s.stripe_connected)} />
             <Row k="Tali email addresses (Pro)" v={n(s.tali_addresses)} />
             <Row k="Devices getting notifications" v={`${n(s.push_devices)} (${n(s.push_web)} web)`} />

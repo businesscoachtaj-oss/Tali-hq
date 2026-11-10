@@ -46,7 +46,7 @@ export type Brain = { scope: 'main' | 'mine'; total: number; regions: BrainRegio
 export const REGIONS: Record<RegionId, { name: string; human: string; tali: string; colour: string; studies: string }> = {
   frontal: { name: 'Frontal lobe', human: 'Self-control and judgement', tali: 'Rules and preferences she sticks to, and nothing goes out without your yes', colour: '#B9A6FF', studies: 'philosophy, ethics, decision making and logic' },
   prefrontal: { name: 'Prefrontal cortex', human: 'Planning ahead', tali: 'Plans, ideas, your live goals and open decisions', colour: '#D7B5FF', studies: 'strategy, economics, game theory and the history of big decisions' },
-  parietal: { name: 'Parietal lobe', human: 'The senses', tali: 'What she can feel: your connected Gmail and Calendar', colour: '#7FD1FF', studies: 'maths, physics and astronomy' },
+  parietal: { name: 'Parietal lobe', human: 'The senses', tali: 'What she can feel: your email and calendar', colour: '#7FD1FF', studies: 'maths, physics and astronomy' },
   temporal: { name: 'Temporal lobe', human: 'Language and who is who', tali: 'The people in your world', colour: '#FFC37A', studies: 'writing, storytelling, language and the psychology of people' },
   occipital: { name: 'Occipital lobe', human: 'Vision', tali: 'What she saw in photos and screenshots you sent, and the images she made for you', colour: '#8EF0C8', studies: 'art, design, photography and film' },
   cerebellum: { name: 'Cerebellum', human: 'Fixing mistakes and fine tuning', tali: 'Lessons and mistakes. Lessons that keep holding become proven', colour: '#FF9EC4', studies: 'sports science, coaching, biomechanics and skill learning' },

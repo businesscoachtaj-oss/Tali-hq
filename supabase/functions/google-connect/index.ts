@@ -1,8 +1,10 @@
 // supabase/functions/google-connect/index.ts  (Tali HQ project jbyzblwrywgxilhmfyjt)
 //
 // Connect Google (Gmail and Google Calendar) with one sign-in, the way Claude's connectors work.
-// Tali reads new mail and sorts it, drafts replies, reads the calendar for the brief and chat,
+// Tali sends the replies she drafts from their Gmail, reads the calendar for the brief and chat,
 // and drafts invites. Nothing is sent or booked until the user taps the button on Today.
+// CHANGED (10 Nov 2026, Taj): she no longer asks to read Gmail. Mail reaches her by forwarding
+// (inbound-email). The old read keeps going only for people already connected, until 24 Nov 2026.
 //
 //   POST {action:'connect', returnUrl, what:'both'|'calendar'}  signed in: returns Google's consent link
 //   GET  ?code=...&state=...                 Google sends them back here; saves tokens, redirects to the app
@@ -57,7 +59,7 @@ const cors = {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 const fail = (code: string, message: string, status = 400) => json({ ok: false, code, message }, status);
 const redirect = (url: string) => new Response(null, { status: 302, headers: { Location: url } });
-const strip = (s: unknown) => String(s ?? '').replace(/\s*[–—]\s*/g, ', ').trim();
+const strip = (s: unknown) => String(s ?? '').replace(/\s*[\u2013\u2014]\s*/g, ', ').trim();
 
 async function userFrom(req: Request) {
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
@@ -99,7 +101,7 @@ async function startConnect(userId: string, returnUrl: string, what: string) {
   url.searchParams.set('scope', scopes.join(' '));
   url.searchParams.set('access_type', 'offline');
   url.searchParams.set('prompt', 'consent'); // always get a refresh token
-  url.searchParams.set('include_granted_scopes', 'true');
+  // 10 Nov 2026: no include_granted_scopes, so a reconnect never carries the old read permission along.
   url.searchParams.set('state', state);
   return json({ ok: true, url: url.toString() });
 }
@@ -115,7 +117,8 @@ async function finishConnect(params: URLSearchParams) {
     const tok = await exchangeCode(params.get('code') as string, SELF);
     const granted = String(tok.scope ?? '').split(' ');
     const scopes: string[] = [];
-    if (granted.some((s) => s.includes('gmail.readonly'))) scopes.push('gmail');
+    // 10 Nov 2026: 'gmail' now means "can send their replies from Gmail". Reading is never asked for.
+    if (granted.some((s) => s.includes('gmail.send'))) scopes.push('gmail');
     if (granted.some((s) => s.includes('calendar'))) scopes.push('calendar');
     const email = emailFromIdToken(tok.id_token);
     if (!tok.refresh_token || !email) {
@@ -130,7 +133,8 @@ async function finishConnect(params: URLSearchParams) {
       access_token: tok.access_token,
       access_expires_at: new Date(Date.now() + (Number(tok.expires_in) || 3600) * 1000).toISOString(),
       refresh_token: tok.refresh_token,
-      mail_sync_after: new Date().toISOString(), // only mail from now on, never the back catalogue
+      mail_sync_after: new Date().toISOString(),
+      gmail_read: false, // a fresh sign-in never has the read permission
       last_error: null,
       connected_at: new Date().toISOString(),
     });
@@ -145,8 +149,9 @@ async function disconnect(userId: string) {
   const conn = await loadConnection(admin, userId);
   if (conn) await revokeToken(conn.refresh_token);
   await admin.from('google_connections').delete().eq('user_id', userId);
-  // Forget what came from their Gmail; their own replies already sent stay in Gmail, not here.
-  await admin.from('inbound_emails').delete().eq('user_id', userId).eq('source', 'gmail');
+  // Forget what was read from their Gmail the old way. Mail they forward to Tali is theirs to keep
+  // (10 Nov 2026): disconnecting Google only stops sending and the calendar.
+  await admin.from('inbound_emails').delete().eq('user_id', userId).eq('source', 'gmail').like('provider_id', 'gmail:%');
   // And what she learned from it on day one (10 Nov 2026). Quietly does nothing before migration 059.
   await admin.rpc('day_one_forget', { p_user_id: userId, p_provider: 'google' });
   await admin.from('approvals').update({ status: 'expired', decided_at: new Date().toISOString() }).eq('user_id', userId).eq('status', 'pending').in('kind', ['email', 'booking']);
@@ -258,8 +263,13 @@ async function triage(system: string, user: string) {
   return { out: block.input as { category: 'needs_you' | 'fyi' | 'spam'; summary: string; reply: string }, tokensIn: data.usage?.input_tokens ?? 0, tokensOut: data.usage?.output_tokens ?? 0, model: data.model ?? TALI_MODEL };
 }
 
+// 10 Nov 2026 (Taj): reading Gmail is being wound down. Only people who connected before today and
+// have not switched on forwarding yet are still read (google_connections.gmail_read), and only until READ_ENDS, so
+// nobody's inbox goes quiet without warning. After that this does nothing and can be removed.
+const READ_ENDS = Date.parse('2026-11-24T13:00:00Z'); // midnight Sydney, start of 25 Nov
 async function mailSync() {
-  const { data: conns } = await admin.from('google_connections').select('*').contains('scopes', ['gmail']).is('last_error', null);
+  if (Date.now() >= READ_ENDS) return json({ ok: true, users: 0, saved: 0, ended: true });
+  const { data: conns } = await admin.from('google_connections').select('*').eq('gmail_read', true).is('last_error', null);
   let users = 0, saved = 0;
   for (const conn of conns ?? []) {
     users++;
@@ -382,7 +392,7 @@ async function learnFromGoogle(userId: string) {
     anthropicKey: ANTHROPIC_KEY,
     model: TALI_MODEL,
     timezone: tz,
-    readMail: conn.scopes.includes('gmail') ? () => recentMailHeaders(conn) : null,
+    readMail: (conn as any).gmail_read === true && Date.now() < READ_ENDS ? () => recentMailHeaders(conn) : null,
     readCalendar: conn.scopes.includes('calendar')
       ? async () => (await calendarEvents(admin, conn, tz, 14)).map((e) => ({ title: e.title, start: e.start, all_day: e.all_day, location: e.location, attendees: e.attendees }))
       : null,
