@@ -3,6 +3,7 @@ import { Switch, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { hasBusiness } from '@/lib/business';
 import { setShareLearning, shareLearning } from '@/lib/brain';
 import { deleteAccount } from '@/lib/data';
 import { enablePush, pushSupported, sendTestPush } from '@/lib/push';
@@ -39,6 +40,7 @@ export default function Settings() {
   const [rhythmLoaded, setRhythmLoaded] = useState(false);
   const [pushNote, setPushNote] = useState('');
   const [pushBusy, setPushBusy] = useState(false);
+  const [biz, setBiz] = useState(hasBusiness(profile));
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +58,7 @@ export default function Settings() {
   // "Saved." only means the form on screen matches what's saved, so it goes as soon as anything changes.
   useEffect(() => {
     setSaved(false);
-  }, [firstName, businessName, businessType, aboutMe, briefTime, briefPush, shutdownTime, shutdownPush, reviewDay, reviewTime]);
+  }, [firstName, businessName, businessType, biz, aboutMe, briefTime, briefPush, shutdownTime, shutdownPush, reviewDay, reviewTime]);
 
   const [showDelete, setShowDelete] = useState(false);
   const [confirm, setConfirm] = useState('');
@@ -75,6 +77,7 @@ export default function Settings() {
         first_name: firstName.trim(),
         business_name: businessName.trim() || null,
         business_type: businessType,
+        has_business: biz,
         about_me: aboutMe.trim() || null,
         brief_time: `${briefTime}:00`,
         brief_push: briefPush,
@@ -143,10 +146,21 @@ export default function Settings() {
       ) : null}
 
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
-      <Field label="Business name (if you have one)" value={businessName} onChangeText={setBusinessName} />
-      <TaliAddressNote />
-      <Label>What kind of business</Label>
-      <ChipPicker options={BUSINESS_TYPES} value={businessType} onChange={setBusinessType} />
+      {/* 10 Nov 2026: the business switch. Off, the app drops invoices, clients and leads, receipts and
+          rules, and Work means your job. Nothing is deleted, so switching back on brings it all back. */}
+      <Label>Do you run a business?</Label>
+      <ChipPicker options={['Yes', 'No, just me'] as const} value={biz ? 'Yes' : 'No, just me'} onChange={(v) => setBiz(v === 'Yes')} />
+      <Text style={{ color: colours.muted, fontSize: 13, marginTop: -4, marginBottom: space.md }}>
+        {biz ? 'Tali shows invoices, clients and leads, receipts and rules.' : 'Tali keeps to your life: people, money, health and goals. Your business details are kept if you switch back.'}
+      </Text>
+      {biz ? (
+        <>
+          <Field label="Business name (if you have one)" value={businessName} onChangeText={setBusinessName} />
+          <TaliAddressNote />
+          <Label>What kind of business</Label>
+          <ChipPicker options={BUSINESS_TYPES} value={businessType} onChange={setBusinessType} />
+        </>
+      ) : null}
       <Field
         label="About you"
         value={aboutMe}

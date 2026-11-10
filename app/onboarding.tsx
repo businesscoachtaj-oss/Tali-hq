@@ -42,6 +42,7 @@ export default function Onboarding() {
         first_name: firstName.trim(),
         business_name: hasBusiness ? businessName.trim() || null : null,
         business_type: hasBusiness ? businessType : null,
+        has_business: hasBusiness,
         // What they want a hand with goes in with the rest of what Tali reads before every chat.
         about_me: [plate.length ? `Wants a hand with: ${plate.join(', ').toLowerCase()}.` : '', aboutMe.trim()].filter(Boolean).join(' ') || null,
         timezone,

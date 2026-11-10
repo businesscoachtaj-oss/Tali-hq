@@ -195,3 +195,11 @@ Asked for by Taj, so the brain can be used to train Tali's own open model one da
   - Stripe: product `prod_VbDF03EfaCxpDJ`, monthly `price_1Ua0ohPy9YlWBZ02UFtAJDRn`, yearly `price_1Ua0otPy9YlWBZ02sl7BwXb7`. Founders use coupon `TALIHQ_FOUNDING_MAX` (42.5% off, Max product only) because the first founding coupon is tied to the HQ and Pro products.
   - Database: `supabase/migrations/20261110000060_max_plan.sql` adds the plan row and adds `max` to every function that lists the paid plans.
   - Deploy order: functions first (`create-checkout`, `stripe-webhook`, `tali-chat`, `tali-review`, `tali-transcribe`, `tali-patterns`, `tali-receipts`), then the SQL. The plan card shows as soon as the SQL runs.
+
+## 10 Nov 2026 (later): day into night, the lens, the business switch
+
+- **Day into night** (`lib/sky.ts`, `PageSky` in `components/NightSky.tsx`): the sky is a deeper violet into royal blue through the day and fades into the night sky over the two hours before the shut the day down time. Night straight away once the day is shut down, until dawn (5am to 6am).
+- **Day closed** on Today: only her brain (turning at half speed, `speed` on `BrainGlobe`), her goodnight line, Sleep sounds and Journal buttons, and the Day closed card with mood and tomorrow's three. The day's lists come back in the morning.
+- **The lens** (`components/BrainSky.tsx`, `app/(app)/index.tsx`): People, Work, Money, Health and Growth under her brain are filters. Tap one and the stars, her line and the sections below follow. Tap again for everything.
+- **Business switch** (`lib/business.ts`, `profiles.has_business`, migration 061, already applied): "Do you run a business?" in onboarding and Settings. Off, Your world drops Invoices, Receipts and Rules, Your people is one list with no clients and leads, follow-ups read "Check in with", and the business health tile goes. Nothing is deleted.
+- **Fixes**: Her brain cards open; Your world shapes keep moving (Reanimated); receipts readable; prices say A$ everywhere; safe dates; Vercel builds `main` only (`ignoreCommand` in `vercel.json`).

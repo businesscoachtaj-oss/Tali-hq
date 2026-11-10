@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/lib/auth';
+import { useHasBusiness } from '@/lib/business';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { clients as loadClients, deleteClient, saveClient, type Client } from '@/lib/data';
@@ -31,9 +31,8 @@ const blank = (kind: 'client' | 'lead'): Draft => ({ name: '', kind, status: kin
 export default function Clients() {
   const [list, setList] = useState<Client[]>([]);
   const [tab, setTab] = useState<'client' | 'lead'>('client');
-  // 10 Nov 2026 mock: with no business this is simply your people, with no clients and leads split.
-  const { profile } = useAuth();
-  const hasBusiness = !!(profile as any)?.business_type || !!(profile as any)?.business_name;
+  // 10 Nov 2026: with no business this is simply your people, with no clients and leads split.
+  const hasBusiness = useHasBusiness();
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -131,13 +130,18 @@ export default function Clients() {
     return (
       <Screen skin="cork">
         <BackLink onPress={() => closeEditor(draft.id)} label={fromPerson ? draft.name || 'Back' : 'Back'} />
-        <Title>{draft.id ? draft.name || 'Edit' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
-        <ChipPicker options={['client', 'lead'] as const} value={draft.kind} label={(k) => (k === 'lead' ? 'Lead' : 'Client')}
-          onChange={(k) => setDraft({ ...draft, kind: k, status: k === 'lead' ? 'new' : 'active' })} />
+        <Title>{draft.id ? draft.name || 'Edit' : !hasBusiness ? 'New person' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
+        {/* Client or lead, and their status, only mean something when you run a business. */}
+        {hasBusiness ? <ChipPicker options={['client', 'lead'] as const} value={draft.kind} label={(k) => (k === 'lead' ? 'Lead' : 'Client')}
+          onChange={(k) => setDraft({ ...draft, kind: k, status: k === 'lead' ? 'new' : 'active' })} /> : null}
         <Field label="Name" value={draft.name} onChangeText={(t) => setDraft({ ...draft, name: t })} maxLength={120} />
-        <Label>Status</Label>
-        <ChipPicker options={statuses} value={draft.status as any} label={(s) => STATUS_LABEL[s]} onChange={(s) => setDraft({ ...draft, status: s })} />
-        <Label>Follow up</Label>
+        {hasBusiness ? (
+          <>
+            <Label>Status</Label>
+            <ChipPicker options={statuses} value={draft.status as any} label={(s) => STATUS_LABEL[s]} onChange={(s) => setDraft({ ...draft, status: s })} />
+          </>
+        ) : null}
+        <Label>{hasBusiness ? 'Follow up' : 'Check in'}</Label>
         <ChipPicker
           options={FOLLOW_UP_PICKS.map((p) => p.label)}
           value={followUpPickFor(draft.next_follow_up)}

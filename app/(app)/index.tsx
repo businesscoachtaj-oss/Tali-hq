@@ -31,6 +31,7 @@ import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
 import { TodayHero } from '@/components/TodayHero';
 import { BrainSky, type Lens } from '@/components/BrainSky';
+import { useHasBusiness } from '@/lib/business';
 import { type Room } from '@/components/RoomSwitch';
 import { SheNoticed } from '@/components/SheNoticed';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
@@ -105,7 +106,7 @@ export default function Today() {
   // 4 Nov 2026 (Taj): new emails (Tali's address, or Gmail/Outlook "needs you") get a nudge on Today.
   const [newMail, setNewMail] = useState<InboundEmail[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
-  // The lens (10 Nov 2026 mock): pick a part of your life under her brain and the whole page follows.
+  // The lens (10 Nov 2026): pick a part of your life under her brain and the whole page follows.
   const [lens, setLens] = useState<Lens | null>(null);
   const hide = (...areas: Lens[]) => (lens && !areas.includes(lens) ? ({ display: 'none' } as const) : null);
   // 4 Nov 2026: an earlier note opens in full the same way the morning brief does.
@@ -163,7 +164,9 @@ export default function Today() {
   const trial = trialLine(credits);
   const night = !!shutdown;
   useEffect(() => { setDayShut(night); }, [night]);
-  const allTiles = glanceTiles({ credits, money, health, week, goals });
+  // With no business there is no business health to show (10 Nov 2026).
+  const biz = useHasBusiness();
+  const allTiles = glanceTiles({ credits, money, health, week, goals }).filter((t) => biz || t.key !== 'health');
   const tiles = allTiles;
 
   return (
@@ -189,12 +192,20 @@ export default function Today() {
         )}
         </View>
         {/* Day closed (Taj, 10 Nov 2026): only her brain and the two bedtime buttons. The day's lists come back in the morning. */}
-        {night ? <View style={{ marginTop: space.lg }}><ShutdownCard /></View> : (<>
+        {night ? <View style={{ marginTop: space.lg }}><ShutdownCard hideLine /></View> : (<>
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
         <View style={hide()}><SheNoticed /></View>
 
         {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
+        ) : null}
+
+        {/* Health lens: food and training come up to the top, so the lens has something to show. */}
+        {lens === 'health' && life ? (
+          <>
+            <Label>Your day</Label>
+            <YourDayCard life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} />
+          </>
         ) : null}
 
         <View style={hide('work', 'people')}><MeetingNudge credits={credits} calendar={calendar} compact /></View>

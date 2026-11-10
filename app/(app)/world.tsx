@@ -10,7 +10,7 @@ import { Screen } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
 import { WorldMap } from '@/components/WorldMap';
 import { colours, radius, space } from '@/constants/theme';
-import { useAuth } from '@/lib/auth';
+import { useHasBusiness } from '@/lib/business';
 
 type Row = { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; sub: string; to: string; locked?: boolean; pro?: boolean };
 
@@ -19,10 +19,9 @@ export default function World() {
   useFocusEffect(useCallback(() => { myCredits().then(setCredits).catch(() => {}); }, []));
   const paid = isPaid(credits);
   const pro = isPro(credits);
-  // 10 Nov 2026 mock: someone who said "No, just me" at sign-up does not get the business tools.
+  // 10 Nov 2026: someone who said "No, just me" at sign-up does not get the business tools.
   // Work is their job and their inbox. They can switch the rest on in Settings by adding a business.
-  const { profile } = useAuth();
-  const hasBusiness = !!(profile as any)?.business_type || !!(profile as any)?.business_name;
+  const hasBusiness = useHasBusiness();
   const areas: { title: string; line: string; colour: string; rows: Row[] }[] = [
     { title: 'People', line: hasBusiness ? 'Clients, leads and everyone who matters to you' : 'Family, friends and everyone who matters to you', colour: '#8EF0C8', rows: [
       { icon: 'people-outline', title: 'Your people', sub: hasBusiness ? 'Clients, leads, family and friends' : 'Family, friends and the people you mention', to: '/clients' },

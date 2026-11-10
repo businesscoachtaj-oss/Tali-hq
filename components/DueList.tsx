@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useHasBusiness } from '@/lib/business';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { completeReminder, deleteReminder, rescheduleReminder, saveClient, type Client, type Reminder } from '@/lib/data';
@@ -10,6 +11,7 @@ import { colours, space } from '@/constants/theme';
 // 4 Nov 2026: errors show under the list instead of vanishing, follow-ups open the person, and each
 // reminder has two small actions: Tomorrow (9am) and Delete (two taps).
 export function DueList({ reminders, followUps, onChange }: { reminders: Reminder[]; followUps: Client[]; onChange: () => void }) {
+  const biz = useHasBusiness(); // with no business these are people to check in with, not follow-ups
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
   const { armed, confirm } = useConfirm();
@@ -49,7 +51,7 @@ export function DueList({ reminders, followUps, onChange }: { reminders: Reminde
       ))}
       {followUps.map((c, i) => (
         <Row key={c.id} first={reminders.length === 0 && i === 0} busy={busy === c.id} onTick={() => tickFollowUp(c)} onOpen={() => router.navigate({ pathname: '/person', params: { id: c.id } } as any)}
-          title={`Follow up ${c.name}`} meta={c.next_follow_up ? friendlyDate(c.next_follow_up) : ''} late={!!c.next_follow_up && c.next_follow_up < today()} />
+          title={biz ? `Follow up ${c.name}` : `Check in with ${c.name}`} meta={c.next_follow_up ? friendlyDate(c.next_follow_up) : ''} late={!!c.next_follow_up && c.next_follow_up < today()} />
       ))}
       <ErrorText>{error}</ErrorText>
     </Card>

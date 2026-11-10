@@ -130,7 +130,7 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
   }, [pickedKey, seed]);
   // Day closed (Taj, 10 Nov 2026): just her brain, turning slowly. Nothing to do orbits it.
   const shownStars = closed ? [] : stars;
-  // The lens (10 Nov 2026 mock): tap People, Work, Money, Health or Growth and only that part of your
+  // The lens (10 Nov 2026): tap People, Work, Money, Health or Growth and only that part of your
   // day stays lit. Tap it again for everything. Nothing is hidden for good, it is a filter, not a mode.
   const [lensOwn, setLensOwn] = useState<Area | null>(null);
   const lens = (onLens ? lensIn ?? null : lensOwn) as Area | null;
