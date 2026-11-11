@@ -84,3 +84,19 @@ export async function autoCounts(): Promise<Record<string, number>> {
   for (const r of (data as any[]) ?? []) out[r.kind] = (out[r.kind] ?? 0) + 1;
   return out;
 }
+
+// ---------- Ask Tali to write it ----------
+export type SiteDraft = { title: string; tagline: string; about: string; sections: SiteSection[] };
+/** Tali drafts the words. Nothing is saved until the owner saves. */
+export async function writeSite(kind: Site['kind'], notes: string): Promise<{ ok: true; draft: SiteDraft } | { ok: false; message: string }> {
+  try {
+    const { data, error } = await supabase.functions.invoke('tali-site-write', { body: { kind, notes } });
+    if (error) {
+      let message = 'Tali could not write that. Try again in a minute.';
+      try { const b = await (error as any).context?.json?.(); if (b?.message) message = b.message; } catch {}
+      return { ok: false, message };
+    }
+    const d = data as any;
+    return d?.ok && d.draft ? { ok: true, draft: d.draft } : { ok: false, message: d?.message ?? 'Tali could not write that. Try again in a minute.' };
+  } catch { return { ok: false, message: 'Tali could not write that. Try again in a minute.' }; }
+}

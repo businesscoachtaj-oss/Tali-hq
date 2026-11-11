@@ -84,6 +84,7 @@ export default function World() {
         { icon: 'albums-outline', title: 'Projects', sub: 'The bigger pieces of work', to: '/projects' },
         { icon: 'globe-outline', title: 'Website', sub: 'A simple site, hosted for you', to: '/website' },
         { icon: 'flash-outline', title: 'On autopilot', sub: 'Rules that put a nudge on your To do', to: '/autopilot' },
+        { icon: 'calculator-outline', title: 'Bookkeeping pack', sub: 'A quarter on one page for your accountant', to: '/books' },
         { icon: 'mail-outline', title: 'Email', sub: 'Sorted, replies drafted', to: '/inbox', locked: !paid },
         { icon: 'document-text-outline', title: 'Invoices', sub: 'Make, share, track', to: '/invoices', locked: !paid },
         { icon: 'wallet-outline', title: 'Money', sub: 'In, owed and runway', to: '/money', locked: !paid },
