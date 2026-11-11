@@ -433,6 +433,13 @@ export default function Talk() {
                       <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>New memory</Text> {item.meta.kept.text} <Text style={{ color: keptColour(item.meta.kept.part), fontWeight: '700' }}>{'→'} {item.meta.kept.part}</Text></Text>
                     </Pressable>
                   ) : null}
+                  {/* Personal spends she logged from this reply (11 Nov 2026). Tap to open Money on the Personal side. */}
+                  {!me && item.meta?.spent?.count ? (
+                    <Pressable onPress={() => router.navigate({ pathname: '/money', params: { side: 'personal' } })} accessibilityRole="link" accessibilityLabel="Spending logged. Open your personal money." style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: 'rgba(127,224,176,0.14)', borderWidth: 1, borderColor: 'rgba(127,224,176,0.65)' }}>
+                      <Text style={{ color: colours.good, fontSize: 13 }}>{'✦'}</Text>
+                      <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>{item.meta.spent.count === 1 ? '1 spend logged' : `${item.meta.spent.count} spends logged`}</Text> A${item.meta.spent.total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <Text style={{ color: colours.good, fontWeight: '700' }}>{'→'} Money</Text></Text>
+                    </Pressable>
+                  ) : null}
                   {item.failed ? (
                     <Pressable
                       accessibilityRole="button"

@@ -148,6 +148,8 @@ export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content
   deep?: DeepLevel; suggest_deep?: boolean;
   // What she kept from this reply and which part of her brain it went to.
   kept?: { text: string; part: string } | null;
+  // Personal spends she logged from this reply (11 Nov 2026), shown as a pill that opens Money.
+  spent?: { count: number; total: number } | null;
   // The extra AIs (10 Nov 2026). routed names the AI behind a reply and is only ever sent to the founder.
   second_opinion?: { by: string; agree: string; differ: string; credits: number };
   sources?: { title: string; url: string }[];

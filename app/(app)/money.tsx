@@ -2,13 +2,14 @@
 // Read only. Nothing here sends, charges or changes anything.
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { myCredits, type Credits } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
 import { loadMoneyPicture, money0, runwayLabel, saveMoneySettings, taliMoneyLine, type MoneyPicture } from '@/lib/money';
 import { friendlyDate } from '@/lib/dates';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, goBack } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
+import { PersonalMoney } from '@/components/PersonalMoney';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
 const num = (s: string) => {
@@ -26,6 +27,11 @@ export default function Money() {
   const [error, setError] = useState('');
   // So "Tell me what goes out" doesn't flash before the picture arrives (4 Nov 2026).
   const [loaded, setLoaded] = useState(false);
+  // 11 Nov 2026 (asked for by Taj): Money has a Business side and a Personal side. Personal is your
+  // own spending and budgets. The "spends logged" pill in Talk opens straight onto Personal.
+  const params = useLocalSearchParams<{ side?: string }>();
+  const [side, setSide] = useState<'business' | 'personal'>(params.side === 'personal' ? 'personal' : 'business');
+  const [tick, setTick] = useState(0);
 
   const load = useCallback(async () => {
     setError('');
@@ -47,7 +53,9 @@ export default function Money() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load]),
+      setTick((n) => n + 1);
+      if (params.side === 'personal') setSide('personal');
+    }, [load, params.side]),
   );
 
   async function save() {
@@ -80,10 +88,19 @@ export default function Money() {
   const runway = pic ? runwayLabel(pic.runwayWeeks) : null;
 
   return (
-    <Screen skin="banknote" onRefresh={load}>
+    <Screen skin="banknote" onRefresh={async () => { await load(); setTick((n) => n + 1); }}>
       <SkinHeader id="banknote" title="Money" sub="Your view of the month. Tali reads it, nothing here moves money." onBack={() => goBack('/')} backLabel="Back" />
 
-      {pic ? <TaliSays pose={pic.overdueInvoices.length ? 'think' : 'idle'}>{taliMoneyLine(pic)}</TaliSays> : null}
+      <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderWidth: 1, borderColor: colours.border, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
+        {(['business', 'personal'] as const).map((s) => (
+          <Pressable key={s} onPress={() => setSide(s)} accessibilityRole="tab" accessibilityState={{ selected: side === s }} style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: radius.pill, backgroundColor: side === s ? colours.purple : 'transparent' }}>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: side === s ? colours.onPurple : colours.muted }}>{s === 'business' ? 'Business' : 'Personal'}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {side === 'personal' ? <PersonalMoney refreshKey={tick} /> : <>
+      {pic ? <TaliSays pose="idle">{taliMoneyLine(pic)}</TaliSays> : null}
       {error ? <Card><Body muted>{error}</Body></Card> : null}
 
       {pic ? (
@@ -153,6 +170,7 @@ export default function Money() {
       ) : pic ? (
         <Button title="Open invoices" kind="ghost" onPress={() => router.navigate('/invoices')} />
       ) : null}
+      </>}
     </Screen>
   );
 }
