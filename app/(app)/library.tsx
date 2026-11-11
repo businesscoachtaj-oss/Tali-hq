@@ -4,7 +4,7 @@
 // night she finishes them. The books are the same for everyone. What is yours: the shelf you
 // choose, the page you are on and the READ stamp you earn by finishing a book (saved to your account).
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { BackLink, Button, Card, ErrorText, Field, Loading, Screen, TaliSays, Title, goBack } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
@@ -207,19 +207,19 @@ function Shelf({ books, mine, open, toggle, resume }: { books: Book[]; mine: Min
 
       <Text style={{ color: colours.text, fontSize: 26, fontFamily: serif, marginTop: space.xl, marginBottom: space.sm }}>The catalogue</Text>
       <Field value={q} onChangeText={setQ} placeholder="Search by title, author or subject" accessibilityLabel="Search the library" autoCorrect={false} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingBottom: 8 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 8 }}>
         <Chip on={status === 'all'} onPress={() => setStatus('all')}>All</Chip>
         <Chip on={status === 'open'} onPress={() => setStatus('open')}>Open to read</Chip>
         <Chip on={status === 'reading'} onPress={() => setStatus('reading')}>You're reading</Chip>
         <Chip on={status === 'read'} onPress={() => setStatus('read')}>You've read</Chip>
         <Chip on={status === 'tali'} onPress={() => setStatus('tali')}>Tali still reading</Chip>
-      </ScrollView>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingBottom: space.md }}>
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: space.md }}>
         <Chip on={subject === 'all'} onPress={() => setSubject('all')}>Every subject</Chip>
         {subjects.map((x) => (
           <Chip key={x} on={subject === x} onPress={() => setSubject(x)}>{x.charAt(0).toUpperCase() + x.slice(1)}</Chip>
         ))}
-      </ScrollView>
+      </View>
       <Text style={{ color: colours.faint, fontSize: 12, marginBottom: space.sm }}>{found.length} of {books.length} books</Text>
       {found.map((b) => {
         const st = statusOf(b, mine);
