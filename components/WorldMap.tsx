@@ -19,23 +19,30 @@ const CLUSTERS = [
 
 // The map itself, so Your world (the tab) can show it above the list (10 Nov 2026).
 // Home and money is not made of memories, so its count is what she is tracking there (passed in).
-export function WorldMap({ homeCount = 0, workTo }: { homeCount?: number; workTo?: string }) {
+export function WorldMap({ homeCount = 0, workTo, show, lines }: { homeCount?: number; workTo?: string; show?: string[]; lines?: Record<string, string> }) {
   const { width } = useWindowDimensions();
   const W = Math.min(width, 640);
   const [brain, setBrain] = useState<Brain | null>(null);
   useFocusEffect(useCallback(() => { myBrain('mine').then(setBrain).catch(() => {}); }, []));
   const items = brain?.regions.flatMap((r) => r.items) ?? [];
-  const H = 1250;
-  const centre = (c: (typeof CLUSTERS)[number]) => ({ x: 100 + c.at[0] * (W - 200), y: 70 + c.at[1] * (H - 160) });
+  // MOCK (12 Nov 2026): each mode shows its own parts of the map, spaced out again to fit.
+  const ALL = CLUSTERS;
+  const CLUSTERS_ = show ? ALL.filter((c) => show.includes(c.name)) : ALL;
+  const H = show ? 90 + CLUSTERS_.length * 232 : 1250;
+  const centre = (c: (typeof ALL)[number]) => {
+    if (!show) return { x: 100 + c.at[0] * (W - 200), y: 70 + c.at[1] * (H - 160) };
+    const i = CLUSTERS_.indexOf(c), last = Math.max(1, CLUSTERS_.length - 1);
+    return { x: 100 + (i % 2) * (W - 200), y: 70 + (i / last) * (H - 290) };
+  };
   return (
     <View style={{ height: H, width: W, alignSelf: 'center' }}>
-      {CLUSTERS.map((c, i) => {
-        if (i === CLUSTERS.length - 1) return null;
-        const k = centre(c); const n2 = centre(CLUSTERS[i + 1]);
+      {CLUSTERS_.map((c, i) => {
+        if (i === CLUSTERS_.length - 1) return null;
+        const k = centre(c); const n2 = centre(CLUSTERS_[i + 1]);
         const len = Math.hypot(n2.x - k.x, n2.y - k.y), ang = Math.atan2(n2.y - k.y, n2.x - k.x);
         return <View key={'l' + i} pointerEvents="none" style={{ position: 'absolute', left: (k.x + n2.x) / 2 - len / 2, top: (k.y + n2.y) / 2, width: len, height: 1, backgroundColor: 'rgba(214,200,255,0.18)', transform: [{ rotate: `${ang}rad` }] }} />;
       })}
-      {CLUSTERS.map((c) => {
+      {CLUSTERS_.map((c) => {
         const k = centre(c);
         const home = c.name === 'Home and money';
         const count = home ? homeCount : items.filter((it) => (c.kinds as readonly string[]).includes(it.kind)).length;
@@ -50,7 +57,7 @@ export function WorldMap({ homeCount = 0, workTo }: { homeCount?: number; workTo
             <View style={{ position: 'absolute', left: 0, right: 0, top: 138, alignItems: 'center' }}>
               <Text style={{ color: '#FFFFFF', fontSize: 24, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: c.colour, textShadowRadius: 12, textAlign: 'center' }}>{c.name}</Text>
               <Text style={{ color: c.colour, fontSize: 12, fontWeight: '800' }}>{count ? `${count} ${count === 1 ? 'thing' : 'things'} ${home ? 'she is tracking' : 'she knows'}` : 'Nothing yet'}</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11.5, marginTop: 2 }}>{c.line}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11.5, marginTop: 2 }}>{lines?.[c.name] ?? c.line}</Text>
             </View>
           </Pressable>
         );

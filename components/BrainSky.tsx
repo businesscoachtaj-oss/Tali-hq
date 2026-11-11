@@ -44,7 +44,10 @@ const LENS_REGIONS: Record<Lens, RegionId[]> = {
   health: ['hypothalamus', 'brainstem'],
   growth: ['cerebellum', 'basal_ganglia'],
 };
-export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { greeting: string; sub?: string | null; nightLine?: string | null; lens?: Lens | null; onLens?: (l: Lens | null) => void }) {
+// MOCK (12 Nov 2026): `side` keeps the sky to one mode. On the Life side the business stars (late
+// invoices, drafts, email) stay on the Business side, and the life things passed in take their place.
+export type SideStar = { key: string; title: string; sub: string; area: 'people' | 'health' | 'growth' | 'money'; to?: string };
+export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side, sideStars }: { greeting: string; sub?: string | null; nightLine?: string | null; lens?: Lens | null; onLens?: (l: Lens | null) => void; side?: 'business' | 'life'; sideStars?: SideStar[] }) {
   // 10 Nov 2026: once the day is shut down her brain stays, with her goodnight line in place of the count.
   const closed = nightLine !== undefined;
   const { width } = useWindowDimensions();
@@ -102,23 +105,29 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
     return items.filter((i) => i.text !== skip && i.text.toLowerCase().includes(n)).slice(0, 2).map((i) => ({ text: short(i.text, 44), area: areaOf(i.kind), full: i.text }));
   };
   const stars: Star[] = [];
-  if (late) {
+  const life = side === 'life';
+  if (life) for (const x of sideStars ?? []) stars.push({ key: x.key, title: short(x.title), sub: x.sub, area: x.area as Area, size: 17, links: [], action: 'Open it', to: x.to });
+  if (late && !life) {
     const lateMs = Date.now() - new Date(late.due_date).getTime();
     const days = Number.isFinite(lateMs) ? Math.max(1, Math.round(lateMs / 86400000)) : 0;
     stars.push({ key: 'late', title: `Invoice ${late.number} is late`, sub: `${late.client_name}, A$${late.total}`, area: 'money', size: 22,
       links: [{ text: late.client_name, area: 'people' }, ...(days ? [{ text: `${days} ${days === 1 ? 'day' : 'days'} overdue`, area: 'money' as Area }] : [])], seed: late.client_name, fallback: related(late.client_name).slice(0, 1), action: 'Open invoices', to: '/invoices' });
   }
-  if (approvals[0]) {
+  if (approvals[0] && !life) {
     const to = approvals[0].draft?.to_name;
     stars.push({ key: 'yes', title: short(approvals[0].title), sub: 'Waiting for your yes', area: 'work', size: 18,
       links: to ? [{ text: to, area: 'people' as Area }] : [], seed: to || approvals[0].title, fallback: related(to), action: approvals.length > 1 ? `${approvals.length} drafts are just below` : 'The draft is just below' });
   }
-  if (mail[0]) {
+  if (mail[0] && !life) {
     const from = mail[0].from_name || mail[0].from_email || 'Someone';
     stars.push({ key: 'mail', title: `${short(from, 22)} emailed`, sub: mail[0].summary || mail[0].subject || 'New email', area: 'people', size: 16,
       links: mail[0].subject ? [{ text: short(mail[0].subject, 44), area: 'work' as Area }] : [], seed: mail[0].from_name || mail[0].subject || '', fallback: related(mail[0].from_name), action: 'Open email', to: '/inbox' });
   }
-  if (due[0]) {
+  const dueAll = due;
+  // eslint-disable-next-line no-shadow
+  const dueSide = side ? dueAll.filter((r: any) => (r.tag === 'life' ? 'life' : 'business') === side) : dueAll;
+  if (dueSide[0]) {
+    const due = dueSide;
     const at = due[0].due_at ? new Date(due[0].due_at) : null;
     stars.push({ key: 'due', title: short(due[0].text), sub: at && !Number.isNaN(at.getTime()) ? `Today, ${at.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}` : 'Due today', area: 'work', size: 13,
       links: due.length > 1 ? [{ text: `${due.length - 1} more due today`, area: 'work' }] : [], action: 'Your list is just below' });
@@ -166,8 +175,8 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
   const lens = (onLens ? lensIn ?? null : lensOwn) as Area | null;
   const setLens = (l: Area | null) => (onLens ? onLens(l) : setLensOwn(l));
   const inLens = lens ? stars.filter((x) => x.area === lens).length : 0;
-  const needs = stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
-  const line = sel ? "Here's everything I know that touches this." : closed ? (nightLine?.trim() || "Day's done. Bed time?") : lens ? (inLens ? `${inLens} ${inLens === 1 ? 'thing' : 'things'} for ${AREA[lens].name.toLowerCase()} today.` : `Nothing for ${AREA[lens].name.toLowerCase()} today. Tell me something.`) : needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.` : 'All quiet. Tell me anything.';
+  const needs = life ? stars.filter((s) => s.key === 'due' || (sideStars ?? []).some((x) => x.key === s.key)).length : stars.filter((s) => s.key === 'late' || s.key === 'yes' || s.key === 'mail').length;
+  const line = sel ? "Here's everything I know that touches this." : closed ? (nightLine?.trim() || "Day's done. Bed time?") : lens ? (inLens ? `${inLens} ${inLens === 1 ? 'thing' : 'things'} for ${AREA[lens].name.toLowerCase()} today.` : `Nothing for ${AREA[lens].name.toLowerCase()} today. Tell me something.`) : needs ? (life ? `${needs} ${needs === 1 ? 'thing' : 'things'} for you today. Work can wait.` : `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.`) : 'All quiet. Tell me anything.';
 
   // Spots the first-run tour points at (10 Nov 2026).
   const brainRef = useRef<View>(null);
@@ -286,7 +295,7 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
           </View>
         ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: 12, marginTop: 28 }}>
-            {(Object.keys(AREA) as Area[]).map((a) => {
+            {(Object.keys(AREA) as Area[]).filter((a) => !life || (a !== 'work' && a !== 'money')).map((a) => {
               const on = lens === a; const n = stars.filter((x) => x.area === a).length;
               return (
                 <Pressable key={a} onPress={() => setLens(on ? null : a)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${AREA[a].name}, ${n} today`}

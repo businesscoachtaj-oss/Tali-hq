@@ -17,6 +17,9 @@ import { SkinHeader } from '@/components/PageSkin';
 import { WorldMap } from '@/components/WorldMap';
 import { colours, radius, space } from '@/constants/theme';
 import { useHasBusiness } from '@/lib/business';
+// MOCK (12 Nov 2026): Business and Life modes.
+import { ModeSwitch } from '@/components/ModeSwitch';
+import { MODE, useMode } from '@/lib/mode';
 
 type Row = { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; sub: string; to: string; params?: Record<string, string>; live?: string | null; locked?: boolean; pro?: boolean };
 type Area = { title: string; line: string; colour: string; now: (string | null | false | undefined)[]; rows: Row[] };
@@ -138,14 +141,26 @@ export default function World() {
         { icon: 'school-outline', title: 'Night school', sub: 'What she studies for you tonight', to: '/night-school', locked: !pro, pro: true },
       ] },
   ];
+  // Each mode keeps its own parts. People is in both. Growth is split: the business side is goals,
+  // the weekly review and decisions; the life side is habits, learning, wins and someday.
+  const mode = useMode();
+  const split = hasBusiness;
+  const PARTS = { business: ['People', 'Work', 'Growth'], life: ['People', 'Health', 'Home and money', 'Growth', 'Your words'] };
+  const GROWTH = { business: ['Goals', 'Weekly review', 'Decisions'], life: ['Goals', 'Habits', 'Learning', 'Wins', 'Someday', 'Shut down'] };
+  const shown = !split ? areas : areas.filter((a) => PARTS[mode].includes(a.title)).map((a) => {
+    if (a.title === 'Growth') return { ...a, line: mode === 'business' ? 'Where the business is heading' : 'Who you are becoming', rows: a.rows.filter((r) => GROWTH[mode].includes(r.title)), now: mode === 'business' ? [] : a.now };
+    if (a.title === 'People') return { ...a, now: a.now.filter((l) => (mode === 'business' ? !/birthday|caught up/.test(String(l)) : !/lead/.test(String(l)))) };
+    return a;
+  });
   return (
     <Screen>
-      <SkinHeader id="brain" title="Your world" sub="Everything she looks after, as she sees it. Each star is something she knows. Tap a part of your life to step into it." />
+      {split ? <View style={{ marginBottom: 14 }}><ModeSwitch /></View> : null}
+      <SkinHeader id="brain" title={split ? (mode === 'business' ? 'Your business' : 'Your life') : 'Your world'} sub={split ? (mode === 'business' ? 'The business side of your world. Your people are on both sides. Tap a part to step into it.' : 'The life side of your world. Your people are on both sides. Tap a part to step into it.') : 'Everything she looks after, as she sees it. Each star is something she knows. Tap a part of your life to step into it.'} />
       <View style={{ marginHorizontal: -space.lg }}>
-        <WorldMap homeCount={(hm?.admin_open ?? 0) + (hm?.home_open ?? 0) + (pm?.repeats.length ?? 0)} workTo={hasBusiness ? undefined : '/list?kind=todo'} />
+        <WorldMap homeCount={(hm?.admin_open ?? 0) + (hm?.home_open ?? 0) + (pm?.repeats.length ?? 0)} workTo={hasBusiness ? undefined : '/list?kind=todo'} show={split ? PARTS[mode] : undefined} lines={split ? (mode === 'business' ? { People: 'Clients, leads, family, friends', Growth: 'Goals, weekly review, decisions' } : { Growth: 'Habits, learning, wins, someday' }) : undefined} />
       </View>
       <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '800', letterSpacing: 2, marginBottom: space.md }}>EVERYTHING, AS A LIST</Text>
-      {areas.map((a) => {
+      {shown.map((a) => {
         const now = a.now.filter(Boolean) as string[];
         return (
           <View key={a.title} style={{ marginBottom: space.lg }}>

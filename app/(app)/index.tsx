@@ -30,7 +30,7 @@ import { MeetingNudge } from '@/components/MeetingNudge';
 import { DecisionsCard } from '@/components/DecisionsCard';
 import { PatternsCard } from '@/components/PatternsCard';
 import { TodayHero } from '@/components/TodayHero';
-import { BrainSky, type Lens } from '@/components/BrainSky';
+import { BrainSky, type Lens, type SideStar } from '@/components/BrainSky';
 import { useHasBusiness } from '@/lib/business';
 import { type Room } from '@/components/RoomSwitch';
 import { SheNoticed } from '@/components/SheNoticed';
@@ -38,6 +38,12 @@ import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 import { PageSky, skyScroll } from '@/components/NightSky';
 import { setDayShut } from '@/lib/sky';
 import { Aurora } from '@/components/Aurora';
+// MOCK (12 Nov 2026): Business and Life modes.
+import { ModeSwitch, TagPill } from '@/components/ModeSwitch';
+import { BusinessBoard, BusinessHeader, BusinessTools, LifeBoard } from '@/components/ModeToday';
+import { tagOf, useMode } from '@/lib/mode';
+import { habitTicks, lifeItems, myWorld, setHabitDay, type LifeItem, type WorldNow } from '@/lib/world';
+import { loadPersonalMoney, type PersonalMoney } from '@/lib/personalMoney';
 
 function greeting() {
   const h = new Date().getHours();
@@ -117,6 +123,11 @@ export default function Today() {
   const [loaded, setLoaded] = useState(false);
   // 9 Nov 2026 look refresh: one brain, two rooms.
   const [room, setRoom] = useState<Room>('business');
+  const mode = useMode();
+  const [world, setWorld] = useState<WorldNow | null>(null);
+  const [pm, setPm] = useState<PersonalMoney | null>(null);
+  const [habits, setHabits] = useState<LifeItem[]>([]);
+  const [ticks, setTicks] = useState<Record<string, string[]>>({});
   const week = useWeekCard(credits);
   const { goals } = useGoalsCard(credits);
 
@@ -139,6 +150,10 @@ export default function Today() {
       setMoney(isPaid(c) ? await loadMoneyPicture().catch(() => null) : null);
       setNewMail(isPaid(c) ? (await inboundEmails().catch(() => [])).filter((e) => e.status === 'new' && (e.source === 'tali_inbox' || e.category === 'needs_you')) : []);
       setLastDecision((await loadDecisions(1).catch(() => []))[0] ?? null);
+      myWorld().then(setWorld).catch(() => {});
+      if (isPaid(c)) loadPersonalMoney().then(setPm).catch(() => {});
+      lifeItems('habit').then((h) => setHabits(h.filter((x) => !x.done_at))).catch(() => {});
+      habitTicks().then(setTicks).catch(() => {});
       // Google Calendar, when connected: today's events and free gaps.
       if (isPaid(c)) anyCalendarToday().then((cal) => setCalendar(cal?.connected ? cal : null)).catch(() => setCalendar(null));
     } catch (e: any) {
@@ -167,7 +182,27 @@ export default function Today() {
   // With no business there is no business health to show (10 Nov 2026).
   const biz = useHasBusiness();
   const allTiles = glanceTiles({ credits, money, health, week, goals }).filter((t) => biz || t.key !== 'health');
-  const tiles = allTiles;
+  // Business mode shows money as its own row of numbers, so the tile is not repeated.
+  const bizMode = biz && mode === 'business';
+  const tiles = bizMode ? allTiles.filter((t) => t.key !== 'money') : [];
+  const mine = reminders.filter((r) => tagOf(r) === (bizMode ? 'business' : 'life'));
+  const theirs = reminders.length - mine.length;
+  // Things that need you on each side. The side you are not on shows the count, so nothing gets missed.
+  const waiting = {
+    business: approvals.length + newMail.length + reminders.filter((r) => tagOf(r) === 'business').length + followUps.length,
+    life: reminders.filter((r) => tagOf(r) === 'life').length + (world?.health.checkup_next && world.health.checkup_next.days <= 0 ? 1 : 0) + (world?.home.admin_next && world.home.admin_next.days <= 0 ? 1 : 0),
+  };
+  const lifeStars: SideStar[] = [];
+  if (world?.people.next_birthday && world.people.next_birthday.days <= 14) lifeStars.push({ key: 'bday', title: `${world.people.next_birthday.name}'s birthday`, sub: `In ${world.people.next_birthday.days} days`, area: 'people', to: '/dates' });
+  if (habits.length) { const d = habits.filter((x) => (ticks[x.id] ?? []).includes(today())).length; lifeStars.push({ key: 'habits', title: `${d} of ${habits.length} habits done`, sub: d === habits.length ? 'All done today' : `${habits.find((x) => !(ticks[x.id] ?? []).includes(today()))?.title} is left`, area: 'growth', to: '/list?kind=habit' }); }
+  if (world?.health.checkup_next && world.health.checkup_next.days <= 14) lifeStars.push({ key: 'checkup', title: world.health.checkup_next.title, sub: `In ${world.health.checkup_next.days} days`, area: 'health', to: '/list?kind=checkup' });
+  const bizLine = (() => {
+    const bits: string[] = [];
+    if (approvals.length) bits.push(`${approvals.length} ${approvals.length === 1 ? 'draft is' : 'drafts are'} waiting on your yes`);
+    if (money?.overdue) bits.push(`${money0(money.overdue)} is late`);
+    if (followUps.length) bits.push(`${followUps.length} ${followUps.length === 1 ? 'follow-up is' : 'follow-ups are'} due`);
+    return bits.length ? `${bits.join(', ')}.`.replace(/^./, (ch) => ch.toUpperCase()) : 'All quiet. Nothing is waiting on you.';
+  })();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
@@ -180,9 +215,19 @@ export default function Today() {
         contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
         <View ref={heroRef} collapsable={false}>
-        {(
-          <View style={{ marginHorizontal: -space.lg, marginTop: -space.lg }}>
-            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} nightLine={night ? shutdown?.tali_line ?? null : undefined} lens={lens} onLens={setLens} />
+        {biz ? <View style={{ zIndex: 2 }}><ModeSwitch waiting={waiting} /></View> : null}
+        {bizMode && !night ? (
+          <>
+            <BusinessHeader greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} business={profile?.business_name} line={bizLine} sub={trial} />
+            {morning ? (
+              <Pressable onPress={() => setBriefOpen((o) => !o)} accessibilityRole="button" style={{ marginTop: 12 }}>
+                <Text style={{ color: colours.purple, fontSize: 14, fontWeight: '700' }}>{briefOpen ? 'Hide your brief' : 'Read your morning brief'} {'›'}</Text>
+              </Pressable>
+            ) : null}
+          </>
+        ) : (
+          <View style={{ marginHorizontal: -space.lg, marginTop: biz ? 0 : -space.lg }}>
+            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} nightLine={night ? shutdown?.tali_line ?? null : undefined} lens={lens} onLens={setLens} side={biz ? 'life' : undefined} sideStars={lifeStars} />
             {morning && !night ? (
               <Pressable onPress={() => setBriefOpen((o) => !o)} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: 14, marginBottom: 6 }}>
                 <Text style={{ color: colours.purple, fontSize: 14, fontWeight: '700' }}>{briefOpen ? 'Hide your brief' : 'Read your morning brief'} {'›'}</Text>
@@ -194,11 +239,13 @@ export default function Today() {
         {/* Day closed (Taj, 10 Nov 2026): only her brain and the two bedtime buttons. The day's lists come back in the morning. */}
         {night ? <View style={{ marginTop: space.lg }}><ShutdownCard hideLine /></View> : (<>
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
-        <View style={hide()}><SheNoticed /></View>
+        {bizMode ? null : <View style={hide()}><SheNoticed /></View>}
 
         {morning && briefOpen && !night ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
         ) : null}
+
+        {bizMode ? <BusinessBoard money={money} world={world} followUps={followUps.length} paid={isPaid(credits)} /> : null}
 
         {/* Health lens: food and training come up to the top, so the lens has something to show. */}
         {lens === 'health' && life ? (
@@ -208,11 +255,11 @@ export default function Today() {
           </>
         ) : null}
 
-        <View style={hide('work', 'people')}><MeetingNudge credits={credits} calendar={calendar} compact /></View>
+        {bizMode ? <View style={hide('work', 'people')}><MeetingNudge credits={credits} calendar={calendar} compact /></View> : null}
 
         <View style={hide('growth')}><NightIdeaCard /></View>
 
-        <View style={hide('work', 'people')}>
+        <View style={bizMode ? hide('work', 'people') : { display: 'none' }}>
         {newMail.length || approvals.length ? <Label>Needs you</Label> : null}
         {newMail.length ? (
           <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">
@@ -249,8 +296,8 @@ export default function Today() {
 
         <View ref={dueRef} collapsable={false} style={hide('work', 'people')}>
         <Label>Due today</Label>
-        {reminders.length + followUps.length > 0 ? (
-          <DueList reminders={reminders} followUps={followUps} onChange={load} />
+        {mine.length + (bizMode ? followUps.length : 0) > 0 ? (
+          <DueList reminders={mine} followUps={bizMode ? followUps : []} onChange={load} />
         ) : loaded ? (
           <Card>
             <Body muted>Nothing due. Add a reminder and I'll nudge you when it's time.</Body>
@@ -261,7 +308,13 @@ export default function Today() {
           </Card>
         )}
         <AddReminder onAdded={load} />
+        {biz && theirs > 0 ? <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 6 }}>{theirs} more due on the {bizMode ? 'Life' : 'Business'} side.</Text> : null}
         </View>
+
+        {bizMode ? <><BusinessTools /><View style={{ height: space.lg }} /><SheNoticed /></> : (
+          <LifeBoard world={world} pm={pm} habits={habits} ticks={ticks} today={today()}
+            onHabit={(id, on) => { setTicks((t) => ({ ...t, [id]: on ? [...(t[id] ?? []), today()] : (t[id] ?? []).filter((d) => d !== today()) })); setHabitDay(id, today(), on).catch(() => {}); }} />
+        )}
 
 
         {tiles.length ? (
@@ -298,7 +351,7 @@ export default function Today() {
           ) : null;
         })()}
 
-        <LifeRoom life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} tiles={[]} />
+        {bizMode ? null : <LifeRoom life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} tiles={[]} />}
         {loadError ? (
           <Card>
             <Body muted>{loadError} Pull down to try again.</Body>
@@ -360,11 +413,16 @@ function BriefCard({ brief, open, onToggle, onRead }: { brief: Brief; open: bool
   return (
     <Card>
       <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text, marginBottom: 6 }}>{brief.content.headline || brief.title || 'Your brief'}</Text>
-      {shown.map((l, i) => (
-        <Text key={i} style={{ fontSize: 15, lineHeight: 22, color: colours.text, marginTop: 4 }}>
-          {'•'} {l}
-        </Text>
-      ))}
+      {/* MOCK (12 Nov 2026): one brief for both sides, each line tagged. */}
+      {shown.map((l, i) => {
+        const tag = ((brief.content as any).tags as string[] | undefined)?.[i];
+        return (
+          <View key={i} style={{ marginTop: 10 }}>
+            {tag === 'life' || tag === 'business' ? <TagPill tag={tag} /> : null}
+            <Text style={{ fontSize: 15, lineHeight: 22, color: colours.text, marginTop: 4 }}>{l}</Text>
+          </View>
+        );
+      })}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.md }}>
         {open || lines.length > 3 ? (
           <Pressable onPress={onToggle} accessibilityRole="button">
