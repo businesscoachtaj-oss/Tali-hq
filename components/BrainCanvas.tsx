@@ -103,6 +103,9 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
   const dragging = useSharedValue(false);
   const lastX = useSharedValue(0);
   const lastY = useSharedValue(0);
+  // 11 Nov 2026 (Taj: "you can't rotate and spin the brain or pinch to zoom"): pinch to zoom, 0.7 to 2.2.
+  const zoom = useSharedValue(1);
+  const startZoom = useSharedValue(1);
   const sparks = useSharedValue<number[]>([]);
   const burst = useSharedValue(-1);
   // What the screen asked for, kept in shared values so the drawing sees a change straight away.
@@ -184,10 +187,10 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
   }, [focused, frames]);
 
   const picture = useDerivedValue(() => {
-    const yaw = ry.value, pitch = rx.value, br = breathe.value, now = clock.value;
+    const yaw = ry.value, pitch = rx.value, br = breathe.value * zoom.value, now = clock.value;
     const focus = focusList.value, gl = glowList.value, ln = linkList.value, sp = sparks.value;
     const cy = Math.cos(yaw), sy = Math.sin(yaw), cx = Math.cos(pitch), sx = Math.sin(pitch);
-    const half = size / 2, scale = size / 400;
+    const half = size / 2, scale = (size / 400) * zoom.value;
     // Where every dot lands on screen this frame.
     const px: number[] = new Array(n), py: number[] = new Array(n), pk: number[] = new Array(n), pz: number[] = new Array(n);
     const proj = (x: number, y: number, z: number) => {
@@ -273,7 +276,7 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
     for (let i = 0; i < n; i++) {
       const x1 = pts[i * 3] * cy + pts[i * 3 + 2] * sy, z1 = -pts[i * 3] * sy + pts[i * 3 + 2] * cy;
       const y2 = pts[i * 3 + 1] * cx - z1 * sx, z2 = pts[i * 3 + 1] * sx + z1 * cx;
-      const sc = half * 0.88 * (3.2 / (3.2 - z2)) * breathe.value;
+      const sc = half * 0.88 * (3.2 / (3.2 - z2)) * breathe.value * zoom.value;
       const dx = half + x1 * sc - x, dy = half - y2 * sc + size * 0.02 - y, dd = dx * dx + dy * dy;
       if (dd < 22 * 22 && (z2 > bz || (z2 === bz && dd < bd))) { bz = z2; bd = dd; best = reg[i]; }
     }
@@ -284,8 +287,12 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
     onSelect(hit && hit !== selected ? hit : null);
   };
 
+  // A sideways drag spins her (and once it has started, up and down tilts her). A drag that starts
+  // up or down is left to the page, so you can still scroll past her.
   const pan = Gesture.Pan()
-    .minDistance(4)
+    .maxPointers(1)
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-18, 18])
     .onStart(() => {
       dragging.value = true;
       lastX.value = 0;
@@ -308,12 +315,24 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
     .onEnd((e) => {
       scheduleOnRN(report, pick(e.x, e.y));
     });
-  const gesture = Gesture.Race(pan, tap);
+  const pinch = Gesture.Pinch()
+    .onStart(() => {
+      dragging.value = true;
+      startZoom.value = zoom.value;
+    })
+    .onUpdate((e) => {
+      zoom.value = Math.max(0.7, Math.min(2.2, startZoom.value * e.scale));
+      lastInput.value = clock.value;
+    })
+    .onFinalize(() => {
+      dragging.value = false;
+    });
+  const gesture = Gesture.Race(Gesture.Simultaneous(pan, pinch), tap);
 
   return (
     <GestureHandlerRootView style={{ width: size, height: size }}>
       <GestureDetector gesture={gesture}>
-        <View style={{ width: size, height: size }} accessibilityLabel="Tali's brain in 3D. Drag to spin, tap a part to see what is in it.">
+        <View style={{ width: size, height: size }} accessibilityLabel="Tali's brain in 3D. Drag to spin, pinch to zoom, tap a part to see what is in it.">
           <Canvas style={{ width: size, height: size }}>
             <Picture picture={picture} />
           </Canvas>

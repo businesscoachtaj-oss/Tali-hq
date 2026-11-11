@@ -376,3 +376,10 @@ Taj's screen recording showed whole chunks of the Your world map blinking in and
 - The Work board no longer uses an animated perspective tilt (the one thing on the map that her brain does not also do). It is squashed and turned instead.
 - Stars no longer change their stacking order every frame.
 - Today no longer shows the Tonight heading twice.
+
+## 11 Nov 2026: pinch to zoom her brain, and spin without the scroll fighting
+
+Taj: "You can't rotate and spin the brain or pinch to zoom." The page said "pinch to zoom" but the canvas brains (web and the Skia one for the 1.0.2 phone builds) only had drag and tap.
+
+- **Web and PWA** (`components/BrainCanvas.web.tsx`): two fingers zoom her (0.7 to 2.2). A trackpad pinch zooms too. Tested with real touches: pinch zooms, an up or down drag still scrolls the page.
+- **Phone apps** (`components/BrainCanvas.tsx`, and the plain Views brain in `components/BrainGlobe.tsx` that 1.0.1 uses): pinch added to the Skia brain. On both, a sideways drag spins her and a drag that starts up or down is left to the page, so the scroll and the spin no longer fight over one finger. Not tested on a phone.
