@@ -100,3 +100,51 @@ export function paragraphs(text: string): string[] {
     .map((p) => p.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim())
     .filter((p) => p && !/^(produced by|e-text prepared by|transcribed by)\b/i.test(p));
 }
+
+// How a block of book text should be set on the page (11 Nov 2026, asked for by Taj: "books have
+// different fonts for different parts like normal books do"). The books are stored exactly as
+// published, with headings, verse and footnotes as plain lines. The words are kept as written.
+// The website reader (totality-website js/library.js) uses the same rules.
+export type BookBlock =
+  | { kind: 'number' | 'heading' | 'sign' | 'caption' | 'footnote'; text: string }
+  | { kind: 'contents' | 'verse'; lines: string[] }
+  | { kind: 'p'; text: string; lead: boolean };
+
+export function bookBlocks(text: string): BookBlock[] {
+  const out: BookBlock[] = [];
+  let lead = false;
+  for (const raw of text.replace(/\r/g, '').split(/\n\s*\n+/)) {
+    const lines = raw.split('\n').map((l) => l.replace(/\s+$/, '')).filter((l) => l.trim());
+    if (!lines.length) continue;
+    const flat = lines.map((l) => l.trim()).join(' ').replace(/\s{2,}/g, ' ');
+    if (/^(produced by|e-text prepared by|transcribed by)\b/i.test(flat)) continue;
+    const letters = flat.replace(/[^A-Za-z\u00C0-\u024F]/g, '');
+    const upper = letters.replace(/[^A-Z\u00C0-\u00DE]/g, '').length;
+    const caps = letters.length > 0 && upper / letters.length >= 0.8;
+    const clean = (t: string) => t.replace(/_([^_]+)_/g, '$1');
+    if (/^\[illustration/i.test(flat)) {
+      const cap = flat.replace(/^\[illustration:?\s*/i, '').replace(/\]$/, '');
+      if (cap) out.push({ kind: 'caption', text: clean(cap) });
+    } else if (/^\[(\d+|footnote)/i.test(flat)) {
+      out.push({ kind: 'footnote', text: clean(flat) });
+    } else if (lines.every((l) => /\s{3,}\d+$/.test(l))) {
+      out.push({ kind: 'contents', lines: lines.map((l) => clean(l.replace(/\s{3,}\d+$/, '').trim())) });
+    } else if (caps && flat.length <= 90) {
+      const first = lines[0].trim();
+      if (flat.length <= 14 && /\.$/.test(flat) && /\.\s*[A-Z]/.test(flat) && !/^(CHAPTER|LECTURE|BOOK|PART)\b/.test(flat)) out.push({ kind: 'sign', text: flat });
+      else if (/^[IVXLC]+\.?$/.test(flat)) { out.push({ kind: 'number', text: flat.replace(/\.$/, '') }); lead = true; }
+      else if (/^(CHAPTER|LECTURE|BOOK|PART|SECTION)\s+[IVXLC\d]+\.?$/.test(first)) {
+        out.push({ kind: 'number', text: first.replace(/\.$/, '') });
+        const rest = lines.slice(1).map((l) => l.trim()).join(' ');
+        if (rest) out.push({ kind: 'heading', text: clean(rest) });
+        lead = true;
+      } else { out.push({ kind: 'heading', text: clean(flat) }); lead = true; }
+    } else if (lines.length >= 2 && lines.every((l) => l.trim().length < 56)) {
+      out.push({ kind: 'verse', lines: lines.map((l) => clean(l.trim())) });
+    } else {
+      out.push({ kind: 'p', text: clean(flat), lead });
+      lead = false;
+    }
+  }
+  return out;
+}
