@@ -368,3 +368,11 @@ Asked for by Taj: "the 5 parts of your world... People is just clients and leads
 - **Database**: migration `20261111000077_world_fuller.sql` (applied): `life_items`, `habit_ticks`, `clients.birthday`, `goals.area`, `my_world(date)` (the right now lines), `tali_life_context` (server only), `next_birthday`.
 - **Sign in fix**: signing out on one device used to sign every device out, which left the others half signed in (lists loaded, Tali answered "Please sign in again."). Sign out is now this device only, and when a function says the sign in is no good the app gets a fresh one and tries again, or shows the sign in screen (`lib/supabase.ts`, `lib/auth.tsx`).
 - Also: the Goals screen no longer uses Tali's thinking pose when there are no goals.
+
+## 11 Nov 2026: the map blinking out on Android
+
+Taj's screen recording showed whole chunks of the Your world map blinking in and out on his Android phone. Not reproduced off the phone, so this is the likely cause fixed, to be confirmed on his phone.
+
+- The Work board no longer uses an animated perspective tilt (the one thing on the map that her brain does not also do). It is squashed and turned instead.
+- Stars no longer change their stacking order every frame.
+- Today no longer shows the Tonight heading twice.
