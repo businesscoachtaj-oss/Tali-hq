@@ -335,7 +335,10 @@ export function BrainGlobe(props: GlobeProps) {
   );
 }
 
-function BrainGlobeCanvas({ size, counts, links, selected, lit, onSelect, speed = 1 }: GlobeProps) {
+// 11 Nov 2026 (Taj: the dots a little bigger on the full brain). Same brain, each dot 15% larger.
+const BIG_DOTS = BRAIN.dots.map((d) => ({ ...d, size: d.size * 1.15 }));
+
+function BrainGlobeCanvas({ size, counts, links, selected, lit, onSelect, speed = 1, bigDots }: GlobeProps) {
   const glow = useMemo(() => {
     const max = Math.max(1, ...Object.values(counts).map((n) => n ?? 0));
     const out = {} as Record<RegionId, number>;
@@ -354,7 +357,7 @@ function BrainGlobeCanvas({ size, counts, links, selected, lit, onSelect, speed 
     }
     return out.slice(0, 18);
   }, [links]);
-  return <BrainCanvas size={size} dots={BRAIN.dots} centres={BRAIN.centres} glow={glow} links={pairs} selected={selected} lit={lit} onSelect={onSelect} speed={speed} />;
+  return <BrainCanvas size={size} dots={bigDots ? BIG_DOTS : BRAIN.dots} centres={BRAIN.centres} glow={glow} links={pairs} selected={selected} lit={lit} onSelect={onSelect} speed={speed} />;
 }
 
 function BrainGlobeViews({
@@ -366,6 +369,8 @@ function BrainGlobeViews({
   onSelect,
   speed = 1,
 }: {
+  /** The full brain page draws its dots a little bigger. Only the drawn version uses it. */
+  bigDots?: boolean;
   size: number;
   counts: Partial<Record<RegionId, number>>;
   links: { regions: RegionId[]; count: number }[];

@@ -137,6 +137,8 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
 
   const stageH = closed ? 360 : 470;
   const cx = W / 2, cy = stageH / 2;
+  // 11 Nov 2026 (Taj liked the bigger brain in the mock): she fills the stage instead of sitting small in it.
+  const globe = Math.min(W - 16, 420);
   const pos = (i: number) => ({ x: 16 + SPOTS[i][0] * (W - 186), y: SPOTS[i][1] * (stageH - 50) });
   const counts: Partial<Record<RegionId, number>> = {};
   brain?.regions.forEach((r) => (counts[r.id] = r.count));
@@ -194,8 +196,8 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
         {/* The stage: her brain, with your day orbiting it. */}
         {/* Tapping the empty sky closes whatever is open. */}
         <Pressable ref={brainRef} collapsable={false} onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
-          <View style={{ position: 'absolute', left: cx - 150, top: cy - 150, opacity: sel ? 0.35 : 1 }}>
-            <BrainGlobe size={300} counts={counts as any} links={brain?.links ?? []} selected={null} lit={lens && !focus ? LENS_REGIONS[lens] : null} speed={closed ? 0.5 : 1} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
+          <View style={{ position: 'absolute', left: cx - globe / 2, top: cy - globe / 2, opacity: sel ? 0.35 : 1 }}>
+            <BrainGlobe size={globe} counts={counts as any} links={brain?.links ?? []} selected={null} lit={lens && !focus ? LENS_REGIONS[lens] : null} speed={closed ? 0.5 : 1} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
           </View>
           {shownStars.map((s, i) => {
             const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = (!!focus && !on) || (!!lens && !focus && s.area !== lens);
@@ -300,7 +302,7 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens }: { g
         {/* Tali's level stays (Taj, 10 Nov 2026): it's how you see her grow. */}
         {level && !closed ? (
           <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}
-            style={{ marginHorizontal: 16, marginTop: 22, padding: 14, borderRadius: 20, backgroundColor: 'rgba(107,79,216,0.38)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } }}>
+            style={{ marginHorizontal: 16, marginTop: 22, padding: 14, borderRadius: 20, backgroundColor: 'rgba(64,46,160,0.92)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#F6A02C', alignItems: 'center', justifyContent: 'center', shadowColor: '#F6A02C', shadowOpacity: 1, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } }}>
                 <Text style={{ color: '#141033', fontSize: 19, fontWeight: '800' }}>{level.level}</Text>

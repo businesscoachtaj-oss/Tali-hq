@@ -185,7 +185,7 @@ export default function BrainScreen() {
       <View style={{ borderRadius: radius.card, overflow: 'hidden', padding: space.md, paddingBottom: space.lg }}>
         <NightBackground style={{ borderRadius: radius.card }} />
         <View style={{ alignItems: 'center' }}>
-          <BrainGlobe size={size} counts={counts} links={brain?.links ?? []} selected={shown} onSelect={pick} />
+          <BrainGlobe bigDots size={size} counts={counts} links={brain?.links ?? []} selected={shown} onSelect={pick} />
           <Text style={{ color: night.faint, fontSize: 12, marginTop: space.xs }}>Drag to spin, pinch to zoom, tap a part</Text>
         </View>
 

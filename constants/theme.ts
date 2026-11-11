@@ -3,8 +3,9 @@
 // the stars, light ink, an editorial serif for headings, and her notes on warm paper.
 export const colours = {
   bg: '#0C0A24',
-  surface: 'rgba(58,44,140,0.55)',
-  sunk: 'rgba(255,255,255,0.10)',
+  // 11 Nov 2026 (Taj: add density to the boxes): nearly solid, so text never floats on the bright sky.
+  surface: 'rgba(30,24,88,0.93)',
+  sunk: 'rgba(20,16,60,0.90)',
   border: 'rgba(196,178,255,0.30)',
   borderStrong: 'rgba(255,255,255,0.20)',
   text: '#F4F1FF',
