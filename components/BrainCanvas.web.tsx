@@ -97,6 +97,10 @@ export function BrainCanvas(props: Props) {
 
     let ry = 0.6, rx = 0.18, spin = 0, breathe = 1, size = live.current.size, dpr = 1;
     let dragging = false, lastX = 0, lastY = 0, moved = 0, lastInput = 0;
+    // 11 Nov 2026 (Taj: "you can't rotate and spin the brain or pinch to zoom"): two fingers zoom, 0.7 to 2.2.
+    let zoom = 1, pinchStart = 0, pinchZoom = 1;
+    const fingers = new Map<number, { x: number; y: number }>();
+    const spread = () => { const [a, b] = [...fingers.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
     let proj: { sx: number; sy: number; k: number; z: number; d: D }[] = [];
 
     const resize = () => {
@@ -108,7 +112,7 @@ export function BrainCanvas(props: Props) {
     const project = (p: { x: number; y: number; z: number }) => {
       const cy = Math.cos(ry), sy = Math.sin(ry), x1 = p.x * cy + p.z * sy, z1 = -p.x * sy + p.z * cy;
       const cx = Math.cos(rx), sx = Math.sin(rx), y2 = p.y * cx - z1 * sx, z2 = p.y * sx + z1 * cx;
-      const k = 3.2 / (3.2 - z2), half = size / 2, sc = half * 0.88 * k * breathe;
+      const k = 3.2 / (3.2 - z2), half = size / 2, sc = half * 0.88 * k * breathe * zoom;
       return { sx: half + x1 * sc, sy: half - y2 * sc + size * 0.02, k, z: z2 };
     };
     const focusSet = (): RegionId[] | null => {
@@ -125,7 +129,7 @@ export function BrainCanvas(props: Props) {
       });
       proj.sort((a, b) => a.z - b.z);
       const focus = focusSet();
-      const scale = size / 400;
+      const scale = (size / 400) * zoom;
       const { glow, links, centres } = live.current;
       // The app's lines between parts that share a name, on the whole brain only.
       if (!focus) {
@@ -220,8 +224,19 @@ export function BrainCanvas(props: Props) {
       }
       return best;
     };
-    const down = (e: PointerEvent) => { dragging = true; moved = 0; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); };
+    const down = (e: PointerEvent) => {
+      fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      canvas.setPointerCapture(e.pointerId);
+      if (fingers.size === 2) { pinchStart = spread(); pinchZoom = zoom; moved = 99; return; }
+      dragging = true; moved = 0; lastX = e.clientX; lastY = e.clientY;
+    };
     const move = (e: PointerEvent) => {
+      if (fingers.has(e.pointerId)) fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (fingers.size >= 2) {
+        if (pinchStart > 0) zoom = Math.max(0.7, Math.min(2.2, pinchZoom * (spread() / pinchStart)));
+        lastInput = performance.now();
+        return;
+      }
       if (!dragging) return;
       const dx = e.clientX - lastX, dy = e.clientY - lastY;
       moved += Math.abs(dx) + Math.abs(dy);
@@ -233,6 +248,14 @@ export function BrainCanvas(props: Props) {
       lastInput = performance.now();
     };
     const up = (e: PointerEvent) => {
+      const wasPinch = fingers.size >= 2;
+      fingers.delete(e.pointerId);
+      if (wasPinch) {
+        // The finger still down carries on as a drag from where it is, without a jump or a tap.
+        const rest = [...fingers.values()][0];
+        if (rest) { lastX = rest.x; lastY = rest.y; moved = 99; }
+        return;
+      }
       if (!dragging) return;
       dragging = false;
       if (moved < 6) {
@@ -241,11 +264,19 @@ export function BrainCanvas(props: Props) {
         live.current.onSelect(hit && hit !== live.current.selected ? hit : null);
       }
     };
-    const cancel = () => { dragging = false; };
+    const cancel = (e: PointerEvent) => { fingers.delete(e.pointerId); if (!fingers.size) dragging = false; };
+    // A trackpad pinch arrives as a wheel with ctrl held. A plain wheel still scrolls the page.
+    const wheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoom = Math.max(0.7, Math.min(2.2, zoom * Math.exp(-e.deltaY * 0.01)));
+      lastInput = performance.now();
+    };
     canvas.addEventListener('pointerdown', down);
     canvas.addEventListener('pointermove', move);
     canvas.addEventListener('pointerup', up);
     canvas.addEventListener('pointercancel', cancel);
+    canvas.addEventListener('wheel', wheel, { passive: false });
 
     let visible = true;
     const io = 'IntersectionObserver' in window ? new IntersectionObserver((es) => { visible = es[0].isIntersecting; }) : null;
@@ -283,13 +314,14 @@ export function BrainCanvas(props: Props) {
       canvas.removeEventListener('pointermove', move);
       canvas.removeEventListener('pointerup', up);
       canvas.removeEventListener('pointercancel', cancel);
+      canvas.removeEventListener('wheel', wheel);
     };
   }, []);
 
   return (
     <canvas
       ref={ref}
-      aria-label="Tali's brain in 3D. Drag to spin, tap a part to see what is in it."
+      aria-label="Tali's brain in 3D. Drag to spin, pinch to zoom, tap a part to see what is in it."
       role="img"
       style={{ width: props.size, height: props.size, display: 'block', touchAction: 'pan-y', cursor: 'grab' }}
     />

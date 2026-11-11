@@ -463,8 +463,12 @@ function BrainGlobeViews({
 
   const centreList = useMemo(() => (Object.keys(BRAIN.centres) as RegionId[]).map((id) => ({ id, ...BRAIN.centres[id] })), []);
 
+  // 11 Nov 2026: a sideways drag spins her (then up and down tilts her). A drag that starts up or
+  // down is left to the page, so the scroll and the spin stop fighting over the same finger.
   const pan = Gesture.Pan()
-    .minDistance(4)
+    .maxPointers(1)
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-18, 18])
     .onStart(() => {
       dragging.value = true;
       flick.value = 0;
