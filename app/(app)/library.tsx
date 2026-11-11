@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackLink, Button, Card, ErrorText, Loading, Screen, TaliSays, Title, goBack } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 import { REGIONS } from '@/lib/brain';
-import { libraryBook, libraryRead, libraryShelf, paragraphs, type LibraryBook, type LibraryBookDetail, type LibraryPassage } from '@/lib/library';
+import { libraryBook, libraryRead, libraryShelf, bookBlocks, type BookBlock, type LibraryBook, type LibraryBookDetail, type LibraryPassage } from '@/lib/library';
 
 type Book = LibraryBook;
 const serif = 'InstrumentSerif_400Regular';
@@ -220,15 +220,13 @@ function Reader({ b, back }: { b: LibraryBookDetail; back: () => void }) {
     <>
       <BackLink onPress={back} label={b.title} />
       <View style={{ backgroundColor: colours.paper, borderRadius: 18, padding: 22, minHeight: 320, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } }}>
-        <Text style={{ color: '#7A6F8F', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, marginBottom: 12 }}>PASSAGE {n ?? 1} OF {b.passages}</Text>
+        <Text style={{ color: '#7A6F8F', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, marginBottom: 12 }}>PAGE {n ?? 1} OF {b.passages}</Text>
         {page ? (
           <>
-            {paragraphs(page.text).map((p, i) => (
-              <Text key={i} style={{ color: colours.ink, fontSize: 20, lineHeight: 29, fontFamily: serif, marginBottom: 14 }}>{p}</Text>
-            ))}
+            {bookBlocks(page.text).map((blk, i) => <Block key={i} b={blk} />)}
             {page.kept.map((k, i) => (
-              <View key={i} style={{ backgroundColor: 'rgba(108,52,131,0.10)', borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: '#6C3483', marginTop: i ? 8 : 0 }}>
-                <Text style={{ color: '#6C3483', fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 4 }}>TALI KEPT THIS</Text>
+              <View key={i} style={{ backgroundColor: '#EFEAFB', borderRadius: 12, padding: 12, borderLeftWidth: 4, borderLeftColor: '#6C3483', marginTop: 8 }}>
+                <Text style={{ color: '#6C3483', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, marginBottom: 4 }}>TALI'S NOTE</Text>
                 <Text style={{ color: colours.ink, fontSize: 14, lineHeight: 20 }}>{k}</Text>
               </View>
             ))}
@@ -245,6 +243,50 @@ function Reader({ b, back }: { b: LibraryBookDetail; back: () => void }) {
       </View>
     </>
   );
+}
+
+// One block of the book, set the way a printed book would set it: chapter numbers and headings
+// in the heading font, the book's own words in the serif, verse in italics, footnotes small.
+function Block({ b }: { b: BookBlock }) {
+  const body = { color: colours.ink, fontSize: 20, lineHeight: 29, fontFamily: serif } as const;
+  if (b.kind === 'number')
+    return (
+      <View style={{ alignItems: 'center', marginTop: 18, marginBottom: 6 }}>
+        <Text style={{ color: '#B23A30', fontSize: 14, fontWeight: '800', letterSpacing: 3 }}>{b.text}</Text>
+        <View style={{ width: 40, height: 2, backgroundColor: '#CDBFA6', marginTop: 10 }} />
+      </View>
+    );
+  if (b.kind === 'heading')
+    return <Text accessibilityRole="header" style={{ color: '#1C1433', fontSize: 21, lineHeight: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', textAlign: 'center', marginTop: 10, marginBottom: 16 }}>{b.text}</Text>;
+  if (b.kind === 'sign') return <Text style={{ ...body, textAlign: 'right', letterSpacing: 1.5, fontSize: 17, marginBottom: 14 }}>{b.text}</Text>;
+  if (b.kind === 'caption') return <Text style={{ color: '#7A6F8F', fontSize: 15, lineHeight: 21, fontStyle: 'italic', textAlign: 'center', marginBottom: 14 }}>{b.text}</Text>;
+  if (b.kind === 'footnote')
+    return <Text style={{ color: '#7A6F8F', fontSize: 13, lineHeight: 19, marginBottom: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#CDBFA6' }}>{b.text}</Text>;
+  if (b.kind === 'contents')
+    return (
+      <View style={{ marginBottom: 6 }}>
+        {b.lines.map((l, i) => (
+          <Text key={i} style={{ color: colours.ink, fontSize: 15, lineHeight: 21, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#DDD2BC' }}>{l}</Text>
+        ))}
+      </View>
+    );
+  if (b.kind === 'verse')
+    return (
+      <View style={{ marginLeft: 18, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: '#CDBFA6', marginBottom: 16, marginTop: 2 }}>
+        {b.lines.map((l, i) => (
+          <Text key={i} style={{ ...body, fontSize: 19, lineHeight: 27, fontStyle: 'italic' }}>{l}</Text>
+        ))}
+      </View>
+    );
+  if (b.kind !== 'p') return null;
+  if (b.lead && b.text.length > 1)
+    return (
+      <Text style={{ ...body, marginBottom: 14 }}>
+        <Text style={{ color: '#B23A30', fontSize: 30 }}>{b.text.slice(0, 1)}</Text>
+        {b.text.slice(1)}
+      </Text>
+    );
+  return <Text style={{ ...body, marginBottom: 14 }}>{b.text}</Text>;
 }
 
 export default function LibraryScreen() {
