@@ -41,7 +41,7 @@ export function SendChecks({ placeholders, approvalId }: { placeholders: string[
     <View style={{ marginTop: space.md, borderWidth: 1, borderColor: colours.border, borderRadius: 12, overflow: 'hidden' }}>
       <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: colours.muted, paddingHorizontal: space.md, paddingTop: 10, paddingBottom: 4 }}>TALI CHECKED IT</Text>
       {rows.map((r, i) => (
-        <View key={i} style={{ flexDirection: 'row', gap: 10, paddingHorizontal: space.md, paddingVertical: 10, backgroundColor: r.ok ? 'transparent' : '#FDECEA', borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
+        <View key={i} style={{ flexDirection: 'row', gap: 10, paddingHorizontal: space.md, paddingVertical: 10, backgroundColor: r.ok ? 'transparent' : 'rgba(255,122,110,0.16)', borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
           <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: r.ok ? colours.good : colours.danger, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
             <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>{r.ok ? '✓' : '!'}</Text>
           </View>
