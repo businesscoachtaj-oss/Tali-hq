@@ -61,6 +61,11 @@ export default function AppTabs() {
       <Tabs.Screen name="top-up" options={{ href: null, title: 'Top up' }} />
       <Tabs.Screen name="person" options={{ href: null, title: 'Person' }} />
       <Tabs.Screen name="decisions" options={{ href: null, title: 'Decisions' }} />
+      {/* 11 Nov 2026: Your world, filled in. One screen for the new lists, plus Body, Headspace and Dates. */}
+      <Tabs.Screen name="list" options={{ href: null, title: 'List' }} />
+      <Tabs.Screen name="body" options={{ href: null, title: 'Body' }} />
+      <Tabs.Screen name="headspace" options={{ href: null, title: 'Headspace' }} />
+      <Tabs.Screen name="dates" options={{ href: null, title: 'Dates that matter' }} />
     </Tabs>
   );
 }

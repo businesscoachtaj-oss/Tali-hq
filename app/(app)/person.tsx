@@ -7,6 +7,7 @@ import { forgetMemory, myCredits, type Client, type Credits, type Memory } from 
 import { isPaid } from '@/lib/plan';
 import { client as loadClient, memoriesAbout, saveContact } from '@/lib/people';
 import { addDays, FOLLOW_UP_PICKS, friendlyDate, isoDate, today } from '@/lib/dates';
+import { birthdayNext, birthdayText, inDays } from '@/lib/world';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, goBack, Label, Loading, Screen, TaliSays, Title } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
@@ -89,7 +90,7 @@ export default function Person() {
   if (notFound) {
     return (
       <Screen>
-        <BackLink onPress={() => goBack('/clients')} label="Clients" />
+        <BackLink onPress={() => goBack('/clients')} label="Your people" />
         <Title>Person</Title>
         <TaliSays pose="think">I can't find that person. They may have been deleted.</TaliSays>
       </Screen>
@@ -101,7 +102,7 @@ export default function Person() {
   if (!person) {
     return (
       <Screen onRefresh={load}>
-        <BackLink onPress={() => goBack('/clients')} label="Clients" />
+        <BackLink onPress={() => goBack('/clients')} label="Your people" />
         {error ? <Card><Body muted>{error}</Body></Card> : null}
       </Screen>
     );
@@ -112,14 +113,20 @@ export default function Person() {
 
   return (
     <Screen onRefresh={load}>
-      <BackLink onPress={() => goBack('/clients')} label="Clients" />
+      <BackLink onPress={() => goBack('/clients')} label="Your people" />
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, marginBottom: space.lg }}>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 28, fontWeight: '800', color: colours.text }}>{person.name}</Text>
           <Text style={{ fontSize: 15, color: colours.muted, marginTop: 4 }}>
-            {person.kind === 'lead' ? 'Lead' : 'Client'} {'·'} {STATUS_LABEL[person.status] ?? person.status}
+            {person.kind === 'family' ? 'Family' : person.kind === 'friend' ? 'Friend' : `${person.kind === 'lead' ? 'Lead' : 'Client'} ${'·'} ${STATUS_LABEL[person.status] ?? person.status}`}
             {person.email ? ` ${'·'} ${person.email}` : ''}
           </Text>
+          {/* 11 Nov 2026: their birthday, and how far off it is. */}
+          {person.birthday ? (
+            <Text style={{ fontSize: 14, color: colours.muted, marginTop: 4 }}>
+              Birthday {birthdayText(person.birthday)}, {inDays(birthdayNext(person.birthday).days)}{birthdayNext(person.birthday).turning ? `, turning ${birthdayNext(person.birthday).turning}` : ''}
+            </Text>
+          ) : null}
         </View>
         <Pressable onPress={() => router.navigate({ pathname: '/clients', params: { edit: person.id, from: 'person' } } as any)} accessibilityRole="button" hitSlop={8}
           style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: colours.borderStrong, backgroundColor: colours.surface }}>

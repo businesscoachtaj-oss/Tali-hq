@@ -12,7 +12,36 @@ if (!url || !key) {
   throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_KEY. Check eas.json or .env.');
 }
 
+// 11 Nov 2026 (Taj hit "Please sign in again." on Shut down with no way forward): when one of Tali's
+// functions says the sign in is no good, get a fresh one and try once more. If a fresh one cannot be
+// had (signed out on another device, password changed), sign out here so the sign in screen shows
+// instead of a dead end.
+let fixingSession: Promise<string | null> | null = null;
+async function freshToken(): Promise<string | null> {
+  fixingSession ??= supabase.auth.refreshSession()
+    .then(({ data, error }) => (error || !data.session ? null : data.session.access_token))
+    .catch(() => null)
+    .finally(() => { fixingSession = null; });
+  return fixingSession;
+}
+const fetchWithFreshSession: typeof fetch = async (input, init) => {
+  const res = await fetch(input, init);
+  const target = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+  if (res.status !== 401 || !target.includes('/functions/v1/')) return res;
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return res;
+  const token = await freshToken();
+  if (!token) {
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    return res;
+  }
+  const headers = new Headers(init?.headers ?? (typeof input === 'object' && 'headers' in input ? input.headers : undefined));
+  headers.set('Authorization', `Bearer ${token}`);
+  return fetch(input, { ...init, headers });
+};
+
 export const supabase = createClient(url, key, {
+  global: { fetch: fetchWithFreshSession },
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
