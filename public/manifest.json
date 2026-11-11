@@ -26,8 +26,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#6C3483",
-  "background_color": "#F5F3F0",
+  "theme_color": "#0C0A24",
+  "background_color": "#0C0A24",
   "share_target": {
     "action": "/talk",
     "method": "GET",

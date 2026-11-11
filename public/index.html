@@ -8,11 +8,12 @@
     <meta name="description" content="Your AI teammate who remembers your business." />
     <!-- Installable app (PWA): manifest, theme colour and iPhone home screen settings -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#6C3483" />
+    <meta name="theme-color" content="#0C0A24" />
+    <meta name="color-scheme" content="dark" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Tali HQ" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
@@ -20,6 +21,8 @@
       html,
       body {
         height: 100%;
+        /* the app's night sky colour, so the phone's bars and any gap match the app */
+        background-color: #0C0A24;
       }
       /* These styles disable body scrolling if you are using <ScrollView> */
       body {
