@@ -3,6 +3,7 @@ import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { currentConversation, deleteConversation, freeMessagesLeft, listConversations, makeImage, messages as loadMessages, myCredits, newConversation, pinConversation, renameConversation, sendMessage, type Attachment, type Credits, type DeepLevel, type ConversationRow, type Message, MAX_ATTACHMENTS, uploadAttachment } from '@/lib/data';
+import { LISTS, type ListKind } from '@/lib/world';
 import { isMax, isPaid, isPro } from '@/lib/plan';
 import { VOICE_LIVE, VoiceButton } from '@/components/VoiceButton';
 import { MicButton } from '@/components/MicButton';
@@ -438,6 +439,13 @@ export default function Talk() {
                     <Pressable onPress={() => router.navigate({ pathname: '/money', params: { side: 'personal' } })} accessibilityRole="link" accessibilityLabel="Spending logged. Open your personal money." style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: 'rgba(127,224,176,0.14)', borderWidth: 1, borderColor: 'rgba(127,224,176,0.65)' }}>
                       <Text style={{ color: colours.good, fontSize: 13 }}>{'✦'}</Text>
                       <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>{item.meta.spent.count === 1 ? '1 spend logged' : `${item.meta.spent.count} spends logged`}</Text> A${item.meta.spent.total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <Text style={{ color: colours.good, fontWeight: '700' }}>{'→'} Money</Text></Text>
+                    </Pressable>
+                  ) : null}
+                  {/* Lists she added to or ticked off from this reply (11 Nov 2026). Tap to open the list. */}
+                  {!me && item.meta?.listed?.count && item.meta.listed.kind in LISTS ? (
+                    <Pressable onPress={() => router.navigate({ pathname: '/list', params: { kind: item.meta!.listed!.kind } } as any)} accessibilityRole="link" accessibilityLabel={`Saved to ${LISTS[item.meta.listed.kind as ListKind].title}. Open it.`} style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: 'rgba(127,224,176,0.14)', borderWidth: 1, borderColor: 'rgba(127,224,176,0.65)' }}>
+                      <Text style={{ color: colours.good, fontSize: 13 }}>{'✦'}</Text>
+                      <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>Saved to your lists</Text> <Text style={{ color: colours.good, fontWeight: '700' }}>{'→'} {LISTS[item.meta.listed.kind as ListKind].title}</Text></Text>
                     </Pressable>
                   ) : null}
                   {item.failed ? (

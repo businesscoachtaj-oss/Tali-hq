@@ -103,7 +103,9 @@ const VOICE = [
   'Never use em dashes or en dashes. Use commas, full stops or "and".',
   'No hype words, no "here\'s the thing", no "it\'s not X, it\'s Y" contrasts.',
   'You never send, book or pay for anything yourself. Everything you write to go out lands on their Today screen and waits for their tap. When they want a text or social message written, put it in drafts (they copy and send it). When their Google is connected and they want an email sent, put it in emails (Today gets a "Send from Gmail" button). When their calendar is connected and they want something booked, put it in events (Today gets a "Book it" button, and the invite goes to the attendee when they tap it). Say what is waiting on Today in one short line. If Google is not connected and they ask for either, draft it anyway as a draft and mention they can connect Google in Settings.',
-  'You can keep their client and lead list, set reminders and draft invoices, but only when they ask. Confirm what you added in one short line.',
+  'You can keep their people (family, friends, clients and leads, with birthdays), set reminders and draft invoices, but only when they ask. Confirm what you added in one short line.',
+  // ADDED (11 Nov 2026, asked for by Taj: Your world filled in): the lists across their life.
+  'You also keep their lists: to do, check ups, life admin, jobs around the home, habits, what they are learning, wins, someday dreams and ideas. When they tell you something that belongs on one, or that one is done, put it in lists and confirm in one short line. Their open items are given to you, so reuse the exact title when ticking one off. Never add something they only wondered about.',
   'You hold them to their goals: when they set one or report progress, save it in goals and name where they are against it. When they state a decision they have made, record it in decisions with their reasoning; never record your own suggestions or things they are only considering. Their three commitments for the week and their last shutdown are in their rhythm data, so refer to them when it helps.',
   'You can also log their food, weight and workouts and write their training programme when they tell you or ask. Food numbers are your estimates, so say "about" and keep them realistic. No medical or diet advice beyond general information.',
   'When web search is available, use it only for things that change (prices, rules, news, events, local businesses) or that you do not know, and name your sources in the reply. Never search for personal details about private people.',
@@ -171,12 +173,13 @@ const TOOL = {
         type: 'array',
         maxItems: 3,
         description:
-          'Only when they ask you to add or update someone on their client or lead list (for example "add Jordan as a client", "Mia is a new lead", "follow up Sam next Tuesday"). Matched by name. Empty otherwise.',
+          'Only when they ask you to add or update someone in their people, or tell you a birthday (for example "add Jordan as a client", "Mia is a new lead", "follow up Sam next Tuesday", "Mum\'s birthday is 14 December", "Dan is my best mate, add him"). Matched by name. Empty otherwise.',
         items: {
           type: 'object',
           properties: {
             name: { type: 'string' },
-            kind: { type: 'string', enum: ['client', 'lead'] },
+            kind: { type: 'string', enum: ['client', 'lead', 'family', 'friend'], description: "'family' and 'friend' for people in their own life. Only set it when they said which." },
+            birthday: { type: 'string', description: 'YYYY-MM-DD, only if they told you the birthday. Use the year 1904 when they gave no year.' },
             status: { type: 'string', enum: ['active', 'quiet', 'paused', 'new', 'talking', 'won', 'lost', 'past'] },
             notes: { type: 'string', description: 'A short note to add, in their words.' },
             next_follow_up: { type: 'string', description: 'YYYY-MM-DD in their timezone, if they gave a follow-up day.' },
@@ -328,8 +331,28 @@ const TOOL = {
             due_date: { type: 'string', description: 'YYYY-MM-DD in their timezone, if they gave one.' },
             status: { type: 'string', enum: ['active', 'done', 'dropped'] },
             notes: { type: 'string' },
+            area: { type: 'string', enum: ['business', 'personal'], description: "For a new goal: 'personal' when it is about their own life (health, family, money of their own, learning), 'business' when it is about their work." },
           },
           required: ['title'],
+        },
+      },
+      // ADDED (11 Nov 2026, asked for by Taj): the lists that fill Your world in.
+      lists: {
+        type: 'array',
+        maxItems: 6,
+        description:
+          'Only when they tell you something for one of their lists, or that something on one is done. todo: a thing to do. checkup: a health check up or script that is due. admin: life admin with a date, like rego, insurance or a renewal. home: a job around the house. habit: something they want to do daily. learning: a book, course or skill they are on. win: something that went well, in their words. someday: a dream or trip for one day. idea: a half thought to keep. Empty otherwise. A reminder at a set time goes in reminders, not here.',
+        items: {
+          type: 'object',
+          properties: {
+            list: { type: 'string', enum: ['todo', 'checkup', 'admin', 'home', 'habit', 'learning', 'win', 'someday', 'idea'] },
+            action: { type: 'string', enum: ['add', 'done'], description: "'done' ticks off an open item with this exact title, or marks a habit done today. Otherwise 'add'." },
+            title: { type: 'string', description: 'Short, in their words, no trailing full stop.' },
+            due_date: { type: 'string', description: 'YYYY-MM-DD in their timezone, only if they gave a day.' },
+            repeat_months: { type: 'number', description: 'For a check up or life admin that comes round again: 12 for yearly, 6 for every six months. Only if they said so.' },
+            note: { type: 'string', description: 'Anything else they said about it, such as who to call.' },
+          },
+          required: ['list', 'action', 'title'],
         },
       },
       decisions: {
@@ -369,7 +392,7 @@ const TOOL = {
         },
       },
     },
-    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'spends', 'weight', 'workouts', 'emails', 'events', 'goals', 'decisions', 'training_plan'],
+    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'spends', 'weight', 'workouts', 'emails', 'events', 'goals', 'lists', 'decisions', 'training_plan'],
   },
 };
 // ADDED (6 Nov 2026, brain sections): lessons that prove themselves. Optional, so a reply that uses
@@ -400,7 +423,7 @@ type Out = {
   remember?: { kind: string; content: string; about?: string[]; urgent?: boolean; conflicts_with?: string; date?: string; yearly?: boolean }[];
   lessons_used?: { ref: string; held: boolean }[];
   drafts?: { kind: string; title: string; to?: string; body: string }[];
-  clients?: { name: string; kind?: string; status?: string; notes?: string; next_follow_up?: string }[];
+  clients?: { name: string; kind?: string; status?: string; notes?: string; next_follow_up?: string; birthday?: string }[];
   reminders?: { text: string; due_at: string; client_name?: string }[];
   invoices?: { client_name: string; items: { description: string; qty: number; unit_price: number }[]; due_days?: number; notes?: string }[];
   food?: { meal: string; description: string; calories: number; protein_g: number; carbs_g: number; fat_g: number; date?: string }[];
@@ -409,7 +432,8 @@ type Out = {
   workouts?: { label: string; notes?: string; date?: string }[];
   emails?: { to: string; to_name?: string; subject: string; body: string; reply_to_email_id?: string }[];
   events?: { title: string; start: string; end: string; attendee_email?: string; location?: string; description?: string }[];
-  goals?: { title: string; target_number?: number; current_number?: number; unit?: string; due_date?: string; status?: string; notes?: string }[];
+  goals?: { title: string; target_number?: number; current_number?: number; unit?: string; due_date?: string; status?: string; notes?: string; area?: string }[];
+  lists?: { list: string; action?: string; title: string; due_date?: string; repeat_months?: number; note?: string }[];
   decisions?: { decision: string; reasoning?: string; date?: string }[];
   training_plan?: { name: string; days: { weekday: number; label: string; notes?: string }[] }[];
 };
@@ -817,6 +841,8 @@ Deno.serve(async (req) => {
     const moneyToday = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
     const { data: personalMoney } = consume.plan === 'free' ? { data: null } : await admin.rpc('personal_money_picture', { p_user_id: user.id, p_today: moneyToday });
     const pm: any = personalMoney ?? null;
+    // ADDED (11 Nov 2026, asked for by Taj): their open lists and birthdays coming up (Your world).
+    const { data: lifeLists } = await admin.rpc('tali_life_context', { p_user_id: user.id, p_today: moneyToday });
     const now = new Date().toLocaleString('en-AU', { timeZone: tz, dateStyle: 'full', timeStyle: 'short' });
     const offset = new Intl.DateTimeFormat('en-AU', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+11:00';
     const system = [
@@ -834,6 +860,7 @@ Deno.serve(async (req) => {
       `Their latest journal entries they let you read: ${JSON.stringify(ctx?.journal ?? [])}`,
       `Their clients, leads, follow-ups due, open reminders, unpaid invoices and business health: ${JSON.stringify(work ?? {})}`,
       `Their food today (your estimates), weight and training this week: ${JSON.stringify(life ?? {})}`,
+      `Their lists (open to dos, check ups, life admin, home jobs, habits, learning, someday and ideas), the habits already done today and birthdays in the next 45 days (data): ${JSON.stringify(lifeLists ?? {})}`,
       pm
         ? `Their personal money (their own spending, not the business). Weekly amount to spend: ${pm.weekly_amount ?? 'not set'}. Spent so far this week, before this message: ${pm.week_spent}. Spent this month: ${pm.month_spent}. This month by category with budgets: ${JSON.stringify(pm.categories ?? [])}. When they tell you a personal spend with an amount, put it in spends and tell them it is logged. If a weekly amount is set, say what is left for the week after it (weekly amount, minus spent so far, minus what they just told you; Rent and other repeating bills do not count against the week). Mention a category only if this spend takes it over its monthly budget. Keep it to a line or two, no advice unless they ask.`
         : '',
@@ -1064,10 +1091,10 @@ Deno.serve(async (req) => {
     for (const c of (result.out.clients ?? []).slice(0, 3)) {
       const name = strip(String(c.name ?? '').trim()).slice(0, 120);
       if (!name) continue;
-      const kind = c.kind === 'lead' ? 'lead' : c.kind === 'client' ? 'client' : null;
+      const kind = ['client', 'lead', 'family', 'friend'].includes(String(c.kind)) ? c.kind : null;
       const okStatus = ['active', 'quiet', 'paused', 'new', 'talking', 'won', 'lost', 'past'];
       const follow = /^\d{4}-\d{2}-\d{2}$/.test(String(c.next_follow_up ?? '')) ? c.next_follow_up : null;
-      const { error } = await admin.rpc('tali_save_client', {
+      const { data: savedClientId, error } = await admin.rpc('tali_save_client', {
         p_user_id: user.id,
         p_name: name,
         p_kind: kind,
@@ -1076,6 +1103,11 @@ Deno.serve(async (req) => {
         p_next_follow_up: follow,
       });
       if (!error) clientsSaved++;
+      // ADDED (11 Nov 2026): a birthday they told her, kept on the person. Real calendar dates only.
+      const bday = String(c.birthday ?? '');
+      if (!error && savedClientId && /^(19|20)\d{2}-\d{2}-\d{2}$/.test(bday) && !Number.isNaN(Date.parse(bday)) && new Date(bday).toISOString().slice(0, 10) === bday && bday <= moneyToday) {
+        await admin.from('clients').update({ birthday: bday }).eq('id', savedClientId).eq('user_id', user.id);
+      }
     }
 
     let remindersSet = 0;
@@ -1099,7 +1131,7 @@ Deno.serve(async (req) => {
         const title = strip(String(g.title ?? '').trim()).slice(0, 120);
         if (!title) continue;
         const numOrNull = (v: unknown) => (v === undefined || v === null || v === '' || isNaN(Number(v)) ? null : Number(v));
-        const { error } = await admin.rpc('tali_save_goal', {
+        const { data: savedGoalId, error } = await admin.rpc('tali_save_goal', {
           p_user_id: user.id,
           p_title: title,
           p_target: numOrNull(g.target_number),
@@ -1110,6 +1142,9 @@ Deno.serve(async (req) => {
           p_notes: g.notes ? strip(String(g.notes)).slice(0, 1000) : null,
         });
         if (!error) goalsSaved++;
+        if (!error && savedGoalId && (g.area === 'business' || g.area === 'personal')) {
+          await admin.from('goals').update({ area: g.area }).eq('id', savedGoalId).eq('user_id', user.id);
+        }
       }
     }
     let decisionsLogged = 0;
@@ -1190,6 +1225,60 @@ Deno.serve(async (req) => {
         if (saved?.id) await admin.from('messages').update({ meta }).eq('id', saved.id);
       }
     }
+    // ADDED (11 Nov 2026, asked for by Taj): the lists that fill Your world in. Every plan, no extra credits.
+    const LIST_KINDS = ['todo', 'checkup', 'admin', 'home', 'habit', 'learning', 'win', 'someday', 'idea'];
+    let listsSaved = 0;
+    const listKinds: string[] = [];
+    for (const it of (result.out.lists ?? []).slice(0, 6)) {
+      const listKind = String(it.list ?? '');
+      const title = strip(String(it.title ?? '').trim()).replace(/\.$/, '').slice(0, 200);
+      if (!LIST_KINDS.includes(listKind) || !title) continue;
+      let ok = false;
+      if (it.action === 'done') {
+        const { data: hit } = await admin.from('life_items').select('id, repeat_months, due_date').eq('user_id', user.id).eq('kind', listKind).is('done_at', null).ilike('title', title.replace(/[%_\\]/g, (ch) => '\\' + ch)).limit(1).maybeSingle();
+        if (!hit) continue;
+        if (listKind === 'habit') {
+          const { error } = await admin.from('habit_ticks').upsert({ item_id: hit.id, user_id: user.id, local_date: localToday }, { onConflict: 'item_id,local_date' });
+          ok = !error;
+        } else if (hit.repeat_months) {
+          // Something that comes round again moves its date on instead of closing.
+          const from = new Date(`${hit.due_date && hit.due_date > localToday ? hit.due_date : localToday}T12:00:00Z`);
+          const dayOfMonth = from.getUTCDate();
+          from.setUTCDate(1);
+          from.setUTCMonth(from.getUTCMonth() + hit.repeat_months);
+          from.setUTCDate(Math.min(dayOfMonth, new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 0)).getUTCDate()));
+          const { error } = await admin.from('life_items').update({ due_date: from.toISOString().slice(0, 10), updated_at: new Date().toISOString() }).eq('id', hit.id);
+          ok = !error;
+        } else {
+          const { error } = await admin.from('life_items').update({ done_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', hit.id);
+          ok = !error;
+        }
+      } else {
+        const dueOk = /^\d{4}-\d{2}-\d{2}$/.test(String(it.due_date ?? '')) && !Number.isNaN(Date.parse(String(it.due_date)));
+        const rep = Math.round(Number(it.repeat_months));
+        const { data: already } = await admin.from('life_items').select('id').eq('user_id', user.id).eq('kind', listKind).is('done_at', null).ilike('title', title.replace(/[%_\\]/g, (ch) => '\\' + ch)).limit(1).maybeSingle();
+        if (already && listKind !== 'win') { ok = true; }
+        else {
+          const { error } = await admin.from('life_items').insert({
+            user_id: user.id,
+            kind: listKind,
+            title,
+            note: it.note ? strip(String(it.note)).slice(0, 2000) : '',
+            due_date: dueOk && ['todo', 'checkup', 'admin', 'home'].includes(listKind) ? it.due_date : null,
+            repeat_months: ['checkup', 'admin'].includes(listKind) && rep >= 1 && rep <= 60 ? rep : null,
+            local_date: localToday,
+            created_by: 'tali',
+          });
+          ok = !error;
+        }
+      }
+      if (ok) { listsSaved++; if (!listKinds.includes(listKind)) listKinds.push(listKind); }
+    }
+    if (listsSaved) {
+      // Shown under her reply as a pill that opens the list.
+      meta.listed = { count: listsSaved, kind: listKinds[0], kinds: listKinds };
+      if (saved?.id) await admin.from('messages').update({ meta }).eq('id', saved.id);
+    }
     let weightLogged = false;
     for (const w of (result.out.weight ?? []).slice(0, 1)) {
       const kg = Math.round(Number(w.kg) * 10) / 10;
@@ -1231,7 +1320,7 @@ Deno.serve(async (req) => {
       admin.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId),
     ]);
 
-    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, spendsLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, deep, suggestDeep: !deep && !!result.out.suggest_deep, meta, remaining: Math.max(0, (consume.remaining ?? 0) - extraCredits - (onFree ? 0 : 2 * result.searches)) });
+    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, spendsLogged, listsSaved, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, deep, suggestDeep: !deep && !!result.out.suggest_deep, meta, remaining: Math.max(0, (consume.remaining ?? 0) - extraCredits - (onFree ? 0 : 2 * result.searches)) });
   } catch (e) {
     await admin.rpc('chat_refund', { p_usage_id: usageId });
     if (deepFreeId) await admin.from('usage').delete().eq('id', deepFreeId);

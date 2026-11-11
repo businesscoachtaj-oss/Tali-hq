@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHasBusiness } from '@/lib/business';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { clients as loadClients, deleteClient, saveClient, type Client } from '@/lib/data';
+import { clients as loadClients, deleteClient, saveClient, type Client, type PersonKind } from '@/lib/data';
+import { birthdayNext, birthdayText, inDays, parseBirthday } from '@/lib/world';
 import { addDays, friendlyDate, FOLLOW_UP_PICKS, isoDate, today } from '@/lib/dates';
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
@@ -25,12 +26,17 @@ const STATUS_LABEL: Record<string, string> = {
   new: 'New', talking: 'Talking', won: 'Won', lost: 'Lost',
 };
 
-type Draft = { id?: string; name: string; kind: 'client' | 'lead'; status: string; email: string; phone: string; notes: string; next_follow_up: string | null; last_contact_at: string | null };
-const blank = (kind: 'client' | 'lead'): Draft => ({ name: '', kind, status: kind === 'lead' ? 'new' : 'active', email: '', phone: '', notes: '', next_follow_up: null, last_contact_at: null });
+// 11 Nov 2026 (Taj: "People is just clients and leads, it's not friends, family"): family and friends
+// are their own groups. With no business, 'client' is simply everyone else.
+type Draft = { id?: string; name: string; kind: PersonKind; status: string; email: string; phone: string; notes: string; next_follow_up: string | null; last_contact_at: string | null; birthday: string };
+const blank = (kind: PersonKind): Draft => ({ name: '', kind, status: kind === 'lead' ? 'new' : 'active', email: '', phone: '', notes: '', next_follow_up: null, last_contact_at: null, birthday: '' });
+const KINDS = ['family', 'friend', 'client', 'lead'] as const;
+const isKind = (k: unknown): k is PersonKind => (KINDS as readonly string[]).includes(k as string);
 
 export default function Clients() {
   const [list, setList] = useState<Client[]>([]);
-  const [tab, setTab] = useState<'client' | 'lead'>('client');
+  const [tab, setTab] = useState<PersonKind>('family');
+  const [tabChosen, setTabChosen] = useState(false);
   // 10 Nov 2026: with no business this is simply your people, with no clients and leads split.
   const hasBusiness = useHasBusiness();
   const [search, setSearch] = useState('');
@@ -56,7 +62,7 @@ export default function Clients() {
       for (const r of rows) {
         if (have.has(r.name.toLowerCase())) continue;
         have.add(r.name.toLowerCase());
-        await saveClient({ name: r.name, kind: hasBusiness ? tab : 'client', status: hasBusiness && tab === 'lead' ? 'new' : 'active', email: r.email || null });
+        await saveClient({ name: r.name, kind: tab, status: tab === 'lead' ? 'new' : 'active', email: r.email || null });
       }
       setPasteText('');
       setPasting(false);
@@ -68,12 +74,13 @@ export default function Clients() {
   }
   // ADDED (3 Nov 2026): the person screen's Edit button opens /clients?edit=<id>&from=person.
   // 4 Nov 2026: remember that it came from Person, so Back and Save return there rather than the list.
-  const params = useLocalSearchParams<{ edit?: string; from?: string }>();
+  const params = useLocalSearchParams<{ edit?: string; from?: string; tab?: string }>();
+  const tabParam = Array.isArray(params.tab) ? params.tab[0] : params.tab;
   const editId = Array.isArray(params.edit) ? params.edit[0] : params.edit;
   const fromParam = Array.isArray(params.from) ? params.from[0] : params.from;
   const [fromPerson, setFromPerson] = useState(false);
 
-  const toDraft = (c: Client): Draft => ({ id: c.id, name: c.name, kind: c.kind, status: c.status, email: c.email ?? '', phone: c.phone ?? '', notes: c.notes, next_follow_up: c.next_follow_up, last_contact_at: c.last_contact_at });
+  const toDraft = (c: Client): Draft => ({ id: c.id, name: c.name, kind: c.kind, status: c.status, email: c.email ?? '', phone: c.phone ?? '', notes: c.notes, next_follow_up: c.next_follow_up, last_contact_at: c.last_contact_at, birthday: birthdayText(c.birthday) });
 
   const load = useCallback(async () => {
     try {
@@ -98,18 +105,37 @@ export default function Clients() {
     }, [load]),
   );
 
+  // Your world opens a group directly (/clients?tab=family). Otherwise land on the first group with
+  // anyone in it, so nobody opens the page onto an empty tab while their people sit in another.
+  const kinds: PersonKind[] = hasBusiness ? ['family', 'friend', 'client', 'lead'] : ['family', 'friend', 'client'];
+  useEffect(() => {
+    if (!isKind(tabParam)) return;
+    setTab(tabParam === 'lead' && !hasBusiness ? 'client' : tabParam);
+    setTabChosen(true);
+    router.setParams({ tab: undefined } as any);
+  }, [tabParam, hasBusiness]);
+  useEffect(() => {
+    if (tabChosen || !list.length) return;
+    const order: PersonKind[] = hasBusiness ? ['client', 'lead', 'family', 'friend'] : ['family', 'friend', 'client'];
+    const first = order.find((k) => list.some((c) => c.kind === k));
+    if (first) setTab(first);
+  }, [list, tabChosen, hasBusiness]);
+  const pickTab = (k: PersonKind) => { setTab(k); setTabChosen(true); };
+  const kindLabel = (k: PersonKind, many = false) => k === 'family' ? 'Family' : k === 'friend' ? (many ? 'Friends' : 'Friend') : k === 'lead' ? (many ? 'Leads' : 'Lead') : hasBusiness ? (many ? 'Clients' : 'Client') : (many ? 'Others' : 'Someone else');
+
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
     return list
-      .filter((c) => !hasBusiness || c.kind === tab)
+      .filter((c) => c.kind === tab || (!hasBusiness && tab === 'client' && c.kind === 'lead'))
       .filter((c) => !q || c.name.toLowerCase().includes(q) || c.notes.toLowerCase().includes(q))
       .sort((a, b) => {
         const fa = a.next_follow_up ?? '9999', fb = b.next_follow_up ?? '9999';
         return fa === fb ? a.name.localeCompare(b.name) : fa.localeCompare(fb);
       });
-  }, [list, tab, search]);
+  }, [list, tab, search, hasBusiness]);
 
-  const counts = { client: list.filter((c) => c.kind === 'client').length, lead: list.filter((c) => c.kind === 'lead').length };
+  const counts: Record<PersonKind, number> = { family: 0, friend: 0, client: 0, lead: 0 };
+  for (const c of list) counts[!hasBusiness && c.kind === 'lead' ? 'client' : c.kind]++;
 
   // Leave the editor. If Edit was opened from Person, go back to that person.
   function closeEditor(personId?: string) {
@@ -125,9 +151,11 @@ export default function Clients() {
     if (!draft) return;
     setError('');
     if (!draft.name.trim()) return setError('Give them a name.');
+    const birthday = draft.birthday.trim() ? parseBirthday(draft.birthday) : null;
+    if (draft.birthday.trim() && !birthday) return setError('I could not read that birthday. Try 14 December or 14/12/1961.');
     setBusy(true);
     try {
-      await saveClient(draft);
+      await saveClient({ ...draft, birthday });
       closeEditor(draft.id);
       await load();
     } catch (e: any) {
@@ -154,36 +182,38 @@ export default function Clients() {
 
   if (draft) {
     const statuses = draft.kind === 'lead' ? LEAD_STATUSES : CLIENT_STATUSES;
+    const work = hasBusiness && (draft.kind === 'client' || draft.kind === 'lead');
     const pickFollow = (days: number | null) => setDraft({ ...draft, next_follow_up: days === null ? null : isoDate(addDays(new Date(), days)) });
     return (
       <Screen skin="cork">
         <BackLink onPress={() => closeEditor(draft.id)} label={fromPerson ? draft.name || 'Back' : 'Back'} />
-        <Title>{draft.id ? draft.name || 'Edit' : !hasBusiness ? 'New person' : draft.kind === 'lead' ? 'New lead' : 'New client'}</Title>
-        {/* Client or lead, and their status, only mean something when you run a business. */}
-        {hasBusiness ? <ChipPicker options={['client', 'lead'] as const} value={draft.kind} label={(k) => (k === 'lead' ? 'Lead' : 'Client')}
-          onChange={(k) => setDraft({ ...draft, kind: k, status: k === 'lead' ? 'new' : 'active' })} /> : null}
+        <Title>{draft.id ? draft.name || 'Edit' : draft.kind === 'lead' ? 'New lead' : draft.kind === 'client' && hasBusiness ? 'New client' : 'New person'}</Title>
+        <ChipPicker options={kinds} value={draft.kind === 'lead' && !hasBusiness ? 'client' : draft.kind} label={(k) => kindLabel(k)}
+          onChange={(k) => setDraft({ ...draft, kind: k, status: k === 'lead' ? 'new' : 'active' })} />
         <Field label="Name" value={draft.name} onChangeText={(t) => setDraft({ ...draft, name: t })} maxLength={120} />
-        {hasBusiness ? (
+        {/* A status only means something for clients and leads. */}
+        {work ? (
           <>
             <Label>Status</Label>
             <ChipPicker options={statuses} value={draft.status as any} label={(s) => STATUS_LABEL[s]} onChange={(s) => setDraft({ ...draft, status: s })} />
           </>
         ) : null}
-        <Label>{hasBusiness ? 'Follow up' : 'Check in'}</Label>
+        <Label>{work ? 'Follow up' : 'Catch up'}</Label>
         <ChipPicker
           options={FOLLOW_UP_PICKS.map((p) => p.label)}
           value={followUpPickFor(draft.next_follow_up)}
           onChange={(l) => pickFollow(FOLLOW_UP_PICKS.find((p) => p.label === l)!.days)}
         />
         <Text style={{ color: colours.muted, fontSize: 13, marginTop: -6, marginBottom: space.md }}>
-          {draft.next_follow_up ? `Next follow-up: ${friendlyDate(draft.next_follow_up)}` : 'No follow-up set.'}
+          {draft.next_follow_up ? `${work ? 'Next follow-up' : 'Catch up'}: ${friendlyDate(draft.next_follow_up)}` : work ? 'No follow-up set.' : 'No catch up set.'}
         </Text>
+        <Field label="Birthday (optional)" value={draft.birthday} onChangeText={(t) => setDraft({ ...draft, birthday: t })} placeholder="14 December, or 14/12/1961" autoCapitalize="none" />
         <Field label="Email (optional)" value={draft.email} onChangeText={(t) => setDraft({ ...draft, email: t })} autoCapitalize="none" keyboardType="email-address" inputMode="email" />
         <Field label="Phone (optional)" value={draft.phone} onChangeText={(t) => setDraft({ ...draft, phone: t })} keyboardType="phone-pad" inputMode="tel" />
         <Field label="Notes" value={draft.notes} onChangeText={(t) => setDraft({ ...draft, notes: t })} multiline maxLength={4000}
           placeholder="Goals, what they like, anything worth remembering." style={{ minHeight: 110, textAlignVertical: 'top' }} />
-        <Button title="Contacted today" kind="ghost" onPress={() => setDraft({ ...draft, last_contact_at: today() })} />
-        {draft.last_contact_at ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: 6 }}>Last contact: {friendlyDate(draft.last_contact_at)}</Text> : null}
+        <Button title={work ? 'Contacted today' : 'Caught up today'} kind="ghost" onPress={() => setDraft({ ...draft, last_contact_at: today() })} />
+        {draft.last_contact_at ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: 6 }}>{work ? 'Last contact' : 'Last caught up'}: {friendlyDate(draft.last_contact_at)}</Text> : null}
         <ErrorText>{error}</ErrorText>
         <Button title="Save" onPress={save} busy={busy} />
         {draft.id ? <Button title={confirmDelete ? 'Tap again to delete' : 'Delete'} kind="danger" onPress={remove} disabled={busy} /> : null}
@@ -193,14 +223,13 @@ export default function Clients() {
 
   return (
     <Screen skin="cork" onRefresh={load}>
-      <SkinHeader id="cork" title="Your people" sub={hasBusiness ? "Clients, leads and the people who matter. Tell her about anyone: add Mia as a new lead, or Mum's birthday is 14 December." : "Family, friends and the people who matter. Tell her about anyone: Mum's birthday is 14 December, or Dan is moving to Perth."} onBack={() => router.navigate('/world')} />
-      <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md, display: hasBusiness ? 'flex' : 'none' }}>
-        {(['client', 'lead'] as const).map((k) => (
-          <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
+      <SkinHeader id="cork" title="Your people" sub={hasBusiness ? "Family, friends, clients and leads. Tell her about anyone: add Mia as a new lead, or Mum's birthday is 14 December." : "Family, friends and the people who matter. Tell her about anyone: Mum's birthday is 14 December, or Dan is moving to Perth."} onBack={() => router.navigate('/world')} />
+      <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
+        {kinds.map((k) => (
+          <Pressable key={k} onPress={() => pickTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
             style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? colours.surface : 'transparent', alignItems: 'center' }}>
-            <Text style={{ fontWeight: '700', color: tab === k ? colours.text : colours.muted }}>
-              {k === 'client' ? 'Clients' : 'Leads'} {counts[k] ? `(${counts[k]})` : ''}
-            </Text>
+            <Text numberOfLines={1} style={{ fontWeight: '700', fontSize: 13.5, color: tab === k ? colours.text : colours.muted }}>{kindLabel(k, true)}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: tab === k ? colours.purpleInk : colours.faint }}>{counts[k]}</Text>
           </Pressable>
         ))}
       </View>
@@ -208,7 +237,8 @@ export default function Clients() {
         <TextInput value={search} onChangeText={setSearch} placeholder="Search" placeholderTextColor={colours.faint}
           style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, marginBottom: space.md, color: colours.text }} />
       ) : null}
-      <Button title={!hasBusiness ? 'Add a person' : tab === 'lead' ? 'Add a lead' : 'Add a client'} onPress={() => setDraft(blank(hasBusiness ? tab : 'client'))} />
+      <Button title={tab === 'lead' ? 'Add a lead' : tab === 'client' && hasBusiness ? 'Add a client' : tab === 'family' ? 'Add family' : tab === 'friend' ? 'Add a friend' : 'Add a person'} onPress={() => setDraft(blank(tab))} />
+      <Button title="Dates that matter" kind="ghost" onPress={() => router.navigate('/dates')} />
       {hasBusiness ? <Button title="Invoices" kind="ghost" onPress={() => router.navigate('/invoices')} /> : null}
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.md }} />
@@ -238,23 +268,31 @@ export default function Clients() {
             {hasBusiness ? <Body muted>Anyone you invoice is saved here for you.</Body> : null}
           </>
         ) : (
-          <Card><Body muted>{search ? 'No one matches that.' : !hasBusiness ? 'No one yet. Tell Tali about someone in Talk and they land here.' : tab === 'lead' ? 'No leads yet.' : 'No clients yet.'}</Body></Card>
+          <Card><Body muted>{search ? 'No one matches that.' : tab === 'lead' ? 'No leads yet.' : tab === 'client' && hasBusiness ? 'No clients yet.' : tab === 'family' ? 'No family here yet. Tell Tali about them in Talk, or add them above.' : tab === 'friend' ? 'No friends here yet. Tell Tali about them in Talk, or add them above.' : 'No one else yet.'}</Body></Card>
         )
       ) : (
         shown.map((c) => {
           const due = c.next_follow_up && c.next_follow_up <= today();
+          const personal = c.kind === 'family' || c.kind === 'friend';
+          const bday = c.birthday ? birthdayNext(c.birthday) : null;
           return (
             <Pressable key={c.id} onPress={() => router.navigate({ pathname: '/person', params: { id: c.id } } as any)} accessibilityRole="button">
               <Card style={due ? { borderLeftWidth: 5, borderLeftColor: colours.orange } : undefined}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
                   <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text, flex: 1 }} numberOfLines={1}>{c.name}</Text>
-                  {hasBusiness ? <Text style={{ fontSize: 12, fontWeight: '700', color: colours.purpleInk }}>{STATUS_LABEL[c.status] ?? c.status}</Text> : null}
+                  {hasBusiness && !personal ? <Text style={{ fontSize: 12, fontWeight: '700', color: colours.purpleInk }}>{STATUS_LABEL[c.status] ?? c.status}</Text> : null}
                 </View>
                 {c.next_follow_up ? (
                   <Text style={{ fontSize: 13, color: due ? colours.orange : colours.muted, marginTop: 3, fontWeight: due ? '700' : '400' }}>
-                    Follow up: {friendlyDate(c.next_follow_up)}
+                    {personal ? 'Catch up' : 'Follow up'}: {friendlyDate(c.next_follow_up)}
                   </Text>
                 ) : null}
+                {bday && bday.days <= 60 ? (
+                  <Text style={{ fontSize: 13, color: bday.days <= 7 ? colours.orange : colours.muted, marginTop: 3, fontWeight: bday.days <= 7 ? '700' : '400' }}>
+                    Birthday {inDays(bday.days)}{bday.turning ? `, turning ${bday.turning}` : ''}
+                  </Text>
+                ) : null}
+                {personal && c.last_contact_at ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 3 }}>Last caught up: {friendlyDate(c.last_contact_at)}</Text> : null}
                 {c.notes ? <Text numberOfLines={2} style={{ fontSize: 14, color: colours.muted, marginTop: 4, lineHeight: 20 }}>{c.notes}</Text> : null}
               </Card>
             </Pressable>

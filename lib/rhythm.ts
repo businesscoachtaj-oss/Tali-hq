@@ -218,12 +218,14 @@ export type Goal = {
   due_date: string | null;
   status: 'active' | 'done' | 'dropped';
   notes: string | null;
+  // 11 Nov 2026: a goal is for the business or for you.
+  area: 'business' | 'personal';
   last_checked_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
-const GOAL_COLS = 'id, title, target_number, current_number, unit, due_date, status, notes, last_checked_at, created_at, updated_at';
+const GOAL_COLS = 'id, title, target_number, current_number, unit, due_date, status, notes, area, last_checked_at, created_at, updated_at';
 const numify = (g: any): Goal => ({ ...g, target_number: g.target_number === null ? null : Number(g.target_number), current_number: Number(g.current_number ?? 0) });
 
 export async function goals(status: Goal['status'] | 'all' = 'active'): Promise<Goal[]> {
@@ -240,7 +242,7 @@ export async function activeGoals(limit = 3): Promise<Goal[]> {
   return ((data as any[]) ?? []).map(numify);
 }
 
-export async function saveGoal(g: { id?: string; title: string; target_number: number | null; current_number?: number; unit: string | null; due_date: string | null; notes: string | null; status?: Goal['status'] }) {
+export async function saveGoal(g: { id?: string; title: string; target_number: number | null; current_number?: number; unit: string | null; due_date: string | null; notes: string | null; status?: Goal['status']; area?: Goal['area'] }) {
   const row = {
     title: g.title.trim().slice(0, 120),
     target_number: g.target_number,
@@ -249,6 +251,7 @@ export async function saveGoal(g: { id?: string; title: string; target_number: n
     due_date: g.due_date || null,
     notes: g.notes?.trim() || null,
     ...(g.status ? { status: g.status } : {}),
+    ...(g.area ? { area: g.area } : {}),
     last_checked_at: new Date().toISOString(),
   };
   const { error } = g.id ? await supabase.from('goals').update(row).eq('id', g.id) : await supabase.from('goals').insert(row);

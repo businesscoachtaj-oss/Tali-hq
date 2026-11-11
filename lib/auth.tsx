@@ -83,7 +83,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const refreshProfile = useCallback(() => loadProfile(session), [loadProfile, session]);
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    // This device only (11 Nov 2026). The default signs every device out, which left the others
+    // half signed in: lists loaded but Tali answered "Please sign in again."
+    await supabase.auth.signOut({ scope: 'local' });
   }, []);
 
   return (

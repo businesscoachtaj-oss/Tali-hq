@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { myCredits, type Credits } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
+import { useHasBusiness } from '@/lib/business';
 import { addDays, friendlyDate, isoDate } from '@/lib/dates';
 import { behindPace, daysLeft, fmtNum, goalLine, goalProgress, goals as loadGoals, saveGoal, setGoalProgress, setGoalStatus, type Goal } from '@/lib/rhythm';
 import { ChipPicker } from '@/components/ChipPicker';
@@ -13,8 +14,9 @@ import { BackLink, Body, Button, Card, ErrorText, Field, Label, Loading, Screen,
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 
-type Draft = { id?: string; title: string; target: string; current: string; unit: string; due_date: string | null; notes: string };
-const blank = (): Draft => ({ title: '', target: '', current: '', unit: '', due_date: null, notes: '' });
+// 11 Nov 2026 (Taj: "Growth is just goals"): a goal is for the business or for you.
+type Draft = { id?: string; title: string; target: string; current: string; unit: string; due_date: string | null; notes: string; area: Goal['area'] };
+const blank = (area: Goal['area']): Draft => ({ title: '', target: '', current: '', unit: '', due_date: null, notes: '', area });
 
 const DUE_PICKS = [
   { label: 'No date', days: null },
@@ -35,6 +37,8 @@ function pickToDate(label: DuePick): string | null {
 
 export default function GoalsScreen() {
   const [ready, setReady] = useState(false);
+  const hasBusiness = useHasBusiness();
+  const areaLabel = (a: Goal['area']) => (a === 'personal' ? 'Personal' : hasBusiness ? 'Business' : 'Work');
   const [credits, setCredits] = useState<Credits | null>(null);
   const [tab, setTab] = useState<'active' | 'done' | 'dropped'>('active');
   const [list, setList] = useState<Goal[]>([]);
@@ -65,11 +69,11 @@ export default function GoalsScreen() {
   function startEdit(g?: Goal) {
     setError('');
     if (!g) {
-      setDraft(blank());
+      setDraft(blank(hasBusiness ? 'business' : 'personal'));
       setDuePick('No date');
       return;
     }
-    setDraft({ id: g.id, title: g.title, target: g.target_number === null ? '' : String(g.target_number), current: String(g.current_number), unit: g.unit ?? '', due_date: g.due_date, notes: g.notes ?? '' });
+    setDraft({ id: g.id, title: g.title, target: g.target_number === null ? '' : String(g.target_number), current: String(g.current_number), unit: g.unit ?? '', due_date: g.due_date, notes: g.notes ?? '', area: g.area ?? 'business' });
     setDuePick(g.due_date ? ('Custom' as DuePick) : 'No date');
   }
 
@@ -83,7 +87,7 @@ export default function GoalsScreen() {
     if (!(current >= 0)) return setError('Where you are now needs to be a number.');
     setBusy(true);
     try {
-      await saveGoal({ id: draft.id, title: draft.title, target_number: target, current_number: current, unit: draft.unit, due_date: draft.due_date, notes: draft.notes });
+      await saveGoal({ id: draft.id, title: draft.title, target_number: target, current_number: current, unit: draft.unit, due_date: draft.due_date, notes: draft.notes, area: draft.area });
       setDraft(null);
       await load();
     } catch (e: any) {
@@ -141,7 +145,9 @@ export default function GoalsScreen() {
     );
   }
 
-  const shown = list.filter((g) => g.status === tab);
+  // Business first, then personal, each in the order they came (soonest due first).
+  const shown = list.filter((g) => g.status === tab).sort((a, b) => (a.area === b.area ? 0 : a.area === 'business' ? -1 : 1));
+  const bothAreas = new Set(shown.map((g) => g.area)).size > 1;
   const active = list.filter((g) => g.status === 'active');
 
   if (draft) {
@@ -149,6 +155,7 @@ export default function GoalsScreen() {
       <Screen skin="finish" onRefresh={load}>
         <BackLink onPress={() => setDraft(null)} label="Goals" />
         <Title sub="A number and a date make it real. Both are optional.">{draft.id ? 'Edit goal' : 'New goal'}</Title>
+        <ChipPicker options={['business', 'personal'] as const} value={draft.area} onChange={(a) => setDraft({ ...draft, area: a })} label={(a) => areaLabel(a)} />
         <Field label="Goal" value={draft.title} onChangeText={(v) => setDraft({ ...draft, title: v })} placeholder="5 more regular clients" maxLength={120} autoFocus={!draft.id} />
         <View style={{ flexDirection: 'row', gap: space.md }}>
           <View style={{ flex: 1 }}>
@@ -184,7 +191,7 @@ export default function GoalsScreen() {
       <SkinHeader id="finish" title="Goals" sub="The numbers you're chasing, and Tali holding you to them." onBack={() => router.navigate('/')} backLabel="Today" />
 
       {active.length === 0 && tab === 'active' ? (
-        <TaliSays pose="think">No goals yet. Give me one with a number and a date, like "5 more regular clients by the end of February", and I'll keep it in front of you.</TaliSays>
+        <TaliSays pose="idle">No goals yet. Give me one with a number and a date, like "5 more regular clients by the end of February", and I'll keep it in front of you.</TaliSays>
       ) : (
         <TaliSays pose="idle">{taliLine(active)}</TaliSays>
       )}
@@ -200,13 +207,16 @@ export default function GoalsScreen() {
         </Card>
       ) : null}
 
-      {shown.map((g) => {
+      {shown.map((g, gi) => {
         const p = goalProgress(g);
+        const heading = bothAreas && (gi === 0 || shown[gi - 1].area !== g.area) ? areaLabel(g.area) : null;
         const left = daysLeft(g);
         const behind = g.status === 'active' && behindPace(g);
         const editingProgress = progressFor?.id === g.id;
         return (
-          <Card key={g.id}>
+          <View key={g.id}>
+          {heading ? <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '800', letterSpacing: 2, marginTop: gi ? space.md : 0, marginBottom: space.sm }}>{heading.toUpperCase()}</Text> : null}
+          <Card>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.sm }}>
               <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: colours.text }}>{g.title}</Text>
               {g.status === 'active' ? (
@@ -250,6 +260,7 @@ export default function GoalsScreen() {
               </View>
             )}
           </Card>
+          </View>
         );
       })}
     </Screen>

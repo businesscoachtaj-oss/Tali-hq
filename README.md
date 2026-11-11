@@ -353,3 +353,18 @@ Asked for by Taj: a personal spend and budget tracker. Money now has a Business 
 - Categories are fixed for now: Groceries, Rent, Bills, Eating out, Transport, Fun, Health, Shopping, Other.
 - Also: the Money screen no longer uses Tali's thinking pose when an invoice is overdue.
 - `tali-chat` needs deploying for the Talk part to work.
+
+## 11 Nov 2026: Your world, filled in (six parts, 3D map)
+
+Asked for by Taj: "the 5 parts of your world... People is just clients and leads, it's not friends, family. Growth is just goals. It's all so bare and empty." Then "could we make all the icons 3d".
+
+- **Six parts**: People, Work, Health, Home and money (new), Growth, Your words. Each part opens with what is happening in it right now, from your own data (a birthday coming up, someone you have not caught up with, what is owed, what is due, habits done today). With nothing to say, nothing shows.
+- **People**: Family and Friends are their own groups beside Clients and Leads (`clients.kind` now takes `family` and `friend`). Birthdays on a person (typed as "14 December" or "14/12/1961", no year needed). New screen **Dates that matter** (`app/(app)/dates.tsx`): birthdays and everything dated for the next three months.
+- **The lists** (`app/(app)/list.tsx`, `lib/world.ts`, table `life_items`): To do (Work), Check ups (Health), Life admin and Home (Home and money), Habits, Learning, Wins and Someday (Growth), Ideas (Your words). Check ups and life admin can come round again (monthly to every 2 years): ticking one moves its date on. Habits tick by day with a streak (`habit_ticks`).
+- **Health**: new **Body** screen (weight trend from the weigh ins Tali already logs) and **Headspace** (the mood you pick in your journal, over two weeks; nothing is worked out or guessed).
+- **Goals**: each goal is business or personal (`goals.area`), grouped on the Goals screen.
+- **Talk**: `tali-chat` has a `lists` field (add to a list, tick one off, mark a habit done today), takes `family` and `friend` and a birthday on `clients`, and an `area` on `goals`. A "Saved to your lists" pill under her reply opens the list. Lists are on every plan and cost no extra credits.
+- **The map** (`components/WorldMap.tsx`): the same six shapes and movements with depth. People is a network on a globe, Work a board lying back, Health a beating core in two tilted rings, Home and money a tide of stars that fills and drains, Growth a galaxy on a tilt, Your words fireflies rising through a space. Not yet tested on an older Android phone.
+- **Database**: migration `20261111000077_world_fuller.sql` (applied): `life_items`, `habit_ticks`, `clients.birthday`, `goals.area`, `my_world(date)` (the right now lines), `tali_life_context` (server only), `next_birthday`.
+- **Sign in fix**: signing out on one device used to sign every device out, which left the others half signed in (lists loaded, Tali answered "Please sign in again."). Sign out is now this device only, and when a function says the sign in is no good the app gets a fresh one and tries again, or shows the sign in screen (`lib/supabase.ts`, `lib/auth.tsx`).
+- Also: the Goals screen no longer uses Tali's thinking pose when there are no goals.

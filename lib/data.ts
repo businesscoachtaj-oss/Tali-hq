@@ -150,6 +150,8 @@ export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content
   kept?: { text: string; part: string } | null;
   // Personal spends she logged from this reply (11 Nov 2026), shown as a pill that opens Money.
   spent?: { count: number; total: number } | null;
+  // 11 Nov 2026: what she added to or ticked off your lists from this reply (Your world).
+  listed?: { count: number; kind: string; kinds?: string[] } | null;
   // The extra AIs (10 Nov 2026). routed names the AI behind a reply and is only ever sent to the founder.
   second_opinion?: { by: string; agree: string; differ: string; credits: number };
   sources?: { title: string; url: string }[];
@@ -348,18 +350,22 @@ export const openBillingPortal = (returnUrl: string) => invokeForUrl('billing-po
 export type Client = {
   id: string;
   name: string;
-  kind: 'client' | 'lead';
+  kind: PersonKind;
   status: string;
   email: string | null;
   phone: string | null;
   notes: string;
   next_follow_up: string | null;
   last_contact_at: string | null;
+  // 11 Nov 2026: a birthday with no year known is stored in 1904.
+  birthday: string | null;
   source: string | null;
   updated_at: string;
 };
+// 11 Nov 2026 (Taj: "People is just clients and leads, it's not friends, family"): family and friends are their own groups.
+export type PersonKind = 'client' | 'lead' | 'family' | 'friend';
 
-const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, source, updated_at';
+const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, birthday, source, updated_at';
 
 export async function clients(): Promise<Client[]> {
   const { data, error } = await supabase.from('clients').select(CLIENT_COLS).order('name');
@@ -367,7 +373,7 @@ export async function clients(): Promise<Client[]> {
   return (data as Client[]) ?? [];
 }
 
-export async function saveClient(c: Partial<Client> & { name: string; kind: 'client' | 'lead'; status: string }) {
+export async function saveClient(c: Partial<Client> & { name: string; kind: PersonKind; status: string }) {
   const row = {
     name: c.name.trim(),
     kind: c.kind,
@@ -377,6 +383,7 @@ export async function saveClient(c: Partial<Client> & { name: string; kind: 'cli
     notes: c.notes ?? '',
     next_follow_up: c.next_follow_up || null,
     last_contact_at: c.last_contact_at || null,
+    ...(c.birthday !== undefined ? { birthday: c.birthday || null } : {}),
   };
   if (c.id) {
     const { error } = await supabase.from('clients').update(row).eq('id', c.id);
