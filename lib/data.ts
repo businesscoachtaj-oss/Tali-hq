@@ -265,6 +265,16 @@ export type ChatResult =
   | { ok: true; reply: string; messageId?: string; remembered: number; drafted?: number; clientsSaved?: number; remindersSet?: number; goalsSaved?: number; decisionsLogged?: number; invoicesDrafted?: number; foodLogged?: number; weightLogged?: boolean; workoutsLogged?: number; planSaved?: boolean; searched?: number; image?: { messageId: string; index: number } | null; deep?: DeepLevel | null; suggestDeep?: boolean; remaining: number | null }
   | { ok: false; code: string; message: string; remaining?: number };
 
+/** Ask Tali to sort anything of yours with no side yet (reminders, list items, brief lines). Never throws. */
+export async function sortSides(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.functions.invoke('tali-sides', { body: {} });
+    return !error && !!(data as any)?.ok;
+  } catch {
+    return false;
+  }
+}
+
 // One turn with Tali. The tali-chat edge function saves both messages, checks the plan and
 // remembers anything worth keeping in this user's private brain.
 export async function sendMessage(conversationId: string, text: string, attachments: Attachment[] = [], deep: DeepLevel | null = null, secondOpinion = false): Promise<ChatResult> {
@@ -278,6 +288,10 @@ export async function sendMessage(conversationId: string, text: string, attachme
     } catch {}
     return { ok: false, code: 'network', message: "I couldn't reach Tali. Check your connection and try again." };
   }
+  // 12 Nov 2026 (Business and Life modes): when she set a reminder or added to a list, sort it into
+  // life or business straight away. Fire and forget: a job also sorts anything missed within 5 minutes.
+  const d = data as any;
+  if (d?.ok && (d.remindersSet || d.listsSaved || d.listed || d.meta?.listed)) sortSides();
   return data as ChatResult;
 }
 

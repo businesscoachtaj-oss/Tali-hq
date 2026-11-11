@@ -4,7 +4,7 @@ import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { anyCalendarToday, followUpsDue, inboundEmails, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, type Approval, type InboundEmail, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
+import { anyCalendarToday, followUpsDue, inboundEmails, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, sortSides, type Approval, type InboundEmail, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
 import { YourDayCard } from '@/components/YourDayCard';
 import { isPaid, isPro } from '@/lib/plan';
 import { HealthCard } from '@/components/HealthCard';
@@ -123,6 +123,7 @@ export default function Today() {
   const [loaded, setLoaded] = useState(false);
   // 9 Nov 2026 look refresh: one brain, two rooms.
   const [room, setRoom] = useState<Room>('business');
+  const hasBiz = useHasBusiness();
   const mode = useMode();
   useClockMode();
   const [world, setWorld] = useState<WorldNow | null>(null);
@@ -176,6 +177,15 @@ export default function Today() {
   }
 
   const morning = briefs.find((b) => b.kind === 'morning');
+  // A brief written before its lines were sorted: ask once, then show the tags.
+  const sortedFor = useRef<string | null>(null);
+  const briefNeedsSides = !!morning && !Array.isArray((morning.content as any).sides);
+  const morningId = morning?.id ?? null;
+  useEffect(() => {
+    if (!hasBiz || !morningId || !briefNeedsSides || sortedFor.current === morningId) return;
+    sortedFor.current = morningId;
+    sortSides().then((ok) => { if (ok) recentBriefs(5).then(setBriefs).catch(() => {}); });
+  }, [hasBiz, morningId, briefNeedsSides]);
   const others = briefs.filter((b) => b !== morning && b.kind !== 'journal' && (b.kind as string) !== 'patterns');
   const trial = trialLine(credits);
   const night = !!shutdown;
@@ -402,6 +412,7 @@ function helloLine({ morning, reminders, approvals, health }: { morning?: Brief;
 
 // The morning brief, short by default: headline and the first three lines, the rest on tap.
 function BriefCard({ brief, open, onToggle, onRead }: { brief: Brief; open: boolean; onToggle: () => void; onRead: () => void }) {
+  const biz = useHasBusiness();
   const lines = brief.content.lines ?? [];
   const shown = open ? lines : lines.slice(0, 3);
   return (
@@ -412,7 +423,7 @@ function BriefCard({ brief, open, onToggle, onRead }: { brief: Brief; open: bool
         const tag = ((brief.content as any).sides as string[] | undefined)?.[i];
         return (
           <View key={i} style={{ marginTop: 10 }}>
-            {tag === 'life' || tag === 'business' ? <TagPill tag={tag} /> : null}
+            {biz && (tag === 'life' || tag === 'business') ? <TagPill tag={tag} /> : null}
             <Text style={{ fontSize: 15, lineHeight: 22, color: colours.text, marginTop: 4 }}>{l}</Text>
           </View>
         );
