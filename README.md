@@ -332,6 +332,10 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 
 The title on a small book cover in the library now shrinks to fit its longest word, so a long single word (The Enchiridion) no longer runs off the edge.
 
+## 11 Nov 2026: web app bars match the app
+
+The installed web app told the phone to colour its top and bottom bars brand purple (#6C3483) while the app itself is the dark night sky. The theme colour, the manifest colours and the page background are now the night sky colour (#0C0A24), so the bars blend into the app. On iPhone the status bar is now black, not white. Installed copies pick up the manifest change the next time the phone re-checks it, which can take a day.
+
 ## 11 Nov 2026: the New memory pill opens Her brain
 
 In Talk, the "New memory" pill under a reply is now a button. Tapping it opens Her brain with that group (for example "How you like things") already open. Files: `app/(app)/talk.tsx`, `app/(app)/brain.tsx`, `components/KnowsAbout.tsx`.
