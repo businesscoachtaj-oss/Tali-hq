@@ -304,3 +304,11 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 - **Notes** (`app/(app)/notes.tsx`): notes move out of the journal to their own screen under Your world, with search.
 - Not in this round: threads, the month page, "things you said you'd do", Life money, photos, export, a journal lock, importing phone contacts, the opened status and overdue nudges for invoices.
 - Tested: types check and the web bundle builds. Not yet clicked through signed in, and the Stripe send has still never run against a real connected account.
+
+### 11 Nov 2026: Bigger brain, white sparks, denser boxes
+
+- **Today** (`components/BrainSky.tsx`): her brain fills the stage (up to 420 wide) instead of sitting at 300.
+- **Sparks** (`components/BrainCanvas.tsx`, `BrainCanvas.web.tsx`): white, a thin streak with a bright point. The website's brain matches.
+- **Her brain** (`app/(app)/brain.tsx`): the dots are drawn 15% bigger on the full brain.
+- **Denser boxes** (`constants/theme.ts`): cards, text boxes and sunk panels go from see-through to nearly solid, across the app. The level card on Today too.
+- Tested: types check and the web bundle builds. The website brain was opened in a browser and draws with white sparks. The app's brain has not been seen on a phone with these changes.
