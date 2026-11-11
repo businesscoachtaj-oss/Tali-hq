@@ -327,3 +327,7 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 
 - The first line of her chat personality used to say she only helps run the business. It now covers both sides: business (planning, clients, follow-ups, marketing, money, admin) and life (goals, decisions, the week, food, weight, training).
 - Needs `npx supabase functions deploy tali-chat --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt` to go live.
+
+## 11 Nov 2026: library covers fit long words
+
+The title on a small book cover in the library now shrinks to fit its longest word, so a long single word (The Enchiridion) no longer runs off the edge.
