@@ -15,7 +15,8 @@ import { colours, elevation, radius, space } from '@/constants/theme';
 import { FOUNDER_USER_ID } from '@/constants/business';
 import { RoomSwitch, type Room } from '@/components/RoomSwitch';
 
-const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Tali HQ', pro: 'Tali HQ Pro' };
+const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Tali HQ', pro: 'Tali HQ Pro', max: 'Tali HQ Max' };
+const BIZ_NAMES: Record<string, string> = { biz: 'Tali HQ Business', biz_pro: 'Tali HQ Business Pro', biz_max: 'Tali HQ Business Max' };
 
 export default function Me() {
   const { profile, session, signOut, refreshProfile } = useAuth();
@@ -95,7 +96,7 @@ export default function Me() {
     }
   }
 
-  const planName = credits ? PLAN_NAMES[credits.plan] ?? credits.plan : '';
+  const planName = credits ? (credits.businessTier && BIZ_NAMES[credits.businessTier]) || (PLAN_NAMES[credits.plan] ?? credits.plan) : '';
   const trialing = credits?.status === 'trialing';
   const shown = showAll ? memories : memories.slice(0, 15);
 

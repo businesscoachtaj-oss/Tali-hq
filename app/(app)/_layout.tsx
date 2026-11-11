@@ -66,6 +66,13 @@ export default function AppTabs() {
       <Tabs.Screen name="body" options={{ href: null, title: 'Body' }} />
       <Tabs.Screen name="headspace" options={{ href: null, title: 'Headspace' }} />
       <Tabs.Screen name="dates" options={{ href: null, title: 'Dates that matter' }} />
+      {/* 12 Nov 2026 (Taj): the business tools. */}
+      <Tabs.Screen name="jobs" options={{ href: null, title: 'Jobs and quotes' }} />
+      <Tabs.Screen name="pipeline" options={{ href: null, title: 'Pipeline' }} />
+      <Tabs.Screen name="bookings" options={{ href: null, title: 'Bookings' }} />
+      <Tabs.Screen name="projects" options={{ href: null, title: 'Projects' }} />
+      <Tabs.Screen name="website" options={{ href: null, title: 'Website' }} />
+      <Tabs.Screen name="autopilot" options={{ href: null, title: 'On autopilot' }} />
     </Tabs>
   );
 }

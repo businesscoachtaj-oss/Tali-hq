@@ -1,6 +1,7 @@
 // supabase/functions/create-checkout/index.ts  (Tali HQ project jbyzblwrywgxilhmfyjt)
 //
-// POST { plan: 'hq' | 'pro' | 'max', interval?: 'month' | 'year', returnUrl: string }
+// POST { plan: 'hq' | 'pro' | 'max' | 'biz', interval?: 'month' | 'year', returnUrl: string }
+//      'biz' is Tali HQ Business (12 Nov 2026): monthly only, no founding coupon (the coupon is tied to the older products).
 // POST { topup: pack id, returnUrl: string }  (6 Nov 2026) a one-off payment for extra credits or images,
 //      see _shared/topups.ts. Paid plans and the trial only. stripe-webhook records it with add_topup.
 // Returns { url } for Stripe Checkout (web only; iOS and Android need store billing later).
@@ -12,7 +13,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { topupPack } from '../_shared/topups.ts';
-import { COUPON_FOUNDING, COUPON_FOUNDING_MAX, PRICE_HQ, PRICE_HQ_YEARLY, PRICE_MAX, PRICE_MAX_YEARLY, PRICE_PRO, PRICE_PRO_YEARLY, stripe, stripeReady } from '../_shared/stripe.ts';
+import { COUPON_FOUNDING, COUPON_FOUNDING_MAX, PRICE_HQ, PRICE_HQ_YEARLY, PRICE_MAX, PRICE_MAX_YEARLY, PRICE_PRO, PRICE_BIZ, PRICE_PRO_YEARLY, stripe, stripeReady } from '../_shared/stripe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const cors = {
@@ -35,11 +36,11 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   if (body.topup) return topup(user, body);
-  const plan = body.plan === 'max' ? 'max' : body.plan === 'pro' ? 'pro' : body.plan === 'hq' ? 'hq' : null;
+  const plan = body.plan === 'biz' ? 'biz' : body.plan === 'max' ? 'max' : body.plan === 'pro' ? 'pro' : body.plan === 'hq' ? 'hq' : null;
   const yearly = body.interval === 'year';
   if (!plan) return json({ ok: false, code: 'bad_request', message: 'Pick a plan.' }, 400);
 
-  const price = plan === 'max' ? (yearly ? PRICE_MAX_YEARLY : PRICE_MAX) : plan === 'hq' ? (yearly ? PRICE_HQ_YEARLY : PRICE_HQ) : yearly ? PRICE_PRO_YEARLY : PRICE_PRO;
+  const price = plan === 'biz' ? PRICE_BIZ : plan === 'max' ? (yearly ? PRICE_MAX_YEARLY : PRICE_MAX) : plan === 'hq' ? (yearly ? PRICE_HQ_YEARLY : PRICE_HQ) : yearly ? PRICE_PRO_YEARLY : PRICE_PRO;
   if (!price) return json({ ok: false, code: 'not_ready', message: 'That plan is not open yet.' }, 503);
 
   let origin: string;
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
       customer = c.id as string;
       await admin.from('subscriptions').update({ stripe_customer_id: customer }).eq('user_id', user.id);
     }
-    const coupon = sub?.founding_member ? (plan === 'max' ? COUPON_FOUNDING_MAX : COUPON_FOUNDING) : '';
+    const coupon = plan === 'biz' ? '' : sub?.founding_member ? (plan === 'max' ? COUPON_FOUNDING_MAX : COUPON_FOUNDING) : '';
     // Still on the free trial: Stripe holds the first charge until the trial ends (5 Nov 2026).
     // Stripe needs trial_end at least 48 hours away, so with under 48 hours (plus a small margin)
     // left on the trial, there is no Stripe trial and the first charge happens now at checkout.

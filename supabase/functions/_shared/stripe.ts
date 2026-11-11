@@ -76,8 +76,20 @@ export const PRICE_MAX_YEARLY = Deno.env.get('STRIPE_PRICE_MAX_YEARLY') || 'pric
 export const COUPON_FOUNDING_MAX = Deno.env.get('STRIPE_COUPON_FOUNDING_MAX') || 'TALIHQ_FOUNDING_MAX';
 export const COUPON_FOUNDING = Deno.env.get('STRIPE_COUPON_FOUNDING') || 'TALIHQ_FOUNDING';
 
+// 12 Nov 2026 (Taj): the Business plans. A Business member sits on plan 'max' for credits and every
+// existing check, and subscriptions.business_tier says which Business plan they pay for. Only Business
+// is on sale. Business Pro and Business Max have prices ready but no checkout yet.
+export const PRICE_BIZ = Deno.env.get('STRIPE_PRICE_BIZ') || 'price_1Ual2VPy9YlWBZ02m1Sx2ndm';
+const PRICE_BIZ_PRO = Deno.env.get('STRIPE_PRICE_BIZ_PRO') || 'price_1Ual2WPy9YlWBZ02WfXNTnjQ';
+const PRICE_BIZ_MAX = Deno.env.get('STRIPE_PRICE_BIZ_MAX') || 'price_1Ual2WPy9YlWBZ02zeCEVH5c';
+export function businessTierForPrice(priceId: string | undefined | null): 'biz' | 'biz_pro' | 'biz_max' | null {
+  if (!priceId) return null;
+  return priceId === PRICE_BIZ ? 'biz' : priceId === PRICE_BIZ_PRO ? 'biz_pro' : priceId === PRICE_BIZ_MAX ? 'biz_max' : null;
+}
+
 export function planForPrice(priceId: string | undefined | null): 'hq' | 'pro' | 'max' | null {
   if (!priceId) return null;
+  if (businessTierForPrice(priceId)) return 'max';
   const hq = [PRICE_HQ, PRICE_HQ_YEARLY];
   const pro = [PRICE_PRO, PRICE_PRO_YEARLY, ...OLD_PRO];
   if (hq.includes(priceId)) return 'hq';

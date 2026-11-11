@@ -4,9 +4,10 @@ import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { runAutopilot } from '@/lib/site';
 import { anyCalendarToday, followUpsDue, inboundEmails, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, sortSides, type Approval, type InboundEmail, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
 import { YourDayCard } from '@/components/YourDayCard';
-import { isPaid, isPro } from '@/lib/plan';
+import { hasBusinessTools, isPaid, isPro } from '@/lib/plan';
 import { HealthCard } from '@/components/HealthCard';
 import { addDays, today } from '@/lib/dates';
 import { DueList } from '@/components/DueList';
@@ -186,6 +187,14 @@ export default function Today() {
     sortedFor.current = morningId;
     sortSides().then((ok) => { if (ok) recentBriefs(5).then(setBriefs).catch(() => {}); });
   }, [hasBiz, morningId, briefNeedsSides]);
+  // 12 Nov 2026: On autopilot. Run the owner's rules once per visit, then show any new nudges.
+  const autoRan = useRef(false);
+  const autoOk = hasBusinessTools(credits, session?.user.id);
+  useEffect(() => {
+    if (!autoOk || autoRan.current) return;
+    autoRan.current = true;
+    runAutopilot().then((n) => { if (n) load(); });
+  }, [autoOk]);
   const others = briefs.filter((b) => b !== morning && b.kind !== 'journal' && (b.kind as string) !== 'patterns');
   const trial = trialLine(credits);
   const night = !!shutdown;

@@ -2,6 +2,8 @@ import { supabase } from './supabase';
 
 export type Credits = {
   plan: 'free' | 'hq' | 'pro' | 'max';
+  // ADDED (12 Nov 2026): 'biz' on Tali HQ Business. Business members sit on plan 'max' for credits.
+  businessTier?: 'biz' | 'biz_pro' | 'biz_max' | null;
   status: string;
   trialEndsAt: string | null;
   creditsMonth: number;
@@ -357,7 +359,7 @@ async function invokeForUrl(fn: string, body: Record<string, unknown>): Promise<
 }
 
 // Web only for now. In the iOS and Android apps, upgrades will go through the stores.
-export const startCheckout = (plan: 'hq' | 'pro' | 'max', returnUrl: string, interval: 'month' | 'year' = 'month') =>
+export const startCheckout = (plan: 'hq' | 'pro' | 'max' | 'biz', returnUrl: string, interval: 'month' | 'year' = 'month') =>
   invokeForUrl('create-checkout', { plan, interval, returnUrl });
 // Top up (6 Nov 2026): a one-off Stripe payment for a pack in supabase/functions/_shared/topups.ts.
 export const startTopup = (pack: string, returnUrl: string) => invokeForUrl('create-checkout', { topup: pack, returnUrl });
@@ -378,11 +380,13 @@ export type Client = {
   birthday: string | null;
   source: string | null;
   updated_at: string;
+  // 12 Nov 2026 (pipeline): what a lead could be worth.
+  est_value?: number | null;
 };
 // 11 Nov 2026 (Taj: "People is just clients and leads, it's not friends, family"): family and friends are their own groups.
 export type PersonKind = 'client' | 'lead' | 'family' | 'friend';
 
-const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, birthday, source, updated_at';
+const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, birthday, source, updated_at, est_value';
 
 export async function clients(): Promise<Client[]> {
   const { data, error } = await supabase.from('clients').select(CLIENT_COLS).order('name');
@@ -401,6 +405,7 @@ export async function saveClient(c: Partial<Client> & { name: string; kind: Pers
     next_follow_up: c.next_follow_up || null,
     last_contact_at: c.last_contact_at || null,
     ...(c.birthday !== undefined ? { birthday: c.birthday || null } : {}),
+    ...(c.est_value !== undefined ? { est_value: c.est_value } : {}),
   };
   if (c.id) {
     const { error } = await supabase.from('clients').update(row).eq('id', c.id);

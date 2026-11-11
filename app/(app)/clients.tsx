@@ -29,8 +29,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 // 11 Nov 2026 (Taj: "People is just clients and leads, it's not friends, family"): family and friends
 // are their own groups. With no business, 'client' is simply everyone else.
-type Draft = { id?: string; name: string; kind: PersonKind; status: string; email: string; phone: string; notes: string; next_follow_up: string | null; last_contact_at: string | null; birthday: string };
-const blank = (kind: PersonKind): Draft => ({ name: '', kind, status: kind === 'lead' ? 'new' : 'active', email: '', phone: '', notes: '', next_follow_up: null, last_contact_at: null, birthday: '' });
+type Draft = { id?: string; name: string; kind: PersonKind; status: string; email: string; phone: string; notes: string; next_follow_up: string | null; last_contact_at: string | null; birthday: string; worth: string };
+const blank = (kind: PersonKind): Draft => ({ name: '', kind, status: kind === 'lead' ? 'new' : 'active', email: '', phone: '', notes: '', next_follow_up: null, last_contact_at: null, birthday: '', worth: '' });
 const KINDS = ['family', 'friend', 'client', 'lead'] as const;
 const isKind = (k: unknown): k is PersonKind => (KINDS as readonly string[]).includes(k as string);
 
@@ -82,7 +82,7 @@ export default function Clients() {
   const fromParam = Array.isArray(params.from) ? params.from[0] : params.from;
   const [fromPerson, setFromPerson] = useState(false);
 
-  const toDraft = (c: Client): Draft => ({ id: c.id, name: c.name, kind: c.kind, status: c.status, email: c.email ?? '', phone: c.phone ?? '', notes: c.notes, next_follow_up: c.next_follow_up, last_contact_at: c.last_contact_at, birthday: birthdayText(c.birthday) });
+  const toDraft = (c: Client): Draft => ({ id: c.id, name: c.name, kind: c.kind, status: c.status, email: c.email ?? '', phone: c.phone ?? '', notes: c.notes, next_follow_up: c.next_follow_up, last_contact_at: c.last_contact_at, birthday: birthdayText(c.birthday) , worth: c.est_value != null ? String(Number(c.est_value)) : '' });
 
   const load = useCallback(async () => {
     try {
@@ -158,7 +158,9 @@ export default function Clients() {
     if (draft.birthday.trim() && !birthday) return setError('I could not read that birthday. Try 14 December or 14/12/1961.');
     setBusy(true);
     try {
-      await saveClient({ ...draft, birthday });
+      const { worth, ...rest } = draft;
+      const value = Number(worth.replace(/[^0-9.]/g, ''));
+      await saveClient({ ...rest, birthday, ...(draft.kind === 'lead' ? { est_value: worth.trim() && Number.isFinite(value) ? value : null } : {}) });
       closeEditor(draft.id);
       await load();
     } catch (e: any) {
@@ -201,6 +203,8 @@ export default function Clients() {
             <ChipPicker options={statuses} value={draft.status as any} label={(s) => STATUS_LABEL[s]} onChange={(s) => setDraft({ ...draft, status: s })} />
           </>
         ) : null}
+        {/* 12 Nov 2026 (pipeline): what a lead could be worth, so the pipeline can add it up. */}
+        {draft.kind === 'lead' && hasBusiness ? <Field label="Could be worth, A$ (optional)" value={draft.worth} onChangeText={(t) => setDraft({ ...draft, worth: t })} keyboardType="decimal-pad" inputMode="decimal" placeholder="4200" /> : null}
         <Label>{work ? 'Follow up' : 'Catch up'}</Label>
         <ChipPicker
           options={FOLLOW_UP_PICKS.map((p) => p.label)}

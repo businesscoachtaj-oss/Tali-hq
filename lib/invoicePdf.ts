@@ -13,9 +13,11 @@ export const money = (n: number) => `A$${(Number(n) || 0).toLocaleString('en-AU'
 const longDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
 // A clean A4 invoice. "Tax invoice" and the GST line only when they are GST registered.
-export function invoiceHtml(inv: Invoice, s: InvoiceSettings | null, fallbackName: string) {
+// 12 Nov 2026: the same page also prints a quote (kind 'quote'), so quotes and invoices match.
+export function invoiceHtml(inv: Invoice, s: InvoiceSettings | null, fallbackName: string, kind: 'invoice' | 'quote' = 'invoice') {
+  const quote = kind === 'quote';
   const name = s?.business_name || fallbackName || 'Invoice';
-  const title = inv.gst ? 'Tax invoice' : 'Invoice';
+  const title = quote ? 'Quote' : inv.gst ? 'Tax invoice' : 'Invoice';
   const rows = inv.items
     .map(
       (i) => `<tr><td>${esc(i.description)}</td><td class="n">${esc(i.qty)}</td><td class="n">${money(i.unit_price)}</td><td class="n">${money(
@@ -50,8 +52,8 @@ export function invoiceHtml(inv: Invoice, s: InvoiceSettings | null, fallbackNam
   }${s?.phone ? `<br>${esc(s.phone)}` : ''}</div>
 </div>
 <div class="meta">
-  <div><div class="label">Bill to</div><b>${esc(inv.client_name)}</b>${inv.client_email ? `<br>${esc(inv.client_email)}` : ''}</div>
-  <div style="text-align:right"><div class="label">Issued</div>${longDate(inv.issue_date)}<div class="label" style="margin-top:6px">Due</div>${longDate(inv.due_date)}</div>
+  <div><div class="label">${quote ? 'Quote for' : 'Bill to'}</div><b>${esc(inv.client_name)}</b>${inv.client_email ? `<br>${esc(inv.client_email)}` : ''}</div>
+  <div style="text-align:right"><div class="label">${quote ? 'Date' : 'Issued'}</div>${longDate(inv.issue_date)}<div class="label" style="margin-top:6px">${quote ? 'Valid until' : 'Due'}</div>${longDate(inv.due_date)}</div>
 </div>
 <table><thead><tr><th>Description</th><th class="n">Qty</th><th class="n">Price</th><th class="n">Amount</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="totals">
@@ -59,7 +61,7 @@ export function invoiceHtml(inv: Invoice, s: InvoiceSettings | null, fallbackNam
   ${inv.gst ? `<div><span>GST 10%</span><span>${money(inv.gst_amount)}</span></div>` : ''}
   <div class="grand"><span>Total${inv.gst ? ' incl. GST' : ''}</span><span>${money(inv.total)}</span></div>
 </div>
-${s?.payment_details ? `<div class="box"><div class="label">How to pay</div>${esc(s.payment_details)}</div>` : ''}
+${s?.payment_details && !quote ? `<div class="box"><div class="label">How to pay</div>${esc(s.payment_details)}</div>` : ''}
 ${inv.notes ? `<div class="box">${esc(inv.notes)}</div>` : ''}
 ${s?.footer ? `<div class="foot">${esc(s.footer)}</div>` : ''}
 </body></html>`;

@@ -63,16 +63,20 @@ export function BusinessBoard({ money, world, followUps, paid }: { money: MoneyP
 }
 
 const TOOLS: { icon: Icon; title: string; sub: string; to: string; params?: Record<string, string> }[] = [
-  { icon: 'document-text-outline', title: 'New invoice', sub: 'Drafted, sent on your yes', to: '/invoices' },
-  { icon: 'person-add-outline', title: 'Add a lead', sub: 'Or a new client', to: '/clients', params: { tab: 'lead' } },
-  { icon: 'mail-outline', title: 'Inbox', sub: 'Sorted, replies drafted', to: '/inbox' },
-  { icon: 'camera-outline', title: 'Snap a receipt', sub: 'Ready for tax time', to: '/receipts' },
+  { icon: 'hammer-outline', title: 'Jobs and quotes', sub: 'Quote, job, invoice', to: '/jobs' },
+  { icon: 'funnel-outline', title: 'Pipeline', sub: 'Who to chase next', to: '/pipeline' },
+  { icon: 'calendar-outline', title: 'Bookings', sub: 'Your week and your link', to: '/bookings' },
+  { icon: 'albums-outline', title: 'Projects', sub: 'The bigger jobs', to: '/projects' },
+  { icon: 'globe-outline', title: 'Website', sub: 'Your site, hosted', to: '/website' },
+  { icon: 'flash-outline', title: 'On autopilot', sub: 'Nothing slips', to: '/autopilot' },
+  { icon: 'document-text-outline', title: 'Invoices', sub: 'Sent on your yes', to: '/invoices' },
+  { icon: 'mail-outline', title: 'Inbox', sub: 'Replies drafted', to: '/inbox' },
+  { icon: 'camera-outline', title: 'Receipts', sub: 'Ready for tax time', to: '/receipts' },
   { icon: 'checkbox-outline', title: 'To do', sub: 'The business list', to: '/list', params: { kind: 'todo' } },
-  { icon: 'calendar-outline', title: 'Weekly review', sub: 'What moved, what is next', to: '/review' },
 ];
 
 export function BusinessTools() {
-  const rows = [TOOLS.slice(0, 2), TOOLS.slice(2, 4), TOOLS.slice(4, 6)];
+  const rows = [TOOLS.slice(0, 2), TOOLS.slice(2, 4), TOOLS.slice(4, 6), TOOLS.slice(6, 8), TOOLS.slice(8, 10)];
   return (
     <>
       <Label>Tools</Label>

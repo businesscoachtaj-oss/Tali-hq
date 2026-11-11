@@ -8,7 +8,7 @@
 // A subscription that ends drops the user back to the Free plan (their data stays).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
-import { planForPrice, stripe, verifyStripeSignature } from '../_shared/stripe.ts';
+import { planForPrice, stripe, verifyStripeSignature, businessTierForPrice } from '../_shared/stripe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
@@ -48,6 +48,7 @@ async function syncSubscription(s: any) {
     .from('subscriptions')
     .update({
       plan_id: ended || !plan ? 'free' : plan,
+      business_tier: ended || !plan ? null : businessTierForPrice(priceId),
       status: ended ? 'active' : status,
       stripe_customer_id: s.customer,
       stripe_subscription_id: ended ? null : s.id,
