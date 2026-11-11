@@ -396,3 +396,8 @@ Taj: a Business / Life toggle so each side is neater and can go deeper. One Tali
 - **Switch by the clock** (Settings): Business in your work hours, Life the rest of the time. Off until turned on. A switch by hand holds until work next starts or ends.
 - **Profile save fix** (migration 078): the app could not save `has_business`, `share_learning`, `monthly_costs`, `cash_on_hand` or `money_updated_at` because the column grants were missing, so onboarding and Settings Save failed with "permission denied". Grants added, own row only.
 - **Order matters**: migrations 078, 079 and 080 and the `tali-sides` function went in on 12 Nov, before this app update.
+
+## 12 Nov 2026: profile photo, and account deletion clears files
+
+- **Profile photo** (`lib/avatar.ts`, Me screen, migration 081): tap your picture on Me to add or change a photo, or remove it. Cropped square, 400 by 400, stored privately in the `avatars` bucket in your own folder. Uses the photo picker already in the app, so no new store build.
+- **Account deletion** (`delete-account` v13): now removes the person's stored files first (chat uploads, receipts, exports, voice, profile photo). Before this, deleting an account left those files behind.
