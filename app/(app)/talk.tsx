@@ -425,12 +425,13 @@ export default function Talk() {
                       <TaliImage a={a} drawing={drawing.has(`${item.id}:${i}`)} stale={isStaleImage(a, item.created_at)} onRetry={() => void drawImage(item.id, i)} />
                     </View>
                   ) : null)}
-                  {/* When she keeps something from this reply, say so and say where in her brain it went. */}
+                  {/* When she keeps something from this reply, say so and say where in her brain it went.
+                      11 Nov 2026 (Taj: "I thought I'd be able to click it"): tap it to open that group in Her brain. */}
                   {!me && item.meta?.kept ? (
-                    <View style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: keptColour(item.meta.kept.part) + '22', borderWidth: 1, borderColor: keptColour(item.meta.kept.part) + 'AA', shadowColor: keptColour(item.meta.kept.part), shadowOpacity: 0.8, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}>
+                    <Pressable onPress={() => router.navigate({ pathname: '/brain', params: { open: item.meta!.kept!.part, t: String(Date.now()) } })} accessibilityRole="link" accessibilityLabel={`New memory, filed under ${item.meta.kept.part}. Open it in her brain.`} style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: keptColour(item.meta.kept.part) + '22', borderWidth: 1, borderColor: keptColour(item.meta.kept.part) + 'AA', shadowColor: keptColour(item.meta.kept.part), shadowOpacity: 0.8, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}>
                       <Text style={{ color: keptColour(item.meta.kept.part), fontSize: 13 }}>{'✦'}</Text>
                       <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>New memory</Text> {item.meta.kept.text} <Text style={{ color: keptColour(item.meta.kept.part), fontWeight: '700' }}>{'→'} {item.meta.kept.part}</Text></Text>
-                    </View>
+                    </Pressable>
                   ) : null}
                   {item.failed ? (
                     <Pressable
