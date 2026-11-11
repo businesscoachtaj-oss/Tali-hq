@@ -105,17 +105,19 @@ function Cover({ b, w = 58 }: { b: { title: string; author: string; region: stri
   const fs = words > 34 ? w * 0.125 : words > 18 ? w * 0.15 : w * 0.185;
   return (
     <View style={{ width: w + 5, height: h + 5 }}>
-      {/* the page block, peeking out past the cover */}
-      <View style={{ position: 'absolute', left: 6, top: 4, width: w - 2, height: h, backgroundColor: '#F6F0E2', borderTopRightRadius: 3, borderBottomRightRadius: 4, borderBottomLeftRadius: 2, overflow: 'hidden' }}>
-        {[0, 1, 2].map((i) => (
+      {/* the back board: the same cloth, in shadow, joined to the front all the way down the spine */}
+      <View style={{ position: 'absolute', left: 0, top: 5, width: w + 5, height: h, backgroundColor: c, borderTopLeftRadius: 5, borderBottomLeftRadius: 5, borderTopRightRadius: 3, borderBottomRightRadius: 4, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(28,20,51,0.42)' }} />
+      </View>
+      {/* the page block between the boards, showing down the fore edge and along the foot */}
+      <View style={{ position: 'absolute', left: spine, top: 3, width: w - spine + 3, height: h, backgroundColor: '#F6F0E2', borderTopRightRadius: 2, borderBottomRightRadius: 3, overflow: 'hidden' }}>
+        {[0, 1].map((i) => (
           <View key={i} style={{ position: 'absolute', left: 0, right: 0, bottom: 1 + i * 1.5, height: 0.5, backgroundColor: '#C9BCA2' }} />
         ))}
         {[0, 1].map((i) => (
-          <View key={i} style={{ position: 'absolute', top: 0, bottom: 0, right: 1 + i * 1.5, width: 0.5, backgroundColor: '#C9BCA2' }} />
+          <View key={i} style={{ position: 'absolute', top: 0, bottom: 0, right: 0.8 + i * 1.2, width: 0.5, backgroundColor: '#C9BCA2' }} />
         ))}
       </View>
-      {/* the back board, a sliver of darker cloth under the pages */}
-      <View style={{ position: 'absolute', left: 3, top: 5, width: w + 2, height: h, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 4 }} />
       {/* the front board */}
       <View style={{ width: w, height: h, backgroundColor: c, borderTopLeftRadius: 5, borderBottomLeftRadius: 5, borderTopRightRadius: 3, borderBottomRightRadius: 3, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 5, shadowOffset: { width: 2, height: 3 } }}>
         {/* rounded spine: dark at the hinge, a soft highlight, two raised bands */}
@@ -125,8 +127,6 @@ function Cover({ b, w = 58 }: { b: { title: string; author: string; region: stri
         <View style={{ position: 'absolute', left: spine + 1.5, top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.35)' }} />
         <View style={{ position: 'absolute', left: 0, width: spine, top: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(255,255,255,0.45)' }} />
         <View style={{ position: 'absolute', left: 0, width: spine, bottom: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(255,255,255,0.45)' }} />
-        {/* light across the top of the cloth */}
-        <View style={{ position: 'absolute', left: spine + 2, right: 0, top: 0, height: Math.round(h * 0.42), backgroundColor: 'rgba(255,255,255,0.14)' }} />
         {/* the pressed frame with the title set inside it */}
         <View style={{ position: 'absolute', left: spine + 5, right: 4, top: 5, bottom: 5, borderWidth: 1, borderColor: 'rgba(28,20,51,0.45)', borderRadius: 2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 }}>
           <View style={{ position: 'absolute', left: 1.5, right: 1.5, top: 1.5, bottom: 1.5, borderWidth: 0.5, borderColor: 'rgba(28,20,51,0.30)', borderRadius: 1 }} />
