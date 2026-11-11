@@ -2,11 +2,11 @@
 // timber bookcase. The ones she has finished are open to read, a passage a page, with what she
 // kept from each passage under it. Books she is still reading show her notes so far and open the
 // night she finishes them. The shelf is the same for everyone: it is her library.
-import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BackLink, Button, Card, ErrorText, Loading, Screen, TaliSays, Title, goBack } from '@/components/ui';
+import { BackLink, Button, Card, ErrorText, Field, Loading, Screen, TaliSays, Title, goBack } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 import { REGIONS } from '@/lib/brain';
 import { libraryBook, libraryRead, libraryShelf, bookBlocks, type BookBlock, type LibraryBook, type LibraryBookDetail, type LibraryPassage } from '@/lib/library';
@@ -21,7 +21,28 @@ function stamp(iso: string | null) {
   if (!d || isNaN(d.getTime())) return '';
   return ' · ' + d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
 }
-const PLACE = 'tali.library.place.'; // where you got to in each book, on this device
+
+// What is yours in her library, kept on this device: the books you put on your shelf, where you
+// are up to in each one, and the day you finished it. The READ stamp is yours, not hers.
+const MINE = 'tali.library.mine';
+type Mine = { shelf: string[] | null; place: Record<string, number>; done: Record<string, string> };
+const NO_MINE: Mine = { shelf: null, place: {}, done: {} };
+async function loadMine(): Promise<Mine> {
+  try {
+    const raw = await AsyncStorage.getItem(MINE);
+    const m = raw ? JSON.parse(raw) : {};
+    return { shelf: Array.isArray(m.shelf) ? m.shelf : null, place: m.place ?? {}, done: m.done ?? {} };
+  } catch {
+    return NO_MINE;
+  }
+}
+const saveMine = (m: Mine) => AsyncStorage.setItem(MINE, JSON.stringify(m)).catch(() => {});
+type Status = 'read' | 'reading' | 'open' | 'tali';
+function statusOf(b: Book, m: Mine): Status {
+  if (m.done[b.id]) return 'read';
+  if (isDone(b) && (m.place[b.id] ?? 0) > 1) return 'reading';
+  return isDone(b) ? 'open' : 'tali';
+}
 
 // Spines are not all the same size on a real shelf. Each book keeps its own width and height.
 function size(id: string, wide: boolean) {
@@ -63,12 +84,19 @@ function Standing({ b, w, h, onPress }: { b: Book; w: number; h: number; onPress
   );
 }
 
-function ShelfRow({ books, wide, open, extra }: { books: Book[]; wide?: boolean; open: (b: Book) => void; extra?: React.ReactNode }) {
+function ShelfRow({ books, mine, open, extra }: { books: Book[]; mine: Mine; open: (b: Book) => void; extra?: React.ReactNode }) {
+  const label = (b: Book) => {
+    const st = statusOf(b, mine);
+    if (st === 'read') return 'READ';
+    if (st === 'reading') return `P. ${mine.place[b.id]}`;
+    if (st === 'open') return 'OPEN';
+    return `${Math.round((b.studied / Math.max(1, b.passages)) * 100)}%`;
+  };
   return (
     <View style={{ marginBottom: 18 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5, paddingHorizontal: 12, minHeight: 176 }}>
         {books.map((b) => {
-          const s = size(b.id, !!wide);
+          const s = size(b.id, books.length <= 5);
           return <Standing key={b.id} b={b} w={s.w} h={s.h} onPress={() => open(b)} />;
         })}
         {extra}
@@ -77,8 +105,8 @@ function ShelfRow({ books, wide, open, extra }: { books: Book[]; wide?: boolean;
       <View style={{ height: 11, backgroundColor: WOOD.plank, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 8, shadowOffset: { width: 0, height: 6 } }} />
       <View style={{ flexDirection: 'row', gap: 5, paddingHorizontal: 12, marginTop: 6 }}>
         {books.map((b) => (
-          <Text key={b.id} style={{ width: size(b.id, !!wide).w, textAlign: 'center', color: isDone(b) ? '#F1D58F' : '#C9B8A6', fontSize: 10, fontWeight: '800' }}>
-            {isDone(b) ? 'OPEN' : b.studied > 0 ? `${Math.round((b.studied / Math.max(1, b.passages)) * 100)}%` : 'NEXT'}
+          <Text key={b.id} style={{ width: size(b.id, books.length <= 5).w, textAlign: 'center', color: statusOf(b, mine) === 'read' ? '#FF9C8F' : isDone(b) ? '#F1D58F' : '#C9B8A6', fontSize: 10, fontWeight: '800' }}>
+            {label(b)}
           </Text>
         ))}
       </View>
@@ -86,54 +114,122 @@ function ShelfRow({ books, wide, open, extra }: { books: Book[]; wide?: boolean;
   );
 }
 
-function Shelf({ books, open }: { books: Book[]; open: (b: Book) => void }) {
+function Chip({ on, children, onPress }: { on: boolean; children: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: on ? colours.purple : colours.purpleSoft, borderWidth: 1, borderColor: on ? colours.purple : colours.border }}>
+      <Text style={{ color: on ? colours.onPurple : colours.text, fontSize: 13, fontWeight: '800' }}>{children}</Text>
+    </Pressable>
+  );
+}
+
+const STATUS_WORDS: Record<Status, string> = { read: 'You have read it', reading: 'You are reading it', open: 'Open to read', tali: 'Tali is still reading' };
+
+function Shelf({ books, mine, open, toggle, resume }: { books: Book[]; mine: Mine; open: (b: Book) => void; toggle: (b: Book) => void; resume: (b: Book) => void }) {
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState<Status | 'all'>('all');
+  const [subject, setSubject] = useState('all');
   const done = books.filter(isDone);
-  const reading = books.filter((b) => !isDone(b));
   const kept = books.reduce((n, b) => n + b.lessons, 0);
+  // Your shelf: the books you chose. Until you choose, it starts with the ones she has finished.
+  const shelfIds = mine.shelf ?? done.map((b) => b.id);
+  const onShelf = shelfIds.map((id) => books.find((b) => b.id === id)).filter(Boolean) as Book[];
   const rows: Book[][] = [];
-  for (let i = 0; i < reading.length; i += 6) rows.push(reading.slice(i, i + 6));
+  for (let i = 0; i < onShelf.length; i += 6) rows.push(onShelf.slice(i, i + 6));
+  const subjects = useMemo(() => Array.from(new Set(books.map((b) => b.subject))).sort(), [books]);
+  const going = books.filter((b) => statusOf(b, mine) === 'reading').sort((a, b) => (mine.place[b.id] ?? 0) - (mine.place[a.id] ?? 0))[0];
+  const term = q.trim().toLowerCase();
+  const found = books.filter(
+    (b) =>
+      (status === 'all' || statusOf(b, mine) === status) &&
+      (subject === 'all' || b.subject === subject) &&
+      (!term || b.title.toLowerCase().includes(term) || b.author.toLowerCase().includes(term) || b.subject.toLowerCase().includes(term)),
+  );
   return (
     <>
       <BackLink onPress={() => goBack('/(app)/brain')} label="Her brain" />
-      <Title sub="Every book I have read or am reading. Tap a finished one to take it off the shelf.">Tali's library</Title>
+      <Title sub="Every book I have read or am reading. Put the ones you like on your shelf.">Tali's library</Title>
       <TaliSays pose="idle">
-        {books.length} books on my shelf. I have finished {done.length} and kept {kept.toLocaleString('en-AU')} things so far. I read a few pages every night.
+        {books.length} books in my library. I have finished {done.length} and kept {kept.toLocaleString('en-AU')} things so far. I read a few pages every night.
       </TaliSays>
 
+      {going ? (
+        <Pressable onPress={() => resume(going)} accessibilityRole="button" style={{ marginTop: space.lg, backgroundColor: colours.paper, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 30, height: 44, borderRadius: 4, backgroundColor: hue(going) }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#8A7B66', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 }}>PICK UP WHERE YOU LEFT OFF</Text>
+            <Text numberOfLines={1} style={{ color: colours.ink, fontSize: 19, fontFamily: serif, marginTop: 2 }}>{going.title}</Text>
+            <Text style={{ color: '#6B5E4C', fontSize: 13 }}>Page {mine.place[going.id]} of {going.passages}</Text>
+          </View>
+          <View style={{ backgroundColor: '#6C3483', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 }}>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>Keep reading</Text>
+          </View>
+        </Pressable>
+      ) : null}
+
       <View style={{ marginTop: space.lg, backgroundColor: WOOD.back, borderRadius: 14, borderWidth: 6, borderColor: WOOD.post, paddingTop: 16, paddingBottom: 4, shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } }}>
-        <Plaque>FINISHED · OPEN TO READ</Plaque>
-        <ShelfRow
-          books={done.slice(0, 5)}
-          wide
-          open={open}
-          extra={
-            done.length < 4 ? (
-              <View style={{ flex: 1, alignItems: 'flex-end', paddingRight: 6 }}>
-                <Text style={{ color: '#C9B8A6', fontSize: 12, lineHeight: 16, textAlign: 'right', marginBottom: 10, maxWidth: 150 }}>
-                  {done.length ? 'Room on this shelf for the next one I finish.' : 'Nothing finished yet. The first one lands here.'}
-                </Text>
-              </View>
-            ) : null
-          }
-        />
-        {done.length > 5 ? <ShelfRow books={done.slice(5, 10)} wide open={open} /> : null}
-        {rows.length ? <Plaque>STILL READING</Plaque> : null}
-        {rows.map((r, i) => (
-          <ShelfRow key={i} books={r} open={open} />
-        ))}
+        <Plaque>YOUR SHELF</Plaque>
+        {rows.length ? (
+          rows.map((r, i) => <ShelfRow key={i} books={r} mine={mine} open={open} />)
+        ) : (
+          <ShelfRow books={[]} mine={mine} open={open} extra={<Text style={{ color: '#C9B8A6', fontSize: 13, lineHeight: 18, marginBottom: 60, flex: 1, textAlign: 'center' }}>Your shelf is empty. Add any book from the catalogue below.</Text>} />
+        )}
       </View>
+
+      <Text style={{ color: colours.text, fontSize: 26, fontFamily: serif, marginTop: space.xl, marginBottom: space.sm }}>The catalogue</Text>
+      <Field value={q} onChangeText={setQ} placeholder="Search by title, author or subject" accessibilityLabel="Search the library" autoCorrect={false} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingBottom: 8 }}>
+        <Chip on={status === 'all'} onPress={() => setStatus('all')}>All</Chip>
+        <Chip on={status === 'open'} onPress={() => setStatus('open')}>Open to read</Chip>
+        <Chip on={status === 'reading'} onPress={() => setStatus('reading')}>You're reading</Chip>
+        <Chip on={status === 'read'} onPress={() => setStatus('read')}>You've read</Chip>
+        <Chip on={status === 'tali'} onPress={() => setStatus('tali')}>Tali still reading</Chip>
+      </ScrollView>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingBottom: space.md }}>
+        <Chip on={subject === 'all'} onPress={() => setSubject('all')}>Every subject</Chip>
+        {subjects.map((x) => (
+          <Chip key={x} on={subject === x} onPress={() => setSubject(x)}>{x.charAt(0).toUpperCase() + x.slice(1)}</Chip>
+        ))}
+      </ScrollView>
+      <Text style={{ color: colours.faint, fontSize: 12, marginBottom: space.sm }}>{found.length} of {books.length} books</Text>
+      {found.map((b) => {
+        const st = statusOf(b, mine);
+        const on = shelfIds.includes(b.id);
+        return (
+          <Card key={b.id} style={{ marginBottom: space.sm, padding: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <Pressable onPress={() => open(b)} accessibilityRole="button" accessibilityLabel={`${b.title} by ${b.author}`} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', flex: 1 }}>
+                <View style={{ width: 34, height: 50, borderRadius: 4, backgroundColor: hue(b) }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colours.text, fontSize: 18, lineHeight: 21, fontFamily: serif }}>{b.title}</Text>
+                  <Text style={{ color: colours.muted, fontSize: 13, marginTop: 1 }}>{b.author} · {b.subject}</Text>
+                  <Text style={{ color: st === 'read' ? '#FF9C8F' : st === 'tali' ? colours.faint : '#C6F08A', fontSize: 12, fontWeight: '800', marginTop: 3 }}>
+                    {st === 'reading' ? `You are on page ${mine.place[b.id]} of ${b.passages}` : st === 'tali' ? `Tali is ${Math.round((b.studied / Math.max(1, b.passages)) * 100)}% through` : STATUS_WORDS[st]}
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable onPress={() => toggle(b)} accessibilityRole="button" accessibilityLabel={on ? `Take ${b.title} off your shelf` : `Put ${b.title} on your shelf`} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: on ? '#C6F08A' : colours.border, backgroundColor: on ? 'rgba(198,240,138,0.14)' : 'transparent' }}>
+                <Text style={{ color: on ? '#C6F08A' : colours.purpleInk, fontSize: 12, fontWeight: '800' }}>{on ? 'On shelf' : '+ Shelf'}</Text>
+              </Pressable>
+            </View>
+          </Card>
+        );
+      })}
+      {!found.length ? <Text style={{ color: colours.muted, fontSize: 14, marginTop: space.sm }}>No books match that. Try another word or clear the filters.</Text> : null}
       <Text style={{ color: colours.faint, fontSize: 12, lineHeight: 17, marginTop: space.md }}>
-        The red ribbon is my bookmark. A book opens for you the night I finish it. Every book here is out of copyright and free to read. I leave old health and medical books off the shelf, because a lot of that advice has since been proven wrong.
+        A book opens for you the night I finish it. Every book here is out of copyright and free to read. I leave old health and medical books off the shelf, because a lot of that advice has since been proven wrong.
       </Text>
     </>
   );
 }
 
-function BookPage({ b, back, read }: { b: LibraryBookDetail; back: () => void; read: () => void }) {
+function BookPage({ b, mine, back, read, toggle }: { b: LibraryBookDetail; mine: Mine; back: () => void; read: () => void; toggle: () => void }) {
   const [all, setAll] = useState(false);
   const done = b.finished;
   const pct = Math.round((b.studied / Math.max(1, b.passages)) * 100);
   const shown = all ? b.notes : b.notes.slice(0, 4);
+  const st = statusOf(b, mine);
+  const on = (mine.shelf ?? (done ? [b.id] : [])).includes(b.id);
+  const day = (iso: string) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
   return (
     <>
       <BackLink onPress={back} label="Library" />
@@ -149,19 +245,31 @@ function BookPage({ b, back, read }: { b: LibraryBookDetail; back: () => void; r
           <Text style={{ color: '#6B5E4C', fontSize: 13 }}>{b.passages} passages</Text>
           <Text style={{ color: '#6B5E4C', fontSize: 13 }}>{b.lessons} {b.lessons === 1 ? 'thing' : 'things'} kept</Text>
         </View>
-        <View style={{ alignSelf: 'flex-end', marginTop: 12, borderWidth: 2, borderColor: done ? '#B23A30' : '#6C3483', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: '-6deg' }] }}>
-          <Text style={{ color: done ? '#B23A30' : '#6C3483', fontSize: 12, fontWeight: '900', letterSpacing: 1.2 }}>
-            {done ? `READ${stamp(b.last_read_at)}` : `READING · ${pct}%`}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, minHeight: 34 }}>
+          <Text style={{ color: '#8A7B66', fontSize: 12, flex: 1 }}>
+            {done ? `Tali finished it${b.last_read_at ? ' on ' + day(b.last_read_at) : ''}` : `Tali is ${pct}% through`}
           </Text>
+          {st === 'read' ? (
+            <View style={{ borderWidth: 2, borderColor: '#B23A30', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: '-6deg' }] }}>
+              <Text style={{ color: '#B23A30', fontSize: 12, fontWeight: '900', letterSpacing: 1.2 }}>READ · {day(mine.done[b.id]).toUpperCase()}</Text>
+            </View>
+          ) : st === 'reading' ? (
+            <View style={{ borderWidth: 2, borderColor: '#6C3483', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: '-4deg' }] }}>
+              <Text style={{ color: '#6C3483', fontSize: 12, fontWeight: '900', letterSpacing: 1.2 }}>YOU ARE ON PAGE {mine.place[b.id]}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
       {done ? (
-        <Button title="Read the book" onPress={read} />
+        <Button title={st === 'reading' ? `Keep reading from page ${mine.place[b.id]}` : st === 'read' ? 'Read it again' : 'Read the book'} onPress={read} />
       ) : (
         <Card>
           <Text style={{ color: colours.text, fontSize: 15, lineHeight: 22 }}>I am {pct}% of the way through this one. It opens for you the night I finish it. Until then, here is what I have kept so far.</Text>
         </Card>
       )}
+      <View style={{ marginTop: space.sm }}>
+        <Button title={on ? 'On your shelf. Take it off' : 'Put it on my shelf'} kind="ghost" onPress={toggle} />
+      </View>
       <Text style={{ color: colours.text, fontSize: 22, fontFamily: serif, marginTop: space.xl, marginBottom: 4 }}>{done ? 'What I kept' : 'What I have kept so far'}</Text>
       <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20, marginBottom: space.md }}>
         {b.notes.length
@@ -182,17 +290,15 @@ function BookPage({ b, back, read }: { b: LibraryBookDetail; back: () => void; r
   );
 }
 
-function Reader({ b, back }: { b: LibraryBookDetail; back: () => void }) {
+function Reader({ b, start, back, turned }: { b: LibraryBookDetail; start: number; back: () => void; turned: (n: number) => void }) {
   const [n, setN] = useState<number | null>(null);
   const [pages, setPages] = useState<Record<number, LibraryPassage>>({});
   const [error, setError] = useState('');
 
   // Pick up where you left off in this book.
   useEffect(() => {
-    AsyncStorage.getItem(PLACE + b.id)
-      .then((v) => setN(Math.min(Math.max(1, Number(v) || 1), b.passages)))
-      .catch(() => setN(1));
-  }, [b.id, b.passages]);
+    setN(Math.min(Math.max(1, start || 1), b.passages));
+  }, [b.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (n == null || pages[n]) return;
@@ -213,7 +319,7 @@ function Reader({ b, back }: { b: LibraryBookDetail; back: () => void }) {
   const go = (to: number) => {
     const next = Math.min(Math.max(1, to), b.passages);
     setN(next);
-    AsyncStorage.setItem(PLACE + b.id, String(next)).catch(() => {});
+    turned(next);
   };
   const page = n != null ? pages[n] : undefined;
   return (
@@ -293,11 +399,13 @@ export default function LibraryScreen() {
   const params = useLocalSearchParams<{ book?: string }>();
   const [books, setBooks] = useState<Book[] | null>(null);
   const [book, setBook] = useState<LibraryBookDetail | null>(null);
+  const [mine, setMine] = useState<Mine>(NO_MINE);
   const [opening, setOpening] = useState(false);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
+    setMine(await loadMine());
     try {
       setBooks(await libraryShelf());
     } catch {
@@ -309,15 +417,37 @@ export default function LibraryScreen() {
       load();
     }, [load]),
   );
+  const change = useCallback((fn: (m: Mine) => Mine) => {
+    setMine((m) => {
+      const next = fn(m);
+      saveMine(next);
+      return next;
+    });
+  }, []);
+  // Put a book on your shelf or take it off. The first change starts from what the shelf shows now.
+  const toggle = useCallback(
+    (id: string) =>
+      change((m) => {
+        const now = m.shelf ?? (books ?? []).filter(isDone).map((b) => b.id);
+        return { ...m, shelf: now.includes(id) ? now.filter((x) => x !== id) : [...now, id] };
+      }),
+    [change, books],
+  );
+  // Turning a page saves your place. Reaching the last page is what earns the READ stamp.
+  const turned = useCallback(
+    (id: string, n: number, last: number) =>
+      change((m) => ({ ...m, place: { ...m.place, [id]: n }, done: n >= last && !m.done[id] ? { ...m.done, [id]: new Date().toISOString() } : m.done })),
+    [change],
+  );
 
-  const open = useCallback(async (id: string) => {
+  const open = useCallback(async (id: string, straightIn = false) => {
     setError('');
     setOpening(true);
     try {
       const d = await libraryBook(id);
       if (!d) setError('I could not take that one off the shelf. Try again in a moment.');
       else {
-        setReading(false);
+        setReading(straightIn && d.finished);
         setBook(d);
       }
     } catch {
@@ -336,15 +466,15 @@ export default function LibraryScreen() {
     <Screen onRefresh={book ? undefined : load}>
       {book ? (
         reading ? (
-          <Reader b={book} back={() => setReading(false)} />
+          <Reader b={book} start={mine.place[book.id] ?? 1} back={() => setReading(false)} turned={(n) => turned(book.id, n, book.passages)} />
         ) : (
-          <BookPage b={book} back={() => setBook(null)} read={() => setReading(true)} />
+          <BookPage b={book} mine={mine} back={() => setBook(null)} read={() => setReading(true)} toggle={() => toggle(book.id)} />
         )
       ) : books == null ? (
         <Loading />
       ) : (
         <>
-          <Shelf books={books} open={(b) => open(b.id)} />
+          <Shelf books={books} mine={mine} open={(b) => open(b.id)} toggle={(b) => toggle(b.id)} resume={(b) => open(b.id, true)} />
           {opening ? <Text style={{ color: colours.muted, marginTop: space.md }}>Taking it off the shelf...</Text> : null}
           {error ? <ErrorText>{error}</ErrorText> : null}
         </>
