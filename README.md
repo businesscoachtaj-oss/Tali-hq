@@ -315,3 +315,10 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 
 - **No sideways scrolling rows** (11 Nov 2026, Taj): the library filter chips and the sleep sound categories wrap onto the next line instead of scrolling across.
 - **Page turns start at the top** (11 Nov 2026, Taj): in the library reader, Next page and Back jump to the top of the screen (`useScrollToTop` in `components/ui.tsx`).
+
+## 11 Nov 2026: Tali talks about her books as a reader
+
+- `tali-chat` now gets her real shelf (`library_shelf`) on every turn: the books she has finished and the ones she is part way through.
+- When one comes up she says she has read it, picks favourites and gives her own opinion. She no longer adds that she reads differently to people.
+- Books not on her shelf: she says she has not read them yet. So she never claims a book she has not read.
+- Needs `npx supabase functions deploy tali-chat --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt` to go live.
