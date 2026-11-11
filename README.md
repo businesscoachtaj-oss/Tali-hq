@@ -411,3 +411,11 @@ Taj: the business side should be "Totality level" for any business. Four tools, 
 - **Bookings** (`app/(app)/bookings.tsx`, `lib/bookings.ts`, migration 083): your week, your services, and a booking link. The public page is `talihq.com.au/book/<name>` (`app/book/[slug].tsx`, no sign in). A request from the link waits for your yes. The page only sees the business name, services and taken times.
 - **Projects** (`app/(app)/projects.tsx`, `lib/projects.ts`, migration 084): a project with tasks, who is doing each, a due date and notes.
 - Not built yet: Tali confirming bookings by text and answering the phone (needs a phone provider), the website builder, and the Business plans in Stripe.
+
+## 12 Nov 2026: Website and On autopilot (business tools, stage 4)
+
+- **Website** (`app/(app)/website.tsx`, `lib/site.ts`): a simple site Tali HQ hosts at `talihq.com.au/site/<name>`. Business or "Just me". Name, one line, about, up to 8 extra sections, a colour, and switches for services, a Book a time button and a contact form. Own domain and "Ask Tali to write it" are marked coming soon.
+- **Public site** (`app/site/[slug].tsx`): no sign in. Reads `site_public`, sends the contact form through `site_enquiry_public`. On a business site an enquiry becomes a new lead with a nudge on the To do.
+- **On autopilot** (`app/(app)/autopilot.tsx`): five rules (quote follow up, late invoice, new lead, booking request, finished job with no invoice). `automations_run()` runs for the signed-in owner when they open Today or the screen and only ever adds to their own To do, once per thing. Nothing is sent to a customer. Text messages and phone answering are marked coming soon.
+- Migration `20261112000085_sites_and_autopilot.sql`: `sites`, `site_enquiries`, `automations`, `automation_log`, and the three functions.
+- Still founder only (`hasBusinessTools`) until the Business plans are on sale.
