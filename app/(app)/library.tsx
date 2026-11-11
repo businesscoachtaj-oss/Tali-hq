@@ -107,7 +107,9 @@ function Cover({ b, w = 58 }: { b: { title: string; author: string; region: stri
   const c = hue(b);
   const spine = Math.round(w * 0.13);
   const words = b.title.length;
-  const fs = words > 34 ? w * 0.125 : words > 18 ? w * 0.15 : w * 0.185;
+  // A long single word (The Enchiridion) must fit across the frame, so the longest word sets a ceiling.
+  const longest = Math.max(1, ...b.title.split(' ').map((x) => x.length));
+  const fs = Math.min(words > 34 ? w * 0.125 : words > 18 ? w * 0.15 : w * 0.185, (w - spine - 15) / (longest * 0.56));
   return (
     <View style={{ width: w + 5, height: h + 5 }}>
       {/* the back board: the same cloth, in shadow, joined to the front all the way down the spine */}
