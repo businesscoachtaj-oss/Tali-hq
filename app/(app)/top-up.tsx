@@ -112,7 +112,7 @@ export default function TopUp() {
             </>
           ) : null}
         </View>
-        <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 17 }}>Tali uses this month's first, then the extras. A normal message is 1 credit. Extras never expire and work any month you're on Tali HQ or Pro.</Text>
+        <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 17 }}>Tali uses this month's first, then the extras. A normal message is 1 credit. Extras never expire and work any month you're on a paid plan.</Text>
       </Card>
 
       <View style={{ height: space.md }} />
@@ -160,7 +160,7 @@ export default function TopUp() {
       </View>
 
       <ErrorText>{error}</ErrorText>
-      {credits && !paid ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.md, textAlign: 'center' }}>Top ups are for Tali HQ and Pro. Pick a plan first.</Text> : null}
+      {credits && !paid ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.md, textAlign: 'center' }}>Top ups are for the paid plans. Pick a plan first.</Text> : null}
       <Pressable onPress={buy} disabled={busy || !paid} accessibilityRole="button" style={{ opacity: busy || !paid ? 0.6 : 1, marginTop: space.lg, height: 54, borderRadius: radius.pill, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', ...elevation.button(colours.purple) }}>
         {busy ? <ActivityIndicator color={colours.onPurple} /> : <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 16 }}>{chosen.monthly ? `Add ${chosen.title} for A$${chosen.price.toFixed(2)} a month` : `Buy ${chosen.title} for A$${chosen.price.toFixed(2)}`}</Text>}
       </Pressable>
@@ -172,7 +172,7 @@ export default function TopUp() {
             <Ionicons name="trending-up-outline" size={22} color={colours.purple} />
             <View style={{ flex: 1 }}>
               <Text style={{ color: colours.text, fontWeight: '800', fontSize: 15 }}>Running short most months?</Text>
-              <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2, lineHeight: 18 }}>Pro gives you 3,000 credits and 100 images every month for $39.99.</Text>
+              <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2, lineHeight: 18 }}>Pro gives you 3,000 credits and 100 images every month for A$49.99.</Text>
             </View>
             <Text style={{ color: colours.purple, fontSize: 20 }}>{'›'}</Text>
           </Card>

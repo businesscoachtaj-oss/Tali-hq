@@ -142,7 +142,7 @@ export function MicrosoftConnectCard() {
         </>
       ) : (
         <>
-          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>Connecting Outlook is part of Tali HQ and Pro.</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>Connecting Outlook is part of the paid plans.</Text>
           <Button title="See plans" kind="ghost" onPress={() => router.navigate('/plans')} />
         </>
       )}

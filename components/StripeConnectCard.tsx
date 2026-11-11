@@ -114,7 +114,7 @@ export function StripeConnectCard() {
       ) : (
         <>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
-            Sending invoices through your own Stripe is part of Tali HQ and Pro.
+            Sending invoices through your own Stripe is part of the paid plans.
           </Text>
           <Button title="See plans" kind="ghost" onPress={() => router.navigate('/plans')} />
         </>

@@ -136,14 +136,14 @@ export function GoogleConnectCard() {
               <Button title="Connect Google" onPress={() => connect('both')} busy={busy} />
               <Button title="Just the calendar" kind="ghost" onPress={() => connect('calendar')} busy={busy} />
               <Text style={{ color: colours.faint, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
-                While Tali HQ is in beta, Google may show a "Google hasn't verified this app" page. Tap Advanced, then Continue.
+                Until Google finishes checking Tali HQ, it may show a "Google hasn't verified this app" page. Tap Advanced, then Continue.
               </Text>
             </>
           )}
         </>
       ) : (
         <>
-          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>Connecting Gmail and Google Calendar is part of Tali HQ and Pro.</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>Connecting Gmail and Google Calendar is part of the paid plans.</Text>
           <Button title="See plans" kind="ghost" onPress={() => router.navigate('/plans')} />
         </>
       )}
