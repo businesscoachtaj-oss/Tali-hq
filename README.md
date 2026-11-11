@@ -339,3 +339,17 @@ The installed web app told the phone to colour its top and bottom bars brand pur
 ## 11 Nov 2026: the New memory pill opens Her brain
 
 In Talk, the "New memory" pill under a reply is now a button. Tapping it opens Her brain with that group (for example "How you like things") already open. Files: `app/(app)/talk.tsx`, `app/(app)/brain.tsx`, `components/KnowsAbout.tsx`.
+
+## 11 Nov 2026: personal money (the Personal side of Money)
+
+Asked for by Taj: a personal spend and budget tracker. Money now has a Business and Personal switch.
+
+- **Personal side** (`components/PersonalMoney.tsx`, `lib/personalMoney.ts`): what is left to spend this week (one weekly amount, Monday to Sunday), spent this month, the month by category against monthly budgets, recent spends (tap one to fix or delete it) and bills that repeat.
+- **Three ways in**: tell Tali in Talk ("spent $42 at Woolies"), snap a receipt (read by `tali-receipts`, the photo is not kept, so it stays out of the business receipts list) or type it in.
+- **Bills that repeat** (week, fortnight or month) log themselves on the day. They count in the month and their category, not against the weekly amount.
+- **Talk**: `tali-chat` has a `spends` field. She logs the spend, says what is left for the week, and a "spends logged" pill under her reply opens Money on the Personal side.
+- **Plans**: same as the rest of Money, trial and paid plans. On Free she does not log spends.
+- **Database**: migration `20261111000076_personal_money.sql` (applied): `personal_spends`, `personal_budgets`, `personal_money_settings`, `personal_repeats`, all own rows only, plus `personal_money_picture` (server only) and `my_personal_money` (the app's door).
+- Categories are fixed for now: Groceries, Rent, Bills, Eating out, Transport, Fun, Health, Shopping, Other.
+- Also: the Money screen no longer uses Tali's thinking pose when an invoice is overdue.
+- `tali-chat` needs deploying for the Talk part to work.

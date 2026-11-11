@@ -241,6 +241,23 @@ const TOOL = {
           required: ['meal', 'description', 'calories', 'protein_g', 'carbs_g', 'fat_g'],
         },
       },
+      // ADDED (11 Nov 2026, asked for by Taj): personal spending, for the Personal side of Money.
+      spends: {
+        type: 'array',
+        maxItems: 6,
+        description:
+          'Only when they tell you about their own personal spending (not a business cost, and not an invoice): what they spent or paid for themselves. One item per thing they paid for. Use the amount they said, in AUD, never a guess. Empty otherwise, and empty if they gave no amount.',
+        items: {
+          type: 'object',
+          properties: {
+            description: { type: 'string', description: 'Short, in their words, for example "Woolworths" or "Coffee with Jess".' },
+            amount: { type: 'number', description: 'Dollars, for example 42 or 11.5.' },
+            category: { type: 'string', enum: ['Groceries', 'Rent', 'Bills', 'Eating out', 'Transport', 'Fun', 'Health', 'Shopping', 'Other'] },
+            date: { type: 'string', description: 'YYYY-MM-DD in their timezone, only if it was not today.' },
+          },
+          required: ['description', 'amount', 'category'],
+        },
+      },
       weight: {
         type: 'array',
         maxItems: 1,
@@ -352,7 +369,7 @@ const TOOL = {
         },
       },
     },
-    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'weight', 'workouts', 'emails', 'events', 'goals', 'decisions', 'training_plan'],
+    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'spends', 'weight', 'workouts', 'emails', 'events', 'goals', 'decisions', 'training_plan'],
   },
 };
 // ADDED (6 Nov 2026, brain sections): lessons that prove themselves. Optional, so a reply that uses
@@ -387,6 +404,7 @@ type Out = {
   reminders?: { text: string; due_at: string; client_name?: string }[];
   invoices?: { client_name: string; items: { description: string; qty: number; unit_price: number }[]; due_days?: number; notes?: string }[];
   food?: { meal: string; description: string; calories: number; protein_g: number; carbs_g: number; fat_g: number; date?: string }[];
+  spends?: { description: string; amount: number; category: string; date?: string }[];
   weight?: { kg: number; date?: string }[];
   workouts?: { label: string; notes?: string; date?: string }[];
   emails?: { to: string; to_name?: string; subject: string; body: string; reply_to_email_id?: string }[];
@@ -793,6 +811,12 @@ Deno.serve(async (req) => {
     }
 
     const tz = ctx?.profile?.timezone || 'Australia/Sydney';
+    // ADDED (11 Nov 2026, asked for by Taj): their personal money picture (Personal side of Money), so
+    // Tali can say what is left for the week when they tell her a spend. Trial and paid plans only,
+    // the same as the Money screen.
+    const moneyToday = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+    const { data: personalMoney } = consume.plan === 'free' ? { data: null } : await admin.rpc('personal_money_picture', { p_user_id: user.id, p_today: moneyToday });
+    const pm: any = personalMoney ?? null;
     const now = new Date().toLocaleString('en-AU', { timeZone: tz, dateStyle: 'full', timeStyle: 'short' });
     const offset = new Intl.DateTimeFormat('en-AU', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+11:00';
     const system = [
@@ -810,6 +834,9 @@ Deno.serve(async (req) => {
       `Their latest journal entries they let you read: ${JSON.stringify(ctx?.journal ?? [])}`,
       `Their clients, leads, follow-ups due, open reminders, unpaid invoices and business health: ${JSON.stringify(work ?? {})}`,
       `Their food today (your estimates), weight and training this week: ${JSON.stringify(life ?? {})}`,
+      pm
+        ? `Their personal money (their own spending, not the business). Weekly amount to spend: ${pm.weekly_amount ?? 'not set'}. Spent so far this week, before this message: ${pm.week_spent}. Spent this month: ${pm.month_spent}. This month by category with budgets: ${JSON.stringify(pm.categories ?? [])}. When they tell you a personal spend with an amount, put it in spends and tell them it is logged. If a weekly amount is set, say what is left for the week after it (weekly amount, minus spent so far, minus what they just told you; Rent and other repeating bills do not count against the week). Mention a category only if this spend takes it over its monthly budget. Keep it to a line or two, no advice unless they ask.`
+        : '',
       freeSearch?.free
         ? (freeSearch.remaining > 0
             ? `Web search: they are on Free, with ${freeSearch.remaining} of ${freeSearch.allowance} searches left this month. Use one only when it really needs a current answer.`
@@ -1141,6 +1168,28 @@ Deno.serve(async (req) => {
       const { error } = await admin.from('food_logs').insert(foodRows);
       if (!error) foodLogged = foodRows.length;
     }
+    // ADDED (11 Nov 2026): personal spends she was told about, for the Personal side of Money.
+    const SPEND_CATS = ['Groceries', 'Rent', 'Bills', 'Eating out', 'Transport', 'Fun', 'Health', 'Shopping', 'Other'];
+    const spendRows = (consume.plan === 'free' ? [] : (result.out.spends ?? [])).slice(0, 6)
+      .map((sp) => ({
+        user_id: user.id,
+        local_date: day(sp.date),
+        amount: Math.round((Number(sp.amount) || 0) * 100) / 100,
+        description: strip(String(sp.description ?? '')).slice(0, 120),
+        category: SPEND_CATS.includes(sp.category) ? sp.category : 'Other',
+        source: 'tali',
+      }))
+      .filter((sp) => sp.description && sp.amount > 0 && sp.amount < 1000000);
+    let spendsLogged = 0;
+    if (spendRows.length) {
+      const { error } = await admin.from('personal_spends').insert(spendRows);
+      if (!error) {
+        spendsLogged = spendRows.length;
+        // Shown under her reply as a pill that opens Money on the Personal side.
+        meta.spent = { count: spendRows.length, total: Math.round(spendRows.reduce((t, r) => t + r.amount, 0) * 100) / 100 };
+        if (saved?.id) await admin.from('messages').update({ meta }).eq('id', saved.id);
+      }
+    }
     let weightLogged = false;
     for (const w of (result.out.weight ?? []).slice(0, 1)) {
       const kg = Math.round(Number(w.kg) * 10) / 10;
@@ -1182,7 +1231,7 @@ Deno.serve(async (req) => {
       admin.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId),
     ]);
 
-    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, deep, suggestDeep: !deep && !!result.out.suggest_deep, meta, remaining: Math.max(0, (consume.remaining ?? 0) - extraCredits - (onFree ? 0 : 2 * result.searches)) });
+    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, spendsLogged, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, deep, suggestDeep: !deep && !!result.out.suggest_deep, meta, remaining: Math.max(0, (consume.remaining ?? 0) - extraCredits - (onFree ? 0 : 2 * result.searches)) });
   } catch (e) {
     await admin.rpc('chat_refund', { p_usage_id: usageId });
     if (deepFreeId) await admin.from('usage').delete().eq('id', deepFreeId);
