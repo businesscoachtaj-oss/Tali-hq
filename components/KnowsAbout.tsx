@@ -2,7 +2,7 @@
 // Memories grouped by what they are about you; the parts and the globe sit underneath for the curious.
 // 10 Nov 2026 (Taj: "I can't click these to expand"): every card opens. Tap a card to see everything
 // in it, tap a memory to read it in full, and Show more brings the next ten.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { Brain } from '@/lib/brain';
 import { colours, radius, space } from '@/constants/theme';
@@ -15,9 +15,13 @@ const AREAS: { title: string; kinds: string[]; colour: string }[] = [
   { title: 'What she has learned', kinds: ['lesson', 'mistake', 'skill'], colour: '#D7B5FF' },
 ];
 
-export function KnowsAbout({ brain }: { brain: Brain }) {
+export function KnowsAbout({ brain, openGroup, openStamp }: { brain: Brain; openGroup?: string; openStamp?: string }) {
   const items = brain.regions.flatMap((r) => r.items);
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(openGroup && AREAS.some((a) => a.title === openGroup) ? openGroup : null);
+  // Arriving from a "New memory" pill in Talk: open that group.
+  useEffect(() => {
+    if (openGroup && AREAS.some((a) => a.title === openGroup)) { setOpen(openGroup); setShown(10); setFull(null); }
+  }, [openGroup, openStamp]);
   const [shown, setShown] = useState(10);
   const [full, setFull] = useState<number | null>(null);
   return (

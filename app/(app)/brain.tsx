@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { BrainGlobe } from '@/components/BrainGlobe';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink, Card, ErrorText, Label, Screen, Title, goBack, useConfirm } from '@/components/ui';
@@ -29,6 +29,10 @@ export default function BrainScreen() {
   const { session } = useAuth();
   const founder = session?.user.id === FOUNDER_USER_ID;
   const [scope, setScope] = useState<'main' | 'mine'>(founder ? 'main' : 'mine');
+  // 11 Nov 2026: the "New memory" pill in Talk lands here with the group to open (and a timestamp so
+  // tapping a second pill for the same group opens it again). Always shows your own brain.
+  const { open: openGroup, t: openStamp } = useLocalSearchParams<{ open?: string; t?: string }>();
+  useEffect(() => { if (openGroup) setScope('mine'); }, [openGroup, openStamp]);
   const [brain, setBrain] = useState<Brain | null>(null);
   const [selected, setSelected] = useState<RegionId | null>(null);
   const [error, setError] = useState('');
@@ -123,7 +127,7 @@ export default function BrainScreen() {
     <Screen skin="brain" onRefresh={load}>
       <SkinHeader id="brain" title="Her brain" sub={brain ? `Everything she knows about you. ${brain.total.toLocaleString('en-AU')} memories and growing.` : undefined} />
       {brain?.scope === 'mine' ? <LastNightCard onChanged={load} /> : null}
-      {brain?.scope === 'mine' ? <KnowsAbout brain={brain} /> : null}
+      {brain?.scope === 'mine' ? <KnowsAbout brain={brain} openGroup={openGroup} openStamp={openStamp} /> : null}
       {brain?.scope === 'mine' ? <LinkTotalityCard onChanged={load} /> : null}
       {brain?.scope === 'mine' ? <LibraryShelf /> : null}
 
