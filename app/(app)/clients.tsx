@@ -38,6 +38,34 @@ export default function Clients() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // 11 Nov 2026: an empty list offers quick ways in, not one form. Paste takes one person per line.
+  const [pasting, setPasting] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+
+  async function addPasted() {
+    const rows = pasteText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 200).map((l) => {
+      const email = l.match(/[^\s,;<>]+@[^\s,;<>]+\.[^\s,;<>]+/)?.[0] ?? '';
+      const name = l.replace(email, '').replace(/[<>,;\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+      return { name: name || email.split('@')[0], email };
+    }).filter((r) => r.name);
+    if (!rows.length) return setError('Paste one person per line, like "Sam Reilly, sam@example.com".');
+    setBusy(true);
+    setError('');
+    try {
+      const have = new Set(list.map((c) => c.name.trim().toLowerCase()));
+      for (const r of rows) {
+        if (have.has(r.name.toLowerCase())) continue;
+        have.add(r.name.toLowerCase());
+        await saveClient({ name: r.name, kind: hasBusiness ? tab : 'client', status: hasBusiness && tab === 'lead' ? 'new' : 'active', email: r.email || null });
+      }
+      setPasteText('');
+      setPasting(false);
+      await load();
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not add them.');
+    }
+    setBusy(false);
+  }
   // ADDED (3 Nov 2026): the person screen's Edit button opens /clients?edit=<id>&from=person.
   // 4 Nov 2026: remember that it came from Person, so Back and Save return there rather than the list.
   const params = useLocalSearchParams<{ edit?: string; from?: string }>();
@@ -186,7 +214,29 @@ export default function Clients() {
       <View style={{ height: space.md }} />
       {shown.length === 0 ? (
         list.length === 0 ? (
-          <TaliSays pose="idle">Add the people you work with and I'll keep track of who needs a follow-up.</TaliSays>
+          <>
+            <TaliSays pose="idle">{hasBusiness ? "Nobody here yet. Pick the quickest way to bring them in and I'll keep track of who needs a follow-up." : 'Nobody here yet. Pick the quickest way to bring them in.'}</TaliSays>
+            <Pressable accessibilityRole="button" onPress={() => router.navigate({ pathname: '/talk', params: { ask: hasBusiness ? 'Add these people: ' : 'Remember these people: ' } })}>
+              <Card>
+                <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>Tell me about them</Text>
+                <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>{hasBusiness ? '"Sam and Mia are clients, Jordan is a lead."' : '"Mum\'s birthday is 14 December."'}</Text>
+              </Card>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => setPasting((v) => !v)}>
+              <Card>
+                <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16 }}>Paste a list</Text>
+                <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>Names and emails from a spreadsheet or your notes, one person per line.</Text>
+              </Card>
+            </Pressable>
+            {pasting ? (
+              <>
+                <TextInput value={pasteText} onChangeText={setPasteText} multiline placeholder={'Sam Reilly, sam@example.com\nMia Tran'} placeholderTextColor={colours.faint}
+                  style={{ minHeight: 120, textAlignVertical: 'top', backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, marginBottom: space.sm, color: colours.text }} />
+                <Button title="Add them" onPress={addPasted} busy={busy} />
+              </>
+            ) : null}
+            {hasBusiness ? <Body muted>Anyone you invoice is saved here for you.</Body> : null}
+          </>
         ) : (
           <Card><Body muted>{search ? 'No one matches that.' : !hasBusiness ? 'No one yet. Tell Tali about someone in Talk and they land here.' : tab === 'lead' ? 'No leads yet.' : 'No clients yet.'}</Body></Card>
         )
