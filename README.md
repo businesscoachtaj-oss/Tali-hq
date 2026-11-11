@@ -322,3 +322,8 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 - When one comes up she says she has read it, picks favourites and gives her own opinion. She no longer adds that she reads differently to people.
 - Books not on her shelf: she says she has not read them yet. So she never claims a book she has not read.
 - Needs `npx supabase functions deploy tali-chat --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt` to go live.
+
+## 11 Nov 2026: Tali is life and business in her own words
+
+- The first line of her chat personality used to say she only helps run the business. It now covers both sides: business (planning, clients, follow-ups, marketing, money, admin) and life (goals, decisions, the week, food, weight, training).
+- Needs `npx supabase functions deploy tali-chat --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt` to go live.
