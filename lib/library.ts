@@ -1,6 +1,7 @@
 // Tali's library (10 Nov 2026, asked for by Taj). A shelf of real books that are out of copyright,
 // which she works through a few pages a night. What she keeps goes into the shared brain as
 // knowledge. The shelf is the same for everyone: it is her library, not one person's.
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import type { RegionId } from '@/lib/brain';
 
@@ -147,4 +148,59 @@ export function bookBlocks(text: string): BookBlock[] {
     }
   }
   return out;
+}
+
+// What is yours in her library (11 Nov 2026, asked for by Taj): the books you put on your shelf,
+// the page you are up to in each one, and the day you finished it. The READ stamp is yours, not
+// hers. Saved to your account (public.library_mine, your own row only) so it follows you between
+// phone and web app, with a copy on the device so the shelf shows straight away and offline.
+export type LibraryMine = { shelf: string[] | null; place: Record<string, number>; done: Record<string, string> };
+export const NO_MINE: LibraryMine = { shelf: null, place: {}, done: {} };
+const MINE_KEY = 'tali.library.mine';
+const tidy = (m: any): LibraryMine => ({
+  shelf: Array.isArray(m?.shelf) ? m.shelf.map(String) : null,
+  place: m?.place && typeof m.place === 'object' ? m.place : {},
+  done: m?.done && typeof m.done === 'object' ? m.done : {},
+});
+
+export async function loadMineLocal(): Promise<LibraryMine> {
+  try {
+    const raw = await AsyncStorage.getItem(MINE_KEY);
+    return raw ? tidy(JSON.parse(raw)) : NO_MINE;
+  } catch {
+    return NO_MINE;
+  }
+}
+
+// The account copy. Null when there is none yet or it could not be reached.
+export async function loadMineAccount(): Promise<LibraryMine | null> {
+  try {
+    const { data, error } = await supabase.from('library_mine').select('shelf, place, done').maybeSingle();
+    if (error || !data) return null;
+    return tidy(data);
+  } catch {
+    return null;
+  }
+}
+
+// Two copies of the same person's library, joined: the furthest page and the earliest finish day
+// win for each book, and the account's shelf wins if it has one.
+export function joinMine(account: LibraryMine | null, local: LibraryMine): LibraryMine {
+  if (!account) return local;
+  const place: Record<string, number> = { ...local.place };
+  for (const [k, v] of Object.entries(account.place)) place[k] = Math.max(Number(v) || 0, Number(place[k]) || 0);
+  const done: Record<string, string> = { ...local.done };
+  for (const [k, v] of Object.entries(account.done)) done[k] = done[k] && done[k] < v ? done[k] : v;
+  return { shelf: account.shelf ?? local.shelf, place, done };
+}
+
+export async function saveMine(m: LibraryMine): Promise<void> {
+  AsyncStorage.setItem(MINE_KEY, JSON.stringify(m)).catch(() => {});
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u?.user) return;
+    await supabase.from('library_mine').upsert({ user_id: u.user.id, shelf: m.shelf, place: m.place, done: m.done, updated_at: new Date().toISOString() });
+  } catch {
+    // The device copy still has it. It goes up with the next change.
+  }
 }
