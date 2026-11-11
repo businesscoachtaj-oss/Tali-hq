@@ -314,3 +314,4 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 - Tested: types check and the web bundle builds. The website brain was opened in a browser and draws with white sparks. The app's brain has not been seen on a phone with these changes.
 
 - **No sideways scrolling rows** (11 Nov 2026, Taj): the library filter chips and the sleep sound categories wrap onto the next line instead of scrolling across.
+- **Page turns start at the top** (11 Nov 2026, Taj): in the library reader, Next page and Back jump to the top of the screen (`useScrollToTop` in `components/ui.tsx`).

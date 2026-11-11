@@ -1,4 +1,4 @@
-import { useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
 import { router } from 'expo-router';
 import {
   ActivityIndicator,
@@ -30,10 +30,29 @@ export const tali = {
 };
 
 // 4 Nov 2026: optional pull to refresh (pass the screen's load) so every list screen can refresh, not just Today.
+// 11 Nov 2026 (Taj: next page should always go back to the top). A screen's content can ask its
+// page to jump to the top, for example when a reader turns the page.
+const ScrollTop = createContext<() => void>(() => {});
+/** Jumps the screen back to the top whenever any of `deps` changes (not on first show). */
+export function useScrollToTop(deps: unknown[]) {
+  const top = useContext(ScrollTop);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    top();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
 export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
   // 9 Nov 2026 look refresh: one page colour everywhere (was a tint per page).
   const [refreshing, setRefreshing] = useState(false);
-  const body = <SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider>;
+  const scrollRef = useRef<ScrollView>(null);
+  const toTop = () => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.scrollTo(0, 0);
+  };
+  const body = <ScrollTop.Provider value={toTop}><SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider></ScrollTop.Provider>;
   const refresh = onRefresh
     ? (
         <RefreshControl
@@ -50,7 +69,7 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
     <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
       <PageSky style={StyleSheet.absoluteFill} />
       <Aurora />
-      {scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh} onScroll={Platform.OS === 'web' ? undefined : (e) => skyScroll.setValue(e.nativeEvent.contentOffset.y)} scrollEventThrottle={16}>{body}</ScrollView> : body}
+      {scroll ? <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh} onScroll={Platform.OS === 'web' ? undefined : (e) => skyScroll.setValue(e.nativeEvent.contentOffset.y)} scrollEventThrottle={16}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
 }

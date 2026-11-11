@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { BackLink, Button, Card, ErrorText, Field, Loading, Screen, TaliSays, Title, goBack } from '@/components/ui';
+import { BackLink, Button, Card, ErrorText, Field, Loading, Screen, TaliSays, Title, goBack, useScrollToTop } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 import { REGIONS } from '@/lib/brain';
 import { libraryBook, libraryRead, libraryShelf, bookBlocks, joinMine, loadMineAccount, loadMineLocal, saveMine, NO_MINE, type LibraryMine, type BookBlock, type LibraryBook, type LibraryBookDetail, type LibraryPassage } from '@/lib/library';
@@ -396,6 +396,8 @@ function Reader({ b, start, back, turned }: { b: LibraryBookDetail; start: numbe
     turned(next);
   };
   const cur = n ?? 1;
+  // Every page turn, forward or back, starts at the top of the page.
+  useScrollToTop([cur, at]);
   const onNext = () => (lastSheet ? go(cur + 1, 0) : setSheet(at + 1));
   const onBack = () => (at > 0 ? setSheet(at - 1) : go(cur - 1, -1));
   const theEnd = cur >= b.passages && lastSheet;
