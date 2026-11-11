@@ -116,7 +116,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 // "14 December", "14 Dec 1961" or "14/12" in, a date out. Null when it cannot be read.
 export function parseBirthday(text: string): string | null {
-  const t = text.trim().toLowerCase().replace(/(\d)(st|nd|rd|th)\b/g, '$1').replace(/,/g, ' ');
+  const t = text.trim().toLowerCase().replace(/(\d)(st|nd|rd|th)\b/g, '$1').replace(/,|\bof\b/g, ' ').replace(/\s+/g, ' ').trim();
   if (!t) return null;
   let day = 0, month = 0, year = NO_YEAR;
   const iso = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
