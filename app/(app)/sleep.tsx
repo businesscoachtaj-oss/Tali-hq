@@ -217,7 +217,7 @@ export default function Sleep() {
             <Text style={[s.h1c, { marginTop: 14 }]}>Make your own</Text>
             <Text style={s.subc}>Tap a sound to hear it. Pick up to {MAX_PICKS}.</Text>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow} style={{ marginHorizontal: -20, flexGrow: 0, marginTop: 8 }}>
+            <View style={[s.catRow, { flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }]}>
               {CATEGORIES.map((c) => {
                 const on = c.id === cat;
                 const count = st.picks.filter((p) => SOUNDS.find((x) => x.id === p.id)?.category === c.id).length;
@@ -235,7 +235,7 @@ export default function Sleep() {
                   </Pressable>
                 );
               })}
-            </ScrollView>
+            </View>
 
             <View style={s.list}>
               {soundsIn(cat).map((snd, i) => {
