@@ -94,6 +94,26 @@ function ShelfRow({ books, mine, open, extra }: { books: Book[]; mine: Mine; ope
   );
 }
 
+// A small closed book, front on: cloth cover in the book's colour, a darker spine down the left,
+// a cream label where the title would be, and the page edges showing along the right and bottom.
+function Cover({ colour, w = 38 }: { colour: string; w?: number }) {
+  const h = Math.round(w * 1.42);
+  return (
+    <View style={{ width: w + 3, height: h + 3 }}>
+      <View style={{ position: 'absolute', left: 4, top: 3, width: w - 1, height: h, backgroundColor: '#F3ECDD', borderRadius: 3, borderWidth: 1, borderColor: '#CDBFA6' }} />
+      <View style={{ width: w, height: h, backgroundColor: colour, borderTopLeftRadius: 2, borderBottomLeftRadius: 2, borderTopRightRadius: 4, borderBottomRightRadius: 4, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 1, height: 2 } }}>
+        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: Math.round(w * 0.16), backgroundColor: 'rgba(0,0,0,0.22)' }} />
+        <View style={{ position: 'absolute', left: Math.round(w * 0.16), top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.35)' }} />
+        <View style={{ position: 'absolute', left: Math.round(w * 0.3), right: Math.round(w * 0.14), top: Math.round(h * 0.18), height: Math.round(h * 0.3), backgroundColor: 'rgba(243,236,221,0.92)', borderRadius: 2, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          <View style={{ width: '70%', height: 2, backgroundColor: 'rgba(28,20,51,0.55)' }} />
+          <View style={{ width: '46%', height: 2, backgroundColor: 'rgba(28,20,51,0.35)' }} />
+        </View>
+        <View style={{ position: 'absolute', left: Math.round(w * 0.3), right: Math.round(w * 0.14), bottom: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(28,20,51,0.3)' }} />
+      </View>
+    </View>
+  );
+}
+
 function Chip({ on, children, onPress }: { on: boolean; children: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: on ? colours.purple : colours.purpleSoft, borderWidth: 1, borderColor: on ? colours.purple : colours.border }}>
@@ -134,7 +154,7 @@ function Shelf({ books, mine, open, toggle, resume }: { books: Book[]; mine: Min
 
       {going ? (
         <Pressable onPress={() => resume(going)} accessibilityRole="button" style={{ marginTop: space.lg, backgroundColor: colours.paper, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 30, height: 44, borderRadius: 4, backgroundColor: hue(going) }} />
+          <Cover colour={hue(going)} w={34} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#8A7B66', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 }}>PICK UP WHERE YOU LEFT OFF</Text>
             <Text numberOfLines={1} style={{ color: colours.ink, fontSize: 19, fontFamily: serif, marginTop: 2 }}>{going.title}</Text>
@@ -178,7 +198,7 @@ function Shelf({ books, mine, open, toggle, resume }: { books: Book[]; mine: Min
           <Card key={b.id} style={{ marginBottom: space.sm, padding: 12 }}>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
               <Pressable onPress={() => open(b)} accessibilityRole="button" accessibilityLabel={`${b.title} by ${b.author}`} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', flex: 1 }}>
-                <View style={{ width: 34, height: 50, borderRadius: 4, backgroundColor: hue(b) }} />
+                <Cover colour={hue(b)} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colours.text, fontSize: 18, lineHeight: 21, fontFamily: serif }}>{b.title}</Text>
                   <Text style={{ color: colours.muted, fontSize: 13, marginTop: 1 }}>{b.author} · {b.subject}</Text>
