@@ -419,3 +419,11 @@ Taj: the business side should be "Totality level" for any business. Four tools, 
 - **On autopilot** (`app/(app)/autopilot.tsx`): five rules (quote follow up, late invoice, new lead, booking request, finished job with no invoice). `automations_run()` runs for the signed-in owner when they open Today or the screen and only ever adds to their own To do, once per thing. Nothing is sent to a customer. Text messages and phone answering are marked coming soon.
 - Migration `20261112000085_sites_and_autopilot.sql`: `sites`, `site_enquiries`, `automations`, `automation_log`, and the three functions.
 - Still founder only (`hasBusinessTools`) until the Business plans are on sale.
+
+## 12 Nov 2026: Tali HQ Business on sale
+
+- **Tali HQ Business, A$199.99 a month** (monthly only, no founding coupon). Stripe product `prod_Vbz0pVFv0Riviu`, price `price_1Ual2VPy9YlWBZ02m1Sx2ndm`. Business Pro (A$389.99) and Business Max (A$649.99) have Stripe prices ready but no checkout: they show as Coming soon on Plans.
+- A Business member stays on plan `max` for credits and every existing check. `subscriptions.business_tier` (migration 086, written only by `stripe-webhook`) says which Business plan they pay for, and `my_credits` returns it as `businessTier`. `hasBusinessTools` reads that.
+- `create-checkout` v18 accepts `plan: 'biz'`. `stripe-webhook` v18 sets `business_tier`.
+- The Stripe billing portal for Tali HQ now lists the current Pro prices, Max and Business. Before this it listed the old A$39.99 Pro prices and no Max, so "Switch to Max in Manage billing" had nothing to switch to.
+- Me now shows "Tali HQ Max" and the Business plan names (it showed "max").

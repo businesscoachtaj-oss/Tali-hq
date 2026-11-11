@@ -2,6 +2,8 @@ import { supabase } from './supabase';
 
 export type Credits = {
   plan: 'free' | 'hq' | 'pro' | 'max';
+  // ADDED (12 Nov 2026): 'biz' on Tali HQ Business. Business members sit on plan 'max' for credits.
+  businessTier?: 'biz' | 'biz_pro' | 'biz_max' | null;
   status: string;
   trialEndsAt: string | null;
   creditsMonth: number;
@@ -357,7 +359,7 @@ async function invokeForUrl(fn: string, body: Record<string, unknown>): Promise<
 }
 
 // Web only for now. In the iOS and Android apps, upgrades will go through the stores.
-export const startCheckout = (plan: 'hq' | 'pro' | 'max', returnUrl: string, interval: 'month' | 'year' = 'month') =>
+export const startCheckout = (plan: 'hq' | 'pro' | 'max' | 'biz', returnUrl: string, interval: 'month' | 'year' = 'month') =>
   invokeForUrl('create-checkout', { plan, interval, returnUrl });
 // Top up (6 Nov 2026): a one-off Stripe payment for a pack in supabase/functions/_shared/topups.ts.
 export const startTopup = (pack: string, returnUrl: string) => invokeForUrl('create-checkout', { topup: pack, returnUrl });

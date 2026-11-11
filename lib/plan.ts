@@ -17,11 +17,12 @@ export function isMax(c: Credits | null | undefined) {
   return !!c && c.plan === 'max' && (c.status === 'active' || c.status === 'past_due');
 }
 
-// 12 Nov 2026 (Taj): the Business plans. Jobs and quotes, Pipeline, Bookings and Projects come with them.
-// The plans are not on sale yet, so for now only the founder's account has the business tools.
+// 12 Nov 2026 (Taj): the Business plans. Jobs and quotes, Pipeline, Bookings, Projects, Website and
+// On autopilot come with them. A Business member sits on plan 'max' for credits, and businessTier says
+// which Business plan they pay for. The founder's account always has the business tools.
 import { FOUNDER_USER_ID } from '@/constants/business';
 export const BUSINESS_PLANS = ['biz', 'biz_pro', 'biz_max'];
 export function hasBusinessTools(c: Credits | null | undefined, userId?: string | null) {
   if (userId && userId === FOUNDER_USER_ID) return true;
-  return !!c && BUSINESS_PLANS.includes(c.plan as string) && (c.status === 'active' || c.status === 'past_due' || c.status === 'trialing');
+  return !!c && !!c.businessTier && BUSINESS_PLANS.includes(c.businessTier) && (c.status === 'active' || c.status === 'past_due');
 }

@@ -14,6 +14,23 @@ const FOUNDING_OFF = 0.425; // founding members: 42.5% off for life
 
 const money = (n: number) => `A$${n.toFixed(2)}`;
 
+// 12 Nov 2026 (Taj): the Business plans. Only what is built is listed. The price charged comes from Stripe.
+const BIZ_BLUE = '#7FA8FF';
+const BIZ_PRICE = 199.99;
+const BIZ_FEATURES = [
+  'Everything in Tali HQ Max, with the same 10,000 credits and 300 images a month',
+  'Jobs and quotes: quote, job and invoice in one line',
+  'Pipeline: who to chase next and what it could be worth',
+  'Bookings: your week, and one link your customers book from',
+  'Projects: the bigger pieces of work, with their tasks',
+  'Website: a simple site hosted for you, with a contact form that lands as a lead',
+  'On autopilot: rules that put a nudge on your To do so nothing slips',
+];
+const BIZ_SOON = [
+  { name: 'Tali HQ Business Pro', price: 389.99, what: 'For a small team. Seats for your staff, text messages to customers and Tali answering your phone.' },
+  { name: 'Tali HQ Business Max', price: 649.99, what: 'For a bigger team or more than one business. More seats, more texts and more call minutes.' },
+];
+
 export default function Plans() {
   const [list, setList] = useState<Plan[]>([]);
   const [credits, setCredits] = useState<Credits | null>(null);
@@ -49,16 +66,17 @@ export default function Plans() {
   // land on an empty Manage billing page (5 Nov 2026). Same rule as create-checkout.
   const paying = !!sub?.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(sub.status);
   const founding = !!sub?.founding_member;
+  const onBiz = !!credits?.businessTier;
 
   // Phones open Stripe in the browser, the same way Totality does (3 Nov 2026). Stripe sends them
   // back to the web app afterwards; the plan updates here next time this screen is opened.
   const returnUrl = web ? window.location.href : `${APP_WEB_URL}/plans`;
   const open = (url: string) => (web ? window.location.assign(url) : Linking.openURL(url));
 
-  async function go(plan: 'hq' | 'pro' | 'max') {
+  async function go(plan: 'hq' | 'pro' | 'max' | 'biz') {
     setError('');
     setBusy(plan);
-    const res = await startCheckout(plan, returnUrl, yearly ? 'year' : 'month');
+    const res = await startCheckout(plan, returnUrl, plan !== 'biz' && yearly ? 'year' : 'month');
     setBusy(null);
     if (res.ok && res.url) open(res.url);
     else setError(res.message ?? 'Could not start checkout.');
@@ -93,7 +111,7 @@ export default function Plans() {
 
       {!loaded ? <ActivityIndicator color={colours.purple} style={{ marginVertical: space.xl }} /> : null}
       {list.map((p) => {
-        const current = credits?.plan === p.id && (p.id !== 'hq' || credits?.status !== 'trialing');
+        const current = credits?.plan === p.id && (p.id !== 'hq' || credits?.status !== 'trialing') && !(p.id === 'max' && onBiz);
         const trialHere = p.id === 'hq' && credits?.status === 'trialing';
         // Matches create-checkout: Stripe waits for the trial end only when 48 hours or more are left.
         const trialEnd = trialHere && credits?.trialEndsAt ? new Date(credits.trialEndsAt) : null;
@@ -161,6 +179,47 @@ export default function Plans() {
           </Card>
         );
       })}
+
+      {loaded ? (
+        <>
+          <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: colours.muted, marginTop: space.lg, marginBottom: space.sm }}>FOR YOUR BUSINESS</Text>
+          <Card style={{ borderColor: BIZ_BLUE, borderWidth: 2 }}>
+            <Text style={{ color: BIZ_BLUE, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 4 }}>THE BUSINESS TOOLS</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
+              <Text style={{ fontSize: 19, fontWeight: '800', color: colours.text }}>Tali HQ Business</Text>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text }}>{money(BIZ_PRICE)} a month</Text>
+            </View>
+            <Text style={{ color: colours.muted, fontSize: 13 }}>Billed monthly.</Text>
+            {onBiz ? (
+              <View style={{ alignSelf: 'flex-start', backgroundColor: colours.purpleSoft, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3, marginTop: 6 }}>
+                <Text style={{ color: colours.purpleInk, fontWeight: '700', fontSize: 12 }}>Your plan</Text>
+              </View>
+            ) : null}
+            <View style={{ marginTop: space.sm, gap: 4 }}>
+              {BIZ_FEATURES.map((f) => <Text key={f} style={{ fontSize: 14, color: colours.text, lineHeight: 20 }}>{'✓'} {f}</Text>)}
+            </View>
+            {!paying ? <Button title="Choose Tali HQ Business" onPress={() => go('biz')} busy={busy === 'biz'} disabled={!!busy} kind="ghost" /> : null}
+            {paying && !onBiz ? (
+              <>
+                <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>Switching to Business happens in Manage billing, where your card already is.</Text>
+                <Button title="Switch to Business in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
+              </>
+            ) : null}
+          </Card>
+          {BIZ_SOON.map((b) => (
+            <Card key={b.name}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
+                <Text style={{ fontSize: 19, fontWeight: '800', color: colours.text }}>{b.name}</Text>
+                <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text }}>{money(b.price)} a month</Text>
+              </View>
+              <Text style={{ color: colours.muted, fontSize: 13.5, lineHeight: 19, marginTop: 6 }}>{b.what}</Text>
+              <View style={{ marginTop: space.md, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
+                <Text style={{ fontSize: 12.5, fontWeight: '800', color: colours.muted }}>Coming soon</Text>
+              </View>
+            </Card>
+          ))}
+        </>
+      ) : null}
 
       <ExtrasCard />
 
