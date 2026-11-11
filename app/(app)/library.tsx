@@ -94,21 +94,46 @@ function ShelfRow({ books, mine, open, extra }: { books: Book[]; mine: Mine; ope
   );
 }
 
-// A small closed book, front on: cloth cover in the book's colour, a darker spine down the left,
-// a cream label where the title would be, and the page edges showing along the right and bottom.
-function Cover({ colour, w = 38 }: { colour: string; w?: number }) {
+// A small clothbound book, seen slightly from the right so the page block shows: the cover in
+// the book's colour with a pressed frame, the real title set on it, a rounded spine with two
+// raised bands, and cream page edges down the fore edge and along the foot.
+function Cover({ b, w = 58 }: { b: { title: string; author: string; region: string }; w?: number }) {
   const h = Math.round(w * 1.42);
+  const c = hue(b);
+  const spine = Math.round(w * 0.13);
+  const words = b.title.length;
+  const fs = words > 34 ? w * 0.125 : words > 18 ? w * 0.15 : w * 0.185;
   return (
-    <View style={{ width: w + 3, height: h + 3 }}>
-      <View style={{ position: 'absolute', left: 4, top: 3, width: w - 1, height: h, backgroundColor: '#F3ECDD', borderRadius: 3, borderWidth: 1, borderColor: '#CDBFA6' }} />
-      <View style={{ width: w, height: h, backgroundColor: colour, borderTopLeftRadius: 2, borderBottomLeftRadius: 2, borderTopRightRadius: 4, borderBottomRightRadius: 4, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 1, height: 2 } }}>
-        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: Math.round(w * 0.16), backgroundColor: 'rgba(0,0,0,0.22)' }} />
-        <View style={{ position: 'absolute', left: Math.round(w * 0.16), top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.35)' }} />
-        <View style={{ position: 'absolute', left: Math.round(w * 0.3), right: Math.round(w * 0.14), top: Math.round(h * 0.18), height: Math.round(h * 0.3), backgroundColor: 'rgba(243,236,221,0.92)', borderRadius: 2, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-          <View style={{ width: '70%', height: 2, backgroundColor: 'rgba(28,20,51,0.55)' }} />
-          <View style={{ width: '46%', height: 2, backgroundColor: 'rgba(28,20,51,0.35)' }} />
+    <View style={{ width: w + 5, height: h + 5 }}>
+      {/* the page block, peeking out past the cover */}
+      <View style={{ position: 'absolute', left: 6, top: 4, width: w - 2, height: h, backgroundColor: '#F6F0E2', borderTopRightRadius: 3, borderBottomRightRadius: 4, borderBottomLeftRadius: 2, overflow: 'hidden' }}>
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={{ position: 'absolute', left: 0, right: 0, bottom: 1 + i * 1.5, height: 0.5, backgroundColor: '#C9BCA2' }} />
+        ))}
+        {[0, 1].map((i) => (
+          <View key={i} style={{ position: 'absolute', top: 0, bottom: 0, right: 1 + i * 1.5, width: 0.5, backgroundColor: '#C9BCA2' }} />
+        ))}
+      </View>
+      {/* the back board, a sliver of darker cloth under the pages */}
+      <View style={{ position: 'absolute', left: 3, top: 5, width: w + 2, height: h, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 4 }} />
+      {/* the front board */}
+      <View style={{ width: w, height: h, backgroundColor: c, borderTopLeftRadius: 5, borderBottomLeftRadius: 5, borderTopRightRadius: 3, borderBottomRightRadius: 3, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 5, shadowOffset: { width: 2, height: 3 } }}>
+        {/* rounded spine: dark at the hinge, a soft highlight, two raised bands */}
+        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: spine, backgroundColor: 'rgba(28,20,51,0.30)' }} />
+        <View style={{ position: 'absolute', left: 1.5, top: 0, bottom: 0, width: 2, backgroundColor: 'rgba(255,255,255,0.30)' }} />
+        <View style={{ position: 'absolute', left: spine, top: 0, bottom: 0, width: 1.5, backgroundColor: 'rgba(28,20,51,0.28)' }} />
+        <View style={{ position: 'absolute', left: spine + 1.5, top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.35)' }} />
+        <View style={{ position: 'absolute', left: 0, width: spine, top: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(255,255,255,0.45)' }} />
+        <View style={{ position: 'absolute', left: 0, width: spine, bottom: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(255,255,255,0.45)' }} />
+        {/* light across the top of the cloth */}
+        <View style={{ position: 'absolute', left: spine + 2, right: 0, top: 0, height: Math.round(h * 0.42), backgroundColor: 'rgba(255,255,255,0.14)' }} />
+        {/* the pressed frame with the title set inside it */}
+        <View style={{ position: 'absolute', left: spine + 5, right: 4, top: 5, bottom: 5, borderWidth: 1, borderColor: 'rgba(28,20,51,0.45)', borderRadius: 2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 }}>
+          <View style={{ position: 'absolute', left: 1.5, right: 1.5, top: 1.5, bottom: 1.5, borderWidth: 0.5, borderColor: 'rgba(28,20,51,0.30)', borderRadius: 1 }} />
+          <Text numberOfLines={5} style={{ color: '#1C1433', fontFamily: serif, fontSize: fs, lineHeight: fs * 1.08, textAlign: 'center' }}>{b.title}</Text>
+          <View style={{ width: 10, height: 1, backgroundColor: 'rgba(28,20,51,0.55)', marginVertical: 3 }} />
+          <Text numberOfLines={1} style={{ color: 'rgba(28,20,51,0.78)', fontSize: Math.min(w * 0.085, (w * 0.86) / Math.max(6, b.author.split(' ').slice(-1)[0].length)), fontWeight: '800', textAlign: 'center' }}>{b.author.split(' ').slice(-1)[0].toUpperCase()}</Text>
         </View>
-        <View style={{ position: 'absolute', left: Math.round(w * 0.3), right: Math.round(w * 0.14), bottom: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(28,20,51,0.3)' }} />
       </View>
     </View>
   );
@@ -154,7 +179,7 @@ function Shelf({ books, mine, open, toggle, resume }: { books: Book[]; mine: Min
 
       {going ? (
         <Pressable onPress={() => resume(going)} accessibilityRole="button" style={{ marginTop: space.lg, backgroundColor: colours.paper, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Cover colour={hue(going)} w={34} />
+          <Cover b={going} w={46} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#8A7B66', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 }}>PICK UP WHERE YOU LEFT OFF</Text>
             <Text numberOfLines={1} style={{ color: colours.ink, fontSize: 19, fontFamily: serif, marginTop: 2 }}>{going.title}</Text>
@@ -198,7 +223,7 @@ function Shelf({ books, mine, open, toggle, resume }: { books: Book[]; mine: Min
           <Card key={b.id} style={{ marginBottom: space.sm, padding: 12 }}>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
               <Pressable onPress={() => open(b)} accessibilityRole="button" accessibilityLabel={`${b.title} by ${b.author}`} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', flex: 1 }}>
-                <Cover colour={hue(b)} />
+                <Cover b={b} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colours.text, fontSize: 18, lineHeight: 21, fontFamily: serif }}>{b.title}</Text>
                   <Text style={{ color: colours.muted, fontSize: 13, marginTop: 1 }}>{b.author} · {b.subject}</Text>
