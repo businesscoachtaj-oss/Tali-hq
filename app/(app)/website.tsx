@@ -8,7 +8,7 @@ import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { myCredits, type Credits } from '@/lib/data';
 import { cleanSlug } from '@/lib/bookings';
-import { ACCENTS, blankSite, deleteEnquiry, enquiries as loadEnquiries, mySite, saveSite, SITE_BASE, type Enquiry, type Site } from '@/lib/site';
+import { ACCENTS, blankSite, deleteEnquiry, enquiries as loadEnquiries, mySite, saveSite, SITE_BASE, writeSite, type Enquiry, type Site } from '@/lib/site';
 import { useMode } from '@/lib/mode';
 import { hasBusinessTools } from '@/lib/plan';
 import { Button, ErrorText, Field, Label, Loading, Screen, useConfirm } from '@/components/ui';
@@ -25,6 +25,8 @@ export default function Website() {
   const [inbox, setInbox] = useState<Enquiry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [ask, setAsk] = useState('');
+  const [writing, setWriting] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const { armed, confirm } = useConfirm();
@@ -60,6 +62,16 @@ export default function Website() {
     setBusy(false);
   }
 
+  // Tali drafts the words into the boxes. Nothing is saved or live until the owner saves.
+  async function write() {
+    setError(''); setNote(''); setWriting(true);
+    const res = await writeSite(site.kind, ask);
+    setWriting(false);
+    if (!res.ok) return setError(res.message);
+    setSite((s) => ({ ...s, title: res.draft.title || s.title, tagline: res.draft.tagline, about: res.draft.about, sections: res.draft.sections }));
+    setNote('Tali has drafted it below. Read it over, change what you like, then save.');
+  }
+
   if (!loaded) return <Loading />;
   if (!ok) {
     return <BizLock title="Website" sub="A simple site for your business, hosted by Tali HQ. Your services, your booking link and a contact form that lands as a new lead."
@@ -90,6 +102,15 @@ export default function Website() {
             <Text style={{ color: site.kind === k ? '#141033' : colours.text, fontWeight: '800' }}>{k === 'business' ? 'My business' : 'Just me'}</Text>
           </Pressable>
         ))}
+      </View>
+
+      <View style={{ ...card, paddingVertical: 12, marginBottom: 16 }}>
+        <Text style={{ color: colours.text, fontSize: 15.5, fontWeight: '800' }}>Ask Tali to write it</Text>
+        <Sub>She drafts the words from what she knows about you. Nothing is saved until you save.</Sub>
+        <View style={{ height: 10 }} />
+        <Field value={ask} onChangeText={setAsk} placeholder="Anything she should mention (optional)" accessibilityLabel="Anything Tali should mention" multiline maxLength={1500} style={{ minHeight: 60, textAlignVertical: 'top' }} />
+        <Button title={writing ? 'Tali is writing...' : site.about ? 'Write it again' : 'Write it for me'} kind="ghost" busy={writing} onPress={write} />
+        {site.about ? <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 6 }}>This replaces the one line, About and extra sections below.</Text> : null}
       </View>
 
       <Field label="Your address" value={site.slug} onChangeText={(v) => set({ slug: v })} placeholder="your-name" autoCapitalize="none" autoCorrect={false} maxLength={40} />
@@ -139,7 +160,6 @@ export default function Website() {
 
       <View style={{ ...card, marginTop: 8 }}>
         <Line first icon="link-outline" colour={colours.muted} title="Use my own domain" sub="A one-off unlock so your site sits at your own address" right={<Pill text="Coming soon" colour={colours.muted} />} />
-        <Line icon="sparkles-outline" colour={colours.muted} title="Ask Tali to write it" sub="She drafts your pages from what she knows about you" right={<Pill text="Coming soon" colour={colours.muted} />} />
       </View>
 
       {inbox.length ? (

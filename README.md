@@ -427,3 +427,10 @@ Taj: the business side should be "Totality level" for any business. Four tools, 
 - `create-checkout` v18 accepts `plan: 'biz'`. `stripe-webhook` v18 sets `business_tier`.
 - The Stripe billing portal for Tali HQ now lists the current Pro prices, Max and Business. Before this it listed the old A$39.99 Pro prices and no Max, so "Switch to Max in Manage billing" had nothing to switch to.
 - Me now shows "Tali HQ Max" and the Business plan names (it showed "max").
+
+## 12 Nov 2026: Bookkeeping pack and "Ask Tali to write it" (business tools, stage 5)
+
+- **Bookkeeping pack** (`app/(app)/books.tsx`, `lib/books.ts`): pick a quarter and see money in (invoices paid that quarter), money out (receipts dated that quarter), the GST on each and what is still owed. Shares as one PDF listing every invoice and receipt. Worked out in the app from the invoices and receipts already saved, no new tables. A summary for records, not tax advice and not a BAS.
+- **Ask Tali to write it** (Website screen, edge function `tali-site-write` v1): Tali drafts the name, one line, About and up to 3 sections from the profile, the services and anything typed. It fills the boxes only: nothing is saved or live until the owner saves. Business members and the founder, 5 drafts a day (`site_drafts`, migration 087), no credits. Told not to invent prices, awards, years or places.
+- Business tools on Today now lay out however many tiles there are.
+- Still marked coming soon: text messages, Tali answering the phone, own domain, Business Pro and Business Max.

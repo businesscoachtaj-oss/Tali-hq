@@ -69,6 +69,7 @@ const TOOLS: { icon: Icon; title: string; sub: string; to: string; params?: Reco
   { icon: 'albums-outline', title: 'Projects', sub: 'The bigger jobs', to: '/projects' },
   { icon: 'globe-outline', title: 'Website', sub: 'Your site, hosted', to: '/website' },
   { icon: 'flash-outline', title: 'On autopilot', sub: 'Nothing slips', to: '/autopilot' },
+  { icon: 'calculator-outline', title: 'Bookkeeping', sub: 'A quarter on a page', to: '/books' },
   { icon: 'document-text-outline', title: 'Invoices', sub: 'Sent on your yes', to: '/invoices' },
   { icon: 'mail-outline', title: 'Inbox', sub: 'Replies drafted', to: '/inbox' },
   { icon: 'camera-outline', title: 'Receipts', sub: 'Ready for tax time', to: '/receipts' },
@@ -76,7 +77,7 @@ const TOOLS: { icon: Icon; title: string; sub: string; to: string; params?: Reco
 ];
 
 export function BusinessTools() {
-  const rows = [TOOLS.slice(0, 2), TOOLS.slice(2, 4), TOOLS.slice(4, 6), TOOLS.slice(6, 8), TOOLS.slice(8, 10)];
+  const rows = Array.from({ length: Math.ceil(TOOLS.length / 2) }, (_, i) => TOOLS.slice(i * 2, i * 2 + 2));
   return (
     <>
       <Label>Tools</Label>
