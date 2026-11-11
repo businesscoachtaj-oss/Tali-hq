@@ -378,11 +378,13 @@ export type Client = {
   birthday: string | null;
   source: string | null;
   updated_at: string;
+  // 12 Nov 2026 (pipeline): what a lead could be worth.
+  est_value?: number | null;
 };
 // 11 Nov 2026 (Taj: "People is just clients and leads, it's not friends, family"): family and friends are their own groups.
 export type PersonKind = 'client' | 'lead' | 'family' | 'friend';
 
-const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, birthday, source, updated_at';
+const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, birthday, source, updated_at, est_value';
 
 export async function clients(): Promise<Client[]> {
   const { data, error } = await supabase.from('clients').select(CLIENT_COLS).order('name');
@@ -401,6 +403,7 @@ export async function saveClient(c: Partial<Client> & { name: string; kind: Pers
     next_follow_up: c.next_follow_up || null,
     last_contact_at: c.last_contact_at || null,
     ...(c.birthday !== undefined ? { birthday: c.birthday || null } : {}),
+    ...(c.est_value !== undefined ? { est_value: c.est_value } : {}),
   };
   if (c.id) {
     const { error } = await supabase.from('clients').update(row).eq('id', c.id);

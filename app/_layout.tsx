@@ -59,6 +59,8 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colours.bg } }}>
+      {/* 12 Nov 2026: the public booking page. Anyone with the link can open it, signed in or not. */}
+      <Stack.Screen name="book/[slug]" />
       <Stack.Protected guard={signedIn && recovering}>
         <Stack.Screen name="reset-password" />
       </Stack.Protected>

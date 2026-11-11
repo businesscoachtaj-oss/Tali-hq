@@ -16,3 +16,12 @@ export function isPro(c: Credits | null | undefined) {
 export function isMax(c: Credits | null | undefined) {
   return !!c && c.plan === 'max' && (c.status === 'active' || c.status === 'past_due');
 }
+
+// 12 Nov 2026 (Taj): the Business plans. Jobs and quotes, Pipeline, Bookings and Projects come with them.
+// The plans are not on sale yet, so for now only the founder's account has the business tools.
+import { FOUNDER_USER_ID } from '@/constants/business';
+export const BUSINESS_PLANS = ['biz', 'biz_pro', 'biz_max'];
+export function hasBusinessTools(c: Credits | null | undefined, userId?: string | null) {
+  if (userId && userId === FOUNDER_USER_ID) return true;
+  return !!c && BUSINESS_PLANS.includes(c.plan as string) && (c.status === 'active' || c.status === 'past_due' || c.status === 'trialing');
+}

@@ -78,6 +78,10 @@ export default function World() {
         k?.todo_today ? `${n(k.todo_today, 'thing')} to do ${k.todo_today === 1 ? 'is' : 'are'} due today` : null,
       ],
       rows: [
+        { icon: 'hammer-outline', title: 'Jobs and quotes', sub: 'A quote becomes a job, a job becomes an invoice', to: '/jobs' },
+        { icon: 'funnel-outline', title: 'Pipeline', sub: 'Everyone who might become a job', to: '/pipeline' },
+        { icon: 'calendar-outline', title: 'Bookings', sub: 'Your week and your booking link', to: '/bookings' },
+        { icon: 'albums-outline', title: 'Projects', sub: 'The bigger pieces of work', to: '/projects' },
         { icon: 'mail-outline', title: 'Email', sub: 'Sorted, replies drafted', to: '/inbox', locked: !paid },
         { icon: 'document-text-outline', title: 'Invoices', sub: 'Make, share, track', to: '/invoices', locked: !paid },
         { icon: 'wallet-outline', title: 'Money', sub: 'In, owed and runway', to: '/money', locked: !paid },

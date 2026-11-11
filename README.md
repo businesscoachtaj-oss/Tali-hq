@@ -401,3 +401,13 @@ Taj: a Business / Life toggle so each side is neater and can go deeper. One Tali
 
 - **Profile photo** (`lib/avatar.ts`, Me screen, migration 081): tap your picture on Me to add or change a photo, or remove it. Cropped square, 400 by 400, stored privately in the `avatars` bucket in your own folder. Uses the photo picker already in the app, so no new store build.
 - **Account deletion** (`delete-account` v13): now removes the person's stored files first (chat uploads, receipts, exports, voice, profile photo). Before this, deleting an account left those files behind.
+
+## 12 Nov 2026: the business tools (stages 2 to 4)
+
+Taj: the business side should be "Totality level" for any business. Four tools, reached from Today's tools grid (Business mode) and Your world, Work. They belong to the Business plans, which are not on sale yet, so for now only the founder's account can use them (`hasBusinessTools` in `lib/plan.ts`). Everyone else sees what the tool does and "Coming soon".
+
+- **Jobs and quotes** (`app/(app)/jobs.tsx`, `lib/jobs.ts`, migration 082): a quote with line items and GST, shared as a PDF that matches the invoice. It moves through sent, accepted, on now and done, and one tap turns it into a draft invoice. Each card says what is next, worked out from the job itself.
+- **Pipeline** (`app/(app)/pipeline.tsx`): leads from Your people (new, talking) and quotes from Jobs (quoted, won this month), stacked by stage with the value of each. A lead can carry what it could be worth (`clients.est_value`).
+- **Bookings** (`app/(app)/bookings.tsx`, `lib/bookings.ts`, migration 083): your week, your services, and a booking link. The public page is `talihq.com.au/book/<name>` (`app/book/[slug].tsx`, no sign in). A request from the link waits for your yes. The page only sees the business name, services and taken times.
+- **Projects** (`app/(app)/projects.tsx`, `lib/projects.ts`, migration 084): a project with tasks, who is doing each, a due date and notes.
+- Not built yet: Tali confirming bookings by text and answering the phone (needs a phone provider), the website builder, and the Business plans in Stripe.
