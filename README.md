@@ -277,6 +277,23 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 - **Make your own**: tap a sound and it joins the mix and plays, tap again and it leaves. No separate hear button and no Start button.
 - Saved mixes are kept with the other sleep settings, per account on the device. Still two sounds at once. The sound engine is unchanged.
 
+### 11 Nov 2026: Tali's library
+
+- **Her library** (`app/(app)/library.tsx`, opened from Her brain): a timber bookcase of the books she reads a few pages of each night. Finished books open to read, a passage a page, with her notes under each page. Books she is still reading show her notes so far.
+- **Book pages are set like print** (`bookBlocks` in `lib/library.ts`): chapter numbers, headings, verse, footnotes and contents each look different from the body text, and her notes sit in a purple card marked TALI'S NOTE. The website reader uses the same rules.
+- **What is yours**: the bookcase is "Your shelf" (books you add from the catalogue, six to a row), a "Pick up where you left off" strip, and stamps that are about you. READ lands the day you reach the last page, "You are on page 12" shows while you are part way through. What Tali has done is small print ("Tali finished it on 11 Nov 2026").
+- **The catalogue**: every book as a list, with search by title, author or subject and filters for status and subject.
+- Your shelf, page numbers and finish dates save to your account (`public.library_mine`, your own row only, migration 75) with a copy on the device, so they follow you between phone and web app.
+- Database: migrations 72 to 75, all already applied. 72 open reading for finished books and the website's email list (`library_readers`), 73 the website's free page, 74 "finish this book next", 75 your shelf.
+- Website: totality360.com.au/library/ is built from the same data and refreshes itself once a day.
+- Tested in a web build with example data. Not yet tried on a phone, and the account save was not run against the live database from the app.
+
+## Library reader: chapters on a fresh page (11 Nov 2026)
+
+- The reader sets the book in Literata (`@expo-google-fonts/literata`), a softer serif made for screens, at 17.5/28 in a soft ink.
+- A page that holds the end of one chapter and the start of the next is cut into sheets (`sheetsOf` in `app/(app)/library.tsx`). The chapter ends with a small ornament, the button reads "Chapter IV ›", and the new chapter opens on its own sheet, set down from the top with the number in italics, the title in ordinary case, a large first letter and the opening words in capitals. Page numbers are unchanged, so saved places still work.
+- Later paragraphs are indented like a novel. Tali's notes show on the last sheet of a page.
+- `bookBlocks` now treats a long chapter title (up to 240 characters after a CHAPTER line) as a heading. The website reader (`js/library.js`, `tools/build_library.py`) does the same with a page break between chapters.
 ### 11 Nov 2026: Invoices rework, notifications step, people start, easier chat, journal and notes
 
 - **Invoices** (`app/(app)/invoices.tsx`): one main **Send invoice** button, with Save draft, Share PDF and "I sent it myself" as small links under it. An empty description is flagged on the box itself. Lines billed before show as chips. Without Stripe connected, Send opens a **Get paid by card** step inside the invoice (connecting is still web only). After a send there is a Sent page with the pay link and a copy button. The list says "3 days late" or "Paid by card". Sent and paid invoices get **Bill them again**. Billing someone new saves them to Your people.
