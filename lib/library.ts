@@ -130,7 +130,7 @@ export function bookBlocks(text: string): BookBlock[] {
       out.push({ kind: 'footnote', text: clean(flat) });
     } else if (lines.every((l) => /\s{3,}\d+$/.test(l))) {
       out.push({ kind: 'contents', lines: lines.map((l) => clean(l.replace(/\s{3,}\d+$/, '').trim())) });
-    } else if (caps && flat.length <= 90) {
+    } else if (caps && (flat.length <= 90 || (flat.length <= 240 && /^(CHAPTER|LECTURE|BOOK|PART|SECTION)\s+[IVXLC\d]+\.?$/.test(lines[0].trim())))) {
       const first = lines[0].trim();
       if (flat.length <= 14 && /\.$/.test(flat) && /\.\s*[A-Z]/.test(flat) && !/^(CHAPTER|LECTURE|BOOK|PART)\b/.test(flat)) out.push({ kind: 'sign', text: flat });
       else if (/^[IVXLC]+\.?$/.test(flat)) { out.push({ kind: 'number', text: flat.replace(/\.$/, '') }); lead = true; }

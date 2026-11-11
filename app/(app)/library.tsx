@@ -13,6 +13,11 @@ import { libraryBook, libraryRead, libraryShelf, bookBlocks, joinMine, loadMineA
 
 type Book = LibraryBook;
 const serif = 'InstrumentSerif_400Regular';
+// The book's own words: Literata, a soft serif made for reading on screens.
+const bookFace = 'Literata_400Regular';
+const bookItalic = 'Literata_400Regular_Italic';
+const bookBold = 'Literata_600SemiBold';
+const inkSoft = '#2E2640';
 const hue = (b: { region: string }) => (REGIONS as any)[b.region]?.colour ?? colours.purple;
 const isDone = (b: { passages: number; studied: number }) => b.passages > 0 && b.studied >= b.passages;
 
@@ -315,14 +320,51 @@ function BookPage({ b, mine, back, read, toggle }: { b: LibraryBookDetail; mine:
   );
 }
 
+// A page of the book can hold the end of one chapter and the start of the next. Like a printed
+// book, a new chapter always opens on a fresh sheet, so a page is cut into sheets at each chapter
+// start. Page numbers stay the same, so your saved place still works.
+type Sheet = { blocks: BookBlock[]; ends: boolean; opens: boolean; next?: string };
+function sheetsOf(blocks: BookBlock[]): Sheet[] {
+  const out: Sheet[] = [];
+  let cur: BookBlock[] = [];
+  blocks.forEach((blk, i) => {
+    const prev = blocks[i - 1];
+    const starts = blk.kind === 'number' || (blk.kind === 'heading' && prev?.kind !== 'number');
+    const hasWords = cur.some((c) => c.kind === 'p' || c.kind === 'verse');
+    if (starts && hasWords) {
+      out.push({ blocks: cur, ends: true, opens: out.length === 0 ? false : out[out.length - 1].ends, next: blk.kind === 'number' ? blk.text : undefined });
+      cur = [];
+    }
+    cur.push(blk);
+  });
+  if (cur.length || !out.length) out.push({ blocks: cur, ends: false, opens: out.length > 0 });
+  // A sheet that starts with a chapter number or heading opens a chapter.
+  return out.map((sh) => ({ ...sh, opens: sh.blocks[0]?.kind === 'number' || sh.blocks[0]?.kind === 'heading' }));
+}
+
+// "CHAPTER IV." becomes "Chapter IV", and a heading set in capitals reads in ordinary title case.
+const SMALL = new Set(['a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'of', 'on', 'or', 'the', 'to', 'with']);
+function softCaps(t: string): string {
+  const letters = t.replace(/[^A-Za-z]/g, '');
+  if (!letters || letters.replace(/[^A-Z]/g, '').length / letters.length < 0.8) return t.replace(/\.$/, '');
+  return t
+    .replace(/\.$/, '')
+    .toLowerCase()
+    .split(' ')
+    .map((w, i) => (/^[ivxlc]+\.?$/.test(w) ? w.toUpperCase() : i > 0 && SMALL.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(' ');
+}
+
 function Reader({ b, start, back, turned }: { b: LibraryBookDetail; start: number; back: () => void; turned: (n: number) => void }) {
   const [n, setN] = useState<number | null>(null);
+  const [sheet, setSheet] = useState(0); // -1 means the last sheet of the page, once it is known
   const [pages, setPages] = useState<Record<number, LibraryPassage>>({});
   const [error, setError] = useState('');
 
   // Pick up where you left off in this book.
   useEffect(() => {
     setN(Math.min(Math.max(1, start || 1), b.passages));
+    setSheet(0);
   }, [b.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -341,26 +383,40 @@ function Reader({ b, start, back, turned }: { b: LibraryBookDetail; start: numbe
     };
   }, [b.id, n, pages]);
 
-  const go = (to: number) => {
+  const page = n != null ? pages[n] : undefined;
+  const sheets = useMemo(() => (page ? sheetsOf(bookBlocks(page.text)) : []), [page]);
+  const at = sheets.length ? (sheet < 0 ? sheets.length - 1 : Math.min(sheet, sheets.length - 1)) : 0;
+  const sh = sheets[at];
+  const lastSheet = at >= sheets.length - 1;
+
+  const go = (to: number, toSheet: number) => {
     const next = Math.min(Math.max(1, to), b.passages);
     setN(next);
+    setSheet(toSheet);
     turned(next);
   };
-  const page = n != null ? pages[n] : undefined;
+  const cur = n ?? 1;
+  const onNext = () => (lastSheet ? go(cur + 1, 0) : setSheet(at + 1));
+  const onBack = () => (at > 0 ? setSheet(at - 1) : go(cur - 1, -1));
+  const theEnd = cur >= b.passages && lastSheet;
+  const nextLabel = theEnd ? 'The end' : sh?.ends && sh.next ? `${softCaps(sh.next)} ›` : 'Next page';
   return (
     <>
       <BackLink onPress={back} label={b.title} />
-      <View style={{ backgroundColor: colours.paper, borderRadius: 18, padding: 22, minHeight: 320, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } }}>
-        <Text style={{ color: '#7A6F8F', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, marginBottom: 12 }}>PAGE {n ?? 1} OF {b.passages}</Text>
-        {page ? (
+      <View style={{ backgroundColor: colours.paper, borderRadius: 18, paddingHorizontal: 22, paddingTop: 20, paddingBottom: 24, minHeight: 460, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } }}>
+        <Text style={{ color: '#7A6F8F', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, marginBottom: 14 }}>PAGE {cur} OF {b.passages}</Text>
+        {page && sh ? (
           <>
-            {bookBlocks(page.text).map((blk, i) => <Block key={i} b={blk} />)}
-            {page.kept.map((k, i) => (
-              <View key={i} style={{ backgroundColor: '#EFEAFB', borderRadius: 12, padding: 12, borderLeftWidth: 4, borderLeftColor: '#6C3483', marginTop: 8 }}>
-                <Text style={{ color: '#6C3483', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, marginBottom: 4 }}>TALI'S NOTE</Text>
-                <Text style={{ color: colours.ink, fontSize: 14, lineHeight: 20 }}>{k}</Text>
-              </View>
-            ))}
+            {sh.blocks.map((blk, i) => <Block key={`${cur}-${at}-${i}`} b={blk} first={i === 0} after={sh.blocks[i - 1]} />)}
+            {sh.ends ? <Text style={{ textAlign: 'center', color: '#B8A98E', fontSize: 20, marginTop: 18 }}>❦</Text> : null}
+            {lastSheet
+              ? page.kept.map((k, i) => (
+                  <View key={i} style={{ backgroundColor: '#EFEAFB', borderRadius: 12, padding: 12, borderLeftWidth: 4, borderLeftColor: '#6C3483', marginTop: 16 }}>
+                    <Text style={{ color: '#6C3483', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, marginBottom: 4 }}>TALI'S NOTE</Text>
+                    <Text style={{ color: colours.ink, fontSize: 14, lineHeight: 20 }}>{k}</Text>
+                  </View>
+                ))
+              : null}
           </>
         ) : error ? (
           <Text style={{ color: '#B23A30', fontSize: 15 }}>{error}</Text>
@@ -369,55 +425,70 @@ function Reader({ b, start, back, turned }: { b: LibraryBookDetail; start: numbe
         )}
       </View>
       <View style={{ flexDirection: 'row', gap: space.md, marginTop: space.lg }}>
-        <View style={{ flex: 1 }}><Button title="Back a page" kind="ghost" disabled={(n ?? 1) <= 1} onPress={() => go((n ?? 1) - 1)} /></View>
-        <View style={{ flex: 1 }}><Button title={(n ?? 1) >= b.passages ? 'The end' : 'Next page'} disabled={(n ?? 1) >= b.passages} onPress={() => go((n ?? 1) + 1)} /></View>
+        <View style={{ flex: 1 }}><Button title="Back" kind="ghost" disabled={cur <= 1 && at === 0} onPress={onBack} /></View>
+        <View style={{ flex: 1 }}><Button title={nextLabel} disabled={theEnd} onPress={onNext} /></View>
       </View>
     </>
   );
 }
 
-// One block of the book, set the way a printed book would set it: chapter numbers and headings
-// in the heading font, the book's own words in the serif, verse in italics, footnotes small.
-function Block({ b }: { b: BookBlock }) {
-  const body = { color: colours.ink, fontSize: 20, lineHeight: 29, fontFamily: serif } as const;
+// One block of the book, set the way a printed book would set it. Chapters open a little way down
+// a fresh sheet with the number in italics and the title in ordinary case. The first paragraph of a
+// chapter starts with a large letter, and later paragraphs are indented like a novel.
+function Block({ b, first, after }: { b: BookBlock; first: boolean; after?: BookBlock }) {
+  const body = { color: inkSoft, fontSize: 17.5, lineHeight: 28, fontFamily: bookFace } as const;
   if (b.kind === 'number')
     return (
-      <View style={{ alignItems: 'center', marginTop: 18, marginBottom: 6 }}>
-        <Text style={{ color: '#B23A30', fontSize: 14, fontWeight: '800', letterSpacing: 3 }}>{b.text}</Text>
-        <View style={{ width: 40, height: 2, backgroundColor: '#CDBFA6', marginTop: 10 }} />
-      </View>
+      <Text style={{ color: '#9A4A3E', fontSize: 17, fontFamily: bookItalic, textAlign: 'center', marginTop: first ? 56 : 24, marginBottom: 4 }}>
+        {softCaps(b.text)}
+      </Text>
     );
   if (b.kind === 'heading')
-    return <Text accessibilityRole="header" style={{ color: '#1C1433', fontSize: 21, lineHeight: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', textAlign: 'center', marginTop: 10, marginBottom: 16 }}>{b.text}</Text>;
-  if (b.kind === 'sign') return <Text style={{ ...body, textAlign: 'right', letterSpacing: 1.5, fontSize: 17, marginBottom: 14 }}>{b.text}</Text>;
-  if (b.kind === 'caption') return <Text style={{ color: '#7A6F8F', fontSize: 15, lineHeight: 21, fontStyle: 'italic', textAlign: 'center', marginBottom: 14 }}>{b.text}</Text>;
+    return (
+      <View style={{ marginTop: first ? 56 : 6, marginBottom: 22, alignItems: 'center' }}>
+        <Text accessibilityRole="header" style={{ color: inkSoft, fontSize: 21, lineHeight: 29, fontFamily: bookBold, textAlign: 'center', marginHorizontal: 6 }}>
+          {softCaps(b.text)}
+        </Text>
+        <Text style={{ color: '#B8A98E', fontSize: 16, letterSpacing: 10, marginTop: 12 }}>· · ·</Text>
+      </View>
+    );
+  if (b.kind === 'sign') return <Text style={{ ...body, textAlign: 'right', letterSpacing: 1.5, fontSize: 16, marginVertical: 10 }}>{b.text}</Text>;
+  if (b.kind === 'caption') return <Text style={{ color: '#7A6F8F', fontSize: 15, lineHeight: 21, fontFamily: bookItalic, textAlign: 'center', marginVertical: 12 }}>{b.text}</Text>;
   if (b.kind === 'footnote')
-    return <Text style={{ color: '#7A6F8F', fontSize: 13, lineHeight: 19, marginBottom: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#CDBFA6' }}>{b.text}</Text>;
+    return <Text style={{ color: '#7A6F8F', fontSize: 13, lineHeight: 19, fontFamily: bookFace, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#DDD2BC' }}>{b.text}</Text>;
   if (b.kind === 'contents')
     return (
-      <View style={{ marginBottom: 6 }}>
+      <View style={{ marginVertical: 6 }}>
         {b.lines.map((l, i) => (
-          <Text key={i} style={{ color: colours.ink, fontSize: 15, lineHeight: 21, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#DDD2BC' }}>{l}</Text>
+          <Text key={i} style={{ color: inkSoft, fontFamily: bookFace, fontSize: 15, lineHeight: 21, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#E5DCC9' }}>{l}</Text>
         ))}
       </View>
     );
   if (b.kind === 'verse')
     return (
-      <View style={{ marginLeft: 18, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: '#CDBFA6', marginBottom: 16, marginTop: 2 }}>
+      <View style={{ marginLeft: 16, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: '#DDD2BC', marginVertical: 12 }}>
         {b.lines.map((l, i) => (
-          <Text key={i} style={{ ...body, fontSize: 19, lineHeight: 27, fontStyle: 'italic' }}>{l}</Text>
+          <Text key={i} style={{ ...body, fontSize: 17, lineHeight: 26, fontFamily: bookItalic }}>{l}</Text>
         ))}
       </View>
     );
   if (b.kind !== 'p') return null;
-  if (b.lead && b.text.length > 1)
+  // A paragraph straight after a chapter title: a large first letter and the opening words in capitals.
+  if (b.lead && b.text.length > 1) {
+    const words = b.text.slice(1).split(' ');
+    const open = words.slice(0, 3).join(' ');
+    const rest = words.slice(3).join(' ');
     return (
-      <Text style={{ ...body, marginBottom: 14 }}>
-        <Text style={{ color: '#B23A30', fontSize: 30 }}>{b.text.slice(0, 1)}</Text>
-        {b.text.slice(1)}
+      <Text style={{ ...body, marginBottom: 2 }}>
+        <Text style={{ color: '#6C3483', fontSize: 34, fontFamily: bookBold }}>{b.text.charAt(0)}</Text>
+        <Text style={{ fontSize: 14, letterSpacing: 1.4 }}>{open.toUpperCase()}</Text>
+        {rest ? ` ${rest}` : ''}
       </Text>
     );
-  return <Text style={{ ...body, marginBottom: 14 }}>{b.text}</Text>;
+  }
+  // Paragraphs after the first are indented, the way a novel sets them.
+  const indent = !first && after?.kind === 'p';
+  return <Text style={{ ...body, marginBottom: 2 }}>{indent ? '  ' : ''}{b.text}</Text>;
 }
 
 export default function LibraryScreen() {
