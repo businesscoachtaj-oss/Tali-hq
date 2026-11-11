@@ -16,6 +16,8 @@ export type LifeItem = {
   local_date: string | null;
   created_by: 'user' | 'tali';
   created_at: string;
+  // 12 Nov 2026: life or business. Null until sorted.
+  side: 'life' | 'business' | null;
 };
 
 // What each list is called and how it behaves. "ask" starts a chat with Tali already typed.
@@ -34,7 +36,7 @@ export const LISTS: Record<ListKind, {
   idea: { title: 'Ideas', sub: 'Half thoughts she keeps warm for you.', skin: 'journal', back: 'Your words', add: 'Add an idea', placeholder: 'A weekend workshop for new mums', ask: 'An idea: ', example: '"Idea: a weekend workshop for new mums."', due: false, repeat: false, tick: 'Used it', empty: 'No ideas saved yet.' },
 };
 
-const COLS = 'id, kind, title, note, due_date, repeat_months, done_at, local_date, created_by, created_at';
+const COLS = 'id, kind, title, note, due_date, repeat_months, done_at, local_date, created_by, created_at, side';
 
 export async function lifeItems(kind: ListKind): Promise<LifeItem[]> {
   const { data, error } = await supabase.from('life_items').select(COLS).eq('kind', kind).order('created_at', { ascending: false }).limit(300);
@@ -42,8 +44,9 @@ export async function lifeItems(kind: ListKind): Promise<LifeItem[]> {
   return (data as LifeItem[]) ?? [];
 }
 
-export async function saveLifeItem(i: { id?: string; kind: ListKind; title: string; note?: string; due_date?: string | null; repeat_months?: number | null; local_date?: string | null }) {
+export async function saveLifeItem(i: { id?: string; kind: ListKind; title: string; note?: string; due_date?: string | null; repeat_months?: number | null; local_date?: string | null; side?: 'life' | 'business' | null }) {
   const row = {
+    ...(i.side !== undefined ? { side: i.side } : null),
     kind: i.kind,
     title: i.title.trim().slice(0, 200),
     note: (i.note ?? '').trim().slice(0, 2000),

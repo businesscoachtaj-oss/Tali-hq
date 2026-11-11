@@ -383,3 +383,16 @@ Taj: "You can't rotate and spin the brain or pinch to zoom." The page said "pinc
 
 - **Web and PWA** (`components/BrainCanvas.web.tsx`): two fingers zoom her (0.7 to 2.2). A trackpad pinch zooms too. Tested with real touches: pinch zooms, an up or down drag still scrolls the page.
 - **Phone apps** (`components/BrainCanvas.tsx`, and the plain Views brain in `components/BrainGlobe.tsx` that 1.0.1 uses): pinch added to the Skia brain. On both, a sideways drag spins her and a drag that starts up or down is left to the page, so the scroll and the spin no longer fight over one finger. Not tested on a phone.
+
+## 12 Nov 2026: Business and Life modes (stage 1), and a profile save fix
+
+Taj: a Business / Life toggle so each side is neater and can go deeper. One Tali underneath. Talk, Her brain and Me are the same in both modes.
+
+- **The switch** (`components/ModeSwitch.tsx`, `lib/mode.ts`): on Today and Your world, for people who run a business. The side you are not on shows how many things need you there. Your choice is remembered on the device. People with no business see no switch and Today is unchanged.
+- **Today** (`components/ModeToday.tsx`): her brain stays on top in both modes, with that side's stars. Business adds money (in, owed, late, runway), the pipeline (leads, follow-ups, clients) and a tools grid. Life adds habits to tick, what is coming up, and what is left to spend this week.
+- **Your world**: each mode shows its own parts of the map and list. People is in both. Growth is split (goals, weekly review and decisions with business; habits, learning, wins and someday with life).
+- **Sides** (migration 079): `life_items.side`, `reminders.side` and `journal_entries.side` (life or business, null until sorted). To do, Ideas, Learning, Wins and Someday show a tag, open on the mode you are in and have an Everything filter. Journal and notes have a Belongs to choice. Reminders added on Today take the mode you are in.
+- **Tali tags things herself** (`supabase/functions/tali-sides`, migration 080): a small sorter gives a side to her reminders, her list items and each line of the brief (`content.sides`). The app asks for a sort after she replies and when Today shows a brief with no sides. `tali-chat` and `tali-brief` are untouched. No credits. No scheduled job yet.
+- **Switch by the clock** (Settings): Business in your work hours, Life the rest of the time. Off until turned on. A switch by hand holds until work next starts or ends.
+- **Profile save fix** (migration 078): the app could not save `has_business`, `share_learning`, `monthly_costs`, `cash_on_hand` or `money_updated_at` because the column grants were missing, so onboarding and Settings Save failed with "permission denied". Grants added, own row only.
+- **Order matters**: migrations 078, 079 and 080 and the `tali-sides` function went in on 12 Nov, before this app update.

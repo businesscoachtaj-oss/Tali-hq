@@ -9,12 +9,17 @@ import { LISTS, deleteLifeItem, habitTicks, lifeItems, parseDue, saveLifeItem, s
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, useConfirm } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
+// 12 Nov 2026 (Taj): one list, every item tagged Life or Business. It opens on the mode you are in.
+import { ScopeChips, TagPill } from '@/components/ModeSwitch';
+import { MODE, listFallback, sideOf, useMode, type Mode } from '@/lib/mode';
+import { useHasBusiness } from '@/lib/business';
+const TAGGED: string[] = ['todo', 'idea', 'learning', 'win', 'someday'];
 
 const DUE_PICKS = [{ label: 'No date', days: null }, { label: 'Today', days: 0 }, { label: 'Tomorrow', days: 1 }, { label: 'Next week', days: 7 }, { label: 'In a month', days: 30 }] as const;
 const REPEATS = [{ label: 'Once', months: null }, { label: 'Monthly', months: 1 }, { label: 'Every 3 months', months: 3 }, { label: 'Every 6 months', months: 6 }, { label: 'Yearly', months: 12 }, { label: 'Every 2 years', months: 24 }] as const;
 const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-type Draft = { id?: string; title: string; note: string; due_date: string | null; dueText: string; repeat_months: number | null };
+type Draft = { id?: string; title: string; note: string; due_date: string | null; dueText: string; repeat_months: number | null; tag?: Mode };
 const blank = (): Draft => ({ title: '', note: '', due_date: null, dueText: '', repeat_months: null });
 
 export default function List() {
@@ -30,6 +35,11 @@ export default function List() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const confirm = useConfirm();
+  const mode = useMode();
+  const biz = useHasBusiness();
+  const tagged = biz && TAGGED.includes(kind);
+  const sideFor = (i: LifeItem) => sideOf(i, listFallback(kind, biz));
+  const [scope, setScope] = useState<'mode' | 'all'>('mode');
 
   const load = useCallback(async () => {
     setError('');
@@ -58,7 +68,7 @@ export default function List() {
     }
     setBusy(true);
     try {
-      await saveLifeItem({ id: draft.id, kind, title: draft.title, note: draft.note, due_date: cfg.due ? due : null, repeat_months: cfg.repeat ? draft.repeat_months : null });
+      await saveLifeItem({ id: draft.id, kind, title: draft.title, note: draft.note, due_date: cfg.due ? due : null, repeat_months: cfg.repeat ? draft.repeat_months : null, ...(tagged ? { side: draft.tag ?? mode } : null) });
       setDraft(null);
       await load();
     } catch (e: any) {
@@ -93,6 +103,14 @@ export default function List() {
             {draft.due_date && !draft.dueText ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: -6, marginBottom: space.md }}>Due {friendlyDate(draft.due_date)}</Text> : null}
           </>
         ) : null}
+        {tagged ? (
+          <>
+            <Label>Belongs to</Label>
+            <ChipPicker options={[MODE.life.label, MODE.business.label]} value={MODE[draft.tag ?? mode].label}
+              onChange={(l) => setDraft({ ...draft, tag: l === MODE.life.label ? 'life' : 'business' })} />
+            <Text style={{ color: colours.muted, fontSize: 13, marginTop: -6, marginBottom: space.md }}>When you tell Tali, she picks this for you. You can change it any time.</Text>
+          </>
+        ) : null}
         {cfg.repeat ? (
           <>
             <Label>Comes round</Label>
@@ -112,15 +130,17 @@ export default function List() {
     );
   }
 
-  const open = items.filter((i) => !i.done_at).sort((a, b) => {
+  const allOpen = items.filter((i) => !i.done_at);
+  const inMode = (i: LifeItem) => !tagged || scope === 'all' || sideFor(i) === mode;
+  const open = allOpen.filter(inMode).sort((a, b) => {
     if (!cfg.due) return 0;
     const fa = a.due_date ?? '9999', fb = b.due_date ?? '9999';
     return fa.localeCompare(fb);
   });
-  const done = items.filter((i) => i.done_at);
+  const done = items.filter((i) => i.done_at).filter(inMode);
   const t = today();
   const week = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i - 6));
-  const edit = (i: LifeItem) => setDraft({ id: i.id, title: i.title, note: i.note, due_date: i.due_date, dueText: '', repeat_months: i.repeat_months });
+  const edit = (i: LifeItem) => setDraft({ id: i.id, title: i.title, note: i.note, due_date: i.due_date, dueText: '', repeat_months: i.repeat_months, tag: sideFor(i) });
 
   return (
     <Screen skin={cfg.skin} onRefresh={load}>
@@ -128,7 +148,7 @@ export default function List() {
         <Pressable onPress={back} hitSlop={12} accessibilityRole="button" style={{ marginBottom: 18 }}>
           <Text style={{ color: '#B9A6FF', fontSize: 15, fontWeight: '600' }}>{'‹'} Your world</Text>
         </Pressable>
-        <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{cfg.back.toUpperCase()}</Text>
+        <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{(tagged ? (scope === 'all' ? 'Life and business' : MODE[mode].label) : cfg.back).toUpperCase()}</Text>
         <Text style={{ color: '#F4F1FF', fontSize: 46, lineHeight: 50, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{cfg.title}</Text>
         <Text style={{ color: '#B9B2D9', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{cfg.sub}</Text>
       </View>
@@ -137,6 +157,7 @@ export default function List() {
       {kind === 'learning' ? <Button title="Tali's library" kind="ghost" onPress={() => router.navigate('/library')} /> : null}
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.md }} />
+      {tagged && loaded && items.length ? <ScopeChips value={scope} onChange={setScope} counts={{ mode: allOpen.filter((i) => sideFor(i) === mode).length, all: allOpen.length }} /> : null}
       {loaded && items.length === 0 ? (
         <>
           <TaliSays pose="idle">{cfg.empty}</TaliSays>
@@ -192,7 +213,12 @@ export default function List() {
                   <Text style={{ fontSize: 13, color: colours.muted, marginTop: 3 }}>{friendlyDate(i.local_date ?? i.created_at)}</Text>
                 ) : null}
                 {i.note ? <Text numberOfLines={3} style={{ fontSize: 14, color: colours.muted, marginTop: 4, lineHeight: 20 }}>{i.note}</Text> : null}
-                {i.created_by === 'tali' ? <Text style={{ fontSize: 11, fontWeight: '700', color: colours.purpleInk, marginTop: 6 }}>Added by Tali</Text> : null}
+                {tagged || i.created_by === 'tali' ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 7 }}>
+                    {tagged ? <TagPill tag={sideFor(i)} /> : null}
+                    {i.created_by === 'tali' ? <Text style={{ fontSize: 11, fontWeight: '700', color: colours.purpleInk }}>Added by Tali</Text> : null}
+                  </View>
+                ) : null}
               </Pressable>
             </View>
           </Card>

@@ -9,6 +9,7 @@ import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
+import { useMode } from '@/lib/mode';
 
 // 4 Nov 2026: which quick pick matches a saved follow-up date, so the chip row shows the right one.
 // "None" for no date, the matching label when one lines up with today's picks, otherwise null.
@@ -74,6 +75,7 @@ export default function Clients() {
   }
   // ADDED (3 Nov 2026): the person screen's Edit button opens /clients?edit=<id>&from=person.
   // 4 Nov 2026: remember that it came from Person, so Back and Save return there rather than the list.
+  const mode = useMode();
   const params = useLocalSearchParams<{ edit?: string; from?: string; tab?: string }>();
   const tabParam = Array.isArray(params.tab) ? params.tab[0] : params.tab;
   const editId = Array.isArray(params.edit) ? params.edit[0] : params.edit;
@@ -116,10 +118,11 @@ export default function Clients() {
   }, [tabParam, hasBusiness]);
   useEffect(() => {
     if (tabChosen || !list.length) return;
-    const order: PersonKind[] = hasBusiness ? ['client', 'lead', 'family', 'friend'] : ['family', 'friend', 'client'];
+    // 12 Nov 2026 (Taj): one list of people in both modes. The mode only decides which group opens first.
+    const order: PersonKind[] = !hasBusiness ? ['family', 'friend', 'client'] : mode === 'life' ? ['family', 'friend', 'client', 'lead'] : ['client', 'lead', 'family', 'friend'];
     const first = order.find((k) => list.some((c) => c.kind === k));
     if (first) setTab(first);
-  }, [list, tabChosen, hasBusiness]);
+  }, [list, tabChosen, hasBusiness, mode]);
   const pickTab = (k: PersonKind) => { setTab(k); setTabChosen(true); };
   const kindLabel = (k: PersonKind, many = false) => k === 'family' ? 'Family' : k === 'friend' ? (many ? 'Friends' : 'Friend') : k === 'lead' ? (many ? 'Leads' : 'Lead') : hasBusiness ? (many ? 'Clients' : 'Client') : (many ? 'Others' : 'Someone else');
 
@@ -239,7 +242,7 @@ export default function Clients() {
       ) : null}
       <Button title={tab === 'lead' ? 'Add a lead' : tab === 'client' && hasBusiness ? 'Add a client' : tab === 'family' ? 'Add family' : tab === 'friend' ? 'Add a friend' : 'Add a person'} onPress={() => setDraft(blank(tab))} />
       <Button title="Dates that matter" kind="ghost" onPress={() => router.navigate('/dates')} />
-      {hasBusiness ? <Button title="Invoices" kind="ghost" onPress={() => router.navigate('/invoices')} /> : null}
+      {hasBusiness && mode === 'business' ? <Button title="Invoices" kind="ghost" onPress={() => router.navigate('/invoices')} /> : null}
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.md }} />
       {shown.length === 0 ? (

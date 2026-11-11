@@ -10,10 +10,14 @@ import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays
 import { SkinHeader } from '@/components/PageSkin';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colours, elevation, radius, space } from '@/constants/theme';
+import { ChipPicker } from '@/components/ChipPicker';
+import { TagPill } from '@/components/ModeSwitch';
+import { MODE, useMode } from '@/lib/mode';
+import { useHasBusiness } from '@/lib/business';
 
 const MOODS = ['Rough', 'Meh', 'Okay', 'Good', 'Great'];
 
-type Draft = { id?: string; kind: 'journal' | 'note'; title: string; body: string; mood: number | null; private_to_tali: boolean };
+type Draft = { id?: string; kind: 'journal' | 'note'; title: string; body: string; mood: number | null; private_to_tali: boolean; side?: 'life' | 'business' | null };
 const blank = (kind: 'journal' | 'note' = 'journal'): Draft => ({ kind, title: '', body: '', mood: null, private_to_tali: false });
 
 function when(iso: string) {
@@ -75,6 +79,8 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
   // 4 Nov 2026: what the editor opened with, so Cancel and Back can tell if anything changed.
   const [opened, setOpened] = useState<Draft | null>(null);
   const { armed, confirm } = useConfirm();
+  const biz = useHasBusiness();
+  const appMode = useMode();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -141,6 +147,7 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
         body: draft.body.trim(),
         mood: draft.kind === 'journal' ? draft.mood : null,
         private_to_tali: draft.private_to_tali,
+        ...(biz ? { side: draft.side ?? 'life' } : null),
       });
       closeEditor();
       await load();
@@ -219,6 +226,14 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
             </View>
           </>
         )}
+        {/* 12 Nov 2026 (Taj): one journal, each entry tagged Life or Business. Life unless you say otherwise. */}
+        {biz ? (
+          <>
+            <Label>Belongs to</Label>
+            <ChipPicker options={[MODE.life.label, MODE.business.label]} value={MODE[draft.side ?? 'life'].label}
+              onChange={(l) => setDraft({ ...draft, side: l === MODE.life.label ? 'life' : 'business' })} />
+          </>
+        ) : null}
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '700', color: colours.text }}>Keep this from Tali</Text>
@@ -286,12 +301,12 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
             <TextInput value={search} onChangeText={setSearch} placeholder="Search your notes" placeholderTextColor={colours.faint}
               style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, marginBottom: space.md, color: colours.text }} />
           ) : null}
-          <Button title="New note" onPress={() => openDraft(blank('note'))} />
+          <Button title="New note" onPress={() => openDraft({ ...blank('note'), side: biz ? appMode : null })} />
         </>
       ) : (
         <>
           {lookBack ? (
-            <Pressable accessibilityRole="button" onPress={() => { const e = lookBack.entry; openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali }); }}
+            <Pressable accessibilityRole="button" onPress={() => { const e = lookBack.entry; openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali, side: e.side ?? null }); }}
               style={{ backgroundColor: colours.paper, borderRadius: 16, padding: 16, marginBottom: space.md }}>
               <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', color: '#7A6A8E' }}>{lookBack.label} · {when(lookBack.entry.created_at)}</Text>
               <Text numberOfLines={5} style={{ color: colours.ink, fontSize: 19, lineHeight: 26, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{lookBack.entry.body}</Text>
@@ -311,7 +326,7 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
                     <View key={i} style={{ width: `${100 / 7}%`, padding: 2.5 }}>
                       {e ? (
                         <Pressable accessibilityRole="button" accessibilityLabel={`Read ${when(e.created_at)}`} style={box}
-                          onPress={() => openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali })}>{num}</Pressable>
+                          onPress={() => openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali, side: e.side ?? null })}>{num}</Pressable>
                       ) : <View style={box}>{num}</View>}
                     </View>
                   );
@@ -332,7 +347,7 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
         entries.map((e) => (
           <Pressable
             key={e.id}
-            onPress={() => openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali })}>
+            onPress={() => openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali, side: e.side ?? null })}>
             <Card style={{ borderLeftWidth: 5, borderLeftColor: e.kind === 'note' ? colours.purple : '#B24D8C' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: e.kind === 'note' ? colours.purpleSoft : '#F6ECF2', alignItems: 'center', justifyContent: 'center' }}>
@@ -344,6 +359,7 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
                 {e.mood ? <Text style={{ fontSize: 12, fontWeight: '800', color: '#5B1F4A', backgroundColor: '#F6ECF2', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9, overflow: 'hidden' }}>{MOODS[e.mood - 1]}</Text> : null}
                 {e.private_to_tali ? <Ionicons name="lock-closed" size={14} color={colours.purpleInk} accessibilityLabel="Private" /> : null}
               </View>
+              {biz && e.side === 'business' ? <View style={{ marginTop: 8 }}><TagPill tag="business" /></View> : null}
               {e.title ? <Text style={{ fontSize: 17, fontWeight: '800', color: colours.text, marginTop: 8 }}>{e.title}</Text> : null}
               <Text numberOfLines={3} style={{ fontSize: 15, color: colours.text, marginTop: 4, lineHeight: 21 }}>{e.body}</Text>
             </Card>

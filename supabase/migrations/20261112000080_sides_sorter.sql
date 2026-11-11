@@ -1,0 +1,4 @@
+-- 12 Nov 2026 (Taj): Business and Life modes. Tali sorts anything with no side yet (her reminders, list
+-- items and brief lines) through the tali-sides function. This says who has something waiting, and a
+-- job checks every 5 minutes. Nothing is sent when nobody has anything unsorted.
+-- To switch it off:
