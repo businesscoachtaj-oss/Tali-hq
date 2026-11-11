@@ -245,11 +245,15 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
           const x = px[a] + (px[b] - px[a]) * t, y = py[a] + (py[b] - py[a]) * t;
           const rb = reg[b];
           const dim = hasFocus && focus.indexOf(rb) < 0 ? 0.5 : 1;
-          paints.line[rb].setStrokeWidth(1.2 * scale);
-          paints.line[rb].setAlphaf(0.5 * dim);
-          c.drawLine(px[a], py[a], x, y, paints.line[rb]);
+          // 11 Nov 2026 (Taj liked the mock's brain): the sparks are white, a thin streak with a bright point.
+          paints.link.setStrokeWidth(1.2 * scale);
+          paints.link.setAlphaf(0.6 * dim);
+          c.drawLine(px[a], py[a], x, y, paints.link);
+          paints.link.setStrokeWidth(1);
+          paints.white.setAlphaf(0.95 * dim);
+          c.drawCircle(x, y, 1.9 * scale, paints.white);
           const g2 = 16 * scale * pk[b];
-          paints.glowP[rb].setAlphaf(0.9 * dim);
+          paints.glowP[rb].setAlphaf(0.35 * dim);
           c.save();
           c.translate(x, y);
           c.scale(g2 / 64, g2 / 64);

@@ -190,7 +190,7 @@ export function BrainCanvas(props: Props) {
           const A = sp.a.p, B = sp.b.p;
           if (!A || !B) continue;
           const x = A.sx + (B.sx - A.sx) * t, y = A.sy + (B.sy - A.sy) * t;
-          const dim = focus && !focus.includes(sp.b.region) ? 0.5 : 1, col = REGIONS[sp.b.region].colour;
+          const dim = focus && !focus.includes(sp.b.region) ? 0.5 : 1, col = '#FFFFFF'; // 11 Nov 2026: white sparks
           ctx.globalAlpha = 0.5 * dim;
           ctx.strokeStyle = col;
           ctx.lineWidth = 1.2 * scale;
@@ -199,8 +199,13 @@ export function BrainCanvas(props: Props) {
           ctx.lineTo(x, y);
           ctx.stroke();
           const g2 = 16 * scale * B.k;
-          ctx.globalAlpha = 0.9 * dim;
+          ctx.globalAlpha = 0.35 * dim;
           ctx.drawImage(sprites[sp.b.region], x - g2 / 2, y - g2 / 2, g2, g2);
+          ctx.globalAlpha = 0.95 * dim;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(x, y, 1.9 * scale, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
       ctx.globalAlpha = 1;

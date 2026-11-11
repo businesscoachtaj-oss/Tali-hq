@@ -52,7 +52,8 @@ export default function World() {
       { icon: 'moon-outline', title: 'Shut down', sub: 'Two minutes, then off', to: '/shutdown' },
     ] },
     { title: 'Your words', line: 'What you write, she learns from', colour: '#D7B5FF', rows: [
-      { icon: 'book-outline', title: 'Journal and notes', sub: 'Private unless you share', to: '/journal' },
+      { icon: 'book-outline', title: 'Journal', sub: 'Your time and your place', to: '/journal' },
+      { icon: 'document-text-outline', title: 'Notes', sub: 'Things to find again', to: '/notes' },
       { icon: 'school-outline', title: 'Night school', sub: 'What she studies for you tonight', to: '/night-school', locked: !pro, pro: true },
     ] },
   ];

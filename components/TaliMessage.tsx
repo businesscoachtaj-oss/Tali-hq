@@ -136,7 +136,8 @@ function Inline({ text, style }: { text: string; style?: object }) {
   );
 }
 
-const body = { color: colours.text, fontSize: 15, lineHeight: 22 };
+// 11 Nov 2026 (Taj: chat is a little hard to read): bigger body text with more room between lines.
+const body = { color: colours.text, fontSize: 16, lineHeight: 25 };
 
 function DraftBlock({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -162,9 +163,11 @@ function DraftBlock({ text }: { text: string }) {
 
 export function TaliMessage({ content }: { content: string }) {
   const blocks = parseTali(content);
+  const [copiedAll, setCopiedAll] = useState(false);
   if (!blocks.length) return null;
+  // Her words sit on a dark glass panel so they read the same over any part of the sky.
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 10, backgroundColor: 'rgba(12,10,36,0.74)', borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16 }}>
       {blocks.map((b, i) => {
         switch (b.type) {
           case 'lead':
@@ -209,6 +212,12 @@ export function TaliMessage({ content }: { content: string }) {
             );
         }
       })}
+      {content.length > 400 ? (
+        <Pressable accessibilityRole="button" hitSlop={8} style={{ alignSelf: 'flex-start', marginTop: 2 }}
+          onPress={async () => { await Clipboard.setStringAsync(content.replace(/\*\*/g, '')).catch(() => {}); setCopiedAll(true); setTimeout(() => setCopiedAll(false), 2000); }}>
+          <Text style={{ color: colours.purple, fontSize: 13, fontWeight: '700' }}>{copiedAll ? 'Copied' : 'Copy'}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

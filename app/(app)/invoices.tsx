@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import {
@@ -8,10 +9,12 @@ import {
   invoices as loadInvoices,
   invoiceSettings,
   myCredits,
+  saveClient,
   saveInvoice,
   saveInvoiceSettings,
   sendInvoiceWithStripe,
   setInvoiceStatus,
+  startStripeConnect,
   stripeConnection,
   type Client,
   type Credits,
@@ -62,6 +65,13 @@ const blankItem = () => ({ description: '', qty: '1', unit_price: '' });
 const toItems = (d: Draft): InvoiceItem[] =>
   d.items.map((i) => ({ description: i.description, qty: Number(i.qty) || 0, unit_price: Number(i.unit_price.replace(/[^0-9.]/g, '')) || 0 }));
 const isOverdue = (i: Invoice) => i.status === 'sent' && i.due_date < today();
+const daysLate = (i: Invoice) => Math.max(1, Math.round((Date.parse(`${today()}T12:00:00`) - Date.parse(`${i.due_date}T12:00:00`)) / 86400000));
+// 11 Nov 2026 rework: what the list says under each invoice, in plain words.
+const statusLine = (i: Invoice) =>
+  isOverdue(i) ? `${daysLate(i)} day${daysLate(i) === 1 ? '' : 's'} late`
+  : i.status === 'sent' ? `Due ${friendlyDate(i.due_date)}`
+  : i.status === 'paid' ? (i.paid_via === 'stripe' ? 'Paid by card' : 'Paid')
+  : STATUS[i.status].label;
 
 export default function Invoices() {
   const { profile } = useAuth();
@@ -80,6 +90,12 @@ export default function Invoices() {
   const [note, setNote] = useState('');
   // So "No invoices yet" and the Stripe promo don't flash before the list arrives (4 Nov 2026).
   const [loaded, setLoaded] = useState(false);
+  // 11 Nov 2026 rework: the empty description box says so itself, the card step lives in the invoice,
+  // and a sent invoice lands on a page with its pay link.
+  const [needDesc, setNeedDesc] = useState(false);
+  const [payStep, setPayStep] = useState(false);
+  const [sent, setSent] = useState<{ number: string; name: string; email: string; total: number; due: string; url: string | null } | null>(null);
+  const [copied, setCopied] = useState(false);
   const { armed, confirm } = useConfirm();
   // Money's overdue rows open an invoice straight away: /invoices?open=<id>.
   const { open: openParam } = useLocalSearchParams<{ open?: string }>();
@@ -132,11 +148,23 @@ export default function Invoices() {
     return list;
   }, [list, tab]);
 
+  // Lines they've billed before, newest first, so a repeat invoice is a tap.
+  const pastItems = useMemo(() => {
+    const seen = new Map<string, InvoiceItem>();
+    for (const inv of list) for (const it of inv.items) {
+      const k = it.description.trim().toLowerCase();
+      if (k && it.unit_price > 0 && !seen.has(k)) seen.set(k, it);
+    }
+    return [...seen.values()].slice(0, 4);
+  }, [list]);
+
   const owed = list.filter((i) => i.status === 'sent').reduce((t, i) => t + i.total, 0);
   const overdue = list.filter(isOverdue).reduce((t, i) => t + i.total, 0);
   const drafts = list.filter((i) => i.status === 'draft').length;
 
   function newInvoice() {
+    setNeedDesc(false);
+    setPayStep(false);
     const due = settings?.default_due_days ?? 7;
     setDraft({
       status: 'draft',
@@ -153,6 +181,8 @@ export default function Invoices() {
 
   function open(i: Invoice) {
     setConfirmDelete(false);
+    setNeedDesc(false);
+    setPayStep(false);
     setDraft({
       id: i.id,
       status: i.status,
@@ -175,8 +205,10 @@ export default function Invoices() {
     if (!draft) return null;
     setError('');
     if (!draft.client_name.trim()) return setError('Who is this invoice for?'), null;
-    const items = toItems(draft).filter((i) => i.description.trim());
-    if (!items.length) return setError('Add at least one line.'), null;
+    const all = toItems(draft);
+    // A line with a price but no description, or no described line at all: point at the box, not the bottom.
+    if (!all.some((i) => i.description.trim()) || all.some((i) => !i.description.trim() && i.unit_price > 0)) return setNeedDesc(true), null;
+    const items = all.filter((i) => i.description.trim());
     setBusy(true);
     try {
       const saved = await saveInvoice({
@@ -191,6 +223,11 @@ export default function Invoices() {
         notes: draft.notes,
         status,
       });
+      // Billing someone new saves them as a client, so Your people never starts empty.
+      const name = draft.client_name.trim();
+      if (!draft.client_id && name && !people.some((p) => p.name.trim().toLowerCase() === name.toLowerCase())) {
+        await saveClient({ name, kind: 'client', status: 'active', email: draft.client_email.trim() || null }).catch(() => {});
+      }
       await load();
       setBusy(false);
       return saved;
@@ -247,7 +284,38 @@ export default function Invoices() {
     }
     await load();
     setDraft(null);
-    setNote(`Sent ${s.number} to ${s.client_email}. It'll mark itself paid when they pay. 🙌`);
+    setCopied(false);
+    setSent({ number: s.number, name: s.client_name, email: s.client_email ?? '', total: s.total, due: s.due_date, url: res.url ?? null });
+  }
+
+  // The main button. With Stripe connected it sends; without, it opens the card step right here.
+  async function sendInvoice() {
+    if (stripeOn) return sendStripe();
+    const s = await save();
+    if (!s) return;
+    setDraft((d) => (d ? { ...d, id: s.id, number: s.number } : d));
+    setPayStep(true);
+  }
+
+  async function connectStripe() {
+    setError('');
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return setError('Connect Stripe from the web app for now, at talihq.com.au. Your draft is saved.');
+    setBusy(true);
+    const res = await startStripeConnect(`${window.location.origin}/settings`);
+    if (!res.ok || !res.url) {
+      setBusy(false);
+      return setError(res.message ?? 'Could not start connecting.');
+    }
+    window.location.assign(res.url);
+  }
+
+  // A fresh draft with the same lines, for the client you bill every month.
+  function billAgain(i: Draft) {
+    const due = settings?.default_due_days ?? 7;
+    setNeedDesc(false);
+    setPayStep(false);
+    setError('');
+    setDraft({ status: 'draft', client_id: i.client_id, client_name: i.client_name, client_email: i.client_email, issue_date: today(), due_date: isoDate(addDays(new Date(), due)), items: i.items.map((x) => ({ ...x })), gst: i.gst, notes: i.notes });
   }
 
   async function remove() {
@@ -321,6 +389,55 @@ export default function Invoices() {
     );
   }
 
+  // ---------- Sent ----------
+  if (sent) {
+    return (
+      <Screen skin="receipt">
+        <Title>{`Sent to ${sent.name} 🙌`}</Title>
+        <Card>
+          <Row label={sent.number} value={money(sent.total)} big />
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4 }}>Due {friendlyDate(sent.due)}. Emailed to {sent.email}.</Text>
+        </Card>
+        {sent.url ? (
+          <Card>
+            <Text style={{ fontWeight: '700', color: colours.text }}>Pay link</Text>
+            <Text selectable style={{ color: colours.muted, fontSize: 13, marginTop: 6 }}>{sent.url}</Text>
+            <Button title={copied ? 'Copied' : 'Copy link to text it'} kind="ghost" onPress={async () => { await Clipboard.setStringAsync(sent.url as string).catch(() => {}); setCopied(true); }} />
+          </Card>
+        ) : null}
+        <TaliSays pose="idle">It'll mark itself paid when they pay, and I'll let you know.</TaliSays>
+        <Button title="Done" onPress={() => setSent(null)} />
+      </Screen>
+    );
+  }
+
+  // ---------- Get paid by card (inside the invoice) ----------
+  if (draft && payStep) {
+    const who = draft.client_name.trim() || 'Your client';
+    return (
+      <Screen skin="receipt">
+        <BackLink label="Back to invoice" onPress={() => { setPayStep(false); setError(''); }} />
+        <Title sub="One minute, once. After this, Send works every time.">Get paid by card</Title>
+        <Card>
+          <Text style={{ fontWeight: '800', color: colours.text }}>1. Connect your Stripe</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>Use the Stripe account you already have, or make one free. Money goes straight to you. I never hold it.</Text>
+          <Button title="Connect Stripe" onPress={connectStripe} busy={busy} />
+        </Card>
+        <Card>
+          <Text style={{ fontWeight: '800', color: colours.text }}>2. {who} gets an email</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4 }}>With a pay by card link.</Text>
+        </Card>
+        <Card>
+          <Text style={{ fontWeight: '800', color: colours.text }}>3. It marks itself paid</Text>
+          <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4 }}>And I let you know when it lands.</Text>
+        </Card>
+        <ErrorText>{error}</ErrorText>
+        <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19, marginBottom: space.md }}>Your draft is saved. After connecting, open it from Invoices and tap Send invoice.</Text>
+        <Button title="Not now, I'll share the PDF" kind="ghost" onPress={() => setPayStep(false)} />
+      </Screen>
+    );
+  }
+
   // ---------- Editor ----------
   if (draft) {
     const items = toItems(draft);
@@ -365,10 +482,29 @@ export default function Invoices() {
         </Text>
 
         <Label>What it's for</Label>
+        {!locked && pastItems.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.sm }}>
+            {pastItems.map((p) => (
+              <Pressable key={p.description} accessibilityRole="button"
+                onPress={() => {
+                  const line = { description: p.description, qty: String(p.qty || 1), unit_price: String(p.unit_price) };
+                  const empty = draft.items.findIndex((x) => !x.description.trim() && !x.unit_price.trim());
+                  setNeedDesc(false);
+                  setDraft({ ...draft, items: empty >= 0 ? draft.items.map((x, i) => (i === empty ? line : x)) : [...draft.items, line] });
+                }}
+                style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
+                <Text style={{ color: colours.purpleInk, fontWeight: '600' }} numberOfLines={1}>{p.description} · {money(p.unit_price)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         {draft.items.map((it, n) => (
           <Card key={n} style={{ padding: space.md }}>
-            <TextInput value={it.description} editable={!locked} onChangeText={(t) => setItem(n, { description: t })} placeholder="Description" placeholderTextColor={colours.faint} maxLength={200}
-              style={{ fontSize: 16, color: colours.text, paddingVertical: 4 }} />
+            <TextInput value={it.description} editable={!locked} onChangeText={(t) => setItem(n, { description: t })} placeholder="What is this line for?" placeholderTextColor={colours.faint} maxLength={200}
+              style={{ fontSize: 16, color: colours.text, paddingVertical: 6, paddingHorizontal: needDesc && !it.description.trim() ? 8 : 0, borderWidth: needDesc && !it.description.trim() ? 1 : 0, borderColor: colours.danger, borderRadius: radius.input }} />
+            {needDesc && !it.description.trim() ? (
+              <Text style={{ color: colours.danger, fontSize: 13, fontWeight: '600', marginTop: 6 }}>Say what this line is for, like "1 hour session".</Text>
+            ) : null}
             <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.sm, alignItems: 'center' }}>
               <Text style={{ color: colours.muted }}>Qty</Text>
               <TextInput value={it.qty} editable={!locked} onChangeText={(t) => setItem(n, { qty: t.replace(/[^0-9.]/g, '') })} keyboardType="decimal-pad" inputMode="decimal"
@@ -407,18 +543,28 @@ export default function Invoices() {
           placeholder="Thanks for training with me this month!" style={{ minHeight: 70, textAlignVertical: 'top' }} />
 
         <ErrorText>{error}</ErrorText>
-        {!locked ? <Button title={draft.status === 'draft' ? 'Save draft' : 'Save changes'} onPress={() => saveAndClose()} busy={busy} /> : null}
-        {stripeOn && draft.status === 'draft' ? (
+        {draft.status === 'draft' ? (
           <>
-            <Button title="Send with Stripe" onPress={sendStripe} busy={busy} />
-            <Text style={{ color: colours.muted, fontSize: 12, marginTop: 2, marginBottom: space.md, textAlign: 'center', lineHeight: 17 }}>
-              {draft.client_email.trim() ? `To ${draft.client_email.trim()}. ` : 'Add their email above first. '}Stripe emails it with a pay by card link, paid straight to you.
+            <Button title="Send invoice" onPress={sendInvoice} busy={busy} />
+            <Text style={{ color: colours.muted, fontSize: 12, marginTop: 2, marginBottom: space.sm, textAlign: 'center', lineHeight: 17 }}>
+              {stripeOn
+                ? `${draft.client_email.trim() ? `To ${draft.client_email.trim()}, ` : 'Add their email above first. Sent '}with a pay by card link, paid straight to you.`
+                : 'Set up pay by card in a minute, or share the PDF yourself below.'}
             </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.xl, marginBottom: space.md }}>
+              <Pressable onPress={() => saveAndClose()} disabled={busy} hitSlop={8} accessibilityRole="button"><Text style={{ color: colours.purple, fontWeight: '700' }}>Save draft</Text></Pressable>
+              <Pressable onPress={share} disabled={busy} hitSlop={8} accessibilityRole="button"><Text style={{ color: colours.purple, fontWeight: '700' }}>Share PDF</Text></Pressable>
+              <Pressable onPress={() => mark('sent')} disabled={busy} hitSlop={8} accessibilityRole="button"><Text style={{ color: colours.purple, fontWeight: '700' }}>I sent it myself</Text></Pressable>
+            </View>
           </>
-        ) : null}
-        {draft.stripe_url ? <Button title="View it in Stripe" kind="ghost" onPress={() => Linking.openURL(draft.stripe_url as string)} /> : null}
-        <Button title="Share PDF" kind="ghost" onPress={share} disabled={busy} />
-        {draft.status === 'draft' ? <Button title={stripeOn ? 'Mark as sent (I sent it myself)' : 'Mark as sent'} kind="ghost" onPress={() => mark('sent')} disabled={busy} /> : null}
+        ) : (
+          <>
+            {!locked ? <Button title="Save changes" onPress={() => saveAndClose()} busy={busy} /> : null}
+            {draft.stripe_url ? <Button title="View it in Stripe" kind="ghost" onPress={() => Linking.openURL(draft.stripe_url as string)} /> : null}
+            <Button title="Share PDF" kind="ghost" onPress={share} disabled={busy} />
+            {draft.status !== 'void' ? <Button title={`Bill ${draft.client_name.trim() || 'them'} again`} kind="ghost" onPress={() => billAgain(draft)} disabled={busy} /> : null}
+          </>
+        )}
         {draft.status === 'sent' ? <Button title="Mark as paid" kind="ghost" onPress={() => mark('paid')} disabled={busy} /> : null}
         {draft.status === 'paid' ? <Button title="Not paid after all" kind="ghost" onPress={() => mark('sent')} disabled={busy} /> : null}
         {draft.status === 'sent' ? <Button title={armed === 'void' ? 'Sure?' : 'Void this invoice'} kind="danger" onPress={() => confirm('void', () => mark('void'))} disabled={busy} /> : null}
@@ -426,9 +572,7 @@ export default function Invoices() {
           <Button title={confirmDelete ? 'Tap again to delete' : 'Delete'} kind="danger" onPress={remove} disabled={busy} />
         ) : null}
         <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.md, lineHeight: 19 }}>
-          {stripeOn
-            ? 'Nothing goes out until you tap Send. Or share the PDF yourself if you prefer.'
-            : 'Share the PDF by email or message yourself, or connect your Stripe in Settings and I can send it for you when you tap Send.'}
+          Nothing goes out until you tap Send.
         </Text>
       </Screen>
     );
@@ -492,7 +636,7 @@ export default function Invoices() {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
                   <Text style={{ fontSize: 13, color: colours.muted }}>{i.number}{i.created_by === 'tali' && i.status === 'draft' ? ' · drafted by Tali' : ''}</Text>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: late ? colours.danger : STATUS[i.status].colour }}>
-                    {late ? `Overdue since ${friendlyDate(i.due_date)}` : i.status === 'sent' ? `Due ${friendlyDate(i.due_date)}` : STATUS[i.status].label}
+                    {statusLine(i)}
                   </Text>
                 </View>
               </Card>
