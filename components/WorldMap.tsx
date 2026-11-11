@@ -65,8 +65,12 @@ export function WorldMap({ homeCount = 0, workTo }: { homeCount?: number; workTo
 //  Growth: a spiral galaxy seen on a tilt, turning.     Your words: fireflies rising through a space.
 // 10 Nov 2026 (Taj: "work and health aren't moving anymore" on his phone): the shapes move with
 // Reanimated on the UI thread, the same way her brain does. Each shape only starts the movement it uses.
-// 11 Nov 2026: depth. Flat shapes (board, rings, galaxy) are one view tilted in perspective, which is
-// cheap. The globes and the fireflies place each star from its own x, y, z every frame.
+// 11 Nov 2026, later (Taj's screen recording: whole chunks of the map blinking out on Android): no
+// view here uses a perspective transform any more (the Work board was the only one, and the only
+// thing on this map her brain does not also do), and stars no longer change their stacking order
+// every frame. Only plain moves, turns, scales and opacity are animated.
+// 11 Nov 2026: depth. Every star is placed from its own x, y, z each frame. The Work board is one
+// flat view, squashed and turned.
 const C = 70;
 const F = 230; // how far away the eye is: smaller is a stronger perspective
 const TAU = Math.PI * 2;
@@ -134,7 +138,7 @@ function peoplePitch(t: number) { 'worklet'; return 0.3 + 0.14 * Math.cos(TAU * 
 function PeopleStar({ p, r, colour, t }: { p: P3; r: number; colour: string; t: SharedValue<number> }) {
   const st = useAnimatedStyle(() => {
     const q = project(p[0], p[1], p[2], peopleYaw(t.value), peoplePitch(t.value));
-    return { opacity: depthFade(q.z), zIndex: Math.round(100 - q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s }] };
+    return { opacity: depthFade(q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s }] };
   });
   return <Reanimated.View style={[star(r, colour), st]} />;
 }
@@ -144,7 +148,7 @@ function PeopleLink({ a, b, colour, t }: { a: P3; b: P3; colour: string; t: Shar
     const yaw = peopleYaw(t.value), pitch = peoplePitch(t.value);
     const p = project(a[0], a[1], a[2], yaw, pitch), q = project(b[0], b[1], b[2], yaw, pitch);
     const len = Math.hypot(q.x - p.x, q.y - p.y);
-    return { opacity: 0.45 * depthFade((p.z + q.z) / 2), transform: [{ translateX: (p.x + q.x) / 2 }, { translateY: (p.y + q.y) / 2 }, { rotate: `${Math.atan2(q.y - p.y, q.x - p.x)}rad` }, { scaleX: len / 100 }] };
+    return { opacity: 0.45 * depthFade((p.z + q.z) / 2), transform: [{ translateX: (p.x + q.x) / 2 }, { translateY: (p.y + q.y) / 2 }, { rotate: `${Math.atan2(q.y - p.y, q.x - p.x)}rad` }, { scaleX: Math.max(0.01, len / 100) }] };
   });
   return <Reanimated.View style={[{ position: 'absolute', left: C - 50, top: C, width: 100, height: 1, backgroundColor: colour }, st]} />;
 }
@@ -174,7 +178,7 @@ function PeopleForm({ colour, n }: { colour: string; n: number }) {
       {links.map(([i, j]) => <PeopleLink key={`l${i}-${j}`} a={pts[i]} b={pts[j]} colour={colour} t={t} />)}
       {pts.map((p, i) => (i % 3 === 0 ? <PeopleLink key={'c' + i} a={you} b={p} colour={colour} t={t} /> : null))}
       {pts.map((p, i) => <PeopleStar key={i} p={p} r={i % 3 === 0 ? 8 : 6} colour={colour} t={t} />)}
-      <View style={[star(12, '#FFFFFF'), { zIndex: 100 }]} />
+      <View style={star(12, '#FFFFFF')} />
     </View>
   );
 }
@@ -188,7 +192,9 @@ function WorkForm({ colour }: { colour: string }) {
     sway.value = withRepeat(withTiming(1, { duration: 7000, easing: REasing.inOut(REasing.sin) }), -1, true);
     return () => cancelAnimation(sway);
   }, [sway]);
-  const board = useAnimatedStyle(() => ({ transform: [{ perspective: 420 }, { rotateX: '54deg' }, { rotateZ: `${-24 + 24 * sway.value}deg` }] }));
+  // Lying back without a perspective transform: squashed top to bottom, then turned on the spot.
+  // An animated perspective tilt is the likely cause of Android blanking out chunks of the map (11 Nov 2026).
+  const board = useAnimatedStyle(() => ({ transform: [{ scaleY: 0.56 }, { rotate: `${-24 + 24 * sway.value}deg` }] }));
   const cells: { x: number; y: number; on: boolean; b: boolean }[] = [];
   for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) cells.push({ x: 16 + c * 19, y: 16 + r * 19, on: (r * 7 + c * 3) % 5 < 2, b: (r + c) % 2 === 0 });
   return (
@@ -210,7 +216,7 @@ function HealthStar({ a, ring, r, colour, t }: { a: number; ring: 0 | 1; r: numb
     const q = ring
       ? project(Math.cos(ang) * 44, Math.sin(ang) * 44, 0, 0.95, 0.2)
       : project(Math.cos(ang) * 46, 0, Math.sin(ang) * 46, 0, -1.15);
-    return { opacity: (ring ? 0.6 : 1) * depthFade(q.z), zIndex: Math.round(100 - q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s }] };
+    return { opacity: (ring ? 0.6 : 1) * depthFade(q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s }] };
   });
   return <Reanimated.View style={[star(r, colour), st]} />;
 }
@@ -223,7 +229,7 @@ function HealthForm({ colour, n }: { colour: string; n: number }) {
     <Reanimated.View style={[{ position: 'absolute', width: 140, height: 140 }, beat]}>
       {angles.map((a, i) => <HealthStar key={'b' + i} a={a} ring={1} r={i % 4 === 0 ? 6 : 3.5} colour={colour} t={t} />)}
       {angles.map((a, i) => <HealthStar key={'a' + i} a={a} ring={0} r={i % 4 === 0 ? 8 : 5} colour={colour} t={t} />)}
-      <View style={[star(17, colour), { zIndex: 100 }]} />
+      <View style={star(17, colour)} />
     </Reanimated.View>
   );
 }
@@ -237,7 +243,7 @@ function TideStar({ p, colour, t }: { p: P3; colour: string; t: SharedValue<numb
     const h = (44 - p[1]) / 88 + 0.035 * Math.sin(TAU * (v * 2 + p[0] / 60 + p[2] / 80));
     const k = Math.max(0, Math.min(1, (level - h) / 0.1 + 0.5));
     const q = project(p[0], p[1], p[2], 0.7 * Math.sin(TAU * v), 0.28);
-    return { opacity: (0.12 + 0.88 * k) * depthFade(q.z), zIndex: Math.round(100 - q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s * (0.45 + 0.55 * k) }] };
+    return { opacity: (0.12 + 0.88 * k) * depthFade(q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s * (0.45 + 0.55 * k) }] };
   });
   return <Reanimated.View style={[star(7, colour), st]} />;
 }
@@ -269,7 +275,7 @@ function GalaxyStar({ a, d, y, r, alpha, colour, t }: { a: number; d: number; y:
   const st = useAnimatedStyle(() => {
     const ang = a + TAU * t.value;
     const q = project(Math.cos(ang) * d, y, Math.sin(ang) * d, 0, -1.0);
-    return { opacity: alpha * depthFade(q.z), zIndex: Math.round(100 - q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s }] };
+    return { opacity: alpha * depthFade(q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s }] };
   });
   return <Reanimated.View style={[star(r, colour), st]} />;
 }
@@ -283,7 +289,7 @@ function GrowthForm({ colour, n }: { colour: string; n: number }) {
   return (
     <View style={{ position: 'absolute', width: 140, height: 140 }}>
       {arms.map((p, i) => <GalaxyStar key={i} {...p} colour={colour} t={t} />)}
-      <View style={[star(14, '#FFFFFF'), { zIndex: 100 }]} />
+      <View style={star(14, '#FFFFFF')} />
     </View>
   );
 }
@@ -294,7 +300,7 @@ function Firefly({ p, r, colour, phase, rise, sway }: { p: P3; r: number; colour
     const u = (rise.value + phase) % 1;
     const glow = u < 0.3 ? u / 0.3 : u < 0.8 ? 1 - ((u - 0.3) / 0.5) * 0.2 : 0.8 * (1 - (u - 0.8) / 0.2);
     const q = project(p[0], p[1] + 14 - 40 * u, p[2], 0.55 * Math.sin(TAU * sway.value), 0.15);
-    return { opacity: glow * depthFade(q.z), zIndex: Math.round(100 - q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s }] };
+    return { opacity: glow * depthFade(q.z), transform: [{ translateX: q.x }, { translateY: q.y }, { scale: q.s }] };
   });
   return <Reanimated.View style={[star(r, colour), { shadowRadius: 8 }, st]} />;
 }

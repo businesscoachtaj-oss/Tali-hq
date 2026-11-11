@@ -513,7 +513,7 @@ function LifeRoom({ life, onTick, tiles }: { life: LifeSummary | null; onTick: (
           <GlanceGrid tiles={tiles} />
         </>
       ) : null}
-      <Label>Tonight</Label>
+      {/* ShutdownCard has its own heading (Tonight, or Day closed). It showed twice. */}
       <ShutdownCard />
       {link('Write in your journal', 'Two lines is plenty. She learns from it.', '/journal')}
       {link('Sleep sounds', 'Rain, waves or her night sky, with a timer', '/sleep')}
