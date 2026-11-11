@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { deleteJournalEntry, journalEntries, markBriefRead, myCredits, saveJournalEntry, taliJournal, type Brief, type JournalEntry } from '@/lib/data';
 import { isPaid, isPro } from '@/lib/plan';
@@ -14,14 +14,63 @@ import { colours, elevation, radius, space } from '@/constants/theme';
 const MOODS = ['Rough', 'Meh', 'Okay', 'Good', 'Great'];
 
 type Draft = { id?: string; kind: 'journal' | 'note'; title: string; body: string; mood: number | null; private_to_tali: boolean };
-const blank = (): Draft => ({ kind: 'journal', title: '', body: '', mood: null, private_to_tali: false });
+const blank = (kind: 'journal' | 'note' = 'journal'): Draft => ({ kind, title: '', body: '', mood: null, private_to_tali: false });
 
 function when(iso: string) {
   return new Date(iso).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+// 11 Nov 2026 journal rework (Taj: the journal is your time and your place). Tali never speaks in it.
+// The page comes first and the mood last, your own words come back on their date, and the month is a
+// calendar coloured by how each day was. Notes live on their own screen (mode "notes").
+const MOOD_COLOUR = ['#E7A6CF', '#FFB561', '#B9A6FF', '#7FE0B0', '#4FD39A'];
+const PROMPTS = ["What's taking up the most room today?", 'What went well today?', 'What are you carrying that you could put down?', 'What do you want to remember about today?', 'What would make tomorrow easier?'];
+const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const LOOK_BACK: [string, (d: Date) => void][] = [
+  ['A year ago today', (d) => d.setFullYear(d.getFullYear() - 1)],
+  ['Six months ago today', (d) => d.setMonth(d.getMonth() - 6)],
+  ['Three months ago today', (d) => d.setMonth(d.getMonth() - 3)],
+  ['A month ago today', (d) => d.setMonth(d.getMonth() - 1)],
+  ['A week ago today', (d) => d.setDate(d.getDate() - 7)],
+];
+
 export default function Journal() {
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  return <JournalScreen mode="journal" />;
+}
+
+export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
+  const notesMode = mode === 'notes';
+  const [all, setEntries] = useState<JournalEntry[]>([]);
+  const [search, setSearch] = useState('');
+  const entries = useMemo(() => {
+    const mine = all.filter((e) => (e.kind === 'note') === notesMode);
+    const q = search.trim().toLowerCase();
+    return q ? mine.filter((e) => `${e.title ?? ''} ${e.body}`.toLowerCase().includes(q)) : mine;
+  }, [all, notesMode, search]);
+  const prompt = useMemo(() => PROMPTS[new Date().getDate() % PROMPTS.length], []);
+  // Your own words from this date, the furthest back first. No commentary.
+  const lookBack = useMemo(() => {
+    if (notesMode) return null;
+    for (const [label, shift] of LOOK_BACK) {
+      const d = new Date();
+      shift(d);
+      const hit = all.find((e) => e.kind === 'journal' && localDay(new Date(e.created_at)) === localDay(d));
+      if (hit) return { label, entry: hit };
+    }
+    return null;
+  }, [all, notesMode]);
+  // This month as a grid: one square per day, coloured by that day's mood.
+  const month = useMemo(() => {
+    const now = new Date();
+    const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const lead = (new Date(now.getFullYear(), now.getMonth(), 1).getDay() + 6) % 7;
+    const byDay = new Map<number, JournalEntry>();
+    for (const e of all) {
+      const d = new Date(e.created_at);
+      if (e.kind === 'journal' && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && !byDay.has(d.getDate())) byDay.set(d.getDate(), e);
+    }
+    return { days, lead, byDay, today: now.getDate(), name: now.toLocaleDateString('en-AU', { month: 'long' }) };
+  }, [all]);
   const [draft, setDraft] = useState<Draft | null>(null);
   // 4 Nov 2026: what the editor opened with, so Cancel and Back can tell if anything changed.
   const [opened, setOpened] = useState<Draft | null>(null);
@@ -133,41 +182,43 @@ export default function Journal() {
     return (
       <Screen>
         <BackLink onPress={cancel} label={armed === 'discard' ? 'Sure?' : 'Back'} />
-        <Title>{draft.id ? 'Edit entry' : draft.kind === 'note' ? 'New note' : 'New journal entry'}</Title>
-        <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
-          {(['journal', 'note'] as const).map((k) => (
-            <Pressable
-              key={k}
-              onPress={() => setDraft({ ...draft, kind: k })}
-              style={{ paddingVertical: 8, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: draft.kind === k ? colours.purple : colours.borderStrong, backgroundColor: draft.kind === k ? colours.purple : colours.surface }}>
-              <Text style={{ color: draft.kind === k ? colours.onPurple : colours.text, fontWeight: '700' }}>{k === 'journal' ? 'Journal' : 'Note'}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Field label="Title (optional)" value={draft.title} onChangeText={(t) => setDraft({ ...draft, title: t })} maxLength={120} />
-        {draft.kind === 'journal' ? (
+        {draft.kind === 'note' ? (
           <>
+            <Title>{draft.id ? 'Edit note' : 'New note'}</Title>
+            <Field label="Title (optional)" value={draft.title} onChangeText={(t) => setDraft({ ...draft, title: t })} maxLength={120} />
+            <Field label="Note" value={draft.body} onChangeText={(t) => setDraft({ ...draft, body: t })} multiline maxLength={20000} style={{ minHeight: 180, textAlignVertical: 'top' }} />
+          </>
+        ) : (
+          <>
+            <Text style={{ color: colours.muted, fontSize: 13, fontWeight: '700', marginBottom: space.sm }}>
+              {new Date(all.find((e) => e.id === draft.id)?.created_at ?? Date.now()).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </Text>
+            {/* The page first. The prompt is only a placeholder, so it goes the moment they type. */}
+            <TextInput
+              value={draft.body}
+              onChangeText={(t) => setDraft({ ...draft, body: t })}
+              multiline
+              autoFocus={!draft.id}
+              maxLength={20000}
+              placeholder={prompt}
+              placeholderTextColor={colours.faint}
+              accessibilityLabel="Your journal entry"
+              style={{ minHeight: 260, textAlignVertical: 'top', backgroundColor: 'rgba(12,10,36,0.5)', borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 16, padding: 16, color: colours.text, fontSize: 19, lineHeight: 27, fontFamily: 'InstrumentSerif_400Regular', marginBottom: space.md }}
+            />
             <Label>How was today</Label>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md }}>
               {MOODS.map((m, i) => {
                 const on = draft.mood === i + 1;
                 return (
-                  <Pressable key={m} onPress={() => setDraft({ ...draft, mood: on ? null : i + 1 })} style={{ paddingVertical: 7, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colours.orange : colours.borderStrong, backgroundColor: on ? colours.orangeSoft : colours.surface }}>
-                    <Text style={{ color: colours.text, fontWeight: '600' }}>{m}</Text>
+                  <Pressable key={m} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => setDraft({ ...draft, mood: on ? null : i + 1 })}
+                    style={{ paddingVertical: 7, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? MOOD_COLOUR[i] : colours.borderStrong, backgroundColor: on ? MOOD_COLOUR[i] : 'transparent' }}>
+                    <Text style={{ color: on ? colours.onPurple : colours.text, fontWeight: '600' }}>{m}</Text>
                   </Pressable>
                 );
               })}
             </View>
           </>
-        ) : null}
-        <Field
-          label={draft.kind === 'journal' ? "What's on your mind" : 'Note'}
-          value={draft.body}
-          onChangeText={(t) => setDraft({ ...draft, body: t })}
-          multiline
-          maxLength={20000}
-          style={{ minHeight: 180, textAlignVertical: 'top' }}
-        />
+        )}
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '700', color: colours.text }}>Keep this from Tali</Text>
@@ -186,8 +237,8 @@ export default function Journal() {
   return (
     <Screen skin="journal" onRefresh={load}>
       {/* 9 Nov 2026: Journal gets the same banner and card style as the other pages. */}
-      <SkinHeader id="journal" title="Journal" sub={tab === 'mine' ? 'Your journal and notes. Tali learns from them unless you keep an entry private.' : 'Every Sunday evening Tali writes up her week working with you.'} />
-      <View style={{ flexDirection: 'row', backgroundColor: colours.surface, borderRadius: radius.pill, padding: 4, marginBottom: space.md, ...elevation.tile }}>
+      <SkinHeader id="journal" title={notesMode ? 'Notes' : 'Journal'} sub={notesMode ? 'Things to find again. Tali learns from them unless you keep a note private.' : tab === 'mine' ? 'Your time and your place. Tali learns from it quietly unless you keep an entry private.' : 'Every Sunday evening Tali writes up her week working with you.'} />
+      <View style={{ flexDirection: 'row', backgroundColor: colours.surface, borderRadius: radius.pill, padding: 4, marginBottom: space.md, display: notesMode ? 'none' : 'flex', ...elevation.tile }}>
         {(['mine', 'tali'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
             style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? '#5B1F4A' : 'transparent', alignItems: 'center' }}>
@@ -197,7 +248,7 @@ export default function Journal() {
           </Pressable>
         ))}
       </View>
-      {tab === 'tali' ? (
+      {tab === 'tali' && !notesMode ? (
         <>
           {!paid ? (
             <>
@@ -229,14 +280,54 @@ export default function Journal() {
         </>
       ) : (
       <>
-      <View style={{ flexDirection: 'row', gap: space.sm }}>
-        <View style={{ flex: 1 }}><Button title="New entry" onPress={() => openDraft(blank())} /></View>
-        <View style={{ flex: 1 }}><Button title="New note" kind="ghost" onPress={() => openDraft({ ...blank(), kind: 'note' })} /></View>
-      </View>
+      {notesMode ? (
+        <>
+          {all.filter((e) => e.kind === 'note').length > 4 ? (
+            <TextInput value={search} onChangeText={setSearch} placeholder="Search your notes" placeholderTextColor={colours.faint}
+              style={{ backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: radius.input, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, marginBottom: space.md, color: colours.text }} />
+          ) : null}
+          <Button title="New note" onPress={() => openDraft(blank('note'))} />
+        </>
+      ) : (
+        <>
+          {lookBack ? (
+            <Pressable accessibilityRole="button" onPress={() => { const e = lookBack.entry; openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali }); }}
+              style={{ backgroundColor: colours.paper, borderRadius: 16, padding: 16, marginBottom: space.md }}>
+              <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', color: '#7A6A8E' }}>{lookBack.label} · {when(lookBack.entry.created_at)}</Text>
+              <Text numberOfLines={5} style={{ color: colours.ink, fontSize: 19, lineHeight: 26, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{lookBack.entry.body}</Text>
+            </Pressable>
+          ) : null}
+          <Button title="Write" onPress={() => openDraft(blank())} />
+          {all.some((e) => e.kind === 'journal') ? (
+            <Card>
+              <Text style={{ fontWeight: '800', color: colours.text, fontSize: 16, marginBottom: space.sm }}>{month.name}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {Array.from({ length: month.lead + month.days }, (_, i) => {
+                  const day = i - month.lead + 1;
+                  const e = day > 0 ? month.byDay.get(day) : undefined;
+                  const box = { width: '100%' as const, aspectRatio: 1, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: e ? (e.mood ? MOOD_COLOUR[e.mood - 1] : colours.purpleInk) : day > 0 ? 'rgba(255,255,255,0.07)' : 'transparent', borderWidth: day === month.today ? 2 : 0, borderColor: '#FFFFFF' };
+                  const num = day > 0 ? <Text style={{ fontSize: 11, fontWeight: '700', color: e ? colours.onPurple : colours.faint }}>{day}</Text> : null;
+                  return (
+                    <View key={i} style={{ width: `${100 / 7}%`, padding: 2.5 }}>
+                      {e ? (
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Read ${when(e.created_at)}`} style={box}
+                          onPress={() => openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali })}>{num}</Pressable>
+                      ) : <View style={box}>{num}</View>}
+                    </View>
+                  );
+                })}
+              </View>
+              <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm }}>
+                {month.byDay.size} day{month.byDay.size === 1 ? '' : 's'} written this month. Tap a day to read it.
+              </Text>
+            </Card>
+          ) : null}
+        </>
+      )}
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.lg }} />
       {entries.length === 0 ? (
-        <TaliSays pose="idle">Nothing here yet. A few lines a day about what happened and what's on your mind is plenty, and I'll learn from them.</TaliSays>
+        <Card><Body muted>{notesMode ? (search ? 'No notes match that.' : 'No notes yet. Keep the things you want to find again here.') : 'Nothing written yet. A few lines is plenty.'}</Body></Card>
       ) : (
         entries.map((e) => (
           <Pressable

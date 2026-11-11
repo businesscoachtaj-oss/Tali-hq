@@ -37,6 +37,7 @@ export default function AppTabs() {
       <Tabs.Screen name="brain" options={{ title: 'Her brain', tabBarIcon: icon('sparkles-outline', 2) }} />
       <Tabs.Screen name="world" options={{ title: 'Your world', tabBarIcon: icon('planet-outline', 3) }} />
       <Tabs.Screen name="journal" options={{ href: null, title: 'Journal' }} />
+      <Tabs.Screen name="notes" options={{ href: null, title: 'Notes' }} />
       <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline', 4) }} />
       <Tabs.Screen name="settings" options={{ href: null, title: 'Settings' }} />
       <Tabs.Screen name="plans" options={{ href: null, title: 'Plans' }} />

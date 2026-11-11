@@ -276,3 +276,14 @@ Pro is A$49.99 a month (A$509.90 a year) and Max is A$149.99 a month (A$1,529.90
 - **Player**: her brain asleep with the time left, a slider for each sound that changes the mix while it plays, Take out, Add a sound, Save this mix, and How long.
 - **Make your own**: tap a sound and it joins the mix and plays, tap again and it leaves. No separate hear button and no Start button.
 - Saved mixes are kept with the other sleep settings, per account on the device. Still two sounds at once. The sound engine is unchanged.
+
+### 11 Nov 2026: Invoices rework, notifications step, people start, easier chat, journal and notes
+
+- **Invoices** (`app/(app)/invoices.tsx`): one main **Send invoice** button, with Save draft, Share PDF and "I sent it myself" as small links under it. An empty description is flagged on the box itself. Lines billed before show as chips. Without Stripe connected, Send opens a **Get paid by card** step inside the invoice (connecting is still web only). After a send there is a Sent page with the pay link and a copy button. The list says "3 days late" or "Paid by card". Sent and paid invoices get **Bill them again**. Billing someone new saves them to Your people.
+- **Onboarding** (`app/onboarding.tsx`): a last step asks for notifications and lists what Tali sends. The phone's own permission box only shows after the tap. Skipped on devices that cannot have them.
+- **Your people** (`app/(app)/clients.tsx`): an empty list offers Tell me about them (opens Talk), Paste a list, or add by hand.
+- **Talk** (`components/TaliMessage.tsx`): Tali's replies sit on a dark glass panel with bigger text and a Copy link on long replies. The chat prompt in `supabase/functions/tali-chat` asks for shorter list lines. That function still needs deploying.
+- **Journal** (`app/(app)/journal.tsx`): the page comes first with an optional prompt as the placeholder, mood moves to the end, and there is no title. The home shows your own entry from this date (a week, a month, three months, six months or a year ago) and the month as a calendar coloured by mood. Tali never speaks in it. Her weekly journal stays on its own tab.
+- **Notes** (`app/(app)/notes.tsx`): notes move out of the journal to their own screen under Your world, with search.
+- Not in this round: threads, the month page, "things you said you'd do", Life money, photos, export, a journal lock, importing phone contacts, the opened status and overdue nudges for invoices.
+- Tested: types check and the web bundle builds. Not yet clicked through signed in, and the Stripe send has still never run against a real connected account.

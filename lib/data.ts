@@ -94,7 +94,7 @@ export async function journalEntries(): Promise<JournalEntry[]> {
     .select('id, kind, title, body, mood, private_to_tali, pinned, created_at, updated_at')
     .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(500);
   if (error) throw error;
   return (data as JournalEntry[]) ?? [];
 }
@@ -106,6 +106,7 @@ export async function saveJournalEntry(entry: {
   body: string;
   mood: number | null;
   private_to_tali: boolean;
+  pinned?: boolean;
 }) {
   if (entry.id) {
     const { id, ...rest } = entry;
