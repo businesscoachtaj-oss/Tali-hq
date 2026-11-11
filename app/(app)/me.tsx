@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { Pressable, Text, View, TextInput } from 'react-native';
+import { Image, Pressable, Text, View, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { changeAvatar, removeAvatar, useAvatar } from '@/lib/avatar';
 import { forgetMemory, freeMessagesLeft, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
 import { brainExport, exportAsText, updateMemory } from '@/lib/brain';
 import { saveTextFile } from '@/lib/saveFile';
@@ -26,6 +27,20 @@ export default function Me() {
   const [error, setError] = useState('');
   const { armed, confirm } = useConfirm();
   const [room, setRoom] = useState<Room>('business');
+  const avatar = useAvatar();
+  const [photoBusy, setPhotoBusy] = useState(false);
+  async function pickPhoto() {
+    if (!session || photoBusy) return;
+    setError('');
+    setPhotoBusy(true);
+    try { await changeAvatar(session.user.id); } catch (e: any) { setError(e?.message ?? 'Could not save that photo.'); }
+    setPhotoBusy(false);
+  }
+  async function dropPhoto() {
+    if (!session) return;
+    setError('');
+    try { await removeAvatar(session.user.id); } catch (e: any) { setError(e?.message ?? 'Could not remove your photo.'); }
+  }
 
   const load = useCallback(async () => {
     setError('');
@@ -97,12 +112,27 @@ export default function Me() {
       {/* 6 Nov 2026 (Taj): Me redesign. Header with Settings gear, plan card with stat tiles, Tali's brain
           hero, jobs as grouped tiles, account rows. Same screens and data as before. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.lg }}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', ...elevation.button(colours.purple) }}>
-          <Text style={{ color: colours.onPurple, fontSize: 24, fontWeight: '800' }}>{initial}</Text>
-        </View>
+        {/* 12 Nov 2026 (Taj): your own photo. Tap it to add or change one. */}
+        <Pressable onPress={pickPhoto} disabled={photoBusy} accessibilityRole="button" accessibilityLabel={avatar ? 'Change your photo' : 'Add a photo'}
+          style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', opacity: photoBusy ? 0.6 : 1, ...elevation.button(colours.purple) }}>
+          {avatar ? <Image source={{ uri: avatar }} style={{ width: 64, height: 64, borderRadius: 32 }} accessibilityIgnoresInvertColors /> : <Text style={{ color: colours.onPurple, fontSize: 26, fontWeight: '800' }}>{initial}</Text>}
+          <View style={{ position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: colours.bg, borderWidth: 1, borderColor: colours.border, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="camera" size={13} color={colours.text} />
+          </View>
+        </Pressable>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontSize: 26, fontWeight: '800', color: colours.text }} numberOfLines={1}>{profile?.first_name || 'You'}</Text>
           <Text style={{ fontSize: 13, color: colours.muted }} numberOfLines={1}>{session?.user.email}</Text>
+          <View style={{ flexDirection: 'row', gap: 14, marginTop: 4 }}>
+            <Pressable onPress={pickPhoto} disabled={photoBusy} accessibilityRole="button" hitSlop={8}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colours.purple }}>{photoBusy ? 'Saving...' : avatar ? 'Change photo' : 'Add a photo'}</Text>
+            </Pressable>
+            {avatar && !photoBusy ? (
+              <Pressable onPress={() => confirm('photo', dropPhoto)} accessibilityRole="button" hitSlop={8}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: colours.muted }}>{armed === 'photo' ? 'Tap again to remove' : 'Remove'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
         <Pressable onPress={() => router.navigate('/settings')} accessibilityRole="button" accessibilityLabel="Settings" hitSlop={8}
           style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colours.surface, alignItems: 'center', justifyContent: 'center', ...elevation.card }}>
