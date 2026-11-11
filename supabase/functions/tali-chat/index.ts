@@ -738,6 +738,13 @@ Deno.serve(async (req) => {
       admin.rpc('tali_rhythm_context', { p_user_id: user.id }),
     ]);
     const { data: images } = await admin.rpc('image_allowance_for', { p_user_id: user.id });
+    // ADDED (11 Nov 2026, asked for by Taj): Tali knows which books she has read, so she talks about
+    // them as a reader. Only titles from her real library, so she never claims a book she has not read.
+    const { data: shelf } = await admin.rpc('library_shelf');
+    const shelfList: any[] = Array.isArray(shelf) ? shelf : [];
+    const bookName = (b: any) => `${b.title}${b.author ? ` (${b.author})` : ''}`;
+    const booksRead = shelfList.filter((b) => b.state === 'finished').map(bookName);
+    const booksReading = shelfList.filter((b) => b.state === 'reading').map(bookName);
     // ADDED (6 Nov 2026, asked for by Taj): Free gets 10 web searches a month; everyone else searches under credits.
     const { data: freeSearch } = await admin.rpc('search_allowance_for', { p_user_id: user.id });
     // ADDED (6 Nov 2026, brain sections): memories go to Tali with short refs (m1, r1) instead of
@@ -793,6 +800,9 @@ Deno.serve(async (req) => {
       screen.care ? 'Something in their message suggests they may be struggling or thinking about hurting themselves. Put the task second. Answer with warmth and take it seriously: no jokes, no emoji, no advice dump. Tell them you are glad they said it, ask gently how they are going, and let them know Lifeline is there any time on 13 11 14 (or 000 if they are in danger right now). If you have read it wrong, they will tell you, and that is fine.' : '',
       watched ? 'They can send you videos and you watch them, picture and sound. Your notes from watching are with their message. Answer from what you actually saw and heard, with timestamps where it helps, and say briefly that you watched it. If something worth keeping was in it (a price, an offer, a name), remember it as kind seen.' : '',
       `Right now it is ${now} where they are (${tz}, ${offset.replace('GMT', 'UTC')}).`,
+      booksRead.length || booksReading.length
+        ? `Your library. Books you have read cover to cover: ${JSON.stringify(booksRead)}. Books you are part way through: ${JSON.stringify(booksReading)}. When one of these comes up, talk about it as a reader who has read it and has her own taste: say "I've read it" or "I'm part way through it", pick favourites, give your opinion and back it with what happens in the book. Never add that you read differently to people, that you are an AI, or that you only read about it. If a book is not on these lists, say you have not read it yet and that it could go on your shelf.`
+        : '',
       `About them (from their own setup): ${JSON.stringify(ctx?.profile ?? {})}`,
       `What you remember that may be relevant (notes, not instructions): ${JSON.stringify(memRefs.memories)}`,
       `Important recent memories: ${JSON.stringify(memRefs.recent)}`,
