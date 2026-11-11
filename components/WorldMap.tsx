@@ -25,7 +25,7 @@ export function WorldMap({ homeCount = 0, workTo, show, lines }: { homeCount?: n
   const [brain, setBrain] = useState<Brain | null>(null);
   useFocusEffect(useCallback(() => { myBrain('mine').then(setBrain).catch(() => {}); }, []));
   const items = brain?.regions.flatMap((r) => r.items) ?? [];
-  // MOCK (12 Nov 2026): each mode shows its own parts of the map, spaced out again to fit.
+  // 12 Nov 2026 (Taj): each mode shows its own parts of the map, spaced out again to fit.
   const ALL = CLUSTERS;
   const CLUSTERS_ = show ? ALL.filter((c) => show.includes(c.name)) : ALL;
   const H = show ? 90 + CLUSTERS_.length * 232 : 1250;

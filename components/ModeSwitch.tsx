@@ -1,4 +1,4 @@
-// MOCK (12 Nov 2026): the Business / Life switch, and the small tag that says which side a thing belongs to.
+// 12 Nov 2026 (Taj): the Business / Life switch, and the small tag that says which side a thing belongs to.
 import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MODE, setMode, useMode, type Mode } from '@/lib/mode';

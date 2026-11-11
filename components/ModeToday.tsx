@@ -1,9 +1,8 @@
-// MOCK (12 Nov 2026, Taj's brainstorm): what Today shows in each mode. Business is a dashboard:
+// 12 Nov 2026 (Taj): what Today shows in each mode. Business is a dashboard:
 // numbers first, then the pipeline, then the tools. Life is your day: habits, what is coming up, your own money.
 import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { TaliAvatar } from '@/components/TaliAvatar';
 import { Card, Label } from '@/components/ui';
 import { money0, runwayLabel, type MoneyPicture } from '@/lib/money';
 import { dollars, type PersonalMoney } from '@/lib/personalMoney';
@@ -13,24 +12,6 @@ import { colours, radius, space } from '@/constants/theme';
 
 type Icon = React.ComponentProps<typeof Ionicons>['name'];
 const go = (to: string, params?: Record<string, string>) => () => router.navigate((params ? { pathname: to, params } : to) as any);
-
-/** Business mode opens on a short header, so the numbers are on the first screen. */
-export function BusinessHeader({ greeting, business, line, sub }: { greeting: string; business?: string | null; line: string; sub?: string | null }) {
-  const day = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
-  return (
-    <View style={{ marginTop: 14 }}>
-      <Text style={{ color: MODE.business.colour, fontSize: 11, fontWeight: '800', letterSpacing: 2 }}>{(business || 'Your business').toUpperCase()} · {day.toUpperCase()}</Text>
-      <Text style={{ color: colours.text, fontSize: 38, lineHeight: 42, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{greeting}</Text>
-      {sub ? <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>{sub}</Text> : null}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
-        <TaliAvatar pose="head" size={44} />
-        <View style={{ flex: 1, backgroundColor: colours.purpleSoft, borderRadius: radius.card, paddingVertical: 10, paddingHorizontal: 14 }}>
-          <Text style={{ color: colours.text, fontSize: 14.5, lineHeight: 21 }}>{line}</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
 
 function Stat({ label, value, hint, colour, onPress }: { label: string; value: string; hint?: string | null; colour: string; onPress: () => void }) {
   return (

@@ -22,7 +22,8 @@ function dueFor(w: When) {
 }
 
 // Add a reminder yourself, no credits needed. Tali can also set them from Talk.
-export function AddReminder({ onAdded }: { onAdded: () => void }) {
+// `side` is the mode you are in (12 Nov 2026), so a reminder added on the Life side stays on the Life side.
+export function AddReminder({ onAdded, side }: { onAdded: () => void; side?: 'life' | 'business' }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [when, setWhen] = useState<When>('Tomorrow 9am');
@@ -34,7 +35,7 @@ export function AddReminder({ onAdded }: { onAdded: () => void }) {
     setBusy(true);
     setError('');
     try {
-      await addReminder(text, dueFor(when));
+      await addReminder(text, dueFor(when), side);
       setText('');
       setOpen(false);
       onAdded();

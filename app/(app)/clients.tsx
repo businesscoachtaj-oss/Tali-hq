@@ -118,7 +118,7 @@ export default function Clients() {
   }, [tabParam, hasBusiness]);
   useEffect(() => {
     if (tabChosen || !list.length) return;
-    // MOCK (12 Nov 2026): one list of people in both modes. The mode only decides which group opens first.
+    // 12 Nov 2026 (Taj): one list of people in both modes. The mode only decides which group opens first.
     const order: PersonKind[] = !hasBusiness ? ['family', 'friend', 'client'] : mode === 'life' ? ['family', 'friend', 'client', 'lead'] : ['client', 'lead', 'family', 'friend'];
     const first = order.find((k) => list.some((c) => c.kind === k));
     if (first) setTab(first);

@@ -38,10 +38,10 @@ import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 import { PageSky, skyScroll } from '@/components/NightSky';
 import { setDayShut } from '@/lib/sky';
 import { Aurora } from '@/components/Aurora';
-// MOCK (12 Nov 2026): Business and Life modes.
+// 12 Nov 2026 (Taj): Business and Life modes.
 import { ModeSwitch, TagPill } from '@/components/ModeSwitch';
-import { BusinessBoard, BusinessHeader, BusinessTools, LifeBoard } from '@/components/ModeToday';
-import { tagOf, useMode } from '@/lib/mode';
+import { BusinessBoard, BusinessTools, LifeBoard } from '@/components/ModeToday';
+import { sideOf, useClockMode, useMode } from '@/lib/mode';
 import { habitTicks, lifeItems, myWorld, setHabitDay, type LifeItem, type WorldNow } from '@/lib/world';
 import { loadPersonalMoney, type PersonalMoney } from '@/lib/personalMoney';
 
@@ -124,6 +124,7 @@ export default function Today() {
   // 9 Nov 2026 look refresh: one brain, two rooms.
   const [room, setRoom] = useState<Room>('business');
   const mode = useMode();
+  useClockMode();
   const [world, setWorld] = useState<WorldNow | null>(null);
   const [pm, setPm] = useState<PersonalMoney | null>(null);
   const [habits, setHabits] = useState<LifeItem[]>([]);
@@ -184,13 +185,15 @@ export default function Today() {
   const allTiles = glanceTiles({ credits, money, health, week, goals }).filter((t) => biz || t.key !== 'health');
   // Business mode shows money as its own row of numbers, so the tile is not repeated.
   const bizMode = biz && mode === 'business';
-  const tiles = bizMode ? allTiles.filter((t) => t.key !== 'money') : [];
-  const mine = reminders.filter((r) => tagOf(r) === (bizMode ? 'business' : 'life'));
+  // Someone with no business has no modes: they see everything on one Today, as before.
+  const workSide = !biz || bizMode;
+  const tiles = !biz ? allTiles : bizMode ? allTiles.filter((t) => t.key !== 'money') : [];
+  const mine = !biz ? reminders : reminders.filter((r) => sideOf(r, 'business') === (bizMode ? 'business' : 'life'));
   const theirs = reminders.length - mine.length;
   // Things that need you on each side. The side you are not on shows the count, so nothing gets missed.
   const waiting = {
-    business: approvals.length + newMail.length + reminders.filter((r) => tagOf(r) === 'business').length + followUps.length,
-    life: reminders.filter((r) => tagOf(r) === 'life').length + (world?.health.checkup_next && world.health.checkup_next.days <= 0 ? 1 : 0) + (world?.home.admin_next && world.home.admin_next.days <= 0 ? 1 : 0),
+    business: approvals.length + newMail.length + reminders.filter((r) => sideOf(r, 'business') === 'business').length + followUps.length,
+    life: reminders.filter((r) => sideOf(r, 'business') === 'life').length + (world?.health.checkup_next && world.health.checkup_next.days <= 0 ? 1 : 0) + (world?.home.admin_next && world.home.admin_next.days <= 0 ? 1 : 0),
   };
   const lifeStars: SideStar[] = [];
   if (world?.people.next_birthday && world.people.next_birthday.days <= 14) lifeStars.push({ key: 'bday', title: `${world.people.next_birthday.name}'s birthday`, sub: `In ${world.people.next_birthday.days} days`, area: 'people', to: '/dates' });
@@ -216,18 +219,9 @@ export default function Today() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colours.purple} />}>
         <View ref={heroRef} collapsable={false}>
         {biz ? <View style={{ zIndex: 2 }}><ModeSwitch waiting={waiting} /></View> : null}
-        {bizMode && !night ? (
-          <>
-            <BusinessHeader greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} business={profile?.business_name} line={bizLine} sub={trial} />
-            {morning ? (
-              <Pressable onPress={() => setBriefOpen((o) => !o)} accessibilityRole="button" style={{ marginTop: 12 }}>
-                <Text style={{ color: colours.purple, fontSize: 14, fontWeight: '700' }}>{briefOpen ? 'Hide your brief' : 'Read your morning brief'} {'›'}</Text>
-              </Pressable>
-            ) : null}
-          </>
-        ) : (
+        {(
           <View style={{ marginHorizontal: -space.lg, marginTop: biz ? 0 : -space.lg }}>
-            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} nightLine={night ? shutdown?.tali_line ?? null : undefined} lens={lens} onLens={setLens} side={biz ? 'life' : undefined} sideStars={lifeStars} />
+            <BrainSky greeting={`${greeting()}, ${profile?.first_name || 'mate'}`} sub={trial} nightLine={night ? shutdown?.tali_line ?? null : undefined} lens={lens} onLens={setLens} side={biz ? mode : undefined} sideStars={lifeStars} />
             {morning && !night ? (
               <Pressable onPress={() => setBriefOpen((o) => !o)} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: 14, marginBottom: 6 }}>
                 <Text style={{ color: colours.purple, fontSize: 14, fontWeight: '700' }}>{briefOpen ? 'Hide your brief' : 'Read your morning brief'} {'›'}</Text>
@@ -255,11 +249,11 @@ export default function Today() {
           </>
         ) : null}
 
-        {bizMode ? <View style={hide('work', 'people')}><MeetingNudge credits={credits} calendar={calendar} compact /></View> : null}
+        {workSide ? <View style={hide('work', 'people')}><MeetingNudge credits={credits} calendar={calendar} compact /></View> : null}
 
         <View style={hide('growth')}><NightIdeaCard /></View>
 
-        <View style={bizMode ? hide('work', 'people') : { display: 'none' }}>
+        <View style={workSide ? hide('work', 'people') : { display: 'none' }}>
         {newMail.length || approvals.length ? <Label>Needs you</Label> : null}
         {newMail.length ? (
           <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">
@@ -296,8 +290,8 @@ export default function Today() {
 
         <View ref={dueRef} collapsable={false} style={hide('work', 'people')}>
         <Label>Due today</Label>
-        {mine.length + (bizMode ? followUps.length : 0) > 0 ? (
-          <DueList reminders={mine} followUps={bizMode ? followUps : []} onChange={load} />
+        {mine.length + (workSide ? followUps.length : 0) > 0 ? (
+          <DueList reminders={mine} followUps={workSide ? followUps : []} onChange={load} />
         ) : loaded ? (
           <Card>
             <Body muted>Nothing due. Add a reminder and I'll nudge you when it's time.</Body>
@@ -307,11 +301,11 @@ export default function Today() {
             <ActivityIndicator color={colours.purple} />
           </Card>
         )}
-        <AddReminder onAdded={load} />
+        <AddReminder onAdded={load} side={biz ? mode : undefined} />
         {biz && theirs > 0 ? <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 6 }}>{theirs} more due on the {bizMode ? 'Life' : 'Business'} side.</Text> : null}
         </View>
 
-        {bizMode ? <><BusinessTools /><View style={{ height: space.lg }} /><SheNoticed /></> : (
+        {bizMode ? <><BusinessTools /><View style={{ height: space.lg }} /><SheNoticed /></> : !biz ? null : (
           <LifeBoard world={world} pm={pm} habits={habits} ticks={ticks} today={today()}
             onHabit={(id, on) => { setTicks((t) => ({ ...t, [id]: on ? [...(t[id] ?? []), today()] : (t[id] ?? []).filter((d) => d !== today()) })); setHabitDay(id, today(), on).catch(() => {}); }} />
         )}
@@ -413,9 +407,9 @@ function BriefCard({ brief, open, onToggle, onRead }: { brief: Brief; open: bool
   return (
     <Card>
       <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text, marginBottom: 6 }}>{brief.content.headline || brief.title || 'Your brief'}</Text>
-      {/* MOCK (12 Nov 2026): one brief for both sides, each line tagged. */}
+      {/* 12 Nov 2026 (Taj): one brief for both sides, each line tagged. */}
       {shown.map((l, i) => {
-        const tag = ((brief.content as any).tags as string[] | undefined)?.[i];
+        const tag = ((brief.content as any).sides as string[] | undefined)?.[i];
         return (
           <View key={i} style={{ marginTop: 10 }}>
             {tag === 'life' || tag === 'business' ? <TagPill tag={tag} /> : null}

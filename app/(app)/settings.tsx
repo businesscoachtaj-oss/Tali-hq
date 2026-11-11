@@ -16,6 +16,8 @@ import { StripeConnectCard } from '@/components/StripeConnectCard';
 import { TaliAddressCard, TaliAddressNote } from '@/components/TaliAddressCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title, goBack } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
+import { loadClockSettings, saveClockSettings } from '@/lib/mode';
+const WORK_DAYS = [{ id: 'mon_fri', label: 'Mon to Fri' }, { id: 'mon_sat', label: 'Mon to Sat' }, { id: 'every_day', label: 'Every day' }] as const;
 import { colours, space } from '@/constants/theme';
 
 export default function Settings() {
@@ -29,10 +31,18 @@ export default function Settings() {
   const [businessType, setBusinessType] = useState<string | null>(profile?.business_type ?? null);
   const [aboutMe, setAboutMe] = useState(profile?.about_me ?? '');
   const [briefTime, setBriefTime] = useState<string>((profile?.brief_time ?? '07:00').slice(0, 5));
-  const [autoMode, setAutoMode] = useState(true);
+  // 12 Nov 2026 (Taj): switch between Business and Life by the clock. Saved with the rest of Settings.
+  const [autoMode, setAutoMode] = useState(false);
   const [workFrom, setWorkFrom] = useState('09:00');
   const [workTo, setWorkTo] = useState('17:00');
-  const [workDays, setWorkDays] = useState('Mon to Fri');
+  const [workDays, setWorkDays] = useState<string>('Mon to Fri');
+  useEffect(() => {
+    if (!session) return;
+    loadClockSettings(session.user.id).then((c) => {
+      setAutoMode(c.mode_auto); setWorkFrom(c.work_start); setWorkTo(c.work_end);
+      setWorkDays(WORK_DAYS.find((d) => d.id === c.work_days)?.label ?? 'Mon to Fri');
+    }).catch(() => {});
+  }, [session]);
   const [briefPush, setBriefPush] = useState<boolean>(profile?.brief_push ?? true);
   // The owner's rhythm (3 Nov 2026): shutdown time and nudge, review day and time. Loaded here
   // rather than through the profile in useAuth so this screen owns them.
@@ -91,6 +101,14 @@ export default function Settings() {
         review_time: `${reviewTime}:00`,
       })
       .eq('id', session.user.id);
+    if (!err && biz) {
+      try {
+        await saveClockSettings(session.user.id, { mode_auto: autoMode, work_start: workFrom, work_end: workTo, work_days: WORK_DAYS.find((d) => d.label === workDays)?.id ?? 'mon_fri' });
+      } catch (e: any) {
+        setBusy(false);
+        return setError(e?.message ?? 'Could not save your work hours.');
+      }
+    }
     setBusy(false);
     if (err) return setError(err.message);
     await refreshProfile();
@@ -174,7 +192,7 @@ export default function Settings() {
         style={{ minHeight: 100, textAlignVertical: 'top' }}
       />
 
-      {/* MOCK (12 Nov 2026): Business and Life modes. Switching by the clock is a setting, off until you turn it on. */}
+      {/* 12 Nov 2026 (Taj): Business and Life modes. Switching by the clock is a setting, off until you turn it on. */}
       {biz ? (
         <>
           <Label>Business and Life</Label>
@@ -188,11 +206,11 @@ export default function Settings() {
           {autoMode ? (
             <>
               <Text style={{ color: colours.muted, fontSize: 13, marginBottom: 6 }}>Work starts</Text>
-              <ChipPicker options={['07:00', '08:00', '09:00', '10:00']} value={workFrom} onChange={setWorkFrom} label={prettyTime} />
+              <ChipPicker options={['06:00', '07:00', '08:00', '09:00', '10:00']} value={workFrom} onChange={setWorkFrom} label={prettyTime} />
               <Text style={{ color: colours.muted, fontSize: 13, marginBottom: 6 }}>Work ends</Text>
-              <ChipPicker options={['15:00', '16:00', '17:00', '18:00']} value={workTo} onChange={setWorkTo} label={prettyTime} />
+              <ChipPicker options={['15:00', '16:00', '17:00', '18:00', '19:00']} value={workTo} onChange={setWorkTo} label={prettyTime} />
               <Text style={{ color: colours.muted, fontSize: 13, marginBottom: 6 }}>Work days</Text>
-              <ChipPicker options={['Mon to Fri', 'Mon to Sat', 'Every day']} value={workDays} onChange={setWorkDays} />
+              <ChipPicker options={WORK_DAYS.map((d) => d.label)} value={workDays} onChange={setWorkDays} />
             </>
           ) : null}
         </>

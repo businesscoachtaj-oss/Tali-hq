@@ -17,7 +17,7 @@ import { SkinHeader } from '@/components/PageSkin';
 import { WorldMap } from '@/components/WorldMap';
 import { colours, radius, space } from '@/constants/theme';
 import { useHasBusiness } from '@/lib/business';
-// MOCK (12 Nov 2026): Business and Life modes.
+// 12 Nov 2026 (Taj): Business and Life modes.
 import { ModeSwitch } from '@/components/ModeSwitch';
 import { MODE, useMode } from '@/lib/mode';
 

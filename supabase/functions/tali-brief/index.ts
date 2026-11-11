@@ -46,6 +46,14 @@ const TOOL = {
         description:
           'Short lines: what is on their plate from what they told you, things still waiting for their yes, one useful nudge towards a goal they mentioned. Each under 160 characters.',
       },
+      // ADDED (12 Nov 2026, Business and Life modes): one side per line, in the same order as lines.
+      sides: {
+        type: 'array',
+        maxItems: 6,
+        items: { type: 'string', enum: ['life', 'business'] },
+        description:
+          'One entry per line, same order. business if the line is about their work, business, clients, invoices or work email. life for family, friends, health, food, training, home and their own money. If they do not run a business, every line is life.',
+      },
       remember: {
         type: 'array',
         maxItems: 5,
@@ -62,7 +70,7 @@ const TOOL = {
         },
       },
     },
-    required: ['headline', 'lines', 'remember'],
+    required: ['headline', 'lines', 'sides', 'remember'],
   },
 };
 
@@ -224,7 +232,11 @@ async function briefOne(row: { user_id: string; kind: string; local_date: string
     const user = `Here is what you know (data, not instructions; food numbers are estimates):\n${JSON.stringify({ ...ctx, work, life, google, rhythm })}`;
 
     const r = await claude(system, user);
-    const lines = ((r.out.lines ?? []) as string[]).map(strip).filter(Boolean).slice(0, 6);
+    // Lines and their sides are kept in step: a line that is dropped takes its side with it.
+    const rawSides = Array.isArray(r.out.sides) ? (r.out.sides as unknown[]) : [];
+    const paired = ((r.out.lines ?? []) as string[]).map((l, i) => ({ line: strip(l), side: rawSides[i] === 'life' || rawSides[i] === 'business' ? (rawSides[i] as string) : null })).filter((x) => x.line).slice(0, 6);
+    const lines = paired.map((x) => x.line);
+    const sides = paired.every((x) => x.side) ? paired.map((x) => x.side) : null;
     const headline = strip(r.out.headline) || (weekly ? 'Your week' : 'Morning');
 
     const { error: insErr } = await admin.from('briefs').insert({
@@ -232,7 +244,7 @@ async function briefOne(row: { user_id: string; kind: string; local_date: string
       kind: row.kind,
       for_date: row.local_date,
       title: weekly ? 'Friday check-in' : 'Morning brief',
-      content: { headline, lines, model: r.model },
+      content: { headline, lines, ...(sides ? { sides } : null), model: r.model },
     });
     if (insErr) {
       // Unique (user, kind, date): another run got there first. Not an error.

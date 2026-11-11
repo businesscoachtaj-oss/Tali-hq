@@ -198,6 +198,8 @@ const TOOL = {
             text: { type: 'string', description: 'What to remind them, short, for example "Chase Jordan about his invoice".' },
             due_at: { type: 'string' },
             client_name: { type: 'string', description: 'If it is about someone on their list.' },
+            // ADDED (12 Nov 2026, Business and Life modes): which side of their world it belongs to.
+            side: { type: 'string', enum: ['life', 'business'], description: "business if it is about their work, business, clients or customers. life for everything else: family, friends, health, home, money of their own, hobbies. If they do not run a business, always life." },
           },
           required: ['text', 'due_at'],
         },
@@ -351,6 +353,8 @@ const TOOL = {
             due_date: { type: 'string', description: 'YYYY-MM-DD in their timezone, only if they gave a day.' },
             repeat_months: { type: 'number', description: 'For a check up or life admin that comes round again: 12 for yearly, 6 for every six months. Only if they said so.' },
             note: { type: 'string', description: 'Anything else they said about it, such as who to call.' },
+            // ADDED (12 Nov 2026, Business and Life modes).
+            side: { type: 'string', enum: ['life', 'business'], description: "business if it is about their work, business, clients or customers. life for everything else: family, friends, health, home, money of their own, hobbies. If they do not run a business, always life." },
           },
           required: ['list', 'action', 'title'],
         },
@@ -1120,6 +1124,7 @@ Deno.serve(async (req) => {
         p_text: textR,
         p_due_at: due.toISOString(),
         p_client_name: r.client_name ? String(r.client_name).slice(0, 120) : null,
+        p_side: r.side === 'life' || r.side === 'business' ? r.side : null,
       });
       if (!error) remindersSet++;
     }
@@ -1268,6 +1273,8 @@ Deno.serve(async (req) => {
             repeat_months: ['checkup', 'admin'].includes(listKind) && rep >= 1 && rep <= 60 ? rep : null,
             local_date: localToday,
             created_by: 'tali',
+            // Check ups, life admin, home jobs and habits are life by nature. The rest carry the side she picked.
+            side: ['checkup', 'admin', 'home', 'habit'].includes(listKind) ? 'life' : it.side === 'life' || it.side === 'business' ? it.side : null,
           });
           ok = !error;
         }

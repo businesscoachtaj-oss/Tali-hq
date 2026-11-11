@@ -9,9 +9,9 @@ import { LISTS, deleteLifeItem, habitTicks, lifeItems, parseDue, saveLifeItem, s
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, useConfirm } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
-// MOCK (12 Nov 2026): one list, every item tagged Life or Business. It opens on the mode you are in.
+// 12 Nov 2026 (Taj): one list, every item tagged Life or Business. It opens on the mode you are in.
 import { ScopeChips, TagPill } from '@/components/ModeSwitch';
-import { MODE, tagOf, useMode, type Mode } from '@/lib/mode';
+import { MODE, listFallback, sideOf, useMode, type Mode } from '@/lib/mode';
 import { useHasBusiness } from '@/lib/business';
 const TAGGED: string[] = ['todo', 'idea', 'learning', 'win', 'someday'];
 
@@ -36,7 +36,9 @@ export default function List() {
   const [error, setError] = useState('');
   const confirm = useConfirm();
   const mode = useMode();
-  const tagged = useHasBusiness() && TAGGED.includes(kind);
+  const biz = useHasBusiness();
+  const tagged = biz && TAGGED.includes(kind);
+  const sideFor = (i: LifeItem) => sideOf(i, listFallback(kind, biz));
   const [scope, setScope] = useState<'mode' | 'all'>('mode');
 
   const load = useCallback(async () => {
@@ -66,7 +68,7 @@ export default function List() {
     }
     setBusy(true);
     try {
-      await saveLifeItem({ id: draft.id, kind, title: draft.title, note: draft.note, due_date: cfg.due ? due : null, repeat_months: cfg.repeat ? draft.repeat_months : null });
+      await saveLifeItem({ id: draft.id, kind, title: draft.title, note: draft.note, due_date: cfg.due ? due : null, repeat_months: cfg.repeat ? draft.repeat_months : null, ...(tagged ? { side: draft.tag ?? mode } : null) });
       setDraft(null);
       await load();
     } catch (e: any) {
@@ -129,7 +131,7 @@ export default function List() {
   }
 
   const allOpen = items.filter((i) => !i.done_at);
-  const inMode = (i: LifeItem) => !tagged || scope === 'all' || tagOf(i, 'life') === mode;
+  const inMode = (i: LifeItem) => !tagged || scope === 'all' || sideFor(i) === mode;
   const open = allOpen.filter(inMode).sort((a, b) => {
     if (!cfg.due) return 0;
     const fa = a.due_date ?? '9999', fb = b.due_date ?? '9999';
@@ -138,7 +140,7 @@ export default function List() {
   const done = items.filter((i) => i.done_at).filter(inMode);
   const t = today();
   const week = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i - 6));
-  const edit = (i: LifeItem) => setDraft({ id: i.id, title: i.title, note: i.note, due_date: i.due_date, dueText: '', repeat_months: i.repeat_months, tag: tagOf(i, 'life') });
+  const edit = (i: LifeItem) => setDraft({ id: i.id, title: i.title, note: i.note, due_date: i.due_date, dueText: '', repeat_months: i.repeat_months, tag: sideFor(i) });
 
   return (
     <Screen skin={cfg.skin} onRefresh={load}>
@@ -155,7 +157,7 @@ export default function List() {
       {kind === 'learning' ? <Button title="Tali's library" kind="ghost" onPress={() => router.navigate('/library')} /> : null}
       <ErrorText>{error}</ErrorText>
       <View style={{ height: space.md }} />
-      {tagged && loaded && items.length ? <ScopeChips value={scope} onChange={setScope} counts={{ mode: allOpen.filter((i) => tagOf(i, 'life') === mode).length, all: allOpen.length }} /> : null}
+      {tagged && loaded && items.length ? <ScopeChips value={scope} onChange={setScope} counts={{ mode: allOpen.filter((i) => sideFor(i) === mode).length, all: allOpen.length }} /> : null}
       {loaded && items.length === 0 ? (
         <>
           <TaliSays pose="idle">{cfg.empty}</TaliSays>
@@ -213,7 +215,7 @@ export default function List() {
                 {i.note ? <Text numberOfLines={3} style={{ fontSize: 14, color: colours.muted, marginTop: 4, lineHeight: 20 }}>{i.note}</Text> : null}
                 {tagged || i.created_by === 'tali' ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 7 }}>
-                    {tagged ? <TagPill tag={tagOf(i, 'life')} /> : null}
+                    {tagged ? <TagPill tag={sideFor(i)} /> : null}
                     {i.created_by === 'tali' ? <Text style={{ fontSize: 11, fontWeight: '700', color: colours.purpleInk }}>Added by Tali</Text> : null}
                   </View>
                 ) : null}

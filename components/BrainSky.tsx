@@ -44,7 +44,7 @@ const LENS_REGIONS: Record<Lens, RegionId[]> = {
   health: ['hypothalamus', 'brainstem'],
   growth: ['cerebellum', 'basal_ganglia'],
 };
-// MOCK (12 Nov 2026): `side` keeps the sky to one mode. On the Life side the business stars (late
+// 12 Nov 2026 (Taj): `side` keeps the sky to one mode. On the Life side the business stars (late
 // invoices, drafts, email) stay on the Business side, and the life things passed in take their place.
 export type SideStar = { key: string; title: string; sub: string; area: 'people' | 'health' | 'growth' | 'money'; to?: string };
 export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side, sideStars }: { greeting: string; sub?: string | null; nightLine?: string | null; lens?: Lens | null; onLens?: (l: Lens | null) => void; side?: 'business' | 'life'; sideStars?: SideStar[] }) {
@@ -125,7 +125,7 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
   }
   const dueAll = due;
   // eslint-disable-next-line no-shadow
-  const dueSide = side ? dueAll.filter((r: any) => (r.tag === 'life' ? 'life' : 'business') === side) : dueAll;
+  const dueSide = side ? dueAll.filter((r) => (r.side === 'life' ? 'life' : 'business') === side) : dueAll;
   if (dueSide[0]) {
     const due = dueSide;
     const at = due[0].due_at ? new Date(due[0].due_at) : null;
@@ -139,7 +139,7 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
   }
   // Until the dates are switched on server side, a birthday she remembers still shows.
   if (!upcoming.length && person) stars.push({ key: 'person', full: person.text, ask: `Let's talk about this: ${person.text}`, title: short(person.text, 46), sub: 'Something she remembers for you', area: 'people', size: 14, links: [], seed: person.text, fallback: related(person.text.split(/[\s']/)[0], person.text), action: 'Talk it through', to: '/talk' , done: person.text });
-  if (idea) stars.push({ key: 'idea', full: idea.text, ask: `Let's plan this idea: ${idea.text}`, title: short(idea.text, 46), sub: /night school/i.test(idea.text) ? 'An idea from her night school' : 'An idea you had', area: 'growth', size: 12, links: [], seed: idea.text, action: 'Plan it with her', to: '/talk', done: idea.text });
+  if (idea && !life) stars.push({ key: 'idea', full: idea.text, ask: `Let's plan this idea: ${idea.text}`, title: short(idea.text, 46), sub: /night school/i.test(idea.text) ? 'An idea from her night school' : 'An idea you had', area: 'growth', size: 12, links: [], seed: idea.text, action: 'Plan it with her', to: '/talk', done: idea.text });
 
   // Six places in the sky. What needs you comes first, so an idea is the first to wait for a quiet day.
   stars.length = Math.min(stars.length, SPOTS.length);

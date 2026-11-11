@@ -86,12 +86,14 @@ export type JournalEntry = {
   pinned: boolean;
   created_at: string;
   updated_at: string;
+  // 12 Nov 2026: life or business. Null until sorted (shown as life).
+  side?: 'life' | 'business' | null;
 };
 
 export async function journalEntries(): Promise<JournalEntry[]> {
   const { data, error } = await supabase
     .from('journal_entries')
-    .select('id, kind, title, body, mood, private_to_tali, pinned, created_at, updated_at')
+    .select('id, kind, title, body, mood, private_to_tali, pinned, created_at, updated_at, side')
     .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(500);
@@ -107,6 +109,7 @@ export async function saveJournalEntry(entry: {
   mood: number | null;
   private_to_tali: boolean;
   pinned?: boolean;
+  side?: 'life' | 'business' | null;
 }) {
   if (entry.id) {
     const { id, ...rest } = entry;
@@ -413,12 +416,12 @@ export async function followUpsDue(localDate: string): Promise<Client[]> {
 }
 
 // ---------- Reminders ----------
-export type Reminder = { id: string; text: string; due_at: string; done_at: string | null; client_id: string | null; created_by: string };
+export type Reminder = { id: string; text: string; due_at: string; done_at: string | null; client_id: string | null; created_by: string; side?: 'life' | 'business' | null };
 
 export async function openReminders(untilIso: string): Promise<Reminder[]> {
   const { data, error } = await supabase
     .from('reminders')
-    .select('id, text, due_at, done_at, client_id, created_by')
+    .select('id, text, due_at, done_at, client_id, created_by, side')
     .is('done_at', null)
     .lte('due_at', untilIso)
     .order('due_at');
@@ -442,8 +445,8 @@ export async function deleteReminder(id: string) {
   if (error) throw error;
 }
 
-export async function addReminder(text: string, dueAt: Date) {
-  const { error } = await supabase.from('reminders').insert({ text: text.trim(), due_at: dueAt.toISOString() });
+export async function addReminder(text: string, dueAt: Date, side?: 'life' | 'business') {
+  const { error } = await supabase.from('reminders').insert({ text: text.trim(), due_at: dueAt.toISOString(), ...(side ? { side } : null) });
   if (error) throw error;
 }
 
