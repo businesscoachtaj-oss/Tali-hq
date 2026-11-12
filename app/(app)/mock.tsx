@@ -62,20 +62,56 @@ function BusinessPill({ label, colour, all }: { label: string; colour: string; a
   );
 }
 
+/** Seat level: each seat has its own Tali allowance. Premium is for heavy users. Prices are proposals. */
+function SeatPick({ value }: { value: 'standard' | 'premium' }) {
+  const opts = [
+    { id: 'standard', name: 'Standard seat', price: 'A$19.99 a month', sub: '1,000 Tali credits a month', colour: BLUE },
+    { id: 'premium', name: 'Premium seat', price: 'A$49.99 a month', sub: '3,000 Tali credits a month, for heavy use', colour: ORANGE },
+  ];
+  return (
+    <View style={{ flexDirection: 'row', gap: 10, marginBottom: space.md }}>
+      {opts.map((o) => {
+        const on = o.id === value;
+        return (
+          <View key={o.id} style={{ flex: 1, backgroundColor: on ? o.colour + '22' : colours.surface, borderRadius: radius.card, borderWidth: on ? 2 : 1, borderColor: on ? o.colour : colours.border, padding: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: colours.text, fontSize: 14.5, fontWeight: '800' }}>{o.name}</Text>
+              {on ? <Ionicons name="checkmark-circle" size={18} color={o.colour} /> : null}
+            </View>
+            <Text style={{ color: o.colour, fontSize: 13, fontWeight: '800', marginTop: 6 }}>{o.price}</Text>
+            <Text style={{ color: colours.muted, fontSize: 12, marginTop: 4, lineHeight: 16 }}>{o.sub}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+function Usage({ used, of, colour }: { used: number; of: number; colour: string }) {
+  return (
+    <View style={{ marginTop: 10 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+        <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '600' }}>Tali credits this month</Text>
+        <Text style={{ color: used / of > 0.9 ? colours.danger : colours.muted, fontSize: 12, fontWeight: '700' }}>{used.toLocaleString('en-AU')} of {of.toLocaleString('en-AU')}</Text>
+      </View>
+      <Bar pct={(used / of) * 100} colour={used / of > 0.9 ? colours.danger : colour} />
+    </View>
+  );
+}
+
 // ───────────────────────────── Team seats ─────────────────────────────
 
 function Team() {
   const people = [
-    { name: 'Sam Carter', role: 'You', access: 'Owner', colour: colours.purple, line: 'Sees everything' },
-    { name: 'Jess Tran', role: 'Leading hand', access: 'Jobs, customers', colour: BLUE, line: '4 jobs · 6 tasks this week' },
-    { name: 'Dan Okafor', role: 'Apprentice', access: 'Jobs and tasks only', colour: GREEN, line: '2 jobs · 5 tasks this week' },
-    { name: 'Priya Shah', role: 'Bookkeeper', access: 'Invoices and money', colour: ORANGE, line: 'Invite sent 2 days ago' },
+    { name: 'Sam Carter', role: 'You', access: 'Owner', colour: colours.purple, line: 'Sees everything', seat: '', used: 0, of: 0 },
+    { name: 'Jess Tran', role: 'Leading hand', access: 'Jobs, customers', colour: BLUE, line: '4 jobs · 6 tasks this week', seat: 'Premium seat', used: 1840, of: 3000 },
+    { name: 'Dan Okafor', role: 'Apprentice', access: 'Jobs and tasks only', colour: GREEN, line: '2 jobs · 5 tasks this week', seat: 'Standard seat', used: 960, of: 1000 },
+    { name: 'Priya Shah', role: 'Bookkeeper', access: 'Invoices and money', colour: ORANGE, line: 'Invite sent 2 days ago', seat: 'Standard seat', used: 0, of: 1000 },
   ];
   return (
     <Screen>
       <Head over="Business" title="Your team" sub="Give someone a job or a task and they see just that. You choose what else each person can see." />
-      <Stats items={[{ label: 'seats used', value: '4 of 5' }, { label: 'jobs given out', value: '6', colour: BLUE }, { label: 'tasks open', value: '11', colour: ORANGE }]} />
-      <TaliLine>Jess has two jobs due this week and Dan has finished all of his. Want me to move one across?</TaliLine>
+      <Stats items={[{ label: 'seats in use', value: '3' }, { label: 'jobs given out', value: '6', colour: BLUE }, { label: 'seats a month', value: 'A$89.97', colour: ORANGE }]} />
+      <TaliLine>Dan has nearly used his Tali credits for the month. A Premium seat would cover him, or he waits until the 1st.</TaliLine>
       {people.map((p) => (
         <Box key={p.name} onPress={() => {}}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -86,7 +122,11 @@ function Team() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={colours.faint} />
           </View>
-          <View style={{ marginTop: 10 }}><Pill text={p.access} colour={p.colour} /></View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <Pill text={p.access} colour={p.colour} />
+            {p.seat ? <Pill text={p.seat} colour={p.seat.startsWith('Premium') ? ORANGE : colours.faint} /> : null}
+          </View>
+          {p.of ? <Usage used={p.used} of={p.of} colour={p.colour} /> : null}
         </Box>
       ))}
       <Button title="Invite a teammate" onPress={() => {}} />
@@ -103,6 +143,8 @@ function Invite() {
       <Field label="Their name" value="Dan Okafor" onChangeText={() => {}} />
       <Field label="Their email" value="dan@example.com" onChangeText={() => {}} autoCapitalize="none" />
       <Field label="What they do (optional)" value="Apprentice" onChangeText={() => {}} />
+      <Label>Their seat</Label>
+      <SeatPick value="standard" />
       <Label>What they can see</Label>
       <Group>
         <Toggle first locked on icon="hammer-outline" title="Jobs and tasks you give them" sub="The job, where it is, what to do and when. Nothing else about the customer." />
@@ -111,7 +153,7 @@ function Invite() {
         <Toggle on={false} icon="cash-outline" title="Invoices and money" sub="Invoices, what is owed and the bookkeeping pack." />
         <Toggle on={false} icon="funnel-outline" title="Pipeline and bookings" sub="New enquiries, and who is booked in." />
       </Group>
-      <Note icon="sparkles-outline">Dan gets his own Tali for his jobs. She only knows what Dan is allowed to see.</Note>
+      <Note icon="sparkles-outline">Dan gets his own Tali and his own credits. She only knows what Dan is allowed to see. You can move him to Premium later.</Note>
       <Button title="Send the invite" onPress={() => {}} />
       <Button title="Not now" kind="ghost" onPress={() => {}} />
     </Screen>
@@ -123,6 +165,13 @@ function Person() {
     <Screen>
       <Head back="Your team" to="/mock?v=team" over="Leading hand · On the team since March" title="Jess Tran" sub="4 jobs and 6 tasks this week. She sees her own jobs, plus what you switch on below." />
       <Stats items={[{ label: 'jobs on now', value: '4', colour: BLUE }, { label: 'tasks open', value: '6', colour: ORANGE }, { label: 'done this month', value: '9', colour: GREEN }]} />
+      <Label>Her seat</Label>
+      <SeatPick value="premium" />
+      <Box>
+        <H>Tali use this month</H>
+        <Usage used={1840} of={3000} colour={BLUE} />
+        <Sub>Resets on the 1st. Her credits are hers, they do not come out of yours.</Sub>
+      </Box>
       <Label>What Jess can see</Label>
       <Group>
         <Toggle first locked on icon="hammer-outline" title="Jobs and tasks you give her" sub="Always on. It is how she gets her work." />
