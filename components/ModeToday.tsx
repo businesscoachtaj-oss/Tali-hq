@@ -68,6 +68,7 @@ const TOOLS: { icon: Icon; title: string; sub: string; to: string; params?: Reco
   { icon: 'calendar-outline', title: 'Bookings', sub: 'Your week and your link', to: '/bookings' },
   { icon: 'albums-outline', title: 'Projects', sub: 'The bigger jobs', to: '/projects' },
   { icon: 'globe-outline', title: 'Website', sub: 'Your site, hosted', to: '/website' },
+  { icon: 'pricetag-outline', title: 'Quote calculator', sub: 'A rough price, hosted', to: '/quote-calc' },
   { icon: 'flash-outline', title: 'On autopilot', sub: 'Nothing slips', to: '/autopilot' },
   { icon: 'calculator-outline', title: 'Bookkeeping', sub: 'A quarter on a page', to: '/books' },
   { icon: 'document-text-outline', title: 'Invoices', sub: 'Sent on your yes', to: '/invoices' },

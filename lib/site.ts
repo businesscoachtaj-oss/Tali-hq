@@ -39,7 +39,7 @@ export async function deleteEnquiry(id: string) {
 }
 
 // ---------- The public site (no sign in) ----------
-export type PublicSite = { name: string; kind: 'business' | 'life'; tagline: string; about: string; sections: SiteSection[]; accent: string; book_slug: string | null; show_contact: boolean; contact_email: string | null; contact_phone: string | null; services: { name: string; minutes: number; price: number | null }[] };
+export type PublicSite = { name: string; kind: 'business' | 'life'; tagline: string; about: string; sections: SiteSection[]; accent: string; book_slug: string | null; quote_slug?: string | null; show_contact: boolean; contact_email: string | null; contact_phone: string | null; services: { name: string; minutes: number; price: number | null }[] };
 export async function publicSite(slug: string): Promise<PublicSite | null> {
   const { data, error } = await supabase.rpc('site_public', { p_slug: slug });
   if (error) throw error;
@@ -115,6 +115,20 @@ export async function requestSiteDomain(domain: string): Promise<{ ok: boolean; 
   const { data, error } = await supabase.rpc('request_site_domain', { p_domain: domain });
   if (error) return { ok: false, message: 'Could not save that. Try again.' };
   return (data as any) ?? { ok: false };
+}
+/** Tali edits the words they already have. Hands back the whole site as a draft: nothing is saved. */
+export async function changeSite(kind: Site['kind'], current: SiteDraft, ask: string): Promise<{ ok: true; draft: SiteDraft } | { ok: false; message: string }> {
+  const fail = 'Tali could not make that change. Try again in a minute.';
+  try {
+    const { data, error } = await supabase.functions.invoke('tali-site-write', { body: { mode: 'change', kind, ask, current } });
+    if (error) {
+      let message = fail;
+      try { const b = await (error as any).context?.json?.(); if (b?.message) message = b.message; } catch {}
+      return { ok: false, message };
+    }
+    const d = data as any;
+    return d?.ok && d.draft ? { ok: true, draft: d.draft } : { ok: false, message: d?.message ?? fail };
+  } catch { return { ok: false, message: fail }; }
 }
 /** Which published site answers on this web address, if any. */
 export async function slugForHost(host: string): Promise<string | null> {

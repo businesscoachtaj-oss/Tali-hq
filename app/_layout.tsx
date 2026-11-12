@@ -76,12 +76,13 @@ function RootNavigator() {
       <Stack.Protected guard={signedIn && !recovering && onboarded}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
-      {/* 12 Nov 2026: the public booking page and the public website. Anyone with the link can open them,
+      {/* 12 Nov 2026: the public booking page, the public website and the public quote calculator. Anyone with the link can open them,
           signed in or not. FIX (12 Nov 2026): these sit LAST. The first screen in this list is where a
           signed-out visitor lands, and with these two first, opening talihq.com.au signed out went to an
           empty booking page instead of sign in. */}
       <Stack.Screen name="book/[slug]" />
       <Stack.Screen name="site/[slug]" />
+      <Stack.Screen name="quote/[slug]" />
     </Stack>
   );
 }

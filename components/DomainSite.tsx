@@ -14,8 +14,8 @@ export function customHost(): string | null {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.location) return null;
   const h = String(window.location.hostname || '').toLowerCase();
   if (!h || OWN_HOSTS.includes(h) || h.endsWith('.talihq.com.au') || h.endsWith('.vercel.app') || h.endsWith('.local') || /^[0-9.:]+$/.test(h)) return null;
-  // Booking and site links opened on the domain still go to their own screens.
-  if (/^\/(book|site)\//.test(String(window.location.pathname || ''))) return null;
+  // Booking, site and quote links opened on the domain still go to their own screens.
+  if (/^\/(book|site|quote)\//.test(String(window.location.pathname || ''))) return null;
   return h;
 }
 
