@@ -440,3 +440,7 @@ Taj: the business side should be "Totality level" for any business. Four tools, 
 - Life mode had no way to reach Website (Taj spotted it). Today in Life now ends with a "Yours" card that opens it, and Your world has "My website" under Your words.
 - A personal site ("Just me") now comes with any paid plan. A business site, services, the booking button and "Ask Tali to write it" stay with Tali HQ Business.
 - The lock screen on the business tools now says "Comes with Tali HQ Business" with a button to Plans. It said "Coming soon", which stopped being true when Business went on sale.
+
+## 12 Nov 2026: fix, signed out visitors landed on an empty booking page
+
+- Since the business tools merge, opening talihq.com.au signed out went to `/book/undefined` ("This page is not taking bookings") instead of sign in. The two public screens were listed first in the root Stack, and the first screen is where a signed-out visitor lands. They now sit last. Web only: the phone apps never had that build.
