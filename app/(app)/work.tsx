@@ -7,7 +7,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { addCustomerNote, leaveTeam, myWork, tickMyTask, type Work } from '@/lib/team';
 import { JOB_STATUS, type JobStatus } from '@/lib/jobs';
 import { Button, ErrorText, Field, Label, Loading, Screen, useConfirm } from '@/components/ui';
@@ -37,7 +37,7 @@ export default function WorkScreen() {
     try { setTeams(await myWork()); } catch (e: any) { setError(e?.message ?? 'Could not load your work.'); }
     setLoaded(true);
   }, []);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   if (!loaded) return <Screen><Loading /></Screen>;
   if (!teams.length) {

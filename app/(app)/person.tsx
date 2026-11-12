@@ -2,7 +2,8 @@
 // Opened from a Clients row as /person?id=<client id>. Tali HQ and up, 0 credits.
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { forgetMemory, myCredits, type Client, type Credits, type Memory } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
 import { client as loadClient, memoriesAbout, saveContact } from '@/lib/people';
@@ -57,11 +58,7 @@ export default function Person() {
     }
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   async function forget(mid: string) {
     if (confirmId !== mid) return setConfirmId(mid);

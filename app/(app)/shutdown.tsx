@@ -3,8 +3,9 @@
 // on your mind, tomorrow's three, Done. Tali signs off with one line and the day is closed.
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { MOODS, finishDay, todaysShutdown, tomorrowSuggestions, type Shutdown } from '@/lib/rhythm';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Loading, Screen, TaliSays, Title } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
@@ -52,11 +53,7 @@ export default function ShutdownScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   function startAgain() {
     if (!done) return;

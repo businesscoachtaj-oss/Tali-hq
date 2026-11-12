@@ -5,7 +5,8 @@
 // choose, the page you are on and the READ stamp you earn by finishing a book (saved to your account).
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { BackLink, Button, Card, ErrorText, Field, Loading, Screen, TaliSays, Title, goBack, useScrollToTop } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
 import { REGIONS } from '@/lib/brain';
@@ -518,11 +519,7 @@ export default function LibraryScreen() {
     setMine(joined);
     if (JSON.stringify(joined) !== JSON.stringify(account ?? NO_MINE)) saveMine(joined);
   }, []);
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
   const change = useCallback((fn: (m: Mine) => Mine) => {
     setMine((m) => {
       const next = fn(m);

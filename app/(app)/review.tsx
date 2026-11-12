@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
 import { addDays, isoDate } from '@/lib/dates';
@@ -57,11 +58,7 @@ export default function ReviewScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   async function doReview() {
     setError('');

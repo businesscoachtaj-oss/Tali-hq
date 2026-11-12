@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
 import { Image, Pressable, Text, View, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { changeAvatar, removeAvatar, useAvatar } from '@/lib/avatar';
 import { forgetMemory, freeMessagesLeft, myCredits, myMemories, type Credits, type Memory } from '@/lib/data';
 import { brainExport, exportAsText, updateMemory } from '@/lib/brain';
@@ -54,11 +55,7 @@ export default function Me() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   // 10 Nov 2026: fix what a memory says without losing it, and take the whole brain with you.
   const [editId, setEditId] = useState<string | null>(null);

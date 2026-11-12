@@ -2,8 +2,8 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits } from '@/lib/data';
 import { addTask, allTasks, deleteProject, deleteTask, projects as loadProjects, saveProject, tickTask, type Project, type ProjectTask } from '@/lib/projects';
 import { parseDue } from '@/lib/world';
@@ -64,7 +64,7 @@ export default function Projects() {
     }
     setLoaded(true);
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   if (!loaded) return <Screen><Loading /></Screen>;
   if (!hasBusinessTools(credits, session?.user.id)) {

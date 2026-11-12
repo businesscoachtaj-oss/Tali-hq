@@ -6,8 +6,8 @@ import { useCallback, useState } from 'react';
 import { Linking, Platform, Pressable, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, startTopup, type Credits } from '@/lib/data';
 import { cleanSlug } from '@/lib/bookings';
 import { ACCENTS, blankSite, deleteEnquiry, enquiries as loadEnquiries, mySite, saveSite, SITE_BASE, writeSite, changeSite, type Enquiry, type Site, type PublicSite, DOMAIN_PRICE, mySiteDomain, requestSiteDomain, type SiteDomain } from '@/lib/site';
@@ -62,7 +62,7 @@ export default function Website() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load your website.'); }
     setLoaded(true);
   }, [session?.user.id, mode]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const set = (patch: Partial<Site>) => { setSite((s) => ({ ...s, ...patch })); setNote(''); };
   const setSection = (i: number, patch: Partial<Site['sections'][number]>) => set({ sections: site.sections.map((x, k) => (k === i ? { ...x, ...patch } : x)) });

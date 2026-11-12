@@ -2,7 +2,8 @@
 // lives on the Founder screen and founder_users() refuses anyone else.
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { founderUsers, type FounderUser } from '@/lib/data';
 import { ChipPicker } from '@/components/ChipPicker';
 import { Sheet } from '@/components/Sheet';
@@ -56,7 +57,7 @@ export default function FounderUsers() {
       setError(e?.message ?? 'Could not load.');
     }
   }, []);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const shown = useMemo(() => {
     const term = q.trim().toLowerCase();

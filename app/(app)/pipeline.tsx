@@ -2,8 +2,9 @@
 // page. Built from what is already there: leads (People) and quotes (Jobs). Part of the Business plans.
 import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { clients as loadClients, myCredits, type Client, type Credits } from '@/lib/data';
 import { jobs as loadJobs, type Job } from '@/lib/jobs';
 import { friendlyDate, today } from '@/lib/dates';
@@ -55,7 +56,7 @@ export default function Pipeline() {
     }
     setLoaded(true);
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   if (!loaded) return <Screen><Loading /></Screen>;
   if (!hasBusinessTools(credits, session?.user.id)) {

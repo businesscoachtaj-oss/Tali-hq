@@ -2,7 +2,8 @@
 // you write in your journal. Nothing here is worked out or guessed: it only shows what you chose.
 import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { journalEntries, type JournalEntry } from '@/lib/data';
 import { addDays, friendlyDate, isoDate } from '@/lib/dates';
 import { Body, Button, Card, ErrorText, Screen, TaliSays } from '@/components/ui';
@@ -24,7 +25,7 @@ export default function Headspace() {
       setError(e?.message ?? 'Could not load your journal.');
     }
   }, []);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const days = useMemo(() => {
     const byDay = new Map<string, number>();

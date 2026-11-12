@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Switch, Text, TextInput, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { deleteRule, myCredits, rules as loadRules, saveRule, type Rule, type RuleType } from '@/lib/data';
 import { friendlyTime } from '@/lib/dates';
 import { isPro } from '@/lib/plan';
@@ -67,11 +68,7 @@ export default function Rules() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   async function upsert(type: RuleType, params: Record<string, any>, enabled: boolean, id?: string) {
     if (type === 'weekly_reminder' && enabled && !String(params.text ?? '').trim()) return setError('Write what the weekly reminder should say.');

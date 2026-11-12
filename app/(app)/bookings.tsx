@@ -3,8 +3,8 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits } from '@/lib/data';
 import { BOOK_BASE, bookingPage, bookings as loadBookings, cleanSlug, deleteService, saveBooking, saveBookingPage, saveService, services as loadServices, setBookingStatus, type Booking, type BookingPage, type Service } from '@/lib/bookings';
 import { addDays, isoDate } from '@/lib/dates';
@@ -63,7 +63,7 @@ export default function Bookings() {
     }
     setLoaded(true);
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   if (!loaded) return <Screen><Loading /></Screen>;
   if (!ok) {

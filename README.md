@@ -487,3 +487,11 @@ Built from the mockups Taj approved the same day. Both come with Tali HQ Busines
 - `stripe-webhook` v19 now finds the plan among several subscription items instead of reading the first one.
 - Migrations `20261112000090_team_seats.sql` and `20261112000091_more_than_one_business.sql`, both applied.
 - Not built yet: Tali does not know a teammate's given work or which business is in use (that needs a `tali-chat` change), so quotes and invoices she makes in chat go into the main business. A teammate on a free trial who is removed goes to Free. Business Pro and Business Max are still coming soon.
+
+## 13 Nov 2026: speed pass on switching screens
+
+- **Screens you've left stop re-rendering** (`freezeOnBlur` in `app/(app)/_layout.tsx`). Every tab you visit stays mounted, so before this each one re-rendered on every change anywhere in the app.
+- **Reload after the switch, not during it** (`lib/useFocusLoad.ts`, used by 34 screens). A screen still reloads when you open it, but on the next frame, not again if it loaded in the last 5 seconds (unless it's showing something different, like another person), and not while a load is still running. Actions and pull to refresh reload straight away as before.
+- **Today** loads health, life, patterns, money, new email and the last decision together instead of one after another (one update instead of six).
+- **Sign in** (`lib/auth.tsx`): the session object only changes when the token does, the profile is only fetched again when the person changes or their account is updated, and the auth value is memoised. Coming back to the web app no longer refetches the profile and re-renders every screen.
+- Measured on the web build with demo data and the CPU slowed 4x: about 15% less main thread work when switching back to tabs already opened. The first open of each tab is about the same (the screen still has to draw).

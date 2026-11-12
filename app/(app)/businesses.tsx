@@ -7,8 +7,9 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { supabase } from '@/lib/supabase';
 import { clients as loadClients, invoices as loadInvoices, myCredits, type Client, type Credits, type Invoice } from '@/lib/data';
 import { jobs as loadJobs, type Job } from '@/lib/jobs';
@@ -54,7 +55,7 @@ export default function Businesses() {
     setLoaded(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   if (!loaded) return <Screen><Loading /></Screen>;
   if (!hasBusinessTools(credits, session?.user.id)) {

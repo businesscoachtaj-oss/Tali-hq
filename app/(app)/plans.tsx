@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, mySubscription, openBillingPortal, plans as loadPlans, startCheckout, type Credits, type Plan } from '@/lib/data';
 import { BackLink, Button, Card, ErrorText, Screen, Title, goBack } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
@@ -57,11 +57,7 @@ export default function Plans() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   // Paying means a real Stripe subscription. A customer id alone is not enough: checkout creates the
   // customer before payment, so someone who backs out of checkout would lose the Choose buttons and

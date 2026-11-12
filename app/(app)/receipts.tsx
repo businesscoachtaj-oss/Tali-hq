@@ -4,7 +4,8 @@
 // Tali HQ and Pro. Reading costs no credits. Files: the private receipts bucket under <user id>/.
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, ErrorText, Field, Label, Screen, TaliSays, goBack, useConfirm } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
@@ -53,7 +54,7 @@ export default function Receipts() {
       setError(e?.message ?? 'Could not load your receipts.');
     }
   }, []);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const inFy = useMemo(() => list.filter((r) => r.date >= fy.start && r.date <= fy.end), [list, fy.start, fy.end]);
   const total = inFy.reduce((s, r) => s + Number(r.amount), 0);

@@ -2,8 +2,9 @@
 // accountant. Part of the Business plans. A summary for records, not tax advice.
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits, type Invoice } from '@/lib/data';
 import { type Receipt } from '@/lib/grow';
 import { aud2, buildPack, loadBooks, quarters, sharePack } from '@/lib/books';
@@ -43,7 +44,7 @@ export default function Books() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load your books.'); }
     setLoaded(true);
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const q = list.find((x) => x.key === key) ?? list[0];
   const pack = useMemo(() => buildPack(q, inv, rec), [q, inv, rec]);

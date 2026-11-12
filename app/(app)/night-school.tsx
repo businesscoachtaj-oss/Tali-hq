@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { markNightNoteRead, myCredits, nightNotes, nightSchool, saveNightSchool, type NightNote, type NightSchool } from '@/lib/data';
 import { friendlyDate } from '@/lib/dates';
 import { isPro } from '@/lib/plan';
@@ -41,11 +42,7 @@ export default function NightSchoolScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   // "Saved." only holds while the form matches what's saved.
   useEffect(() => {

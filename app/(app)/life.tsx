@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import {
   deleteFood,
   deleteWorkout,
@@ -51,11 +52,7 @@ export default function Life() {
     }
   }, [date]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   function shift(n: number) {
     const d = isoDate(addDays(new Date(`${date}T12:00:00`), n));

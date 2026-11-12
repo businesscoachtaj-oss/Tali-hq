@@ -3,7 +3,8 @@
 // things Tali already knows (lib/brain myUpcoming).
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { clients } from '@/lib/data';
 import { myUpcoming } from '@/lib/brain';
 import { friendlyDate, today } from '@/lib/dates';
@@ -49,7 +50,7 @@ export default function Dates() {
       setError(e?.message ?? 'Could not load your dates.');
     }
   }, []);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   return (
     <Screen skin="cork" onRefresh={load}>

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { BrainGlobe } from '@/components/BrainGlobe';
 import { NightBackground, night } from '@/components/NightSky';
 import { BackLink, Card, ErrorText, Label, Screen, Title, goBack, useConfirm } from '@/components/ui';
@@ -14,6 +14,7 @@ import { FOUNDER_USER_ID } from '@/constants/business';
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { REGIONS, REGION_ORDER, SHAREABLE_KINDS, lessonState, myBrain, setMemoryPrivate, settleConflict, type Brain, type BrainItem, type RegionId } from '@/lib/brain';
 import { forgetMemory } from '@/lib/data';
 import { LEVELS, taliLevel, type Level } from '@/lib/level';
@@ -58,11 +59,7 @@ export default function BrainScreen() {
     }
   }, [scope]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const counts = useMemo(() => Object.fromEntries((brain?.regions ?? []).map((r) => [r.id, r.count])) as Partial<Record<RegionId, number>>, [brain]);
   // 6 Nov 2026 (Taj): nothing picked is the whole brain, every part lit up, like the website demo.

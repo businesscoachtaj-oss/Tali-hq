@@ -3,8 +3,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Switch, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { clients as loadClients, invoiceSettings, myCredits, type Client, type Credits, type InvoiceItem, type InvoiceSettings } from '@/lib/data';
 import { JOB_STATUS, JOB_STEPS, deleteJob, invoiceJob, jobGroup, jobNext, jobs as loadJobs, saveJob, setJobStatus, shareQuote, type Job, type JobStatus } from '@/lib/jobs';
 import { hasBusinessTools } from '@/lib/plan';
@@ -54,7 +55,7 @@ export default function Jobs() {
     }
     setLoaded(true);
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const open = draft?.id ? list.find((j) => j.id === draft.id) ?? null : null;
   const total = useMemo(() => {
