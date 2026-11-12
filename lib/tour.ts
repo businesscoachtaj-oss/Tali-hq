@@ -81,7 +81,8 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     title: "That's the lot",
-    body: "Best first step: tell me three things about you in Talk. Who matters to you, what's on your plate this week, and one thing you keep forgetting.",
+    // 12 Nov 2026 (Taj): the tour stays short and points to the guides for the rest.
+    body: "Best first step: tell me three things about you in Talk. Who matters to you, what's on your plate this week, and one thing you keep forgetting. For more info, visit How to use, linked in Settings.",
     pose: 'wave',
   },
 ];

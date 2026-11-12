@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Switch, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, Switch, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
@@ -266,6 +266,18 @@ export default function Settings() {
 
       <View style={{ height: space.xxl }} />
       {session ? <ShareLearningCard userId={session.user.id} /> : null}
+      {/* 12 Nov 2026 (Taj): the guides on the website. The tour ends by pointing here. */}
+      <Label>How to use</Label>
+      <Pressable accessibilityRole="link" accessibilityLabel="How to use Tali HQ. Opens the guides on our website"
+        onPress={() => { const url = 'https://totality360.com.au/help/tali-hq/'; if (Platform.OS === 'web') window.open(url, '_blank'); else Linking.openURL(url).catch(() => {}); }}>
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '700', color: colours.text }}>How to use Tali HQ</Text>
+            <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>Step by step guides for every screen, on our website</Text>
+          </View>
+          <Text style={{ color: colours.muted, fontSize: 18 }}>›</Text>
+        </Card>
+      </Pressable>
       <View style={{ height: space.lg }} />
       <Label>Danger zone</Label>
       <Card>
