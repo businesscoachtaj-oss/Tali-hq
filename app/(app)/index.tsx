@@ -42,6 +42,7 @@ import { Aurora } from '@/components/Aurora';
 // 12 Nov 2026 (Taj): Business and Life modes.
 import { ModeSwitch, TagPill } from '@/components/ModeSwitch';
 import { BusinessBoard, BusinessTools, LifeBoard } from '@/components/ModeToday';
+import { TeamWorkCard } from '@/components/TeamUi';
 import { sideOf, useClockMode, useMode } from '@/lib/mode';
 import { habitTicks, lifeItems, myWorld, setHabitDay, type LifeItem, type WorldNow } from '@/lib/world';
 import { loadPersonalMoney, type PersonalMoney } from '@/lib/personalMoney';
@@ -249,6 +250,8 @@ export default function Today() {
           </View>
         )}
         </View>
+        {/* 12 Nov 2026: anyone added to a team sees the work they have been given, straight under her brain. Nothing for everyone else. */}
+        <View style={{ marginTop: space.md }}><TeamWorkCard /></View>
         {/* Day closed (Taj, 10 Nov 2026): only her brain and the two bedtime buttons. The day's lists come back in the morning. */}
         {night ? <View style={{ marginTop: space.lg }}><ShutdownCard hideLine /></View> : (<>
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}

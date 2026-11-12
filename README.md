@@ -471,3 +471,19 @@ Taj: the business side should be "Totality level" for any business. Four tools, 
 - `billing-portal` now checks the member's live Stripe subscriptions. While one carries the Black Friday offer, the portal opens with a second Stripe portal configuration (`bpc_1Uaqc6Py9YlWBZ02CstlOM8c`) that lists the monthly prices only. Everything else in the portal is the same. After the 2 months Stripe drops the offer and the normal portal (`bpc_1UYFPhPy9YlWBZ02sLUshfqB`) comes back.
 - Founding member discounts are untouched. `STRIPE_PORTAL_CONFIG_MONTHLY` overrides the configuration id, for example for test mode.
 - If a new monthly price is added to the normal portal configuration, add it to the monthly only one too.
+
+## 12 Nov 2026: team seats and more than one business (Business plans)
+
+Built from the mockups Taj approved the same day. Both come with Tali HQ Business.
+
+- **Your team** (`app/(app)/team.tsx`, `lib/team.ts`): invite someone by email with a Standard seat (A$19.99 a month, 1,000 credits) or a Premium seat (A$49.99, 3,000 credits). Each teammate has their own login, their own Tali and their own credits. They always see the jobs and tasks given to them; the owner switches on customers, quotes and prices, invoices and money, and pipeline and bookings per person.
+- **Giving out work:** a job has "Who is on it" (`job_people`), and a project task can be given to a teammate (`project_tasks.assignee_id`).
+- **Work given to you** (`app/(app)/work.tsx`): what a teammate sees, with a card on Today that opens it. It reads `team_my_work()`, which only hands back what that person is allowed to see (prices are left out unless switched on). None of the owner's tables got a new policy. A teammate cannot see the owner's journal, Life side or memories.
+- **A seat and the teammate's plan:** while they hold a seat their subscription row sits on `hq` (Standard) or `pro` (Premium) with `seat_owner_id` set. Someone paying for their own plan is left alone. Removing them, or the owner's Business plan ending, puts them back on Free. An invite is picked up when the person signs in with that (confirmed) email (`team_claim()`).
+- **Which business?** (`app/(app)/businesses.tsx`, `lib/businesses.tsx`): the business an account already has is the main one and is untouched (its rows keep `business_id` null). Each extra business is a row in `businesses`, A$99.99 a month. The one in use is kept on the profile and the database stamps it onto new jobs, invoices, bookings, projects and receipts. A pill at the top of Jobs, Invoices, People, Pipeline, Bookings, Projects, Receipts and Bookkeeping switches business or shows them all together, tagged.
+- **Customers** stay one list with one set of notes. `clients.business_tags` says which businesses a customer belongs to, and making them a job or invoice in a business adds them to it.
+- **Invoices:** an extra business counts its own invoice numbers and can have its own ABN and payment details, used on PDFs. Invoices sent by card through Stripe still carry the main business's details.
+- **Billing** (`business-admin` v1): seats and extra businesses are items on the owner's own Business subscription, so they end when it ends. More is charged straight away for the rest of the month, less lowers the next bill with no refund, and a declined card changes nothing. The founder's account is never billed.
+- `stripe-webhook` v19 now finds the plan among several subscription items instead of reading the first one.
+- Migrations `20261112000090_team_seats.sql` and `20261112000091_more_than_one_business.sql`, both applied.
+- Not built yet: Tali does not know a teammate's given work or which business is in use (that needs a `tali-chat` change), so quotes and invoices she makes in chat go into the main business. A teammate on a free trial who is removed goes to Free. Business Pro and Business Max are still coming soon.

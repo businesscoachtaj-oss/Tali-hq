@@ -10,6 +10,7 @@ import { friendlyDate, today } from '@/lib/dates';
 import { hasBusinessTools } from '@/lib/plan';
 import { Button, ErrorText, Loading, Screen } from '@/components/ui';
 import { Amount, aud, Box, H, Head, Next, Stats, Sub, TaliLine } from '@/components/Biz';
+import { BusinessBar, useBusinesses } from '@/lib/businesses';
 import { BizLock } from '@/components/BizLock';
 import { colours } from '@/constants/theme';
 
@@ -30,8 +31,12 @@ function leadNext(c: Client): string | null {
 export default function Pipeline() {
   const { session } = useAuth();
   const [credits, setCredits] = useState<Credits | null>(null);
-  const [leads, setLeads] = useState<Client[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [allLeads, setLeads] = useState<Client[]>([]);
+  const [allJobs, setJobs] = useState<Job[]>([]);
+  // 12 Nov 2026: more than one business. Only this business's (or all of them together).
+  const biz = useBusinesses();
+  const leads = allLeads.filter(biz.visibleClient);
+  const jobs = allJobs.filter(biz.visible);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
 
@@ -85,6 +90,7 @@ export default function Pipeline() {
 
   return (
     <Screen onRefresh={load}>
+      <BusinessBar />
       <Head over="Business" title="Pipeline" sub="Everyone who might become a job, from first hello to won. Leads come from Your people and quotes from Jobs." />
       <Stats items={[{ label: 'in play', value: aud(inPlay) }, { label: 'won this month', value: aud(won), colour: colours.good }, { label: 'quotes that win', value: rate }]} />
       {total > 0 ? (

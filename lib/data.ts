@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { tagClientHere } from './businesses';
 
 export type Credits = {
   plan: 'free' | 'hq' | 'pro' | 'max';
@@ -382,11 +383,13 @@ export type Client = {
   updated_at: string;
   // 12 Nov 2026 (pipeline): what a lead could be worth.
   est_value?: number | null;
+  business_tags?: string[] | null;
 };
 // 11 Nov 2026 (Taj: "People is just clients and leads, it's not friends, family"): family and friends are their own groups.
 export type PersonKind = 'client' | 'lead' | 'family' | 'friend';
 
-const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, birthday, source, updated_at, est_value';
+// business_tags ADDED (12 Nov 2026): the businesses a customer belongs to ('main' or a business id). Empty means the main one.
+const CLIENT_COLS = 'id, name, kind, status, email, phone, notes, next_follow_up, last_contact_at, birthday, source, updated_at, est_value, business_tags';
 
 export async function clients(): Promise<Client[]> {
   const { data, error } = await supabase.from('clients').select(CLIENT_COLS).order('name');
@@ -515,6 +518,7 @@ export type Invoice = {
   stripe_invoice_id: string | null;
   stripe_url: string | null;
   paid_via: 'stripe' | 'manual' | null;
+  business_id?: string | null;
 };
 export type InvoiceSettings = {
   business_name: string | null;
@@ -529,7 +533,8 @@ export type InvoiceSettings = {
   footer: string | null;
 };
 
-const INVOICE_COLS = 'id, client_id, client_name, client_email, number, issue_date, due_date, items, gst, subtotal, gst_amount, total, status, sent_at, paid_at, notes, created_by, created_at, stripe_invoice_id, stripe_url, paid_via';
+// business_id ADDED (12 Nov 2026): which business an invoice belongs to (null is the main one).
+const INVOICE_COLS = 'id, client_id, client_name, client_email, number, issue_date, due_date, items, gst, subtotal, gst_amount, total, status, sent_at, paid_at, notes, created_by, created_at, stripe_invoice_id, stripe_url, paid_via, business_id';
 
 export async function invoices(): Promise<Invoice[]> {
   const { data, error } = await supabase.from('invoices').select(INVOICE_COLS).order('created_at', { ascending: false }).limit(200);
@@ -563,6 +568,7 @@ export async function saveInvoice(inv: {
   const q = inv.id ? supabase.from('invoices').update(row).eq('id', inv.id) : supabase.from('invoices').insert(row);
   const { data, error } = await q.select(INVOICE_COLS).single();
   if (error) throw error;
+  if (!inv.id) tagClientHere(row.client_id); // more than one business: the customer shows in this one too
   return { ...(data as any), subtotal: Number((data as any).subtotal), gst_amount: Number((data as any).gst_amount), total: Number((data as any).total) };
 }
 

@@ -1,10 +1,11 @@
 // 12 Nov 2026 (Taj): Projects. The bigger pieces of work, each with its tasks.
 import { supabase } from './supabase';
 
-export type Project = { id: string; client_id: string | null; job_id: string | null; name: string; who_for: string; status: 'active' | 'paused' | 'done'; due_date: string | null; notes: string; updated_at: string };
-export type ProjectTask = { id: string; project_id: string; title: string; who: string; due_date: string | null; done_at: string | null; sort: number };
-const P = 'id, client_id, job_id, name, who_for, status, due_date, notes, updated_at';
-const T = 'id, project_id, title, who, due_date, done_at, sort';
+export type Project = { business_id?: string | null; id: string; client_id: string | null; job_id: string | null; name: string; who_for: string; status: 'active' | 'paused' | 'done'; due_date: string | null; notes: string; updated_at: string };
+export type ProjectTask = { assignee_id?: string | null; id: string; project_id: string; title: string; who: string; due_date: string | null; done_at: string | null; sort: number };
+const P = 'id, client_id, job_id, name, who_for, status, due_date, notes, updated_at, business_id';
+// assignee_id ADDED (12 Nov 2026): the teammate a task was given to.
+const T = 'id, project_id, title, who, due_date, done_at, sort, assignee_id';
 
 export async function projects(): Promise<Project[]> {
   const { data, error } = await supabase.from('projects').select(P).order('updated_at', { ascending: false }).limit(200);
@@ -27,8 +28,8 @@ export async function deleteProject(id: string) {
   const { error } = await supabase.from('projects').delete().eq('id', id);
   if (error) throw error;
 }
-export async function addTask(projectId: string, title: string, who = '', sort = 0) {
-  const { error } = await supabase.from('project_tasks').insert({ project_id: projectId, title: title.trim().slice(0, 200), who: who.trim().slice(0, 80), sort });
+export async function addTask(projectId: string, title: string, who = '', sort = 0, assigneeId: string | null = null) {
+  const { error } = await supabase.from('project_tasks').insert({ project_id: projectId, title: title.trim().slice(0, 200), who: who.trim().slice(0, 80), sort, ...(assigneeId ? { assignee_id: assigneeId } : null) });
   if (error) throw error;
 }
 export async function tickTask(t: ProjectTask) {

@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { supabase } from './supabase';
+import { tagClientHere } from './businesses';
 import { saveInvoice, type Invoice, type InvoiceItem, type InvoiceSettings } from './data';
 import { invoiceHtml } from './invoicePdf';
 import { addDays, isoDate, today } from './dates';
@@ -31,6 +32,7 @@ export type Job = {
   created_by: 'user' | 'tali';
   created_at: string;
   updated_at: string;
+  business_id?: string | null; // 12 Nov 2026: which business (null is the main one)
 };
 
 export const JOB_STATUS: Record<JobStatus, { label: string; colour: string }> = {
@@ -46,7 +48,7 @@ export const JOB_STATUS: Record<JobStatus, { label: string; colour: string }> = 
 export const JOB_STEPS: JobStatus[] = ['quote', 'sent', 'accepted', 'on', 'done', 'invoiced'];
 export const jobGroup = (s: JobStatus): 'Quotes' | 'On now' | 'Done' => (s === 'quote' || s === 'sent' || s === 'lost' ? 'Quotes' : s === 'accepted' || s === 'on' ? 'On now' : 'Done');
 
-const COLS = 'id, client_id, client_name, client_email, title, address, number, status, items, gst, subtotal, gst_amount, total, valid_days, notes, sent_at, accepted_at, done_at, invoice_id, created_by, created_at, updated_at';
+const COLS = 'id, client_id, client_name, client_email, title, address, number, status, items, gst, subtotal, gst_amount, total, valid_days, notes, sent_at, accepted_at, done_at, invoice_id, created_by, created_at, updated_at, business_id';
 const fix = (r: any): Job => ({ ...r, subtotal: Number(r.subtotal), gst_amount: Number(r.gst_amount), total: Number(r.total), items: Array.isArray(r.items) ? r.items : [] });
 
 export async function jobs(): Promise<Job[]> {
@@ -70,6 +72,7 @@ export async function saveJob(j: { id?: string; client_id?: string | null; clien
   const q = j.id ? supabase.from('jobs').update(row).eq('id', j.id) : supabase.from('jobs').insert(row);
   const { data, error } = await q.select(COLS).single();
   if (error) throw error;
+  if (!j.id) tagClientHere(row.client_id); // more than one business: the customer shows in this one too
   return fix(data);
 }
 

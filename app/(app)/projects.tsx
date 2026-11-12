@@ -12,6 +12,9 @@ import { hasBusinessTools } from '@/lib/plan';
 import { ChipPicker } from '@/components/ChipPicker';
 import { Button, ErrorText, Field, Label, Loading, Screen, useConfirm } from '@/components/ui';
 import { Bar, BLUE, Box, H, Head, Pill, Stats, Sub } from '@/components/Biz';
+import { BusinessBar, useBusinesses } from '@/lib/businesses';
+import { myTeam, type TeamMember } from '@/lib/team';
+import { colourFor, Face } from '@/components/TeamUi';
 import { BizLock } from '@/components/BizLock';
 import { colours } from '@/constants/theme';
 
@@ -29,13 +32,19 @@ function health(p: Project, tasks: ProjectTask[]): { text: string; colour: strin
 export default function Projects() {
   const { session } = useAuth();
   const [credits, setCredits] = useState<Credits | null>(null);
-  const [list, setList] = useState<Project[]>([]);
+  const [allProjects, setList] = useState<Project[]>([]);
+  // 12 Nov 2026: more than one business. Only this business's (or all of them together).
+  const biz = useBusinesses();
+  const list = allProjects.filter(biz.visible);
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState(''); const [who, setWho] = useState(''); const [due, setDue] = useState(''); const [notes, setNotes] = useState('');
   const [task, setTask] = useState(''); const [taskWho, setTaskWho] = useState('');
+  // 12 Nov 2026: a task can be given to someone on the team, and then it shows up on their phone.
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [taskFor, setTaskFor] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const { armed, confirm } = useConfirm();
@@ -48,6 +57,7 @@ export default function Projects() {
       if (hasBusinessTools(c, session?.user.id)) {
         const [p, t] = await Promise.all([loadProjects(), allTasks()]);
         setList(p); setTasks(t);
+        myTeam().then((x) => setTeam(x.members)).catch(() => {});
       }
     } catch (e: any) {
       setError(e?.message ?? 'Could not load your projects.');
@@ -114,8 +124,24 @@ export default function Projects() {
               ))}
               <View style={{ height: 8 }} />
               <Field label="New task" value={task} onChangeText={setTask} placeholder="Order the sleepers" maxLength={200} />
-              <Field label="Who is doing it (optional)" value={taskWho} onChangeText={setTaskWho} placeholder="You, or a name" maxLength={80} />
-              <Button title="Add the task" kind="ghost" disabled={busy} onPress={() => run(async () => { if (!task.trim()) throw new Error('What needs doing?'); await addTask(p.id, task, taskWho, mine.length); setTask(''); setTaskWho(''); }, 'Could not add that task.')} />
+              <Field label="Who is doing it (optional)" value={taskWho} onChangeText={(v) => { setTaskWho(v); setTaskFor(null); }} placeholder="You, or a name" maxLength={80} />
+              {team.length ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: -4, marginBottom: 12 }}>
+                  {team.map((m) => {
+                    const on = taskFor === m.id;
+                    const c = colourFor(m.id);
+                    return (
+                      <Pressable key={m.id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`Give it to ${m.name}`}
+                        onPress={() => { if (on) { setTaskFor(null); setTaskWho(''); } else { setTaskFor(m.id); setTaskWho(m.name); } }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 5, paddingLeft: 5, paddingRight: 12, backgroundColor: on ? c + '26' : colours.sunk, borderWidth: 1, borderColor: on ? c + '99' : colours.border }}>
+                        <Face name={m.name} colour={c} size={24} />
+                        <Text style={{ color: on ? colours.text : colours.muted, fontSize: 13, fontWeight: '700' }}>{m.name.trim().split(/\s+/)[0]}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+              <Button title="Add the task" kind="ghost" disabled={busy} onPress={() => run(async () => { if (!task.trim()) throw new Error('What needs doing?'); await addTask(p.id, task, taskWho, mine.length, taskFor); setTask(''); setTaskWho(''); setTaskFor(null); }, 'Could not add that task.')} />
             </Box>
             {p.notes ? <><Label>Notes</Label><Box><Text style={{ color: colours.text, fontSize: 14.5, lineHeight: 21 }}>{p.notes}</Text></Box></> : null}
             <Label>Where it is at</Label>
@@ -133,6 +159,7 @@ export default function Projects() {
   const week = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
   return (
     <Screen onRefresh={load}>
+      <BusinessBar />
       <Head over="Business" title="Projects" sub="The bigger pieces of work. Tasks, dates and notes for each one in the same place." />
       <Stats items={[{ label: 'on the go', value: String(active.length) }, { label: 'past their date', value: String(late.length), colour: late.length ? '#FF8A7E' : undefined }, { label: 'due this week', value: String(active.filter((x) => x.due_date && x.due_date >= today() && x.due_date <= week).length) }]} />
       <Button title="Start a project" onPress={() => { setError(''); setCreating(true); }} />

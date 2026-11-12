@@ -12,6 +12,7 @@ import { hasBusinessTools } from '@/lib/plan';
 import { ChipPicker } from '@/components/ChipPicker';
 import { Button, ErrorText, Field, Label, Loading, Screen, useConfirm } from '@/components/ui';
 import { BLUE, Box, H, Head, Line, Pill, Stats, Sub } from '@/components/Biz';
+import { BusinessBar, useBusinesses } from '@/lib/businesses';
 import { BizLock } from '@/components/BizLock';
 import { colours, radius } from '@/constants/theme';
 
@@ -28,7 +29,10 @@ const TAG: Record<string, { text: string; colour: string }> = { link: { text: 'F
 export default function Bookings() {
   const { session } = useAuth();
   const [credits, setCredits] = useState<Credits | null>(null);
-  const [list, setList] = useState<Booking[]>([]);
+  const [allBookings, setList] = useState<Booking[]>([]);
+  // 12 Nov 2026: more than one business. Only this business's (or all of them together).
+  const biz = useBusinesses();
+  const list = allBookings.filter(biz.visible);
   const [svc, setSvc] = useState<Service[]>([]);
   const [page, setPage] = useState<BookingPage>({ slug: '', enabled: false, intro: '', days: [1, 2, 3, 4, 5], day_start: '09:00', day_end: '17:00' });
   const [hasPage, setHasPage] = useState(false);
@@ -107,6 +111,7 @@ export default function Bookings() {
 
   return (
     <Screen onRefresh={load}>
+      <BusinessBar />
       <Head over="Business" title="Bookings" sub="Your week, who wants a time, and one link your customers book from. Nothing is confirmed without your yes." />
       <Stats items={[{ label: 'booked this week', value: String(thisWeek) }, { label: 'waiting on you', value: String(waiting.length), colour: waiting.length ? '#FFB561' : undefined }, { label: 'from your link', value: String(list.filter((b) => b.source === 'link' && b.status !== 'requested').length), colour: colours.good }]} />
       <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>

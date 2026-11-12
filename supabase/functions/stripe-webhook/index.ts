@@ -28,7 +28,10 @@ const STATUS: Record<string, string> = {
 
 async function syncSubscription(s: any) {
   const userId = s.metadata?.tali_user_id;
-  const priceId = s.items?.data?.[0]?.price?.id;
+  // 12 Nov 2026: a Business subscription can carry extra items (team seats, an extra business), so the
+  // plan is whichever item is a plan price, not simply the first one.
+  const items: any[] = s.items?.data ?? [];
+  const priceId = (items.find((i) => planForPrice(i?.price?.id)) ?? items[0])?.price?.id;
   const plan = planForPrice(priceId);
   // The Stripe account also runs Totality and Totality Nutrition. Only Tali HQ subscriptions count here.
   if (!plan && !userId) return;

@@ -71,6 +71,9 @@ export default function AppTabs() {
       <Tabs.Screen name="pipeline" options={{ href: null, title: 'Pipeline' }} />
       <Tabs.Screen name="bookings" options={{ href: null, title: 'Bookings' }} />
       <Tabs.Screen name="projects" options={{ href: null, title: 'Projects' }} />
+      <Tabs.Screen name="team" options={{ href: null, title: 'Your team' }} />
+      <Tabs.Screen name="work" options={{ href: null, title: 'Work given to you' }} />
+      <Tabs.Screen name="businesses" options={{ href: null, title: 'Which business?' }} />
       <Tabs.Screen name="website" options={{ href: null, title: 'Website' }} />
       <Tabs.Screen name="autopilot" options={{ href: null, title: 'On autopilot' }} />
       <Tabs.Screen name="quote-calc" options={{ href: null, title: 'Quote calculator' }} />

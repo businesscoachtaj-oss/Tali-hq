@@ -67,6 +67,9 @@ const TOOLS: { icon: Icon; title: string; sub: string; to: string; params?: Reco
   { icon: 'funnel-outline', title: 'Pipeline', sub: 'Who to chase next', to: '/pipeline' },
   { icon: 'calendar-outline', title: 'Bookings', sub: 'Your week and your link', to: '/bookings' },
   { icon: 'albums-outline', title: 'Projects', sub: 'The bigger jobs', to: '/projects' },
+  // 12 Nov 2026: team seats and more than one business.
+  { icon: 'people-outline', title: 'Your team', sub: 'Who is on what', to: '/team' },
+  { icon: 'business-outline', title: 'Businesses', sub: 'Switch or add one', to: '/businesses' },
   { icon: 'globe-outline', title: 'Website', sub: 'Your site, hosted', to: '/website' },
   { icon: 'pricetag-outline', title: 'Quote calculator', sub: 'A rough price, hosted', to: '/quote-calc' },
   { icon: 'flash-outline', title: 'On autopilot', sub: 'Nothing slips', to: '/autopilot' },
