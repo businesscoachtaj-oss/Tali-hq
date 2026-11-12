@@ -59,10 +59,6 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colours.bg } }}>
-      {/* 12 Nov 2026: the public booking page. Anyone with the link can open it, signed in or not. */}
-      <Stack.Screen name="book/[slug]" />
-      {/* 12 Nov 2026: the public website Tali HQ hosts. Anyone with the address can open it. */}
-      <Stack.Screen name="site/[slug]" />
       <Stack.Protected guard={signedIn && recovering}>
         <Stack.Screen name="reset-password" />
       </Stack.Protected>
@@ -75,6 +71,12 @@ function RootNavigator() {
       <Stack.Protected guard={signedIn && !recovering && onboarded}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
+      {/* 12 Nov 2026: the public booking page and the public website. Anyone with the link can open them,
+          signed in or not. FIX (12 Nov 2026): these sit LAST. The first screen in this list is where a
+          signed-out visitor lands, and with these two first, opening talihq.com.au signed out went to an
+          empty booking page instead of sign in. */}
+      <Stack.Screen name="book/[slug]" />
+      <Stack.Screen name="site/[slug]" />
     </Stack>
   );
 }
