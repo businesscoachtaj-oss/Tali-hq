@@ -68,6 +68,7 @@ export default function AppTabs() {
       <Tabs.Screen name="dates" options={{ href: null, title: 'Dates that matter' }} />
       {/* 12 Nov 2026 (Taj): the business tools. */}
       <Tabs.Screen name="jobs" options={{ href: null, title: 'Jobs and quotes' }} />
+      <Tabs.Screen name="mock" options={{ href: null, title: 'Mockup' }} />
       <Tabs.Screen name="pipeline" options={{ href: null, title: 'Pipeline' }} />
       <Tabs.Screen name="bookings" options={{ href: null, title: 'Bookings' }} />
       <Tabs.Screen name="projects" options={{ href: null, title: 'Projects' }} />
