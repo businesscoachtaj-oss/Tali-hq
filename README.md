@@ -434,3 +434,9 @@ Taj: the business side should be "Totality level" for any business. Four tools, 
 - **Ask Tali to write it** (Website screen, edge function `tali-site-write` v1): Tali drafts the name, one line, About and up to 3 sections from the profile, the services and anything typed. It fills the boxes only: nothing is saved or live until the owner saves. Business members and the founder, 5 drafts a day (`site_drafts`, migration 087), no credits. Told not to invent prices, awards, years or places.
 - Business tools on Today now lay out however many tiles there are.
 - Still marked coming soon: text messages, Tali answering the phone, own domain, Business Pro and Business Max.
+
+## 12 Nov 2026: Website in Life mode
+
+- Life mode had no way to reach Website (Taj spotted it). Today in Life now ends with a "Yours" card that opens it, and Your world has "My website" under Your words.
+- A personal site ("Just me") now comes with any paid plan. A business site, services, the booking button and "Ask Tali to write it" stay with Tali HQ Business.
+- The lock screen on the business tools now says "Comes with Tali HQ Business" with a button to Plans. It said "Coming soon", which stopped being true when Business went on sale.

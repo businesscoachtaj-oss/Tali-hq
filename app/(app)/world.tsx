@@ -145,6 +145,7 @@ export default function World() {
         { icon: 'book-outline', title: 'Journal', sub: 'Your time and your place', to: '/journal', live: n(wd?.journal, 'entry', 'entries') },
         { icon: 'document-text-outline', title: 'Notes', sub: 'Things to find again', to: '/notes', live: n(wd?.notes, 'note') },
         { icon: 'bulb-outline', title: 'Ideas', sub: 'Half thoughts she keeps warm for you', to: '/list', params: { kind: 'idea' }, live: n(wd?.ideas, 'idea') },
+        { icon: 'globe-outline', title: 'My website', sub: 'A simple site of your own, hosted for you', to: '/website', locked: !paid },
         { icon: 'school-outline', title: 'Night school', sub: 'What she studies for you tonight', to: '/night-school', locked: !pro, pro: true },
       ] },
   ];

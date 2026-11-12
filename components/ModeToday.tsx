@@ -169,6 +169,10 @@ export function LifeBoard({ world, pm, habits, ticks, today, onHabit }: { world:
           </Pressable>
         </>
       ) : null}
+      <Label>Yours</Label>
+      <Card style={{ paddingVertical: 0, paddingHorizontal: 0 }}>
+        <Row icon="globe-outline" title="My website" sub="A simple site of your own, hosted for you" colour={MODE.life.colour} onPress={go('/website')} />
+      </Card>
     </>
   );
 }

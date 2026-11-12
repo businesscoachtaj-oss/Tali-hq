@@ -10,7 +10,7 @@ import { myCredits, type Credits } from '@/lib/data';
 import { cleanSlug } from '@/lib/bookings';
 import { ACCENTS, blankSite, deleteEnquiry, enquiries as loadEnquiries, mySite, saveSite, SITE_BASE, writeSite, type Enquiry, type Site } from '@/lib/site';
 import { useMode } from '@/lib/mode';
-import { hasBusinessTools } from '@/lib/plan';
+import { hasBusinessTools, isPaid } from '@/lib/plan';
 import { Button, ErrorText, Field, Label, Loading, Screen, useConfirm } from '@/components/ui';
 import { BLUE, Head, Line, Pill, Sub, TaliLine } from '@/components/Biz';
 import { BizLock } from '@/components/BizLock';
@@ -30,16 +30,20 @@ export default function Website() {
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const { armed, confirm } = useConfirm();
-  const ok = hasBusinessTools(credits, session?.user.id);
+  // 12 Nov 2026 (Taj): a personal site comes with any paid plan. A business site, services, the booking
+  // button and "Ask Tali to write it" come with Tali HQ Business.
+  const biz = hasBusinessTools(credits, session?.user.id);
+  const ok = biz || isPaid(credits);
 
   const load = useCallback(async () => {
     setError('');
     try {
       const c = await myCredits();
       setCredits(c);
-      if (hasBusinessTools(c, session?.user.id)) {
+      const b = hasBusinessTools(c, session?.user.id);
+      if (b || isPaid(c)) {
         const [s, e] = await Promise.all([mySite(), loadEnquiries()]);
-        if (s) { setSite(s); setHas(true); } else setSite(blankSite(mode === 'life' ? 'life' : 'business'));
+        if (s) { setSite(b ? s : { ...s, kind: 'life', show_services: false, show_booking: false }); setHas(true); } else setSite(blankSite(!b || mode === 'life' ? 'life' : 'business'));
         setInbox(e);
       }
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load your website.'); }
@@ -74,11 +78,11 @@ export default function Website() {
 
   if (!loaded) return <Loading />;
   if (!ok) {
-    return <BizLock title="Website" sub="A simple site for your business, hosted by Tali HQ. Your services, your booking link and a contact form that lands as a new lead."
+    return <BizLock paid title="Website" sub="A simple site of your own, hosted by Tali HQ. Your name, what you do and a way to get in touch."
       points={[
         { icon: 'globe-outline', title: 'Live in minutes', sub: 'Fill in a few boxes and put it live at your own address' },
-        { icon: 'calendar-outline', title: 'Works with Bookings', sub: 'Customers book a time straight from your site' },
-        { icon: 'person-add-outline', title: 'Enquiries become leads', sub: 'Each one lands in your Pipeline with a nudge on your To do' },
+        { icon: 'mail-outline', title: 'A contact form', sub: 'Messages land here in the app' },
+        { icon: 'briefcase-outline', title: 'More with Business', sub: 'Services, a booking button and enquiries that become leads' },
       ]} />;
   }
 
@@ -94,6 +98,8 @@ export default function Website() {
       </View>
       {!has ? <TaliLine>Start with your name and one line about what you do. You can change anything later.</TaliLine> : null}
 
+      {biz ? (
+        <>
       <Label>What kind of site</Label>
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
         {(['business', 'life'] as const).map((k) => (
@@ -112,6 +118,8 @@ export default function Website() {
         <Button title={writing ? 'Tali is writing...' : site.about ? 'Write it again' : 'Write it for me'} kind="ghost" busy={writing} onPress={write} />
         {site.about ? <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 6 }}>This replaces the one line, About and extra sections below.</Text> : null}
       </View>
+        </>
+      ) : null}
 
       <Field label="Your address" value={site.slug} onChangeText={(v) => set({ slug: v })} placeholder="your-name" autoCapitalize="none" autoCorrect={false} maxLength={40} />
       <Field label="Name at the top" value={site.title} onChangeText={(v) => set({ title: v })} placeholder={site.kind === 'life' ? 'Your name' : 'Your business name'} maxLength={80} />
