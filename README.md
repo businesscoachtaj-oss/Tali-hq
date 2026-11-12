@@ -453,6 +453,25 @@ Taj: the business side should be "Totality level" for any business. Four tools, 
 - **Showing the site:** on the web, when the app is opened on an address that is not Tali HQ's own, `components/DomainSite.tsx` looks up `site_slug_for_host()` and shows that site (`components/PublicSiteView.tsx`, the same page `/site/<name>` uses). `/book/` and `/site/` links on the domain still open their own screens.
 - Migration `20261112000088_own_domain.sql`.
 
+## 12 Nov 2026, later: quote calculator, Tali changes your site, How to use
+
+- **Quote calculator** (`app/(app)/quote-calc.tsx`, `app/quote/[slug].tsx`, `lib/calc.ts`, migration `20261112000089_quote_calculator.sql`). Part of the Business plan. The owner sets a starting price and up to 20 things to pick (how many, yes or no, pick one). It is hosted at `talihq.com.au/quote/<name>`. A customer sees a rough price as they pick and sends it. It lands in the Pipeline as a new lead with what they picked, the estimate as "could be worth", and a nudge on the To do. The server works the price out again from the saved prices (`quote_request_public`), so a customer cannot send their own total. Up to 20 requests a day per owner.
+- **Get a quote button** on a business website when the calculator is live (`site_public` now returns `quote_slug`).
+- **Ask Tali for a change** on the Website screen: say what to change in plain words, she edits the words that are there and hands back the whole site as a draft. "Put it back how it was" restores the version before her change. Nothing is saved until the owner saves.
+- **See how it looks**: a preview of the page from the words in the boxes, saved or not.
+- **Ask Tali to set it up** on the quote calculator: she drafts the things to pick from a description of how the owner prices work, and only uses prices the owner gave.
+- `tali-site-write` v2 does all three (`mode: 'change'`, `mode: 'calc'`), on the same 5 drafts a day, no credits.
+- **How to use** in Settings opens `totality360.com.au/help/tali-hq/`. The tour's last step now ends with "For more info, visit How to use, linked in Settings."
+- Fix: new screens must be listed in `app/(app)/_layout.tsx` with `href: null`, or they show up as a tab.
+- Not built: team seats and more than one business (they need customers, invoices and To do split by business and by teammate first), texts and phone answering (no phone provider), custom tools built from scratch.
+
+## 12 Nov 2026: Black Friday members get a monthly only billing portal
+
+- BLACKFRIDAY is 60% off the first 2 months of a monthly plan. The normal billing portal lets a member switch to yearly, which would have taken 60% off the whole yearly bill while the offer was still on their subscription.
+- `billing-portal` now checks the member's live Stripe subscriptions. While one carries the Black Friday offer, the portal opens with a second Stripe portal configuration (`bpc_1Uaqc6Py9YlWBZ02CstlOM8c`) that lists the monthly prices only. Everything else in the portal is the same. After the 2 months Stripe drops the offer and the normal portal (`bpc_1UYFPhPy9YlWBZ02sLUshfqB`) comes back.
+- Founding member discounts are untouched. `STRIPE_PORTAL_CONFIG_MONTHLY` overrides the configuration id, for example for test mode.
+- If a new monthly price is added to the normal portal configuration, add it to the monthly only one too.
+
 ## 12 Nov 2026: team seats and more than one business (Business plans)
 
 Built from the mockups Taj approved the same day. Both come with Tali HQ Business.

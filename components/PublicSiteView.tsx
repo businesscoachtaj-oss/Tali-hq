@@ -1,5 +1,7 @@
 // 12 Nov 2026 (Taj): the public website, shown at talihq.com.au/site/<name> and on an owner's own domain. No sign in. Shows what the owner
 // chose to show, a Book a time button when their booking link is on, and a contact form.
+// 12 Nov 2026, later: a Get a quote button when the quote calculator is live, and a preview mode
+// (the editor passes the unsaved words in, so the owner sees the page before it is saved).
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,20 +9,24 @@ import { router } from 'expo-router';
 import { publicEnquiry, publicSite, type PublicSite } from '@/lib/site';
 import { colours, radius } from '@/constants/theme';
 
-export function PublicSiteView({ slug }: { slug: string }) {
-  const [site, setSite] = useState<PublicSite | null>(null);
-  const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
+export function PublicSiteView({ slug, preview }: { slug: string; preview?: PublicSite }) {
+  const [fetched, setSite] = useState<PublicSite | null>(null);
+  const [fetchState, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
+  const site = preview ?? fetched;
+  const state = preview ? 'ready' : fetchState;
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [phone, setPhone] = useState(''); const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (preview) return;
     publicSite(slug).then((s) => { setSite(s); setState(s ? 'ready' : 'missing'); }).catch(() => setState('missing'));
-  }, [slug]);
+  }, [slug, !!preview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function send() {
     setError('');
+    if (preview) return setError('This is a preview. The form works once your site is live.');
     if (name.trim().length < 2) return setError('Add your name.');
     if (!email.trim() && !phone.trim()) return setError('Add an email or a phone number so they can reply.');
     setBusy(true);
@@ -50,11 +56,21 @@ export function PublicSiteView({ slug }: { slug: string }) {
             <View style={{ height: 6, width: 56, borderRadius: 3, backgroundColor: accent, marginTop: 18 }} />
             <Text accessibilityRole="header" style={{ color: colours.text, fontSize: 44, lineHeight: 48, marginTop: 16, fontFamily: 'InstrumentSerif_400Regular' }}>{site.name}</Text>
             {site.tagline ? <Text style={{ color: colours.muted, fontSize: 18, lineHeight: 26, marginTop: 10 }}>{site.tagline}</Text> : null}
-            {site.book_slug ? (
-              <Pressable onPress={() => router.push({ pathname: '/book/[slug]', params: { slug: site.book_slug! } })} accessibilityRole="link"
-                style={{ alignSelf: 'flex-start', marginTop: 20, paddingVertical: 14, paddingHorizontal: 24, borderRadius: radius.pill, backgroundColor: accent }}>
-                <Text style={{ color: '#141033', fontSize: 16, fontWeight: '800' }}>Book a time</Text>
-              </Pressable>
+            {site.book_slug || site.quote_slug ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20 }}>
+                {site.book_slug ? (
+                  <Pressable onPress={() => { if (!preview) router.push({ pathname: '/book/[slug]', params: { slug: site.book_slug! } }); }} accessibilityRole="link"
+                    style={{ paddingVertical: 14, paddingHorizontal: 24, borderRadius: radius.pill, backgroundColor: accent }}>
+                    <Text style={{ color: '#141033', fontSize: 16, fontWeight: '800' }}>Book a time</Text>
+                  </Pressable>
+                ) : null}
+                {site.quote_slug ? (
+                  <Pressable onPress={() => { if (!preview) router.push({ pathname: '/quote/[slug]', params: { slug: site.quote_slug! } }); }} accessibilityRole="link"
+                    style={{ paddingVertical: 13, paddingHorizontal: 24, borderRadius: radius.pill, borderWidth: 1.5, borderColor: accent }}>
+                    <Text style={{ color: accent, fontSize: 16, fontWeight: '800' }}>Get a quote</Text>
+                  </Pressable>
+                ) : null}
+              </View>
             ) : null}
 
             {site.about ? <><Text style={label}>ABOUT</Text><Text style={para}>{site.about}</Text></> : null}

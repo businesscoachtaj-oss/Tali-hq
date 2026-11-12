@@ -23,7 +23,8 @@ const BIZ_FEATURES = [
   'Pipeline: who to chase next and what it could be worth',
   'Bookings: your week, and one link your customers book from',
   'Projects: the bigger pieces of work, with their tasks',
-  'Website: a simple site hosted for you, written by Tali if you like, with a contact form that lands as a lead',
+  'Website: a simple site hosted for you, written and changed by Tali if you like, with a contact form that lands as a lead',
+  'Quote calculator: a hosted page where customers pick what they want and see a rough price',
   'On autopilot: rules that put a nudge on your To do so nothing slips',
   'Bookkeeping pack: a quarter on one page, ready for your accountant',
 ];

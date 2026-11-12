@@ -76,6 +76,7 @@ export default function AppTabs() {
       <Tabs.Screen name="businesses" options={{ href: null, title: 'Which business?' }} />
       <Tabs.Screen name="website" options={{ href: null, title: 'Website' }} />
       <Tabs.Screen name="autopilot" options={{ href: null, title: 'On autopilot' }} />
+      <Tabs.Screen name="quote-calc" options={{ href: null, title: 'Quote calculator' }} />
       <Tabs.Screen name="books" options={{ href: null, title: 'Bookkeeping pack' }} />
     </Tabs>
   );
