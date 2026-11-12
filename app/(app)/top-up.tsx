@@ -4,7 +4,8 @@
 // The prices charged come from supabase/functions/_shared/topups.ts; keep the two lists the same.
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, ErrorText, Screen, goBack } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
@@ -57,7 +58,7 @@ export default function TopUp() {
   const [tab, setTab] = useState<TabId>(params.tab === 'images' || params.tab === 'bundles' || params.tab === 'voice' ? params.tab : 'credits');
   const [picks, setPicks] = useState<Record<string, string>>({ credits: 'c1500', images: 'i50', bundles: 'b-busy', voice: 'v-addon' });
   const load = useCallback(() => { myCredits().then(setCredits).catch(() => null); }, []);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
   const left = credits ? Math.max(0, credits.creditsMonth - credits.used) : 0;
   const extra = credits?.extra ?? 0;
   const imagesLeft = credits?.images?.remaining ?? 0;

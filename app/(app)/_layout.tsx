@@ -30,6 +30,9 @@ export default function AppTabs() {
         tabBarInactiveTintColor: colours.faint,
         tabBarStyle: { backgroundColor: '#0D0B22', borderTopColor: colours.border, ...elevation.tabBar },
         sceneStyle: { backgroundColor: colours.bg },
+        // Speed pass (13 Nov 2026): screens you've left stop re-rendering until you come back.
+        // Every tab you visit stays mounted, so before this each one re-rendered on every app change.
+        freezeOnBlur: true,
       }}>
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 0) }} />
       <Tabs.Screen name="talk" options={{ title: 'Talk', tabBarIcon: icon('chatbubble-ellipses-outline', 1) }} />

@@ -7,8 +7,9 @@
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits } from '@/lib/data';
 import { hasBusinessTools } from '@/lib/plan';
 import { accessLine, inviteTeammate, myTeam, removeTeammate, seatsCost, setAccess, setSeat, SEATS, type Access, type Seat, type TeamMember } from '@/lib/team';
@@ -58,7 +59,7 @@ export default function Team() {
     }
     setLoaded(true);
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   if (!loaded) return <Screen><Loading /></Screen>;
   if (!hasBusinessTools(credits, session?.user.id)) {

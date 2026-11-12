@@ -3,7 +3,8 @@
 // goal" opens Talk with a prefilled message. Tali can also add and update goals from chat.
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
 import { useHasBusiness } from '@/lib/business';
@@ -60,11 +61,7 @@ export default function GoalsScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   function startEdit(g?: Goal) {
     setError('');

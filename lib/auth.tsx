@@ -1,4 +1,4 @@
-import { createContext, use, useCallback, useEffect, useState, type PropsWithChildren } from 'react';
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
@@ -46,8 +46,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [isLoading, setLoading] = useState(true);
   const [recovering, setRecovering] = useState(false);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  // Speed pass (13 Nov 2026): whose profile is loaded or loading, so a token refresh or the
+  // same user signing in again doesn't fetch it again and re-render the whole app.
+  const profileFor = useRef<string | null>(null);
 
   const loadProfile = useCallback(async (s: Session | null) => {
+    profileFor.current = s?.user.id ?? null;
     if (!s) {
       setProfile(null);
       setLoadedFor(null);
@@ -69,7 +73,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === 'PASSWORD_RECOVERY') setRecovering(true);
       if (event === 'SIGNED_OUT') setRecovering(false);
-      setSession(s);
+      // Speed pass (13 Nov 2026): keep the same session object when nothing changed (the web app
+      // gets auth events when it comes back into view), so screens that depend on it don't reload.
+      setSession((prev) => (prev && s && prev.access_token === s.access_token && prev.user.id === s.user.id ? prev : s));
+      // Only fetch the profile when the person changed or their account was updated.
+      const uid = s?.user.id ?? null;
+      if (uid === profileFor.current && event !== 'USER_UPDATED') return;
       // Supabase warns against awaiting other calls inside this callback.
       setTimeout(() => {
         loadProfile(s);
@@ -88,8 +97,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await supabase.auth.signOut({ scope: 'local' });
   }, []);
 
+  const endRecovery = useCallback(() => setRecovering(false), []);
+  // Speed pass (13 Nov 2026): one value object per real change, so every screen using useAuth()
+  // doesn't re-render whenever this provider does.
+  const value = useMemo<AuthValue>(
+    () => ({ isLoading, session, profile, profileReady: !session || loadedFor === session.user.id, refreshProfile, signOut, recovering, endRecovery }),
+    [isLoading, session, profile, loadedFor, refreshProfile, signOut, recovering, endRecovery],
+  );
+
   return (
-    <AuthContext.Provider value={{ isLoading, session, profile, profileReady: !session || loadedFor === session.user.id, refreshProfile, signOut, recovering, endRecovery: () => setRecovering(false) }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

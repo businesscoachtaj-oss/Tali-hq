@@ -5,8 +5,8 @@ import { useCallback, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits } from '@/lib/data';
 import { cleanSlug } from '@/lib/bookings';
 import { blankCalc, estimate, KIND_LABEL, money, myCalc, newItem, QUOTE_BASE, saveCalc, writeCalc, type Calc, type CalcItem } from '@/lib/calc';
@@ -43,7 +43,7 @@ export default function QuoteCalc() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load your calculator.'); }
     setLoaded(true);
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const set = (patch: Partial<Calc>) => { setCalc((c) => ({ ...c, ...patch })); setNote(''); };
   const setItem = (id: string, patch: Partial<CalcItem>) => set({ items: calc.items.map((x) => (x.id === id ? { ...x, ...patch } : x)) });

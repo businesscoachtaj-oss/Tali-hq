@@ -2,7 +2,8 @@
 // prefilled question and is Tali HQ and up. No credits for the log itself.
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
 import { askWhyQuestion, decisions as loadDecisions, deleteDecision, saveDecision, type Decision } from '@/lib/decisions';
@@ -47,11 +48,7 @@ export default function Decisions() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const paid = isPaid(credits);
 

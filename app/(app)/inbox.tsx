@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { rememberForwarded, googleConnection, inboundEmails, microsoftConnection, myCredits, myInbox, setEmailStatus, type GoogleConnection, type InboundEmail, type MicrosoftConnection } from '@/lib/data';
 import { friendlyTime } from '@/lib/dates';
 import { isPaid, isPro } from '@/lib/plan';
@@ -62,11 +63,7 @@ export default function Inbox() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   // Outlook (2 Nov 2026) shows in the same sorted list as Gmail.
   const outlookOn = !!microsoft?.scopes.includes('mail');

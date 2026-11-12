@@ -1,7 +1,8 @@
 // 11 Nov 2026 (Your world, Health): your weight and how it is trending. Logged by telling Tali.
 import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { weights, type WeightLog } from '@/lib/data';
 import { friendlyDate } from '@/lib/dates';
 import { Body as P, Button, Card, ErrorText, Screen, TaliSays } from '@/components/ui';
@@ -21,7 +22,7 @@ export default function BodyScreen() {
       setError(e?.message ?? 'Could not load your weight.');
     }
   }, []);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   const rows = list ?? [];
   const latest = rows[0];

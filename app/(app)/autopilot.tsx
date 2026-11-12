@@ -2,8 +2,8 @@
 // Business plans. Nothing here messages a customer. Texts and phone answering are marked coming soon.
 import { useCallback, useState } from 'react';
 import { Switch, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, type Credits } from '@/lib/data';
 import { AUTO, autoCounts, autoRules, runAutopilot, setAutoRule, type AutoKind } from '@/lib/site';
 import { hasBusinessTools } from '@/lib/plan';
@@ -35,7 +35,7 @@ export default function Autopilot() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load this.'); }
     setLoaded(true);
   }, [session?.user.id]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   async function flip(kind: AutoKind, v: boolean) {
     if (!session) return;

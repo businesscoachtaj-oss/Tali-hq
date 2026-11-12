@@ -2,8 +2,9 @@ import { NightIdeaCard } from '@/components/NightIdeaCard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { runAutopilot } from '@/lib/site';
 import { anyCalendarToday, followUpsDue, inboundEmails, lifeSummary, logWorkout, myCredits, myHealth, openReminders, pendingApprovals, recentBriefs, markBriefRead, sortSides, type Approval, type InboundEmail, type Brief, type CalendarToday, type Client, type Credits, type Health, type LifeSummary, type Reminder } from '@/lib/data';
 import { YourDayCard } from '@/components/YourDayCard';
@@ -147,13 +148,23 @@ export default function Today() {
       setFollowUps(f);
       setShutdown(sd?.tali_line ? sd : null);
       setLoaded(true);
+      // Speed pass (13 Nov 2026): these six used to load one after another (six round trips and
+      // six re-renders of Today). Now they load together and land in one update.
       // Health checks are part of Tali HQ and Pro (and the trial).
-      setHealth(isPaid(c) ? await myHealth().catch(() => null) : null);
-      setLife(await lifeSummary().catch(() => null));
-      setPatterns(isPro(c) ? await patternsThisMonth().catch(() => null) : null);
-      setMoney(isPaid(c) ? await loadMoneyPicture().catch(() => null) : null);
-      setNewMail(isPaid(c) ? (await inboundEmails().catch(() => [])).filter((e) => e.status === 'new' && (e.source === 'tali_inbox' || e.category === 'needs_you')) : []);
-      setLastDecision((await loadDecisions(1).catch(() => []))[0] ?? null);
+      const [hl, lf, pt, mn, mail, dec] = await Promise.all([
+        isPaid(c) ? myHealth().catch(() => null) : Promise.resolve(null),
+        lifeSummary().catch(() => null),
+        isPro(c) ? patternsThisMonth().catch(() => null) : Promise.resolve(null),
+        isPaid(c) ? loadMoneyPicture().catch(() => null) : Promise.resolve(null),
+        isPaid(c) ? inboundEmails().catch(() => [] as InboundEmail[]) : Promise.resolve([] as InboundEmail[]),
+        loadDecisions(1).catch(() => [] as Decision[]),
+      ]);
+      setHealth(hl);
+      setLife(lf);
+      setPatterns(pt);
+      setMoney(mn);
+      setNewMail(mail.filter((e) => e.status === 'new' && (e.source === 'tali_inbox' || e.category === 'needs_you')));
+      setLastDecision(dec[0] ?? null);
       myWorld().then(setWorld).catch(() => {});
       if (isPaid(c)) loadPersonalMoney().then(setPm).catch(() => {});
       lifeItems('habit').then((h) => setHabits(h.filter((x) => !x.done_at))).catch(() => {});
@@ -166,11 +177,7 @@ export default function Today() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   async function onRefresh() {
     setRefreshing(true);

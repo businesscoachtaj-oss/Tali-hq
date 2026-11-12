@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHasBusiness } from '@/lib/business';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useFocusLoad } from '@/lib/useFocusLoad';
 import { clients as loadClients, deleteClient, saveClient, type Client, type PersonKind } from '@/lib/data';
 import { birthdayNext, birthdayText, inDays, parseBirthday } from '@/lib/world';
 import { addDays, friendlyDate, FOLLOW_UP_PICKS, isoDate, today } from '@/lib/dates';
@@ -105,11 +106,7 @@ export default function Clients() {
     router.setParams({ edit: undefined, from: undefined } as any);
   }, [editId, fromParam, list]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
   // Your world opens a group directly (/clients?tab=family). Otherwise land on the first group with
   // anyone in it, so nobody opens the page onto an empty tab while their people sit in another.
