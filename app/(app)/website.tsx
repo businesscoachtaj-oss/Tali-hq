@@ -1,5 +1,7 @@
 // 12 Nov 2026 (Taj): Website. A simple site Tali HQ hosts for you at talihq.com.au/site/<name>. A business
 // site can show your services, your booking link and a contact form that lands as a new lead.
+// 12 Nov 2026, later: ask Tali for a change in plain words (with undo), and a preview of the page
+// before anything is saved.
 import { useCallback, useState } from 'react';
 import { Linking, Platform, Pressable, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -8,12 +10,13 @@ import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { myCredits, startTopup, type Credits } from '@/lib/data';
 import { cleanSlug } from '@/lib/bookings';
-import { ACCENTS, blankSite, deleteEnquiry, enquiries as loadEnquiries, mySite, saveSite, SITE_BASE, writeSite, type Enquiry, type Site, DOMAIN_PRICE, mySiteDomain, requestSiteDomain, type SiteDomain } from '@/lib/site';
+import { ACCENTS, blankSite, deleteEnquiry, enquiries as loadEnquiries, mySite, saveSite, SITE_BASE, writeSite, changeSite, type Enquiry, type Site, type PublicSite, DOMAIN_PRICE, mySiteDomain, requestSiteDomain, type SiteDomain } from '@/lib/site';
 import { useMode } from '@/lib/mode';
 import { hasBusinessTools, isPaid } from '@/lib/plan';
 import { Button, ErrorText, Field, Label, Loading, Screen, useConfirm } from '@/components/ui';
 import { BLUE, Head, Line, Pill, Sub, TaliLine } from '@/components/Biz';
 import { BizLock } from '@/components/BizLock';
+import { PublicSiteView } from '@/components/PublicSiteView';
 import { colours, radius } from '@/constants/theme';
 
 const APP_WEB_URL = 'https://talihq.com.au';
@@ -32,6 +35,10 @@ export default function Website() {
   const [domInput, setDomInput] = useState('');
   const [domBusy, setDomBusy] = useState(false);
   const [writing, setWriting] = useState(false);
+  const [change, setChange] = useState('');
+  const [changing, setChanging] = useState(false);
+  const [undo, setUndo] = useState<Site | null>(null);
+  const [preview, setPreview] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const { armed, confirm } = useConfirm();
@@ -82,6 +89,20 @@ export default function Website() {
     setNote('Tali has drafted it below. Read it over, change what you like, then save.');
   }
 
+  // Tali edits the words that are there. The version before her change is kept so it can be put back.
+  async function askChange() {
+    setError(''); setNote('');
+    if (change.trim().length < 3) return setError('Tell Tali what to change.');
+    setChanging(true);
+    const res = await changeSite(site.kind, { title: site.title, tagline: site.tagline, about: site.about, sections: site.sections }, change);
+    setChanging(false);
+    if (!res.ok) return setError(res.message);
+    setUndo(site);
+    setSite((s) => ({ ...s, title: res.draft.title || s.title, tagline: res.draft.tagline, about: res.draft.about, sections: res.draft.sections }));
+    setChange('');
+    setNote('Tali made the change below. Have a look, then save. You can put it back if it is not right.');
+  }
+
   // The one-off unlock is paid in the browser, like plans and top ups.
   async function unlockDomain() {
     setError(''); setDomBusy(true);
@@ -108,6 +129,28 @@ export default function Website() {
         { icon: 'mail-outline', title: 'A contact form', sub: 'Messages land here in the app' },
         { icon: 'briefcase-outline', title: 'More with Business', sub: 'Services, a booking button and enquiries that become leads' },
       ]} />;
+  }
+
+  // A look at the page with the words as they are in the boxes right now, saved or not.
+  if (preview) {
+    const page: PublicSite = {
+      name: site.title.trim() || (site.kind === 'life' ? 'Your name' : 'Your business'), kind: site.kind, tagline: site.tagline, about: site.about,
+      sections: site.sections.filter((x) => x.heading.trim() || x.text.trim()), accent: site.accent, book_slug: null, quote_slug: null,
+      show_contact: site.show_contact, contact_email: site.contact_email || null, contact_phone: site.contact_phone || null, services: [],
+    };
+    return (
+      <View style={{ flex: 1, backgroundColor: colours.bg }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colours.border }}>
+          <Pressable onPress={() => setPreview(false)} accessibilityRole="button" accessibilityLabel="Back to editing" hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="chevron-back" size={20} color={BLUE} /><Text style={{ color: BLUE, fontSize: 15, fontWeight: '800' }}>Back to editing</Text>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <Pill text="Preview" colour="#FFB561" />
+        </View>
+        <Text style={{ color: colours.faint, fontSize: 12.5, paddingHorizontal: 16, paddingTop: 8 }}>Not saved yet. Your services, booking and quote buttons show on the live page.</Text>
+        <PublicSiteView slug="" preview={page} />
+      </View>
+    );
   }
 
   const slug = cleanSlug(site.slug);
@@ -142,6 +185,17 @@ export default function Website() {
         <Button title={writing ? 'Tali is writing...' : site.about ? 'Write it again' : 'Write it for me'} kind="ghost" busy={writing} onPress={write} />
         {site.about ? <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 6 }}>This replaces the one line, About and extra sections below.</Text> : null}
       </View>
+
+      {site.about ? (
+        <View style={{ ...card, paddingVertical: 12, marginBottom: 16 }}>
+          <Text style={{ color: colours.text, fontSize: 15.5, fontWeight: '800' }}>Ask Tali for a change</Text>
+          <Sub>Say it in plain words. She changes only what you ask and leaves the rest alone.</Sub>
+          <View style={{ height: 10 }} />
+          <Field value={change} onChangeText={setChange} placeholder="Like: make the About shorter, and add a section on how I price jobs" accessibilityLabel="What Tali should change" multiline maxLength={600} style={{ minHeight: 60, textAlignVertical: 'top' }} />
+          <Button title={changing ? 'Tali is on it...' : 'Make the change'} kind="ghost" busy={changing} onPress={askChange} />
+          {undo ? <Button title="Put it back how it was" kind="ghost" onPress={() => { setSite(undo); setUndo(null); setNote('Put back. Nothing was saved.'); }} /> : null}
+        </View>
+      ) : null}
         </>
       ) : null}
 
@@ -184,6 +238,7 @@ export default function Website() {
 
       {error ? <ErrorText>{error}</ErrorText> : null}
       {note ? <Text style={{ color: colours.good, fontWeight: '700', marginBottom: 10 }}>{note}</Text> : null}
+      <Button title="See how it looks" kind="ghost" onPress={() => setPreview(true)} />
       <Button title={site.published ? 'Save changes' : 'Save'} busy={busy} onPress={() => save()} />
       {site.published
         ? <Button title="Take it offline" kind="ghost" onPress={() => save(false)} />
