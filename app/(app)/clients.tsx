@@ -8,6 +8,7 @@ import { addDays, friendlyDate, FOLLOW_UP_PICKS, isoDate, today } from '@/lib/da
 import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
+import { BusinessBar, useBusinesses } from '@/lib/businesses';
 import { colours, radius, space } from '@/constants/theme';
 import { useMode } from '@/lib/mode';
 
@@ -35,7 +36,10 @@ const KINDS = ['family', 'friend', 'client', 'lead'] as const;
 const isKind = (k: unknown): k is PersonKind => (KINDS as readonly string[]).includes(k as string);
 
 export default function Clients() {
-  const [list, setList] = useState<Client[]>([]);
+  const [everyone, setList] = useState<Client[]>([]);
+  // 12 Nov 2026: more than one business. Customers and leads follow the business in use; family and friends always show.
+  const biz = useBusinesses();
+  const list = useMemo(() => everyone.filter((c) => (c.kind !== 'client' && c.kind !== 'lead') || biz.visibleClient(c)), [everyone, biz.current, biz.all, biz.many]); // eslint-disable-line react-hooks/exhaustive-deps
   const [tab, setTab] = useState<PersonKind>('family');
   const [tabChosen, setTabChosen] = useState(false);
   // 10 Nov 2026: with no business this is simply your people, with no clients and leads split.
@@ -230,6 +234,7 @@ export default function Clients() {
 
   return (
     <Screen skin="cork" onRefresh={load}>
+      <BusinessBar />
       <SkinHeader id="cork" title="Your people" sub={hasBusiness ? "Family, friends, clients and leads. Tell her about anyone: add Mia as a new lead, or Mum's birthday is 14 December." : "Family, friends and the people who matter. Tell her about anyone: Mum's birthday is 14 December, or Dan is moving to Perth."} onBack={() => router.navigate('/world')} />
       <View style={{ flexDirection: 'row', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, marginBottom: space.md }}>
         {kinds.map((k) => (

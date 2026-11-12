@@ -29,6 +29,7 @@ import { ChipPicker } from '@/components/ChipPicker';
 import { BackLink, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, goBack, useConfirm } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, radius, space } from '@/constants/theme';
+import { BizTag, BusinessBar, settingsForBusiness, useBusinesses } from '@/lib/businesses';
 
 type Tab = 'open' | 'paid' | 'all';
 const STATUS: Record<Invoice['status'], { label: string; colour: string }> = {
@@ -80,6 +81,9 @@ export default function Invoices() {
   const [people, setPeople] = useState<Client[]>([]);
   const [settings, setSettings] = useState<InvoiceSettings | null>(null);
   const [tab, setTab] = useState<Tab>('open');
+  // 12 Nov 2026: more than one business. `mine` is this business's invoices (or all of them together).
+  const biz = useBusinesses();
+  const mine = useMemo(() => list.filter(biz.visible), [list, biz.current, biz.all, biz.many]); // eslint-disable-line react-hooks/exhaustive-deps
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editingSettings, setEditingSettings] = useState<InvoiceSettings | null>(null);
   const [busy, setBusy] = useState(false);
@@ -143,10 +147,10 @@ export default function Invoices() {
   }, [openParam, list]);
 
   const shown = useMemo(() => {
-    if (tab === 'open') return list.filter((i) => i.status === 'draft' || i.status === 'sent').sort((a, b) => a.due_date.localeCompare(b.due_date));
-    if (tab === 'paid') return list.filter((i) => i.status === 'paid');
-    return list;
-  }, [list, tab]);
+    if (tab === 'open') return mine.filter((i) => i.status === 'draft' || i.status === 'sent').sort((a, b) => a.due_date.localeCompare(b.due_date));
+    if (tab === 'paid') return mine.filter((i) => i.status === 'paid');
+    return mine;
+  }, [mine, tab]);
 
   // Lines they've billed before, newest first, so a repeat invoice is a tap.
   const pastItems = useMemo(() => {
@@ -158,9 +162,9 @@ export default function Invoices() {
     return [...seen.values()].slice(0, 4);
   }, [list]);
 
-  const owed = list.filter((i) => i.status === 'sent').reduce((t, i) => t + i.total, 0);
-  const overdue = list.filter(isOverdue).reduce((t, i) => t + i.total, 0);
-  const drafts = list.filter((i) => i.status === 'draft').length;
+  const owed = mine.filter((i) => i.status === 'sent').reduce((t, i) => t + i.total, 0);
+  const overdue = mine.filter(isOverdue).reduce((t, i) => t + i.total, 0);
+  const drafts = mine.filter((i) => i.status === 'draft').length;
 
   function newInvoice() {
     setNeedDesc(false);
@@ -248,7 +252,7 @@ export default function Invoices() {
     if (!s) return;
     setDraft((d) => (d ? { ...d, id: s.id, number: s.number } : d));
     try {
-      await shareInvoice(s, settings, profile?.business_name || profile?.first_name || '');
+      await shareInvoice(s, settingsForBusiness(settings, s.business_id), profile?.business_name || profile?.first_name || '');
     } catch (e: any) {
       setError(e?.message ?? 'Could not make the PDF.');
     }
@@ -581,6 +585,7 @@ export default function Invoices() {
   // ---------- List ----------
   return (
     <Screen skin="receipt" onRefresh={load}>
+      <BusinessBar />
       <SkinHeader id="receipt" title="Invoices" sub="Or just tell Tali: invoice Jordan for 4 hours at $80." onBack={() => goBack('/me')} backLabel="Back" />
       {note ? <Text style={{ color: colours.good, fontWeight: '700', marginBottom: space.md, lineHeight: 20 }}>{note}</Text> : null}
       {loaded && !stripeOn ? (
@@ -634,7 +639,10 @@ export default function Invoices() {
                   <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{money(i.total)}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                  <Text style={{ fontSize: 13, color: colours.muted }}>{i.number}{i.created_by === 'tali' && i.status === 'draft' ? ' · drafted by Tali' : ''}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+                    <Text style={{ fontSize: 13, color: colours.muted }}>{i.number}{i.created_by === 'tali' && i.status === 'draft' ? ' · drafted by Tali' : ''}</Text>
+                    <BizTag id={i.business_id} />
+                  </View>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: late ? colours.danger : STATUS[i.status].colour }}>
                     {statusLine(i)}
                   </Text>

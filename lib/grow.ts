@@ -46,6 +46,7 @@ export async function answerNightIdea(id: string, answer: 'try' | 'skip'): Promi
 // ---- Receipts folder ----------------------------------------------------------------------------
 export const RECEIPT_TYPES = ['Supplies', 'Software', 'Travel', 'Equipment', 'Marketing', 'Other'] as const;
 export type Receipt = {
+  business_id?: string | null; // 12 Nov 2026: which business (null is the main one)
   id: string;
   vendor: string;
   date: string; // yyyy-mm-dd
@@ -59,7 +60,7 @@ export type Receipt = {
 export type ReceiptDraft = Omit<Receipt, 'id'>;
 
 export async function receipts(): Promise<Receipt[]> {
-  const { data, error } = await supabase.from('receipts').select('id, vendor, date, amount, gst, category, file_kind, path').order('date', { ascending: false });
+  const { data, error } = await supabase.from('receipts').select('id, vendor, date, amount, gst, category, file_kind, path, business_id').order('date', { ascending: false });
   if (error) throw new Error('Could not load your receipts. Try again in a minute.');
   return (data as Receipt[]) ?? [];
 }

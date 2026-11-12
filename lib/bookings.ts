@@ -3,11 +3,11 @@ import { supabase } from './supabase';
 
 export type Service = { id: string; name: string; minutes: number; price: number | null; active: boolean };
 export type BookingStatus = 'requested' | 'booked' | 'done' | 'cancelled';
-export type Booking = { id: string; client_id: string | null; client_name: string; client_email: string | null; client_phone: string | null; service_id: string | null; title: string; starts_at: string; minutes: number; place: string; status: BookingStatus; source: 'you' | 'tali' | 'link'; notes: string };
+export type Booking = { business_id?: string | null; id: string; client_id: string | null; client_name: string; client_email: string | null; client_phone: string | null; service_id: string | null; title: string; starts_at: string; minutes: number; place: string; status: BookingStatus; source: 'you' | 'tali' | 'link'; notes: string };
 export type BookingPage = { slug: string; enabled: boolean; intro: string; days: number[]; day_start: string; day_end: string };
 export const BOOK_BASE = 'https://talihq.com.au/book/';
 
-const B = 'id, client_id, client_name, client_email, client_phone, service_id, title, starts_at, minutes, place, status, source, notes';
+const B = 'id, client_id, client_name, client_email, client_phone, service_id, title, starts_at, minutes, place, status, source, notes, business_id';
 
 export async function services(): Promise<Service[]> {
   const { data, error } = await supabase.from('services').select('id, name, minutes, price, active').order('created_at');

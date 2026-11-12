@@ -8,6 +8,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, ErrorText, Field, Label, Screen, TaliSays, goBack, useConfirm } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
+import { BusinessBar, useBusinesses } from '@/lib/businesses';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { myCredits } from '@/lib/data';
 import { isPaid } from '@/lib/plan';
@@ -27,7 +28,10 @@ type Draft = { path: string; file_kind: 'image' | 'pdf'; vendor: string; date: s
 
 export default function Receipts() {
   const [paid, setPaid] = useState<boolean | null>(null);
-  const [list, setList] = useState<Receipt[]>([]);
+  const [allReceipts, setList] = useState<Receipt[]>([]);
+  // 12 Nov 2026: more than one business. Only this business's (or all of them together).
+  const biz = useBusinesses();
+  const list = useMemo(() => allReceipts.filter(biz.visible), [allReceipts, biz.current, biz.all, biz.many]); // eslint-disable-line react-hooks/exhaustive-deps
   const [type, setType] = useState<string>('All');
   const [error, setError] = useState('');
   const [reading, setReading] = useState(false);
@@ -143,6 +147,7 @@ export default function Receipts() {
 
   return (
     <Screen skin="shoebox" onRefresh={load}>
+      <BusinessBar />
       <SkinHeader id="shoebox" title="Receipts" sub="Snap it, Tali files it. At tax time it's one download." onBack={() => goBack('/me')} backLabel="Back" />
 
       {draft ? (

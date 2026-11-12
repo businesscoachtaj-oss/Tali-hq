@@ -11,14 +11,19 @@ import { today } from '@/lib/dates';
 import { hasBusinessTools } from '@/lib/plan';
 import { Button, ErrorText, Label, Loading, Screen } from '@/components/ui';
 import { BLUE, Head, Line, Stats, TaliLine } from '@/components/Biz';
+import { BusinessBar, useBusinesses } from '@/lib/businesses';
 import { BizLock } from '@/components/BizLock';
 import { colours, radius } from '@/constants/theme';
 
 export default function Books() {
   const { session, profile } = useAuth();
   const [credits, setCredits] = useState<Credits | null>(null);
-  const [inv, setInv] = useState<Invoice[]>([]);
-  const [rec, setRec] = useState<Receipt[]>([]);
+  const [allInv, setInv] = useState<Invoice[]>([]);
+  const [allRec, setRec] = useState<Receipt[]>([]);
+  // 12 Nov 2026: more than one business. Only this business's (or all of them together).
+  const biz = useBusinesses();
+  const inv = allInv.filter(biz.visible);
+  const rec = allRec.filter(biz.visible);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +63,7 @@ export default function Books() {
   const name = (profile as any)?.business_name || (profile as any)?.first_name || '';
   return (
     <Screen onRefresh={load}>
+      <BusinessBar />
       <Head over="Business" title="Bookkeeping pack" sub="A quarter on one page, made from your invoices and receipts. For your records and your accountant. It is not tax advice." />
       <Label>Which quarter</Label>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
