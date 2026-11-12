@@ -444,3 +444,11 @@ Taj: the business side should be "Totality level" for any business. Four tools, 
 ## 12 Nov 2026: fix, signed out visitors landed on an empty booking page
 
 - Since the business tools merge, opening talihq.com.au signed out went to `/book/undefined` ("This page is not taking bookings") instead of sign in. The two public screens were listed first in the root Stack, and the first screen is where a signed-out visitor lands. They now sit last. Web only: the phone apps never had that build.
+
+## 12 Nov 2026: your own domain for a hosted site
+
+- **Unlock:** A$79 once, any paid plan. It is top up pack `domain` in `_shared/topups.ts` (no credits), paid through `create-checkout` v19, which sends the buyer back to Website. `site_domain_unlocked()` reads the `topups` row. The founder's account is always unlocked.
+- **Asking for a domain:** `request_site_domain()` cleans what was typed (drops https, www and any path), refuses Tali HQ's own addresses, saves it as `requested` and puts a nudge on the founder's To do.
+- **Connecting it is a manual step for now:** add the domain to the `tali-hq` Vercel project, copy the A and CNAME values Vercel shows into `site_domains.dns_a` and `dns_cname` and set status `dns`. The owner then sees those two records on Website. When the domain answers, set status `live`.
+- **Showing the site:** on the web, when the app is opened on an address that is not Tali HQ's own, `components/DomainSite.tsx` looks up `site_slug_for_host()` and shows that site (`components/PublicSiteView.tsx`, the same page `/site/<name>` uses). `/book/` and `/site/` links on the domain still open their own screens.
+- Migration `20261112000088_own_domain.sql`.
