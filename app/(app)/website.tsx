@@ -1,20 +1,22 @@
 // 12 Nov 2026 (Taj): Website. A simple site Tali HQ hosts for you at talihq.com.au/site/<name>. A business
 // site can show your services, your booking link and a contact form that lands as a new lead.
 import { useCallback, useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { myCredits, type Credits } from '@/lib/data';
+import { myCredits, startTopup, type Credits } from '@/lib/data';
 import { cleanSlug } from '@/lib/bookings';
-import { ACCENTS, blankSite, deleteEnquiry, enquiries as loadEnquiries, mySite, saveSite, SITE_BASE, writeSite, type Enquiry, type Site } from '@/lib/site';
+import { ACCENTS, blankSite, deleteEnquiry, enquiries as loadEnquiries, mySite, saveSite, SITE_BASE, writeSite, type Enquiry, type Site, DOMAIN_PRICE, mySiteDomain, requestSiteDomain, type SiteDomain } from '@/lib/site';
 import { useMode } from '@/lib/mode';
 import { hasBusinessTools, isPaid } from '@/lib/plan';
 import { Button, ErrorText, Field, Label, Loading, Screen, useConfirm } from '@/components/ui';
 import { BLUE, Head, Line, Pill, Sub, TaliLine } from '@/components/Biz';
 import { BizLock } from '@/components/BizLock';
 import { colours, radius } from '@/constants/theme';
+
+const APP_WEB_URL = 'https://talihq.com.au';
 
 export default function Website() {
   const { session } = useAuth();
@@ -26,6 +28,9 @@ export default function Website() {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ask, setAsk] = useState('');
+  const [dom, setDom] = useState<SiteDomain>({ unlocked: false, domain: null, status: null, dns_a: null, dns_cname: null });
+  const [domInput, setDomInput] = useState('');
+  const [domBusy, setDomBusy] = useState(false);
   const [writing, setWriting] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
@@ -43,6 +48,7 @@ export default function Website() {
       const b = hasBusinessTools(c, session?.user.id);
       if (b || isPaid(c)) {
         const [s, e] = await Promise.all([mySite(), loadEnquiries()]);
+        mySiteDomain().then((d) => { setDom(d); setDomInput(d.domain ?? ''); }).catch(() => {});
         if (s) { setSite(b ? s : { ...s, kind: 'life', show_services: false, show_booking: false }); setHas(true); } else setSite(blankSite(!b || mode === 'life' ? 'life' : 'business'));
         setInbox(e);
       }
@@ -74,6 +80,24 @@ export default function Website() {
     if (!res.ok) return setError(res.message);
     setSite((s) => ({ ...s, title: res.draft.title || s.title, tagline: res.draft.tagline, about: res.draft.about, sections: res.draft.sections }));
     setNote('Tali has drafted it below. Read it over, change what you like, then save.');
+  }
+
+  // The one-off unlock is paid in the browser, like plans and top ups.
+  async function unlockDomain() {
+    setError(''); setDomBusy(true);
+    const web = Platform.OS === 'web';
+    const res = await startTopup('domain', web ? `${window.location.origin}/website` : `${APP_WEB_URL}/website`);
+    setDomBusy(false);
+    if (res.ok && res.url) { if (web) window.location.assign(res.url); else Linking.openURL(res.url); }
+    else setError(res.message ?? 'Could not start checkout.');
+  }
+  async function askDomain() {
+    setError(''); setNote(''); setDomBusy(true);
+    const res = await requestSiteDomain(domInput);
+    setDomBusy(false);
+    if (!res.ok) return setError(res.message ?? 'Could not save that.');
+    setDom(await mySiteDomain());
+    setNote('Got it. We will connect your domain and show the next step here.');
   }
 
   if (!loaded) return <Loading />;
@@ -166,8 +190,37 @@ export default function Website() {
         : <Button title="Save and put it live" kind="ghost" onPress={() => save(true)} />}
       {has && slug ? <Button title="Copy my address" kind="ghost" onPress={async () => { await Clipboard.setStringAsync(`${SITE_BASE}${slug}`); setNote('Address copied.'); }} /> : null}
 
-      <View style={{ ...card, marginTop: 8 }}>
-        <Line first icon="link-outline" colour={colours.muted} title="Use my own domain" sub="A one-off unlock so your site sits at your own address" right={<Pill text="Coming soon" colour={colours.muted} />} />
+      {/* 12 Nov 2026: your own domain. A one-off unlock, then Totality 360 connects it. */}
+      <View style={{ ...card, paddingVertical: 12, marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="link-outline" size={18} color={BLUE} />
+          <Text style={{ flex: 1, color: colours.text, fontSize: 15.5, fontWeight: '800' }}>Use my own domain</Text>
+          {dom.status === 'live' ? <Pill text="Live" colour="#7FE0B0" /> : dom.status ? <Pill text="Being connected" colour="#FFB561" /> : null}
+        </View>
+        {!dom.unlocked ? (
+          <>
+            <Sub>Put your site on an address you already own, like yourbusiness.com.au. {DOMAIN_PRICE} once, with any paid plan. You keep paying your domain company for the domain itself.</Sub>
+            <View style={{ height: 10 }} />
+            <Button title={`Unlock my own domain, ${DOMAIN_PRICE}`} kind="ghost" busy={domBusy} onPress={unlockDomain} />
+          </>
+        ) : dom.status === 'live' ? (
+          <Text selectable style={{ color: BLUE, fontSize: 14.5, fontWeight: '800', marginTop: 6 }}>{dom.domain}</Text>
+        ) : (
+          <>
+            <Sub>{dom.status ? `We are connecting ${dom.domain}.` : 'Type the domain you own. We connect it within 2 business days.'}</Sub>
+            {dom.status === 'dns' && (dom.dns_a || dom.dns_cname) ? (
+              <View style={{ marginTop: 10 }}>
+                <Text style={{ color: colours.text, fontSize: 14, fontWeight: '800' }}>Your part: add these two records where you bought the domain</Text>
+                {dom.dns_a ? <Text selectable style={{ color: colours.text, fontSize: 13.5, lineHeight: 20, marginTop: 6 }}>Type A, name @, value {dom.dns_a}</Text> : null}
+                {dom.dns_cname ? <Text selectable style={{ color: colours.text, fontSize: 13.5, lineHeight: 20 }}>Type CNAME, name www, value {dom.dns_cname}</Text> : null}
+                <Sub>It shows Live here once the domain answers. That can take a few hours.</Sub>
+              </View>
+            ) : dom.status === 'requested' ? <Sub>Next you will see two records to add where you bought the domain.</Sub> : null}
+            <View style={{ height: 10 }} />
+            <Field value={domInput} onChangeText={setDomInput} placeholder="yourbusiness.com.au" accessibilityLabel="Your domain" autoCapitalize="none" autoCorrect={false} keyboardType="url" maxLength={253} />
+            <Button title={dom.status ? 'Change the domain' : 'Connect this domain'} kind="ghost" busy={domBusy} onPress={askDomain} />
+          </>
+        )}
       </View>
 
       {inbox.length ? (

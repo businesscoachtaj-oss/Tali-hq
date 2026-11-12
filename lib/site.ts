@@ -100,3 +100,24 @@ export async function writeSite(kind: Site['kind'], notes: string): Promise<{ ok
     return d?.ok && d.draft ? { ok: true, draft: d.draft } : { ok: false, message: d?.message ?? 'Tali could not write that. Try again in a minute.' };
   } catch { return { ok: false, message: 'Tali could not write that. Try again in a minute.' }; }
 }
+
+// ---------- Your own domain (12 Nov 2026) ----------
+// A one-off unlock. The owner asks for a domain they already own, Totality 360 connects it and fills in
+// the two DNS records to add, and it goes live once the domain answers.
+export type SiteDomain = { unlocked: boolean; domain: string | null; status: 'requested' | 'dns' | 'live' | null; dns_a: string | null; dns_cname: string | null };
+export const DOMAIN_PRICE = 'A$79';
+export async function mySiteDomain(): Promise<SiteDomain> {
+  const { data, error } = await supabase.rpc('my_site_domain');
+  if (error || !data) return { unlocked: false, domain: null, status: null, dns_a: null, dns_cname: null };
+  return data as SiteDomain;
+}
+export async function requestSiteDomain(domain: string): Promise<{ ok: boolean; message?: string }> {
+  const { data, error } = await supabase.rpc('request_site_domain', { p_domain: domain });
+  if (error) return { ok: false, message: 'Could not save that. Try again.' };
+  return (data as any) ?? { ok: false };
+}
+/** Which published site answers on this web address, if any. */
+export async function slugForHost(host: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('site_slug_for_host', { p_host: host });
+  return error ? null : ((data as string | null) ?? null);
+}

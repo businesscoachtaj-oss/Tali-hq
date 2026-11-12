@@ -11,6 +11,7 @@ import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { Loading } from '@/components/ui';
+import { customHost, DomainSite } from '@/components/DomainSite';
 import { colours } from '@/constants/theme';
 import { useFonts, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold } from '@expo-google-fonts/plus-jakarta-sans';
 import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
@@ -56,6 +57,10 @@ function RootNavigator() {
   // Wait for the signed-in user's profile too, or onboarding flashes up for a moment after sign in.
   const [fontsReady] = useFonts({ PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, InstrumentSerif_400Regular, Literata_400Regular, Literata_400Regular_Italic, Literata_600SemiBold });
   if (isLoading || !profileReady || !fontsReady) return <Loading />;
+
+  // 12 Nov 2026: opened on somebody's own domain. Show their site, not the app.
+  const ownDomain = customHost();
+  if (ownDomain) return <DomainSite host={ownDomain} />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colours.bg } }}>
