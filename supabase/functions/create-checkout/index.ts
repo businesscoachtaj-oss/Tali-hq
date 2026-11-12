@@ -15,6 +15,13 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { topupPack } from '../_shared/topups.ts';
 import { COUPON_FOUNDING, COUPON_FOUNDING_MAX, PRICE_HQ, PRICE_HQ_YEARLY, PRICE_MAX, PRICE_MAX_YEARLY, PRICE_PRO, PRICE_BIZ, PRICE_PRO_YEARLY, stripe, stripeReady } from '../_shared/stripe.ts';
 
+// 12 Nov 2026 (Taj): Black Friday. Promo code BLACKFRIDAY is 60% off the first 2 months and stops
+// working at BLACK_FRIDAY_ENDS (30 Nov 2026 23:59 UTC). A 2 month discount on a yearly price comes off
+// the whole first year, so yearly checkouts get no promo code box until the sale ends. Monthly
+// checkouts keep the box, which is where the code is typed. Nothing to undo afterwards.
+const BLACK_FRIDAY_ENDS = 1796083140;
+const blackFridayRunning = () => Date.now() < BLACK_FRIDAY_ENDS * 1000;
+
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -38,6 +45,8 @@ Deno.serve(async (req) => {
   if (body.topup) return topup(user, body);
   const plan = body.plan === 'biz' ? 'biz' : body.plan === 'max' ? 'max' : body.plan === 'pro' ? 'pro' : body.plan === 'hq' ? 'hq' : null;
   const yearly = body.interval === 'year';
+  // Business is monthly only, so a yearly price is only ever charged on the other plans.
+  const yearlyPrice = yearly && plan !== 'biz';
   if (!plan) return json({ ok: false, code: 'bad_request', message: 'Pick a plan.' }, 400);
 
   const price = plan === 'biz' ? PRICE_BIZ : plan === 'max' ? (yearly ? PRICE_MAX_YEARLY : PRICE_MAX) : plan === 'hq' ? (yearly ? PRICE_HQ_YEARLY : PRICE_HQ) : yearly ? PRICE_PRO_YEARLY : PRICE_PRO;
@@ -74,7 +83,7 @@ Deno.serve(async (req) => {
       customer,
       client_reference_id: user.id,
       line_items: [{ price, quantity: 1 }],
-      ...(coupon ? { discounts: [{ coupon }] } : { allow_promotion_codes: true }),
+      ...(coupon ? { discounts: [{ coupon }] } : yearlyPrice && blackFridayRunning() ? {} : { allow_promotion_codes: true }),
       subscription_data: { metadata: { tali_user_id: user.id, plan }, ...(trialEnd ? { trial_end: trialEnd } : {}) },
       metadata: { tali_user_id: user.id, plan },
       success_url: `${origin}/me?upgraded=1`,
