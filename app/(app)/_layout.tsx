@@ -43,6 +43,9 @@ export default function AppTabs() {
       <Tabs.Screen name="notes" options={{ href: null, title: 'Notes' }} />
       <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline', 4) }} />
       <Tabs.Screen name="settings" options={{ href: null, title: 'Settings' }} />
+      <Tabs.Screen name="home-edit" options={{ href: null, title: 'Edit home' }} />
+      <Tabs.Screen name="widget-new" options={{ href: null, title: 'Make a tracker' }} />
+      <Tabs.Screen name="home-share" options={{ href: null, title: 'Share your layout' }} />
       <Tabs.Screen name="plans" options={{ href: null, title: 'Plans' }} />
       <Tabs.Screen name="invoices" options={{ href: null, title: 'Invoices' }} />
       <Tabs.Screen name="rules" options={{ href: null, title: 'Rules' }} />

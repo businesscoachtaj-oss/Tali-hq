@@ -47,6 +47,9 @@ import { TeamWorkCard } from '@/components/TeamUi';
 import { sideOf, useClockMode, useMode } from '@/lib/mode';
 import { habitTicks, lifeItems, myWorld, setHabitDay, type LifeItem, type WorldNow } from '@/lib/world';
 import { loadPersonalMoney, type PersonalMoney } from '@/lib/personalMoney';
+// 16 Nov 2026 (Taj): Build your HQ. The user's own blocks sit under her brain.
+import { WidgetGrid } from '@/components/Widgets';
+import { useHomeLayout } from '@/lib/widgets';
 
 function greeting() {
   const h = new Date().getHours();
@@ -128,6 +131,7 @@ export default function Today() {
   const [room, setRoom] = useState<Room>('business');
   const hasBiz = useHasBusiness();
   const mode = useMode();
+  const [homeLayout] = useHomeLayout(mode);
   useClockMode();
   const [world, setWorld] = useState<WorldNow | null>(null);
   const [pm, setPm] = useState<PersonalMoney | null>(null);
@@ -259,6 +263,7 @@ export default function Today() {
         </View>
         {/* 12 Nov 2026: anyone added to a team sees the work they have been given, straight under her brain. Nothing for everyone else. */}
         <View style={{ marginTop: space.md }}><TeamWorkCard /></View>
+        {!night ? <WidgetGrid widgets={homeLayout} mode={mode} /> : null}
         {/* Day closed (Taj, 10 Nov 2026): only her brain and the two bedtime buttons. The day's lists come back in the morning. */}
         {night ? <View style={{ marginTop: space.lg }}><ShutdownCard hideLine /></View> : (<>
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}

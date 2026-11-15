@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { colours, radius } from '@/constants/theme';
+import { TRACKER_PRESETS } from '@/lib/widgets';
+import { TrackerTile } from '@/components/Widgets';
 
 // Tali's replies in Talk, laid out instead of one wall of text (mockup, 5 Nov 2026).
 // A small hand-rolled reader for the few patterns Tali writes, no markdown library:
@@ -16,7 +18,9 @@ type Block =
   | { type: 'bullets'; items: string[] }
   | { type: 'steps'; items: { n: string; text: string }[] }
   | { type: 'draft'; text: string }
-  | { type: 'callout'; label: string; text: string };
+  | { type: 'callout'; label: string; text: string }
+  // 16 Nov 2026: a widget she just added to your home, written as [[widget:key|home]] on its own line.
+  | { type: 'widget'; key: string; home: string };
 
 const BULLET = /^\s*(?:[-•*])\s+(.*)$/;
 const STEP = /^\s*(\d{1,2})[.)]\s+(.*)$/;
@@ -71,6 +75,8 @@ export function parseTali(raw: string): Block[] {
           continue;
         }
       }
+      const wm = p.match(/^\[\[widget:(\w+)\|?(\w*)\]\]$/);
+      if (wm) { blocks.push({ type: 'widget', key: wm[1], home: wm[2] || 'life' }); continue; }
       if (isQuotedDraft(p)) { blocks.push({ type: 'draft', text: stripQuotes(p) }); continue; }
       const co = p.match(CALLOUT);
       if (co) {
@@ -161,6 +167,26 @@ function DraftBlock({ text }: { text: string }) {
   );
 }
 
+// 16 Nov 2026: the widget card in her reply, with Undo and Edit so nothing lands on your home without a way back.
+function WidgetAdded({ k, home }: { k: string; home: string }) {
+  const p = TRACKER_PRESETS[k];
+  if (!p) return null;
+  const { group, for: _f, ...tr } = p;
+  return (
+    <View style={{ gap: 8, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: colours.border, backgroundColor: 'rgba(30,24,88,0.55)' }}>
+      <Text style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: colours.good }}>ADDED TO YOUR {home.toUpperCase()} HOME</Text>
+      <View style={{ flexDirection: 'row' }}><TrackerTile w={{ id: k, kind: 'tracker', tracker: { ...tr, value: 0, week: [0, 0, 0, 0, 0, 0, 0] }, size: 'wide' }} /></View>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {['Edit', 'Undo'].map((t) => (
+          <View key={t} style={{ paddingVertical: 6, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: colours.border, backgroundColor: colours.surface }}>
+            <Text style={{ color: colours.purpleInk, fontSize: 13, fontWeight: '700' }}>{t}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export function TaliMessage({ content }: { content: string }) {
   const blocks = parseTali(content);
   const [copiedAll, setCopiedAll] = useState(false);
@@ -170,6 +196,8 @@ export function TaliMessage({ content }: { content: string }) {
     <View style={{ gap: 10, backgroundColor: 'rgba(12,10,36,0.74)', borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16 }}>
       {blocks.map((b, i) => {
         switch (b.type) {
+          case 'widget':
+            return <WidgetAdded key={i} k={b.key} home={b.home} />;
           case 'lead':
             return <Inline key={i} text={b.text} style={{ color: colours.text, fontSize: 16.5, lineHeight: 23, fontWeight: '700' }} />;
           case 'para':

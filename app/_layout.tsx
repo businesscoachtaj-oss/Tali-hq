@@ -83,6 +83,8 @@ function RootNavigator() {
       <Stack.Screen name="book/[slug]" />
       <Stack.Screen name="site/[slug]" />
       <Stack.Screen name="quote/[slug]" />
+      {/* 16 Nov 2026: a shared HQ layout. */}
+      <Stack.Screen name="hq/[slug]" />
     </Stack>
   );
 }

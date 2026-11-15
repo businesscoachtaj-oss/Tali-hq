@@ -10,10 +10,15 @@ import { TaliAvatar } from '@/components/TaliAvatar';
 import { BUSINESS_TYPES } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
 import { enablePush, pushSupported } from '@/lib/push';
+import { startingLayout, TRACKER_PRESETS } from '@/lib/widgets';
+import { MiniLayout } from '@/components/Widgets';
 
 // 11 Nov 2026: a last step asks for notifications, since her briefs and nudges rely on them.
 // Skipped where this device can't have them.
-const LAST = pushSupported ? 4 : 3;
+// 16 Nov 2026 (Taj): two more steps build their starting HQ, so nobody starts on a blank home:
+// what they want to keep count of, then a look at the home it made (add and remove more later).
+const TRACK = 4, HQ = 5, PUSH = 6;
+const LAST = pushSupported ? PUSH : HQ;
 const STEPS = LAST + 1;
 const PLATE = ['My week and to-dos', 'My business', 'Money', 'Health and habits', 'The people in my life', 'Big goals'];
 
@@ -30,6 +35,10 @@ export default function Onboarding() {
   const [error, setError] = useState('');
   const [pushOn, setPushOn] = useState(false);
   const [pushNote, setPushNote] = useState('');
+  const [tracks, setTracks] = useState<string[]>([]);
+  // Trackers to offer, from what they want a hand with (and the business ones if they run one).
+  const offer = Object.entries(TRACKER_PRESETS).filter(([, p]) => p.for.some((f) => plate.includes(f)) && (p.group !== 'Business' || hasBusiness)).map(([k]) => k);
+  const built = startingLayout(plate, tracks, !!hasBusiness);
 
   // Their phone's own permission box only appears after this tap.
   async function turnOnPush() {
@@ -87,6 +96,8 @@ export default function Onboarding() {
     { kicker: 'YOUR PLATE', q: `Nice to meet you${name ? `, ${name}` : ''}. What would you like a hand with?`, sub: 'Pick as many as you like. You can change it later.' },
     { kicker: 'YOUR WORK', q: 'Do you run a business?', sub: 'Either is fine. I look after your whole life, work included.' },
     { kicker: 'ONE LAST THING', q: 'Anything I should know from day one?', sub: 'Optional. Everything you tell me becomes a memory in my brain.' },
+    { kicker: 'KEEPING COUNT', q: 'Anything you want to keep count of?', sub: 'Pick a few to start. You can add your own, or ask me to make one, any time.' },
+    { kicker: 'YOUR HQ', q: `Here's your HQ${name ? `, ${name}` : ''}.`, sub: 'Built from what you told me. Add, remove, move or resize anything later from Edit home.' },
     { kicker: 'STAYING IN TOUCH', q: 'Can I tap you on the shoulder?', sub: 'I work in the background. Notifications are how I tell you the things worth knowing.' },
   ][step];
 
@@ -147,7 +158,40 @@ export default function Onboarding() {
         />
       ) : null}
 
-      {step === 4 ? (
+      {step === TRACK ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md }}>
+          {(offer.length ? offer : ['water', 'sleep', 'read', 'savings']).map((k) => {
+            const p = TRACKER_PRESETS[k], on = tracks.includes(k);
+            return (
+              <Pressable key={k} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setTracks((t) => (on ? t.filter((x) => x !== k) : [...t, k]))}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? p.colour : 'rgba(214,200,255,0.4)', backgroundColor: on ? p.colour : 'rgba(255,255,255,0.07)' }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: on ? '#0C0A24' : p.colour }} />
+                <Text style={{ color: on ? '#0C0A24' : '#FFFFFF', fontWeight: '700', fontSize: 15 }}>{p.name}</Text>
+              </Pressable>
+            );
+          })}
+          <View style={{ paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(214,200,255,0.6)' }}>
+            <Text style={{ color: '#D7CCFF', fontWeight: '700', fontSize: 15 }}>+ Something else</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {step === HQ ? (
+        <View style={{ marginBottom: space.lg }}>
+          {hasBusiness ? <Text style={{ color: '#B9A6FF', fontSize: 12, fontWeight: '800', letterSpacing: 1.6, marginBottom: 8 }}>YOUR LIFE HOME</Text> : null}
+          <View style={{ borderRadius: 22, padding: 12, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: 'rgba(185,166,255,0.5)' }}>
+            <MiniLayout widgets={built.life} blank />
+          </View>
+          {hasBusiness ? (<>
+            <Text style={{ color: '#FFB561', fontSize: 12, fontWeight: '800', letterSpacing: 1.6, marginTop: space.md, marginBottom: 8 }}>YOUR BUSINESS HOME</Text>
+            <View style={{ borderRadius: 22, padding: 12, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: 'rgba(255,181,97,0.5)' }}>
+              <MiniLayout widgets={built.business} blank />
+            </View>
+          </>) : null}
+        </View>
+      ) : null}
+
+      {step === PUSH ? (
         <>
           {[
             ['Your morning brief', 'One note a day with what needs you.'],
@@ -170,7 +214,7 @@ export default function Onboarding() {
       ) : null}
 
       <ErrorText>{error}</ErrorText>
-      <Button title={step === LAST ? (step === 4 && !pushOn ? 'Not now, meet Tali' : 'Meet Tali') : 'Next'} kind={step === 4 && !pushOn ? 'ghost' : 'primary'} onPress={next} busy={busy && step !== 4} />
+      <Button title={step === LAST ? (step === PUSH && !pushOn ? 'Not now, meet Tali' : 'Meet Tali') : step === HQ ? 'Looks good' : 'Next'} kind={step === PUSH && !pushOn ? 'ghost' : 'primary'} onPress={next} busy={busy && step !== PUSH} />
       {step > 0 ? <Button title="Back" kind="ghost" onPress={() => { setError(''); setStep(step - 1); }} disabled={busy} /> : null}
       {/* 4 Nov 2026: a way out if this isn't your account (shared device, wrong email). */}
       {step === 0 ? <Button title="Not you? Sign out" kind="ghost" onPress={signOut} disabled={busy} /> : null}
