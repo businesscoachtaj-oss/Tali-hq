@@ -1,6 +1,6 @@
 // The first-run tour's steps and the two calls that save its state.
 // Tab indices match (app)/_layout.tsx: 0 Today, 1 Talk, 2 Her brain, 3 Your world, 4 Me.
-// Targets are spots Today registers with lib/tourTargets.ts: brain, level, tell, yes, due, glance.
+// Targets are spots Today registers with lib/tourTargets.ts: brain, level, tell, edit, yes, due, glance.
 // Rewritten 10 Nov 2026 for the brain Today and the new tabs (the old steps still pointed at Clients and Journal).
 // Rewritten 3 Nov 2026 for the owner's rhythm screens (brief, level, drafts, shutdown, glance).
 import type { TourStep } from '@/components/AppTour';
@@ -17,6 +17,13 @@ export const TOUR_STEPS: TourStep[] = [
     body: "Every dot is something I know. The bright stars around it are your day: what's due, what needs your yes, who to get back to. Tap a star to open it. Tap my brain to step inside.",
     pose: 'head',
     target: 'brain',
+  },
+  // ADDED (17 Nov 2026, Taj: Build your HQ): one step pointing at Edit home.
+  {
+    title: 'Your HQ',
+    body: 'This is yours. Add, move, resize or remove anything, or ask me to build something.',
+    pose: 'idle',
+    target: 'edit',
   },
   {
     title: 'We level up together',
@@ -44,7 +51,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     title: 'At a glance',
-    body: "Money, your week and the goals I hold you to. Tap a tile to open it. On Sundays I write up your week and we pick three promises for the next.",
+    body: "Money, your week and the goals I hold you to, each in its own block you can move. On Sundays I write up your week and we pick three promises for the next.",
     pose: 'idle',
     target: 'glance',
   },

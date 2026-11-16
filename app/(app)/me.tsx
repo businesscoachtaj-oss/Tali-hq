@@ -244,6 +244,8 @@ export default function Me() {
       <Card style={{ marginTop: space.md, paddingVertical: 4 }}>
         <MenuRow title="Share her brain" sub="A card of how much she knows, with nothing private on it" onPress={() => router.navigate('/brain-card')} />
         <MenuRow title={exporting ? 'Putting it together...' : 'Download her brain'} sub={exportNote || 'Everything she knows about you, as a file you keep'} onPress={() => { if (!exporting) void download(); }} />
+        {/* 17 Nov 2026 (Build your HQ): Edit home lives above the widgets on Today and here. */}
+        <MenuRow title="Edit home" sub="Add, move, resize or remove what is on Today" onPress={() => router.navigate('/home-edit' as any)} />
         <MenuRow title="Settings" sub="Your details, rhythm, notifications" onPress={() => router.navigate('/settings')} />
         <MenuRow title="Show me around again" sub="The quick tour of Tali HQ" onPress={async () => {
           if (!session) return;

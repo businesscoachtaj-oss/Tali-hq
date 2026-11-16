@@ -43,6 +43,8 @@ export type PublicSite = { name: string; kind: 'business' | 'life'; tagline: str
 export async function publicSite(slug: string): Promise<PublicSite | null> {
   const { data, error } = await supabase.rpc('site_public', { p_slug: slug });
   if (error) throw error;
+  // 17 Nov 2026: count the visit for the owner's Website visits block. A count only, nothing about the visitor.
+  if (data) supabase.rpc('site_visit', { p_slug: slug, p_path: '/' }).then(() => {}, () => {});
   return (data as PublicSite) ?? null;
 }
 export async function publicEnquiry(slug: string, r: { name: string; email: string; phone: string; message: string }): Promise<{ ok: boolean; message?: string }> {

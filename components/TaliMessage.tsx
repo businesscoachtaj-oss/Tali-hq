@@ -16,7 +16,9 @@ type Block =
   | { type: 'bullets'; items: string[] }
   | { type: 'steps'; items: { n: string; text: string }[] }
   | { type: 'draft'; text: string }
-  | { type: 'callout'; label: string; text: string };
+  | { type: 'callout'; label: string; text: string }
+  // 16 Nov 2026: a widget she just added to your home, written as [[widget:key|home]] on its own line.
+  | { type: 'widget'; key: string; home: string };
 
 const BULLET = /^\s*(?:[-•*])\s+(.*)$/;
 const STEP = /^\s*(\d{1,2})[.)]\s+(.*)$/;
@@ -71,6 +73,8 @@ export function parseTali(raw: string): Block[] {
           continue;
         }
       }
+      const wm = p.match(/^\[\[widget:(\w+)\|?(\w*)\]\]$/);
+      if (wm) { blocks.push({ type: 'widget', key: wm[1], home: wm[2] || 'life' }); continue; }
       if (isQuotedDraft(p)) { blocks.push({ type: 'draft', text: stripQuotes(p) }); continue; }
       const co = p.match(CALLOUT);
       if (co) {
@@ -170,6 +174,9 @@ export function TaliMessage({ content }: { content: string }) {
     <View style={{ gap: 10, backgroundColor: 'rgba(12,10,36,0.74)', borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16 }}>
       {blocks.map((b, i) => {
         switch (b.type) {
+          case 'widget':
+            // 17 Nov 2026: trackers she makes now show as a card under her reply (components/TrackedCard.tsx).
+            return null;
           case 'lead':
             return <Inline key={i} text={b.text} style={{ color: colours.text, fontSize: 16.5, lineHeight: 23, fontWeight: '700' }} />;
           case 'para':
