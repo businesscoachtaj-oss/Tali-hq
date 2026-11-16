@@ -158,6 +158,8 @@ export type Message = { id: string; role: 'user' | 'assistant' | 'tool'; content
   spent?: { count: number; total: number } | null;
   // 11 Nov 2026: what she added to or ticked off your lists from this reply (Your world).
   listed?: { count: number; kind: string; kinds?: string[] } | null;
+  // 17 Nov 2026 (Build your HQ): trackers she made or logged to from this reply.
+  tracked?: { made: { id: string; name: string; home: string }[]; logged: { id: string; name: string; amount: number; type: string; unit: string }[] } | null;
   // The extra AIs (10 Nov 2026). routed names the AI behind a reply and is only ever sent to the founder.
   second_opinion?: { by: string; agree: string; differ: string; credits: number };
   sources?: { title: string; url: string }[];

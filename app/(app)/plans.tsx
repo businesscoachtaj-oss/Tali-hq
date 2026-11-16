@@ -27,6 +27,9 @@ const BIZ_FEATURES = [
   'Quote calculator: a hosted page where customers pick what they want and see a rough price',
   'On autopilot: rules that put a nudge on your To do so nothing slips',
   'Bookkeeping pack: a quarter on one page, ready for your accountant',
+  // 17 Nov 2026 (Build your HQ).
+  'Business blocks for your home: Team, Leads, Cash flow, Bookings today, Website visits, Quote win rate and Customer happiness',
+  'A team layout you set and push to every seat, and team trackers everyone logs to',
 ];
 const BIZ_SOON = [
   { name: 'Tali HQ Business Pro', price: 389.99, what: 'For a small team. Seats for your staff, text messages to customers and Tali answering your phone.' },

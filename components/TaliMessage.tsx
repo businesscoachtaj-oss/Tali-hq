@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { colours, radius } from '@/constants/theme';
-import { TRACKER_PRESETS } from '@/lib/widgets';
-import { TrackerTile } from '@/components/Widgets';
 
 // Tali's replies in Talk, laid out instead of one wall of text (mockup, 5 Nov 2026).
 // A small hand-rolled reader for the few patterns Tali writes, no markdown library:
@@ -167,26 +165,6 @@ function DraftBlock({ text }: { text: string }) {
   );
 }
 
-// 16 Nov 2026: the widget card in her reply, with Undo and Edit so nothing lands on your home without a way back.
-function WidgetAdded({ k, home }: { k: string; home: string }) {
-  const p = TRACKER_PRESETS[k];
-  if (!p) return null;
-  const { group, for: _f, ...tr } = p;
-  return (
-    <View style={{ gap: 8, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: colours.border, backgroundColor: 'rgba(30,24,88,0.55)' }}>
-      <Text style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: colours.good }}>ADDED TO YOUR {home.toUpperCase()} HOME</Text>
-      <View style={{ flexDirection: 'row' }}><TrackerTile w={{ id: k, kind: 'tracker', tracker: { ...tr, value: 0, week: [0, 0, 0, 0, 0, 0, 0] }, size: 'wide' }} /></View>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {['Edit', 'Undo'].map((t) => (
-          <View key={t} style={{ paddingVertical: 6, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: colours.border, backgroundColor: colours.surface }}>
-            <Text style={{ color: colours.purpleInk, fontSize: 13, fontWeight: '700' }}>{t}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
 export function TaliMessage({ content }: { content: string }) {
   const blocks = parseTali(content);
   const [copiedAll, setCopiedAll] = useState(false);
@@ -197,7 +175,8 @@ export function TaliMessage({ content }: { content: string }) {
       {blocks.map((b, i) => {
         switch (b.type) {
           case 'widget':
-            return <WidgetAdded key={i} k={b.key} home={b.home} />;
+            // 17 Nov 2026: trackers she makes now show as a card under her reply (components/TrackedCard.tsx).
+            return null;
           case 'lead':
             return <Inline key={i} text={b.text} style={{ color: colours.text, fontSize: 16.5, lineHeight: 23, fontWeight: '700' }} />;
           case 'para':

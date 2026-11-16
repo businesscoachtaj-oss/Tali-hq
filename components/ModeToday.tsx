@@ -23,9 +23,27 @@ function Stat({ label, value, hint, colour, onPress }: { label: string; value: s
   );
 }
 
-export function BusinessBoard({ money, world, followUps, paid }: { money: MoneyPicture | null; world: WorldNow | null; followUps: number; paid: boolean }) {
-  const p = world?.people, k = world?.work;
-  const runway = money ? runwayLabel(money.runwayWeeks) : null;
+// 17 Nov 2026 (Build your HQ): Money and Pipeline are their own blocks now, so each can be moved,
+// hidden or taken off the home. BusinessBoard still draws both together for anything that wants it.
+export function MoneyStats({ money, world }: { money: MoneyPicture; world: WorldNow | null }) {
+  const k = world?.work;
+  const runway = runwayLabel(money.runwayWeeks);
+  return (
+    <View style={{ gap: space.sm }}>
+      <View style={{ flexDirection: 'row', gap: space.sm }}>
+        <Stat label="In this month" value={money0(money.cashIn)} hint={money.goingOut ? `${money0(money.goingOut)} going out` : null} colour={colours.good} onPress={go('/money')} />
+        <Stat label="Owed to you" value={money0(money.owed)} hint={k?.owed_count ? `${k.owed_count} ${k.owed_count === 1 ? 'invoice' : 'invoices'} out` : null} colour={colours.text} onPress={go('/invoices')} />
+      </View>
+      <View style={{ flexDirection: 'row', gap: space.sm }}>
+        <Stat label="Late" value={money0(money.overdue)} hint={money.overdueInvoices[0] ? `${money.overdueInvoices[0].client_name ?? 'One invoice'} is the oldest` : 'Nobody is late'} colour={money.overdue > 0 ? colours.danger : colours.good} onPress={go('/invoices')} />
+        <Stat label="Runway" value={runway ?? 'Not set'} hint={runway ? 'at what you spend now' : 'Add your costs in Money'} colour={colours.text} onPress={go('/money')} />
+      </View>
+    </View>
+  );
+}
+
+export function PipelineRow({ world, followUps }: { world: WorldNow | null; followUps: number }) {
+  const p = world?.people;
   const pipe: { n: number; label: string; to: string; params?: Record<string, string>; hot?: boolean }[] = [
     { n: p?.lead ?? 0, label: 'leads', to: '/clients', params: { tab: 'lead' }, hot: !!p?.new_leads },
     { n: followUps, label: 'follow-ups due', to: '/clients', hot: followUps > 0 },
@@ -33,22 +51,6 @@ export function BusinessBoard({ money, world, followUps, paid }: { money: MoneyP
   ];
   return (
     <>
-      {paid && money ? (
-        <>
-          <Label>Money</Label>
-          <View style={{ gap: space.sm }}>
-            <View style={{ flexDirection: 'row', gap: space.sm }}>
-              <Stat label="In this month" value={money0(money.cashIn)} hint={money.goingOut ? `${money0(money.goingOut)} going out` : null} colour={colours.good} onPress={go('/money')} />
-              <Stat label="Owed to you" value={money0(money.owed)} hint={k?.owed_count ? `${k.owed_count} ${k.owed_count === 1 ? 'invoice' : 'invoices'} out` : null} colour={colours.text} onPress={go('/invoices')} />
-            </View>
-            <View style={{ flexDirection: 'row', gap: space.sm }}>
-              <Stat label="Late" value={money0(money.overdue)} hint={money.overdueInvoices[0] ? `${money.overdueInvoices[0].client_name ?? 'One invoice'} is the oldest` : 'Nobody is late'} colour={money.overdue > 0 ? colours.danger : colours.good} onPress={go('/invoices')} />
-              <Stat label="Runway" value={runway ?? 'Not set'} hint={runway ? 'at what you spend now' : 'Add your costs in Money'} colour={colours.text} onPress={go('/money')} />
-            </View>
-          </View>
-        </>
-      ) : null}
-      <Label>Pipeline</Label>
       <View style={{ flexDirection: 'row', backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border }}>
         {pipe.map((x, i) => (
           <Pressable key={x.label} onPress={go(x.to, x.params)} accessibilityRole="button" style={{ flex: 1, alignItems: 'center', paddingVertical: 14, borderLeftWidth: i ? 1 : 0, borderLeftColor: colours.border }}>
@@ -58,6 +60,16 @@ export function BusinessBoard({ money, world, followUps, paid }: { money: MoneyP
         ))}
       </View>
       {p?.new_leads ? <Text style={{ color: colours.orange, fontSize: 13, fontWeight: '700', marginTop: 8 }}>{p.new_leads} new {p.new_leads === 1 ? 'lead is' : 'leads are'} waiting on you</Text> : null}
+    </>
+  );
+}
+
+export function BusinessBoard({ money, world, followUps, paid }: { money: MoneyPicture | null; world: WorldNow | null; followUps: number; paid: boolean }) {
+  return (
+    <>
+      {paid && money ? (<><Label>Money</Label><MoneyStats money={money} world={world} /></>) : null}
+      <Label>Pipeline</Label>
+      <PipelineRow world={world} followUps={followUps} />
     </>
   );
 }
@@ -119,6 +131,70 @@ function Row({ icon, title, sub, colour, onPress }: { icon: Icon; title: string;
 }
 
 const when = (x: { title: string; days: number }) => (x.days < 0 ? 'Overdue' : `Due ${inDays(x.days)}`);
+
+// 17 Nov 2026 (Build your HQ): the Life side is blocks too. Each of these draws one, with no heading.
+export function HabitsList({ habits, ticks, today, onHabit }: { habits: LifeItem[]; ticks: Record<string, string[]>; today: string; onHabit: (id: string, on: boolean) => void }) {
+  return (
+    <Card>
+      {habits.slice(0, 5).map((x, i) => {
+        const on = (ticks[x.id] ?? []).includes(today);
+        return (
+          <Pressable key={x.id} onPress={() => onHabit(x.id, !on)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
+            <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? MODE.life.colour : 'transparent', borderWidth: 2, borderColor: on ? MODE.life.colour : colours.purpleInk }}>
+              {on ? <Ionicons name="checkmark" size={16} color="#141033" /> : null}
+            </View>
+            <Text style={{ flex: 1, color: on ? colours.muted : colours.text, fontSize: 15, fontWeight: '600', textDecorationLine: on ? 'line-through' : 'none' }}>{x.title}</Text>
+          </Pressable>
+        );
+      })}
+    </Card>
+  );
+}
+
+/** Birthdays, check-ups, admin and who to catch up with, in the next 30 days. Empty list when nothing is coming. */
+export function comingUp(world: WorldNow | null) {
+  const p = world?.people, h = world?.health, hm = world?.home;
+  const coming: { icon: Icon; title: string; sub: string; colour: string; to: string; params?: Record<string, string> }[] = [];
+  if (p?.next_birthday && p.next_birthday.days <= 30) coming.push({ icon: 'gift-outline', title: `${p.next_birthday.name}'s birthday`, sub: inDays(p.next_birthday.days).replace(/^./, (c) => c.toUpperCase()), colour: '#8EF0C8', to: '/dates' });
+  if (h?.checkup_next && h.checkup_next.days <= 30) coming.push({ icon: 'medkit-outline', title: h.checkup_next.title, sub: when(h.checkup_next), colour: '#FF9EC4', to: '/list', params: { kind: 'checkup' } });
+  if (hm?.admin_next && hm.admin_next.days <= 30) coming.push({ icon: 'folder-open-outline', title: hm.admin_next.title, sub: when(hm.admin_next), colour: '#9FE8FF', to: '/list', params: { kind: 'admin' } });
+  if (p?.stale) coming.push({ icon: 'happy-outline', title: `Catch up with ${p.stale.name}`, sub: `It has been ${p.stale.days >= 14 ? `${Math.floor(p.stale.days / 7)} weeks` : `${p.stale.days} days`}`, colour: '#8EF0C8', to: '/clients', params: { tab: 'friend' } });
+  return coming;
+}
+export function ComingUpList({ world }: { world: WorldNow | null }) {
+  const coming = comingUp(world);
+  return (
+    <View style={{ backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border }}>
+      {coming.map((c, i) => (
+        <View key={c.title} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
+          <Row icon={c.icon} title={c.title} sub={c.sub} colour={c.colour} onPress={go(c.to, c.params)} />
+        </View>
+      ))}
+    </View>
+  );
+}
+export function MoneyWeekCard({ pm }: { pm: PersonalMoney }) {
+  const left = (pm.weeklyAmount ?? 0) - pm.weekSpent;
+  return (
+    <Pressable onPress={go('/money', { side: 'personal' })} accessibilityRole="button">
+      <Card>
+        <Text style={{ color: left < 0 ? colours.danger : colours.good, fontSize: 30, fontWeight: '800' }}>{dollars(Math.abs(left))}</Text>
+        <Text style={{ color: colours.muted, fontSize: 13.5, marginTop: 2 }}>{left < 0 ? 'over for the week' : 'left to spend this week'}, {dollars(pm.weekSpent)} spent so far</Text>
+      </Card>
+    </Pressable>
+  );
+}
+export function YoursCard() {
+  return (
+    <>
+      <Label>Yours</Label>
+      <Card style={{ paddingVertical: 0, paddingHorizontal: 0 }}>
+        <Row icon="globe-outline" title="My website" sub="A simple site of your own, hosted for you" colour={MODE.life.colour} onPress={go('/website')} />
+      </Card>
+    </>
+  );
+}
 
 export function LifeBoard({ world, pm, habits, ticks, today, onHabit }: { world: WorldNow | null; pm: PersonalMoney | null; habits: LifeItem[]; ticks: Record<string, string[]>; today: string; onHabit: (id: string, on: boolean) => void }) {
   const p = world?.people, h = world?.health, hm = world?.home;

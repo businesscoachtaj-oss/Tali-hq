@@ -106,6 +106,8 @@ const VOICE = [
   'You can keep their people (family, friends, clients and leads, with birthdays), set reminders and draft invoices, but only when they ask. Confirm what you added in one short line.',
   // ADDED (11 Nov 2026, asked for by Taj: Your world filled in): the lists across their life.
   'You also keep their lists: to do, check ups, life admin, jobs around the home, habits, what they are learning, wins, someday dreams and ideas. When they tell you something that belongs on one, or that one is done, put it in lists and confirm in one short line. Their open items are given to you, so reuse the exact title when ticking one off. Never add something they only wondered about.',
+  // ADDED (17 Nov 2026, Taj: Build your HQ): trackers on their home.
+  'They can keep count of anything with trackers on their home (water, cold calls, savings, reading). When they ask you to track something, or tell you an amount for a tracker they already have, put it in trackers and confirm in one short line with the new number if you can work it out. Their trackers are given to you, so reuse the exact name when logging. Never make a tracker they did not ask for, and never log an amount they did not give.',
   'You hold them to their goals: when they set one or report progress, save it in goals and name where they are against it. When they state a decision they have made, record it in decisions with their reasoning; never record your own suggestions or things they are only considering. Their three commitments for the week and their last shutdown are in their rhythm data, so refer to them when it helps.',
   'You can also log their food, weight and workouts and write their training programme when they tell you or ask. Food numbers are your estimates, so say "about" and keep them realistic. No medical or diet advice beyond general information.',
   'When web search is available, use it only for things that change (prices, rules, news, events, local businesses) or that you do not know, and name your sources in the reply. Never search for personal details about private people.',
@@ -355,6 +357,28 @@ const TOOL = {
           required: ['list', 'action', 'title'],
         },
       },
+      // ADDED (17 Nov 2026, Taj: Build your HQ): make a tracker for their home, or log to one they have.
+      trackers: {
+        type: 'array',
+        maxItems: 4,
+        description:
+          'Only when they ask you to track or keep count of something ("track my cold calls, 20 a week", "add a water tracker"), or tell you an amount for a tracker they already have ("had 2 litres of water", "made 6 calls today", "did my reading"). Their trackers are given to you: reuse the exact name when logging. Empty otherwise. A daily habit with no number can be a yesno tracker only if they asked for a tracker; otherwise it belongs in lists.',
+        items: {
+          type: 'object',
+          properties: {
+            action: { type: 'string', enum: ['create', 'log'] },
+            name: { type: 'string', description: 'Short name in their words, like "Cold calls" or "Water". For log, the exact name of their tracker.' },
+            amount: { type: 'number', description: 'For log: how much to add. For a yesno tracker 1 means done. For a 1 to 5 tracker the rating.' },
+            date: { type: 'string', description: 'For log: YYYY-MM-DD in their timezone, only if it was not today.' },
+            type: { type: 'string', enum: ['count', 'yesno', 'money', 'time', 'scale'], description: 'For create. count for a number of things, yesno for did it or not, money for dollars, time for hours, scale for a 1 to 5 rating.' },
+            unit: { type: 'string', description: 'For create: a short unit like calls, L, pages, km. Empty for money, yesno and scale.' },
+            target: { type: 'number', description: 'For create: the target they gave. Omit if they gave none.' },
+            period: { type: 'string', enum: ['day', 'week', 'month', 'total'], description: 'For create: what the target is over. total for a goal to reach once, like savings.' },
+            home: { type: 'string', enum: ['life', 'business'], description: 'For create: which home it belongs on. business only for work things when they run a business.' },
+          },
+          required: ['action', 'name'],
+        },
+      },
       decisions: {
         type: 'array',
         maxItems: 3,
@@ -392,7 +416,7 @@ const TOOL = {
         },
       },
     },
-    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'spends', 'weight', 'workouts', 'emails', 'events', 'goals', 'lists', 'decisions', 'training_plan'],
+    required: ['reply', 'remember', 'drafts', 'clients', 'reminders', 'invoices', 'food', 'spends', 'weight', 'workouts', 'emails', 'events', 'goals', 'lists', 'trackers', 'decisions', 'training_plan'],
   },
 };
 // ADDED (6 Nov 2026, brain sections): lessons that prove themselves. Optional, so a reply that uses
@@ -434,6 +458,7 @@ type Out = {
   events?: { title: string; start: string; end: string; attendee_email?: string; location?: string; description?: string }[];
   goals?: { title: string; target_number?: number; current_number?: number; unit?: string; due_date?: string; status?: string; notes?: string; area?: string }[];
   lists?: { list: string; action?: string; title: string; due_date?: string; repeat_months?: number; note?: string }[];
+  trackers?: { action: string; name: string; amount?: number; date?: string; type?: string; unit?: string; target?: number; period?: string; home?: string }[];
   decisions?: { decision: string; reasoning?: string; date?: string }[];
   training_plan?: { name: string; days: { weekday: number; label: string; notes?: string }[] }[];
 };
@@ -843,6 +868,8 @@ Deno.serve(async (req) => {
     const pm: any = personalMoney ?? null;
     // ADDED (11 Nov 2026, asked for by Taj): their open lists and birthdays coming up (Your world).
     const { data: lifeLists } = await admin.rpc('tali_life_context', { p_user_id: user.id, p_today: moneyToday });
+    // ADDED (17 Nov 2026): the trackers on their home, so she can log to them by name. Quietly empty until the tables exist.
+    const { data: myTrackers } = await admin.from('trackers').select('id, name, type, unit, target, period, home, step').eq('user_id', user.id).is('archived_at', null).order('created_at').limit(40);
     const now = new Date().toLocaleString('en-AU', { timeZone: tz, dateStyle: 'full', timeStyle: 'short' });
     const offset = new Intl.DateTimeFormat('en-AU', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+11:00';
     const system = [
@@ -861,6 +888,7 @@ Deno.serve(async (req) => {
       `Their clients, leads, follow-ups due, open reminders, unpaid invoices and business health: ${JSON.stringify(work ?? {})}`,
       `Their food today (your estimates), weight and training this week: ${JSON.stringify(life ?? {})}`,
       `Their lists (open to dos, check ups, life admin, home jobs, habits, learning, someday and ideas), the habits already done today and birthdays in the next 45 days (data): ${JSON.stringify(lifeLists ?? {})}`,
+      `Their trackers (name, type, unit, target and what the target is over). Log to these by exact name (data): ${JSON.stringify((myTrackers ?? []).map((t: any) => ({ name: t.name, type: t.type, unit: t.unit, target: t.target, period: t.period, home: t.home })))}${consume.plan === 'free' ? ' They are on Free, which fits 3 trackers on a home. If that home already has 3, do not add another: tell them to archive one or go paid.' : ''}`,
       pm
         ? `Their personal money (their own spending, not the business). Weekly amount to spend: ${pm.weekly_amount ?? 'not set'}. Spent so far this week, before this message: ${pm.week_spent}. Spent this month: ${pm.month_spent}. This month by category with budgets: ${JSON.stringify(pm.categories ?? [])}. When they tell you a personal spend with an amount, put it in spends and tell them it is logged. If a weekly amount is set, say what is left for the week after it (weekly amount, minus spent so far, minus what they just told you; Rent and other repeating bills do not count against the week). Mention a category only if this spend takes it over its monthly budget. Keep it to a line or two, no advice unless they ask.`
         : '',
@@ -1279,6 +1307,49 @@ Deno.serve(async (req) => {
       meta.listed = { count: listsSaved, kind: listKinds[0], kinds: listKinds };
       if (saved?.id) await admin.from('messages').update({ meta }).eq('id', saved.id);
     }
+    // ADDED (17 Nov 2026, Taj: Build your HQ): make a tracker or log to one. Same cost as the chat message, nothing extra.
+    // A new tracker is put on their home by the app when the reply lands (it shows a card with Edit and Undo),
+    // so the home's saved order is only ever written in one place. Free limits are checked by the database.
+    const trackedMade: { id: string; name: string; home: string }[] = [];
+    const trackedLogged: { id: string; name: string; amount: number; type: string; unit: string }[] = [];
+    const escLike = (t: string) => t.replace(/[%_\\]/g, (ch) => '\\' + ch);
+    for (const t of (result.out.trackers ?? []).slice(0, 4)) {
+      const name = strip(String(t.name ?? '').trim()).replace(/\.$/, '').slice(0, 60);
+      if (!name) continue;
+      const { data: hit } = await admin.from('trackers').select('id, name, type, unit').eq('user_id', user.id).is('archived_at', null).ilike('name', escLike(name)).limit(1).maybeSingle();
+      if (t.action === 'log') {
+        const amount = Number(t.amount);
+        if (!hit || !Number.isFinite(amount)) continue;
+        const d = /^\d{4}-\d{2}-\d{2}$/.test(String(t.date ?? '')) && String(t.date) <= localToday ? String(t.date) : localToday;
+        const amt = hit.type === 'yesno' ? (amount > 0 ? 1 : 0) : hit.type === 'scale' ? Math.max(1, Math.min(5, Math.round(amount))) : amount;
+        let ok = false;
+        if (hit.type === 'yesno' || hit.type === 'scale') {
+          // One answer a day: a second log replaces the first.
+          const { data: had } = await admin.from('tracker_entries').select('id').eq('tracker_id', hit.id).eq('user_id', user.id).eq('day', d).limit(1).maybeSingle();
+          if (had) { const { error } = await admin.from('tracker_entries').update({ amount: amt, source: 'tali' }).eq('id', had.id); ok = !error; }
+        }
+        if (!ok) { const { error } = await admin.from('tracker_entries').insert({ tracker_id: hit.id, user_id: user.id, amount: amt, day: d, source: 'tali' }); ok = !error; }
+        if (ok) trackedLogged.push({ id: hit.id, name: hit.name, amount: amt, type: hit.type, unit: hit.unit ?? '' });
+      } else if (t.action === 'create') {
+        if (hit) { trackedMade.push({ id: hit.id, name: hit.name, home: 'life' }); continue; }
+        const type = ['count', 'yesno', 'money', 'time', 'scale'].includes(String(t.type)) ? String(t.type) : 'count';
+        const period = ['day', 'week', 'month', 'total'].includes(String(t.period)) ? String(t.period) : type === 'money' ? 'month' : 'day';
+        const target = Number.isFinite(Number(t.target)) && Number(t.target) > 0 ? Number(t.target) : null;
+        const home = t.home === 'business' ? 'business' : 'life';
+        const colours = ['#B9A6FF', '#FFB561', '#7FE0B0', '#8FD3FF', '#FF9AD5', '#FFE08A'];
+        const { data: made, error } = await admin.from('trackers').insert({
+          user_id: user.id, name, type, unit: type === 'money' ? 'A$' : type === 'time' ? 'h' : type === 'scale' ? '/5' : type === 'yesno' ? '' : strip(String(t.unit ?? '')).slice(0, 16),
+          target: type === 'scale' || (type === 'yesno' && period === 'day') ? null : target, period,
+          style: type === 'yesno' ? 'streak' : type === 'scale' ? 'chart' : target ? 'ring' : 'number',
+          colour: colours[((myTrackers ?? []).length + trackedMade.length) % colours.length], step: type === 'count' ? 1 : type === 'time' ? 0.5 : null, home,
+        }).select('id, name').single();
+        if (!error && made) trackedMade.push({ id: made.id, name: made.name, home });
+      }
+    }
+    if (trackedMade.length || trackedLogged.length) {
+      meta.tracked = { made: trackedMade, logged: trackedLogged };
+      if (saved?.id) await admin.from('messages').update({ meta }).eq('id', saved.id);
+    }
     let weightLogged = false;
     for (const w of (result.out.weight ?? []).slice(0, 1)) {
       const kg = Math.round(Number(w.kg) * 10) / 10;
@@ -1320,7 +1391,7 @@ Deno.serve(async (req) => {
       admin.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId),
     ]);
 
-    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, spendsLogged, listsSaved, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, deep, suggestDeep: !deep && !!result.out.suggest_deep, meta, remaining: Math.max(0, (consume.remaining ?? 0) - extraCredits - (onFree ? 0 : 2 * result.searches)) });
+    return json({ ok: true, reply, messageId: saved?.id, remembered, drafted, emailsDrafted, eventsDrafted, clientsSaved, remindersSet, goalsSaved, decisionsLogged, invoicesDrafted, foodLogged, spendsLogged, listsSaved, trackersSaved: trackedMade.length + trackedLogged.length, weightLogged, workoutsLogged, planSaved, searched: result.searches, image, deep, suggestDeep: !deep && !!result.out.suggest_deep, meta, remaining: Math.max(0, (consume.remaining ?? 0) - extraCredits - (onFree ? 0 : 2 * result.searches)) });
   } catch (e) {
     await admin.rpc('chat_refund', { p_usage_id: usageId });
     if (deepFreeId) await admin.from('usage').delete().eq('id', deepFreeId);

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/lib/auth';
 import { useFocusLoad } from '@/lib/useFocusLoad';
 import { runAutopilot } from '@/lib/site';
@@ -42,14 +43,20 @@ import { setDayShut } from '@/lib/sky';
 import { Aurora } from '@/components/Aurora';
 // 12 Nov 2026 (Taj): Business and Life modes.
 import { ModeSwitch, TagPill } from '@/components/ModeSwitch';
-import { BusinessBoard, BusinessTools, LifeBoard } from '@/components/ModeToday';
+import { BusinessTools, ComingUpList, HabitsList, MoneyStats, MoneyWeekCard, PipelineRow, YoursCard, comingUp } from '@/components/ModeToday';
 import { TeamWorkCard } from '@/components/TeamUi';
 import { sideOf, useClockMode, useMode } from '@/lib/mode';
 import { habitTicks, lifeItems, myWorld, setHabitDay, type LifeItem, type WorldNow } from '@/lib/world';
 import { loadPersonalMoney, type PersonalMoney } from '@/lib/personalMoney';
 // 16 Nov 2026 (Taj): Build your HQ. The user's own blocks sit under her brain.
-import { WidgetGrid } from '@/components/Widgets';
-import { useHomeLayout } from '@/lib/widgets';
+// 17 Nov 2026: built for real. The whole of Today follows the saved layout, her brain fixed on top.
+import { ExtraTile, HomeHeader, TrackerTile } from '@/components/Widgets';
+import { BUILTINS, TRACKER_PRESETS, homeKeyFor, reloadHq, saveLayout, useHome, useHq, type BuiltIn, type Extra, type Tracker, type Widget } from '@/lib/widgets';
+import { BillsBlock, BlockLabel, BookingsBlock, CashflowBlock, HappinessBlock, InvoicesBlock, JobsBlock, LeadsBlock, NoteStrip, QuoteRateBlock, StartHint, TaliPickBlock, TeamBlock, VisitsBlock } from '@/components/HqBlocks';
+import { TeamHomeSection } from '@/components/TeamHome';
+import { useBoard } from '@/lib/hqBoard';
+import { useBusinesses } from '@/lib/businesses';
+import { behind } from '@/lib/trackerMath';
 
 function greeting() {
   const h = new Date().getHours();
@@ -69,8 +76,15 @@ function trialLine(c: Credits | null) {
   return null;
 }
 
-// Which At a glance tiles belong to which lens. The 'health' tile is business health, so it sits with work.
-const LENS_TILES: Record<string, string[]> = { money: ['money'], work: ['health', 'money'], growth: ['week', 'goals'], health: [], people: [] };
+// Which blocks belong to which lens (pick a part of your life under her brain and the page follows).
+// A block not listed here shows under every lens.
+const LENS_BLOCKS: Partial<Record<BuiltIn, Lens[]>> = {
+  needs_you: ['work', 'people'], due: ['work', 'people'], night_idea: ['growth'], money: ['money', 'work'], invoices: ['money', 'work'], bills: ['money'],
+  pipeline: ['work', 'people'], jobs: ['work'], calendar: ['work', 'people'], goals: ['growth'], week: ['growth'], your_day: ['health'], habits: ['health', 'growth'],
+  people: ['people'], journal: ['growth'], sleep: ['health'], team: ['work', 'people'], leads: ['work', 'people'], cashflow: ['money', 'work'], bookings: ['work'],
+  visits: ['work'], quote_rate: ['work', 'money'], happiness: ['people', 'work'],
+};
+const LENS_GROUP: Record<string, Lens[]> = { Health: ['health'], Mind: ['health', 'growth'], Money: ['money'], People: ['people'], Business: ['work'], Work: ['work'] };
 
 export default function Today() {
   const { profile, session, refreshProfile } = useAuth();
@@ -84,7 +98,9 @@ export default function Today() {
   const yesRef = useRef<View>(null);
   const dueRef = useRef<View>(null);
   const glanceRef = useRef<View>(null);
+  const editRef = useRef<View>(null);
   useEffect(() => {
+    registerTarget('edit', editRef);
     registerTarget('hero', heroRef);
     registerTarget('yes', yesRef);
     registerTarget('due', dueRef);
@@ -131,7 +147,17 @@ export default function Today() {
   const [room, setRoom] = useState<Room>('business');
   const hasBiz = useHasBusiness();
   const mode = useMode();
-  const [homeLayout] = useHomeLayout(mode);
+  const hq = useHq();
+  const bz = useBusinesses();
+  const homeKey = homeKeyFor(mode, hasBiz, bz.current);
+  const home = useHome(homeKey, hasBiz);
+  // Bumps on every reload so blocks that load their own numbers (Jobs on, the Business blocks) refresh too.
+  const [tick, setTick] = useState(0);
+  // A shared layout link opened before signing in or signing up: offer it once they are in.
+  const [pendingLayout, setPendingLayout] = useState<string | null>(null);
+  useEffect(() => { AsyncStorage.getItem('tali.pending_layout').then((v) => setPendingLayout(v && /^[a-z0-9-]{4,40}$/.test(v) ? v : null), () => {}); }, [tick]);
+  const wantsBoard = home.plan === 'biz' && home.shown.some((w) => w.kind === 'builtin' && BUILTINS[w.builtin!]?.plan === 'biz');
+  const { board } = useBoard(wantsBoard, null, bz.all ? 'all' : bz.current ?? 'main', tick);
   useClockMode();
   const [world, setWorld] = useState<WorldNow | null>(null);
   const [pm, setPm] = useState<PersonalMoney | null>(null);
@@ -142,6 +168,8 @@ export default function Today() {
 
   const load = useCallback(async () => {
     setLoadError('');
+    reloadHq().catch(() => {});
+    setTick((t) => t + 1);
     try {
       const endOfToday = addDays(new Date(new Date().setHours(0, 0, 0, 0)), 1).toISOString();
       const [b, a, c, r, f, sd] = await Promise.all([recentBriefs(5), pendingApprovals(), myCredits(), openReminders(endOfToday), followUpsDue(today()), todaysShutdown().catch(() => null)]);
@@ -213,12 +241,11 @@ export default function Today() {
   useEffect(() => { setDayShut(night); }, [night]);
   // With no business there is no business health to show (10 Nov 2026).
   const biz = useHasBusiness();
-  const allTiles = glanceTiles({ credits, money, health, week, goals }).filter((t) => biz || t.key !== 'health');
-  // Business mode shows money as its own row of numbers, so the tile is not repeated.
+  // Money, This week and Goals are blocks now. Business health stays as the one glance tile.
+  const healthTile = biz ? glanceTiles({ credits, money: null, health, week, goals: [] }).filter((t) => t.key === 'health') : [];
   const bizMode = biz && mode === 'business';
   // Someone with no business has no modes: they see everything on one Today, as before.
   const workSide = !biz || bizMode;
-  const tiles = !biz ? allTiles : bizMode ? allTiles.filter((t) => t.key !== 'money') : [];
   const mine = !biz ? reminders : reminders.filter((r) => sideOf(r, 'business') === (bizMode ? 'business' : 'life'));
   const theirs = reminders.length - mine.length;
   // Things that need you on each side. The side you are not on shows the count, so nothing gets missed.
@@ -237,6 +264,188 @@ export default function Today() {
     if (followUps.length) bits.push(`${followUps.length} ${followUps.length === 1 ? 'follow-up is' : 'follow-ups are'} due`);
     return bits.length ? `${bits.join(', ')}.`.replace(/^./, (ch) => ch.toUpperCase()) : 'All quiet. Nothing is waiting on you.';
   })();
+
+  // ── Build your HQ: one function per kind of block ──
+  const pick = hq.notes.find((n) => n.kind === 'pick' && (!biz || !n.side || n.side === mode));
+  // Set-wording nudges (paid plans, no AI): a tracker with "Tali keeps me on track" on that has fallen behind a steady pace.
+  const nudges = home.plan === 'free' ? [] : home.shown
+    .filter((w) => w.kind === 'tracker' && (w.tracker as Tracker).checkIn)
+    .map((w) => w.tracker as Tracker)
+    // A check-in she wrote this morning for the same tracker stands in for the set wording.
+    .filter((t) => !hq.notes.some((n) => n.kind === 'nudge' && n.tracker_id === t.id))
+    .filter((t) => behind(t, t.team ? t.teamValue ?? 0 : t.value, today(), new Date().getHours()))
+    .slice(0, 2)
+    .map((t) => {
+      const v = t.team ? t.teamValue ?? 0 : t.value;
+      const left = (t.target ?? 0) - v;
+      const n = t.type === 'money' ? `A$${Math.round(left).toLocaleString('en-AU')}` : `${Number(left.toFixed(1))}${t.unit ? ` ${t.unit}` : ''}`;
+      return { id: t.id, colour: t.colour, line: `${t.name} is behind: ${n} to go ${t.period === 'day' ? 'today' : t.period === 'week' ? 'this week' : 'this month'}.` };
+    });
+  const glanceOn = home.shown.find((w) => w.builtin === 'money' || w.builtin === 'week' || w.builtin === 'goals')?.id ?? null;
+  const saveExtra = (id: string, extra: Extra) => { saveLayout(homeKey, home.blocks.map((b) => (b.id === id ? { ...b, extra } : b))).catch(() => {}); };
+  const linkCard = (title: string, sub: string, to: string) => (
+    <Pressable onPress={() => router.navigate(to as any)} accessibilityRole="button">
+      <Card>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{title}</Text>
+            <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>{sub}</Text>
+          </View>
+          <Text style={{ fontSize: 20, color: colours.faint }}>{'›'}</Text>
+        </View>
+      </Card>
+    </Pressable>
+  );
+  const paid = isPaid(credits);
+  function builtinBody(k: BuiltIn): React.ReactNode {
+    const title = BUILTINS[k].title;
+    switch (k) {
+      case 'needs_you':
+        return (
+          <>
+            <BlockLabel>{title}</BlockLabel>
+            {newMail.length ? (
+              <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">
+                <Card>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: colours.text }}>
+                        {newMail.length === 1 ? `Email from ${newMail[0].from_name || newMail[0].from_email || 'someone'}` : `${newMail.length} emails need a look`}
+                      </Text>
+                      <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2, lineHeight: 19 }} numberOfLines={2}>
+                        {newMail.length === 1 ? newMail[0].summary || newMail[0].subject || 'Tap to read it.' : newMail.map((e) => e.from_name || e.from_email).filter(Boolean).slice(0, 3).join(', ')}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 20, color: colours.faint }}>{'›'}</Text>
+                  </View>
+                </Card>
+              </Pressable>
+            ) : null}
+            {approvals.length ? (
+              <FoldList
+                folds={approvals.map((a) => ({
+                  key: a.id,
+                  title: a.title,
+                  hint: a.draft?.to_name ? `To ${a.draft.to_name}` : a.draft?.body?.slice(0, 60),
+                  body: <DraftCard item={a} onDecided={(id) => setApprovals((list) => list.filter((x) => x.id !== id))} />,
+                }))}
+              />
+            ) : null}
+            {!newMail.length && !approvals.length ? <StartHint builtin="needs_you" /> : null}
+          </>
+        );
+      case 'due':
+        return (
+          <>
+            <BlockLabel>{title}</BlockLabel>
+            {mine.length + (workSide ? followUps.length : 0) > 0 ? (
+              <DueList reminders={mine} followUps={workSide ? followUps : []} onChange={load} />
+            ) : loaded ? (
+              <Card><Body muted>Nothing due. Add a reminder and I'll nudge you when it's time.</Body></Card>
+            ) : (
+              <Card><ActivityIndicator color={colours.purple} /></Card>
+            )}
+            <AddReminder onAdded={load} side={biz ? mode : undefined} />
+            {biz && theirs > 0 ? <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 6 }}>{theirs} more due on the {bizMode ? 'Life' : 'Business'} side.</Text> : null}
+          </>
+        );
+      case 'brief':
+        return (
+          <>
+            <BlockLabel>{title}</BlockLabel>
+            {morning ? <BriefCard brief={morning} open={briefOpen} onToggle={() => setBriefOpen((o) => !o)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} /> : <StartHint builtin="brief" />}
+          </>
+        );
+      case 'night_idea':
+        return <NightIdeaCard />;
+      case 'tali_pick':
+        return (<><BlockLabel>{title}</BlockLabel><TaliPickBlock note={pick} /></>);
+      case 'money':
+        if (workSide) return (
+          <>
+            <BlockLabel>{title}</BlockLabel>
+            {!paid ? <StartHint builtin="money" to="/plans" cta="See plans" /> : money ? (biz ? <MoneyStats money={money} world={world} /> : <MoneyCard credits={credits} />) : <StartHint builtin="money" to="/money" />}
+          </>
+        );
+        return (
+          <>
+            <BlockLabel>Your money this week</BlockLabel>
+            {pm && pm.weeklyAmount != null ? <MoneyWeekCard pm={pm} /> : <StartHint builtin="money" to={paid ? '/money?side=personal' : '/plans'} cta={paid ? 'Open' : 'See plans'} />}
+          </>
+        );
+      case 'invoices':
+        return (<><BlockLabel>{title}</BlockLabel><InvoicesBlock money={money} /></>);
+      case 'bills':
+        return (<><BlockLabel>{title}</BlockLabel><BillsBlock pm={pm} /></>);
+      case 'pipeline':
+        return (<><BlockLabel>{title}</BlockLabel><PipelineRow world={world} followUps={followUps.length} /></>);
+      case 'jobs':
+        return (<><BlockLabel>{title}</BlockLabel><JobsBlock tick={tick} /></>);
+      case 'calendar':
+        return (<><BlockLabel>{title}</BlockLabel>{calendar ? <CalendarCard cal={calendar} /> : <StartHint builtin="calendar" to="/settings" cta="Settings" />}</>);
+      case 'goals':
+        return (<><BlockLabel>{title}</BlockLabel>{goals.length ? <GoalsCardView goals={goals} /> : <StartHint builtin="goals" to="/goals" />}</>);
+      case 'week':
+        return (
+          <>
+            <BlockLabel>{title}</BlockLabel>
+            {week.loaded && week.paid && (week.commitments.length || week.reviewDue)
+              ? <WeekCardView paid={week.paid} commitments={week.commitments} reviewDue={week.reviewDue} onTick={week.tick} />
+              : <StartHint builtin="week" to={paid ? '/review' : '/plans'} cta={paid ? 'Review' : 'See plans'} />}
+          </>
+        );
+      case 'your_day':
+        return (<><BlockLabel>Your day</BlockLabel>{life ? <YourDayCard life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} /> : <StartHint builtin="your_day" to="/settings" cta="Settings" />}</>);
+      case 'habits': {
+        const d = habits.filter((x) => (ticks[x.id] ?? []).includes(today())).length;
+        return (
+          <>
+            <BlockLabel>{habits.length ? `Habits today, ${d} of ${habits.length}` : title}</BlockLabel>
+            {habits.length ? (
+              <HabitsList habits={habits} ticks={ticks} today={today()}
+                onHabit={(id, on) => { setTicks((t) => ({ ...t, [id]: on ? [...(t[id] ?? []), today()] : (t[id] ?? []).filter((x) => x !== today()) })); setHabitDay(id, today(), on).catch(() => {}); }} />
+            ) : <StartHint builtin="habits" to="/list?kind=habit" cta="Add one" />}
+          </>
+        );
+      }
+      case 'people':
+        return (<><BlockLabel>Coming up</BlockLabel>{comingUp(world).length ? <ComingUpList world={world} /> : <StartHint builtin="people" to="/dates" />}</>);
+      case 'journal':
+        return linkCard('Write in your journal', 'Two lines is plenty. She learns from it.', '/journal');
+      case 'sleep':
+        return linkCard('Sleep sounds', 'Rain, waves or her night sky, with a timer', '/sleep');
+      default: {
+        // The Business blocks. They come with the Business plans and share one load.
+        if (home.plan !== 'biz') return null;
+        const body = !board ? <Card><ActivityIndicator color={colours.purple} /></Card>
+          : board.locked ? null
+          : k === 'team' ? <TeamBlock board={board} />
+          : k === 'leads' ? <LeadsBlock board={board} />
+          : k === 'cashflow' ? <CashflowBlock board={board} />
+          : k === 'bookings' ? <BookingsBlock board={board} />
+          : k === 'visits' ? <VisitsBlock board={board} />
+          : k === 'quote_rate' ? <QuoteRateBlock board={board} />
+          : k === 'happiness' ? <HappinessBlock board={board} onChanged={() => setTick((t) => t + 1)} />
+          : null;
+        return body ? (<><BlockLabel>{title}</BlockLabel>{body}</>) : null;
+      }
+    }
+  }
+  const renderWidget = (w: Widget) => {
+    if (w.kind === 'tracker') {
+      const groups = LENS_GROUP[TRACKER_PRESETS[(w.tracker as Tracker).preset ?? '']?.group ?? ''];
+      if (lens && groups && !groups.includes(lens)) return null;
+      return <TrackerTile key={w.id} w={w} />;
+    }
+    if (w.kind === 'extra') return lens ? null : <ExtraTile key={w.id} w={w} onChange={(x) => saveExtra(w.id, x)} />;
+    const k = w.builtin!;
+    if (lens && LENS_BLOCKS[k] && !LENS_BLOCKS[k]!.includes(lens)) return null;
+    const body = builtinBody(k);
+    if (!body) return null;
+    const ref = k === 'needs_you' ? yesRef : k === 'due' ? dueRef : w.id === glanceOn ? glanceRef : undefined;
+    return <View key={w.id} ref={ref} collapsable={false} style={{ width: '100%' }}>{body}</View>;
+  };
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
@@ -263,103 +472,69 @@ export default function Today() {
         </View>
         {/* 12 Nov 2026: anyone added to a team sees the work they have been given, straight under her brain. Nothing for everyone else. */}
         <View style={{ marginTop: space.md }}><TeamWorkCard /></View>
-        {!night ? <WidgetGrid widgets={homeLayout} mode={mode} /> : null}
         {/* Day closed (Taj, 10 Nov 2026): only her brain and the two bedtime buttons. The day's lists come back in the morning. */}
         {night ? <View style={{ marginTop: space.lg }}><ShutdownCard hideLine /></View> : (<>
+        {hq.notes.filter((n) => n.kind !== 'pick' && (!biz || !n.side || n.side === mode)).slice(0, 3).map((n) => <NoteStrip key={n.id} note={n} />)}
+        {pendingLayout ? (
+          <Pressable onPress={() => router.navigate(`/hq/${pendingLayout}` as any)} accessibilityRole="button"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colours.purpleSoft, borderRadius: 14, borderWidth: 1, borderColor: colours.purple, paddingVertical: 10, paddingHorizontal: 12, marginTop: space.sm }}>
+            <Text style={{ flex: 1, color: colours.text, fontSize: 13.5, lineHeight: 19 }}>You opened a shared HQ layout before you signed in. Want to add it to your home?</Text>
+            <Text style={{ color: colours.purple, fontWeight: '800' }}>Open it ›</Text>
+          </Pressable>
+        ) : null}
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
         {bizMode ? null : <View style={hide()}><SheNoticed /></View>}
 
-        {morning && briefOpen && !night ? (
+        {morning && briefOpen && !home.shown.some((w) => w.builtin === 'brief') ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />
         ) : null}
 
-        {bizMode ? <BusinessBoard money={money} world={world} followUps={followUps.length} paid={isPaid(credits)} /> : null}
-
         {/* Health lens: food and training come up to the top, so the lens has something to show. */}
-        {lens === 'health' && life ? (
+        {lens === 'health' && life && !home.shown.some((w) => w.builtin === 'your_day') ? (
           <>
             <Label>Your day</Label>
             <YourDayCard life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} />
           </>
         ) : null}
 
+        {/* 17 Nov 2026: a teammate's team home, set by the owner, sits above their own blocks. */}
+        {workSide ? hq.teamHomes.map((t) => <TeamHomeSection key={t.owner_id} team={t} tick={tick} />) : null}
+
+        {/* 17 Nov 2026 (Build your HQ): everything from here follows the person's own layout. */}
+        <HomeHeader mode={mode} editRef={editRef} />
+        {nudges.map((n) => (
+          <Pressable key={n.id} onPress={() => router.navigate(`/tracker?id=${n.id}` as any)} accessibilityRole="button"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colours.orangeSoft, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,181,97,0.5)', paddingVertical: 9, paddingHorizontal: 12, marginBottom: space.sm }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: n.colour }} />
+            <Text style={{ flex: 1, color: colours.text, fontSize: 13.5, lineHeight: 19 }}>{n.line}</Text>
+          </Pressable>
+        ))}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 }}>
+          {home.shown.map(renderWidget)}
+        </View>
+        {home.loaded && !home.shown.length ? (
+          <Card><Body muted>Your home is empty. Tap Edit home to add your first block.</Body></Card>
+        ) : null}
+
         {workSide ? <View style={hide('work', 'people')}><MeetingNudge credits={credits} calendar={calendar} compact /></View> : null}
 
-        <View style={hide('growth')}><NightIdeaCard /></View>
+        {bizMode ? <><BusinessTools /><View style={{ height: space.lg }} /><SheNoticed /></> : biz ? <YoursCard /> : null}
 
-        <View style={workSide ? hide('work', 'people') : { display: 'none' }}>
-        {newMail.length || approvals.length ? <Label>Needs you</Label> : null}
-        {newMail.length ? (
-          <Pressable onPress={() => router.navigate('/inbox')} accessibilityRole="button">
-            <Card>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: colours.text }}>
-                    {newMail.length === 1 ? `Email from ${newMail[0].from_name || newMail[0].from_email || 'someone'}` : `${newMail.length} emails need a look`}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2, lineHeight: 19 }} numberOfLines={2}>
-                    {newMail.length === 1 ? newMail[0].summary || newMail[0].subject || 'Tap to read it.' : newMail.map((e) => e.from_name || e.from_email).filter(Boolean).slice(0, 3).join(', ')}
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 20, color: colours.faint }}>{'›'}</Text>
-              </View>
-            </Card>
-          </Pressable>
-        ) : null}
-
-        {approvals.length ? (
-          <View ref={yesRef} collapsable={false}>
-            <FoldList
-              folds={approvals.map((a) => ({
-                key: a.id,
-                title: a.title,
-                hint: a.draft?.to_name ? `To ${a.draft.to_name}` : a.draft?.body?.slice(0, 60),
-                body: <DraftCard item={a} onDecided={(id) => setApprovals((list) => list.filter((x) => x.id !== id))} />,
-              }))}
-            />
-            <View style={{ height: space.sm }} />
-          </View>
-        ) : null}
-        </View>
-
-        <View ref={dueRef} collapsable={false} style={hide('work', 'people')}>
-        <Label>Due today</Label>
-        {mine.length + (workSide ? followUps.length : 0) > 0 ? (
-          <DueList reminders={mine} followUps={workSide ? followUps : []} onChange={load} />
-        ) : loaded ? (
-          <Card>
-            <Body muted>Nothing due. Add a reminder and I'll nudge you when it's time.</Body>
-          </Card>
-        ) : (
-          <Card>
-            <ActivityIndicator color={colours.purple} />
-          </Card>
-        )}
-        <AddReminder onAdded={load} side={biz ? mode : undefined} />
-        {biz && theirs > 0 ? <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 6 }}>{theirs} more due on the {bizMode ? 'Life' : 'Business'} side.</Text> : null}
-        </View>
-
-        {bizMode ? <><BusinessTools /><View style={{ height: space.lg }} /><SheNoticed /></> : !biz ? null : (
-          <LifeBoard world={world} pm={pm} habits={habits} ticks={ticks} today={today()}
-            onHabit={(id, on) => { setTicks((t) => ({ ...t, [id]: on ? [...(t[id] ?? []), today()] : (t[id] ?? []).filter((d) => d !== today()) })); setHabitDay(id, today(), on).catch(() => {}); }} />
-        )}
-
-
-        {tiles.length ? (
+        {healthTile.length ? (
           <>
             <View style={{ height: space.md }} />
-            <View ref={glanceRef} collapsable={false}>
-              <Label>At a glance</Label>
-              <GlanceGrid tiles={lens ? tiles.filter((t) => (LENS_TILES[lens] ?? []).includes(t.key)) : tiles} />
+            <View ref={glanceOn ? undefined : glanceRef} collapsable={false}>
+              <Label>Business health</Label>
+              <GlanceGrid tiles={healthTile} />
             </View>
           </>
-        ) : (
+        ) : glanceOn ? null : (
           <View ref={glanceRef} collapsable={false} />
         )}
 
         {(() => {
           const folds = moreFolds({
-            calendar,
+            calendar: home.shown.some((w) => w.builtin === 'calendar') ? null : calendar,
             life,
             patterns,
             lastDecision,
@@ -379,10 +554,11 @@ export default function Today() {
           ) : null;
         })()}
 
-        {bizMode ? null : <LifeRoom life={life} onTick={() => (life?.today_session ? logWorkout(today(), life.today_session).then(load) : undefined)} tiles={[]} />}
-        {loadError ? (
+        {/* ShutdownCard has its own heading (Tonight, or Day closed). */}
+        {bizMode ? null : <ShutdownCard />}
+        {loadError || hq.error ? (
           <Card>
-            <Body muted>{loadError} Pull down to try again.</Body>
+            <Body muted>{loadError || hq.error} Pull down to try again.</Body>
           </Card>
         ) : null}
         <View style={{ height: space.xl }} />
@@ -569,41 +745,4 @@ function moreFolds({ calendar, life, patterns, lastDecision, others, noteOpen, o
       ),
     });
   return folds;
-}
-
-// 9 Nov 2026 look refresh: the Life room on Today. Same cards as before, gathered in one place.
-function LifeRoom({ life, onTick, tiles }: { life: LifeSummary | null; onTick: () => void; tiles: Tile[] }) {
-  const link = (title: string, sub: string, to: string) => (
-    <Pressable onPress={() => router.navigate(to as any)} accessibilityRole="button">
-      <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{title}</Text>
-            <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>{sub}</Text>
-          </View>
-          <Text style={{ fontSize: 20, color: colours.faint }}>{'›'}</Text>
-        </View>
-      </Card>
-    </Pressable>
-  );
-  return (
-    <>
-      {life ? (
-        <>
-          <Label>Your day</Label>
-          <YourDayCard life={life} onTick={onTick} />
-        </>
-      ) : null}
-      {tiles.length ? (
-        <>
-          <Label>This week</Label>
-          <GlanceGrid tiles={tiles} />
-        </>
-      ) : null}
-      {/* ShutdownCard has its own heading (Tonight, or Day closed). It showed twice. */}
-      <ShutdownCard />
-      {link('Write in your journal', 'Two lines is plenty. She learns from it.', '/journal')}
-      {link('Sleep sounds', 'Rain, waves or her night sky, with a timer', '/sleep')}
-    </>
-  );
 }
