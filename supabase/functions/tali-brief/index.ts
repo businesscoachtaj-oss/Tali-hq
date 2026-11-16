@@ -61,7 +61,6 @@ const TOOL = {
           required: ['kind', 'content'],
         },
       },
-    },
       // ADDED (17 Nov 2026, Taj: Build your HQ). Written in the same call as the brief, so they cost nothing extra.
       pick: {
         type: 'object',
