@@ -38,6 +38,10 @@
 // Tali HQ plan customers get an address for forwarding only. Mail sent straight to the address
 // (enquiries) and "forward anything to her" stay Pro, as before.
 //
+// ADDED (17 Nov 2026, asked for by Taj): mail to an address on our domain that is nobody's Tali
+// address (replies to Totality's own outreach, sent from tali@) is forwarded to the company mailbox.
+// See forwardOutreachReply. Optional secret OUTREACH_FORWARD_TO overrides where it goes.
+//
 // Secrets: RESEND_API_KEY, RESEND_WEBHOOK_SECRET (whsec_...), INBOUND_DOMAIN (for example
 // tali.totality360.com.au), ANTHROPIC_API_KEY, optional TALI_MODEL.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
@@ -435,6 +439,101 @@ async function rememberAction(req: Request, id: string) {
   return appJson({ ok: true, remembered: r.saved, message: r.saved ? `Done. I kept ${r.saved} ${r.saved === 1 ? 'thing' : 'things'} from it. They are in my brain.` : 'I read it and nothing in it looked worth keeping.' });
 }
 
+// ---------- Replies to Totality's own outreach (17 Nov 2026, asked for by Taj) ----------
+// Totality's outreach goes out from tali@<INBOUND_DOMAIN> with Taj's mailbox as the reply-to. Some
+// people, and most help desks, answer the From address instead, and that mail used to stop here as
+// 'no such address', so nobody saw it (a partner's reply sat unread for a day and a half).
+// Mail to an address on our domain that is not anybody's Tali address is now passed on, whole, to
+// the company mailbox. The sender goes in reply-to, so answering it reaches them and not us.
+// Tali does not read it, nothing is stored and no credits are used. The Resend email id is the
+// idempotency key, so a webhook retry cannot send it twice. If the send fails we answer 500 and
+// Resend tries the webhook again.
+const OUTREACH_FORWARD_TO = (Deno.env.get('OUTREACH_FORWARD_TO') || 'taj@totality360.com.au').trim().toLowerCase();
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+async function forwardOutreachReply(emailId: string, evt: any, early: any, aliases: string[]) {
+  if (!RESEND_KEY || !OUTREACH_FORWARD_TO) return Response.json({ ok: true, ignored: 'no such address' });
+  let full: any = early;
+  if (!full) {
+    try {
+      const r = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, { headers: { Authorization: `Bearer ${RESEND_KEY}` } });
+      if (r.ok) full = await r.json();
+      else console.warn('outreach forward: resend fetch', r.status);
+    } catch (e) {
+      console.warn('outreach forward: resend fetch failed', String(e));
+    }
+  }
+  full = full ?? {};
+  const from = parseAddress(String(full.from ?? evt?.data?.from ?? ''));
+  // Never pass our own mail round in a circle.
+  if (!from.email || from.email === OUTREACH_FORWARD_TO || from.email.endsWith('@' + INBOUND_DOMAIN)) return Response.json({ ok: true, ignored: 'our own mail' });
+
+  const sentTo = `${aliases[0]}@${INBOUND_DOMAIN}`;
+  const subject = String(full.subject ?? evt?.data?.subject ?? '(no subject)').slice(0, 300) || '(no subject)';
+  const html = full.html ? String(full.html) : '';
+  const text = String(full.text || (html ? htmlToText(html) : '') || '');
+  const who = from.name ? `${from.name} <${from.email}>` : from.email;
+  const auto = headerOf(full, 'auto-submitted');
+  const isAuto = (!!auto && !/^no$/i.test(auto.trim())) || /^(auto(matic)?[- ]?reply|out of office)/i.test(subject);
+  const note = `${who} sent this to ${sentTo}${isAuto ? ' (it looks like an automatic reply)' : ''}. Reply to this email and your reply goes straight to them.`;
+  const display = String(from.name || from.email.split('@')[0]).replace(/[^\p{L}\p{N} .'-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'Reply';
+
+  // Attachments come across when Resend will hand them over. If that part fails, the email still goes.
+  let files: { filename: string; path: string; content_type?: string; content_id?: string }[] = [];
+  let names: string[] = [];
+  try {
+    const r = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}/attachments`, { headers: { Authorization: `Bearer ${RESEND_KEY}` } });
+    if (r.ok) {
+      const list = await r.json();
+      let total = 0;
+      for (const a of Array.isArray(list?.data) ? list.data : []) {
+        const filename = String(a?.filename ?? 'attachment');
+        names.push(filename);
+        const size = Number(a?.size ?? 0);
+        if (!a?.download_url || files.length >= 15 || total + size > 20_000_000) continue;
+        total += size;
+        files.push({ filename, path: String(a.download_url), ...(a.content_type ? { content_type: String(a.content_type) } : {}), ...(a.content_id ? { content_id: String(a.content_id).replace(/^<|>$/g, '') } : {}) });
+      }
+    }
+  } catch (e) {
+    console.warn('outreach forward: attachments failed', String(e));
+  }
+
+  const send = async (withFiles: boolean) => {
+    const missing = !withFiles && names.length ? `\nAttachments not included: ${names.join(', ')}. They are in Resend under Receiving.` : '';
+    const banner = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#62605D;background:#F3F1EE;border-radius:10px;padding:10px 14px;margin:0 0 16px">${escHtml(note + missing).replace(/\n/g, '<br>')}</div>`;
+    const bodyHtml = html || `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#272626;white-space:pre-wrap">${escHtml(text)}</div>`;
+    return await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': `outreach-fwd-${emailId}${withFiles ? '' : '-plain'}` },
+      body: JSON.stringify({
+        from: `${display} via Totality <${sentTo}>`,
+        to: [OUTREACH_FORWARD_TO],
+        reply_to: from.email,
+        subject,
+        text: `${note}${missing}\n\n${text}`,
+        html: banner + bodyHtml,
+        ...(withFiles && files.length ? { attachments: files } : {}),
+      }),
+    });
+  };
+  try {
+    let res = await send(true);
+    if (!res.ok && files.length) {
+      console.warn('outreach forward: with attachments failed', res.status, (await res.text()).slice(0, 300));
+      res = await send(false);
+    }
+    if (!res.ok) {
+      console.error('outreach forward failed', res.status, (await res.text()).slice(0, 300));
+      return new Response('forward failed', { status: 500 });
+    }
+  } catch (e) {
+    console.error('outreach forward failed', String(e));
+    return new Response('forward failed', { status: 500 });
+  }
+  return Response.json({ ok: true, forwarded: 'outreach reply' });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return new Response('ok');
@@ -481,7 +580,8 @@ Deno.serve(async (req) => {
   if (!aliases.length) return Response.json({ ok: true, ignored: 'not our domain' });
 
   const { data: inbox } = await admin.from('tali_inboxes').select('user_id, alias').in('alias', aliases).limit(1).maybeSingle();
-  if (!inbox) return Response.json({ ok: true, ignored: 'no such address' });
+  // Not anybody's Tali address: a reply to Totality's own outreach. Pass it on to the company mailbox.
+  if (!inbox) return await forwardOutreachReply(emailId, evt, early, aliases);
   const { data: pro } = await admin.rpc('has_pro', { p_user_id: inbox.user_id });
   // 10 Nov 2026: every paid plan has an address now, for forwarded Gmail. Enquiries stay Pro (below).
   const { data: paid } = await admin.rpc('has_paid', { p_user_id: inbox.user_id });
