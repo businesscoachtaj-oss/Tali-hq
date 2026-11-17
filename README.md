@@ -512,3 +512,11 @@ Taj's call on 16 Nov ("All my picks do it all"). Today is now blocks each person
 - **Plans:** Free has 6 blocks and 3 trackers a home, number and bar looks, day or week targets, 7 days of history, Countdown and Note. Blocks past the limit are kept under "Didn't fit on Free" in Edit home, never as locked tiles on the home. The database checks the same limits (`home_layouts_limit`, `trackers_limit`, the read policy on `tracker_entries`). The Plans screen has one new line per plan.
 - Migration `20261117000092_build_your_hq.sql`. Edge functions changed: `tali-chat`, `tali-brief`. New: `tali-tracker-why` (verify_jwt false, it checks the caller itself).
 - **Not built yet:** Apple Health and Health Connect logging (needs a store build), web-checked trackers, the receipt spend tracker, linked trackers that feed a goal, and a team layout per role. A teammate cannot tick a team checklist (it is read only for them). Push notifications for nudges are not sent: nudges show on the home.
+
+## Replies to Totality's own outreach (17 Nov 2026)
+
+Totality's outreach emails go out from `tali@tali.totality360.com.au` with Taj's mailbox as the reply-to. Some people, and most help desks, reply to the From address instead. That mail reaches `inbound-email`, and because `tali` is nobody's Tali address it used to stop there as "no such address", so nobody saw it.
+
+`inbound-email` now forwards any mail sent to an address on the inbound domain that is not a Tali HQ user's address to the company mailbox (`taj@totality360.com.au`, or the optional `OUTREACH_FORWARD_TO` secret). The original sender is the reply-to, attachments come across when Resend hands them over, and the Resend email id is the idempotency key so a webhook retry cannot send it twice. Tali does not read these, nothing is stored and no credits are used. Tali HQ users' own addresses work exactly as before.
+
+Deployed as `inbound-email` version 18 on 17 Nov 2026 and tested by replaying a real received email through the Resend webhook: it landed in the Gmail inbox.
