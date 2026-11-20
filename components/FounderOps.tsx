@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { founderConfirmDone, founderModelChecked, founderOps, founderToConfirm, type FounderApps, type FounderHealth, type ToConfirm } from '@/lib/founderOps';
+import { founderConfirmDone, founderModelChecked, founderOps, founderToConfirm, type FounderApi, type FounderApps, type FounderHealth, type ToConfirm } from '@/lib/founderOps';
 import { Card, Label } from '@/components/ui';
 import { colours, radius, space } from '@/constants/theme';
 
@@ -14,12 +14,13 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString('en-AU', { hour: 
 
 export function FounderOps() {
   const [apps, setApps] = useState<FounderApps | null>(null);
+  const [api, setApi] = useState<FounderApi | null>(null);
   const [health, setHealth] = useState<FounderHealth | null>(null);
   const [confirm, setConfirm] = useState<ToConfirm[]>([]);
   const [busy, setBusy] = useState('');
 
   useFocusEffect(useCallback(() => {
-    founderOps().then((d) => { setApps(d.apps); setHealth(d.health); }).catch(() => { setApps(null); setHealth(null); });
+    founderOps().then((d) => { setApps(d.apps); setHealth(d.health); setApi(d.exercise_api ?? null); }).catch(() => { setApps(null); setHealth(null); setApi(null); });
     founderToConfirm().then(setConfirm).catch(() => setConfirm([]));
   }, []));
 
@@ -58,6 +59,16 @@ export function FounderOps() {
               </View>
             ))}
             <Text style={{ fontSize: 12, color: colours.faint, marginTop: 6 }}>{apps.excluded ? `${apps.excluded} test and gifted accounts left out.` : 'Test and gifted accounts left out.'}</Text>
+            {/* ADDED (20 Nov 2026): one line for the Exercise API and the website widget. */}
+            {api ? (
+              <View style={{ marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: colours.border }}>
+                <Text style={{ fontSize: 14, color: colours.text }}>
+                  <Text style={{ fontWeight: '800' }}>Exercise API: </Text>
+                  {n(api.paying_keys)} paying {api.paying_keys === 1 ? 'key' : 'keys'}, {n(api.paying_sites)} paying {api.paying_sites === 1 ? 'website' : 'websites'}, {n(api.new_keys_7d)} new {api.new_keys_7d === 1 ? 'key' : 'keys'} this week
+                </Text>
+                <Text style={{ fontSize: 12, color: colours.faint, marginTop: 3 }}>A${n(api.mrr_aud)} a month at founders prices. Every key and website is in Totality's Super Admin, under Platform.</Text>
+              </View>
+            ) : null}
           </Card>
         </>
       ) : null}
