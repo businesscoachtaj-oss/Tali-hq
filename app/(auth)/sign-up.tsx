@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'expo-router';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Button, ErrorText, Field, Screen, TaliSays, Title } from '@/components/ui';
 import { colours } from '@/constants/theme';
+import { isThrowawayEmail, THROWAWAY_EMAIL_MESSAGE } from '@/lib/emailCheck'; // ADDED (20 Nov 2026)
 
 export default function SignUp() {
   const [firstName, setFirstName] = useState('');
@@ -11,6 +12,7 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [emailIssue, setEmailIssue] = useState(''); // ADDED (20 Nov 2026): throwaway email note
   const [sent, setSent] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
   const [resendNote, setResendNote] = useState('');
@@ -40,6 +42,12 @@ export default function SignUp() {
     if (!email.trim()) return setError('Pop in your email.');
     if (password.length < 8) return setError('Use at least 8 characters for your password.');
     setBusy(true);
+    // ADDED (20 Nov 2026): throwaway inboxes get a note under the email box instead of an account.
+    if (await isThrowawayEmail(email)) {
+      setEmailIssue(THROWAWAY_EMAIL_MESSAGE);
+      setBusy(false);
+      return;
+    }
     const { data, error: err } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -71,7 +79,11 @@ export default function SignUp() {
     <Screen>
       <Title sub="7 days of Tali HQ free. No card needed.">Make your account</Title>
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
-      <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" inputMode="email" />
+      <Field label="Email" value={email} onChangeText={(t) => { setEmail(t); if (emailIssue) setEmailIssue(''); }}
+        onBlur={() => { if (email.trim()) isThrowawayEmail(email).then((bad) => setEmailIssue(bad ? THROWAWAY_EMAIL_MESSAGE : '')); }}
+        style={emailIssue ? { borderColor: colours.danger, borderWidth: 1.5 } : undefined}
+        autoCapitalize="none" autoComplete="email" keyboardType="email-address" inputMode="email" />
+      {emailIssue ? <View style={{ marginTop: -6, marginBottom: 12 }}><ErrorText>{emailIssue}</ErrorText></View> : null}
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
       <ErrorText>{error}</ErrorText>
       <Button title="Make my account" onPress={signUp} busy={busy} />
