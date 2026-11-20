@@ -11,7 +11,9 @@ export type FounderApps = { generated_at: string; apps: AppFunnel[]; excluded: n
 export type Light = { key: string; label: string; status: 'green' | 'amber' | 'red'; detail: string };
 export type FounderHealth = { checked_at: string; model: string | null; model_changed_at: string | null; model_checked: boolean; lights: Light[] };
 export type ToConfirm = { id: string; text: string; added_at: string };
-export type FounderOpsData = { apps: FounderApps | null; health: FounderHealth | null; error?: string };
+// ADDED (20 Nov 2026): the Exercise API and website widget line.
+export type FounderApi = { paying_keys: number; paying_sites: number; new_keys_7d: number; new_sites_7d: number; mrr_aud: number; calls_month: number; views_month: number };
+export type FounderOpsData = { apps: FounderApps | null; health: FounderHealth | null; exercise_api?: FounderApi | null; error?: string };
 
 export async function founderOps(): Promise<FounderOpsData> {
   const { data, error } = await supabase.functions.invoke('founder-ops', { body: {} });

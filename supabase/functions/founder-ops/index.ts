@@ -8,6 +8,8 @@
 //   health: a light for Tali in Totality and Nutrition (ai_usage failures in 24 hours), Tali HQ's
 //           scheduled jobs (job_runs failures in 24 hours) and payments (past due in any app), plus
 //           when the AI model last changed and whether Taj has tested it since.
+//   exercise_api (20 Nov 2026): paying API keys, paying websites, new keys this week and income at
+//           founders prices, from the same Livewell snapshot.
 // Read only. Deployed with verify_jwt on.
 //
 // Secrets: LIVEWELL_FOUNDER_KEY (same value as the Livewell vault secret tali_hq_founder_key).
@@ -95,6 +97,8 @@ Deno.serve(async (req) => {
 
   return json({
     apps: apps.length ? { generated_at: new Date().toISOString(), apps, excluded: Number(lw?.excluded ?? 0) } : null,
+    // ADDED (20 Nov 2026): Exercise API and website widget counts from Livewell (no emails).
+    exercise_api: lw?.exercise_api ?? null,
     health: {
       checked_at: new Date().toISOString(),
       model,
