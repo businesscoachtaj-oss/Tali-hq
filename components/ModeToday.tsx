@@ -142,7 +142,7 @@ export function HabitsList({ habits, ticks, today, onHabit }: { habits: LifeItem
           <Pressable key={x.id} onPress={() => onHabit(x.id, !on)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
             style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
             <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? MODE.life.colour : 'transparent', borderWidth: 2, borderColor: on ? MODE.life.colour : colours.purpleInk }}>
-              {on ? <Ionicons name="checkmark" size={16} color="#141033" /> : null}
+              {on ? <Ionicons name="checkmark" size={16} color="#F5F0E6" /> : null}
             </View>
             <Text style={{ flex: 1, color: on ? colours.muted : colours.text, fontSize: 15, fontWeight: '600', textDecorationLine: on ? 'line-through' : 'none' }}>{x.title}</Text>
           </Pressable>
@@ -156,10 +156,10 @@ export function HabitsList({ habits, ticks, today, onHabit }: { habits: LifeItem
 export function comingUp(world: WorldNow | null) {
   const p = world?.people, h = world?.health, hm = world?.home;
   const coming: { icon: Icon; title: string; sub: string; colour: string; to: string; params?: Record<string, string> }[] = [];
-  if (p?.next_birthday && p.next_birthday.days <= 30) coming.push({ icon: 'gift-outline', title: `${p.next_birthday.name}'s birthday`, sub: inDays(p.next_birthday.days).replace(/^./, (c) => c.toUpperCase()), colour: '#8EF0C8', to: '/dates' });
-  if (h?.checkup_next && h.checkup_next.days <= 30) coming.push({ icon: 'medkit-outline', title: h.checkup_next.title, sub: when(h.checkup_next), colour: '#FF9EC4', to: '/list', params: { kind: 'checkup' } });
+  if (p?.next_birthday && p.next_birthday.days <= 30) coming.push({ icon: 'gift-outline', title: `${p.next_birthday.name}'s birthday`, sub: inDays(p.next_birthday.days).replace(/^./, (c) => c.toUpperCase()), colour: '#2E7D4F', to: '/dates' });
+  if (h?.checkup_next && h.checkup_next.days <= 30) coming.push({ icon: 'medkit-outline', title: h.checkup_next.title, sub: when(h.checkup_next), colour: '#B8487A', to: '/list', params: { kind: 'checkup' } });
   if (hm?.admin_next && hm.admin_next.days <= 30) coming.push({ icon: 'folder-open-outline', title: hm.admin_next.title, sub: when(hm.admin_next), colour: '#9FE8FF', to: '/list', params: { kind: 'admin' } });
-  if (p?.stale) coming.push({ icon: 'happy-outline', title: `Catch up with ${p.stale.name}`, sub: `It has been ${p.stale.days >= 14 ? `${Math.floor(p.stale.days / 7)} weeks` : `${p.stale.days} days`}`, colour: '#8EF0C8', to: '/clients', params: { tab: 'friend' } });
+  if (p?.stale) coming.push({ icon: 'happy-outline', title: `Catch up with ${p.stale.name}`, sub: `It has been ${p.stale.days >= 14 ? `${Math.floor(p.stale.days / 7)} weeks` : `${p.stale.days} days`}`, colour: '#2E7D4F', to: '/clients', params: { tab: 'friend' } });
   return coming;
 }
 export function ComingUpList({ world }: { world: WorldNow | null }) {
@@ -200,10 +200,10 @@ export function LifeBoard({ world, pm, habits, ticks, today, onHabit }: { world:
   const p = world?.people, h = world?.health, hm = world?.home;
   const left = pm && pm.weeklyAmount != null ? pm.weeklyAmount - pm.weekSpent : null;
   const coming: { icon: Icon; title: string; sub: string; colour: string; to: string; params?: Record<string, string> }[] = [];
-  if (p?.next_birthday && p.next_birthday.days <= 30) coming.push({ icon: 'gift-outline', title: `${p.next_birthday.name}'s birthday`, sub: inDays(p.next_birthday.days).replace(/^./, (c) => c.toUpperCase()), colour: '#8EF0C8', to: '/dates' });
-  if (h?.checkup_next && h.checkup_next.days <= 30) coming.push({ icon: 'medkit-outline', title: h.checkup_next.title, sub: when(h.checkup_next), colour: '#FF9EC4', to: '/list', params: { kind: 'checkup' } });
+  if (p?.next_birthday && p.next_birthday.days <= 30) coming.push({ icon: 'gift-outline', title: `${p.next_birthday.name}'s birthday`, sub: inDays(p.next_birthday.days).replace(/^./, (c) => c.toUpperCase()), colour: '#2E7D4F', to: '/dates' });
+  if (h?.checkup_next && h.checkup_next.days <= 30) coming.push({ icon: 'medkit-outline', title: h.checkup_next.title, sub: when(h.checkup_next), colour: '#B8487A', to: '/list', params: { kind: 'checkup' } });
   if (hm?.admin_next && hm.admin_next.days <= 30) coming.push({ icon: 'folder-open-outline', title: hm.admin_next.title, sub: when(hm.admin_next), colour: '#9FE8FF', to: '/list', params: { kind: 'admin' } });
-  if (p?.stale) coming.push({ icon: 'happy-outline', title: `Catch up with ${p.stale.name}`, sub: `It has been ${p.stale.days >= 14 ? `${Math.floor(p.stale.days / 7)} weeks` : `${p.stale.days} days`}`, colour: '#8EF0C8', to: '/clients', params: { tab: 'friend' } });
+  if (p?.stale) coming.push({ icon: 'happy-outline', title: `Catch up with ${p.stale.name}`, sub: `It has been ${p.stale.days >= 14 ? `${Math.floor(p.stale.days / 7)} weeks` : `${p.stale.days} days`}`, colour: '#2E7D4F', to: '/clients', params: { tab: 'friend' } });
   const doneToday = habits.filter((x) => (ticks[x.id] ?? []).includes(today)).length;
   return (
     <>
@@ -217,7 +217,7 @@ export function LifeBoard({ world, pm, habits, ticks, today, onHabit }: { world:
                 <Pressable key={x.id} onPress={() => onHabit(x.id, !on)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
                   <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? MODE.life.colour : 'transparent', borderWidth: 2, borderColor: on ? MODE.life.colour : colours.purpleInk }}>
-                    {on ? <Ionicons name="checkmark" size={16} color="#141033" /> : null}
+                    {on ? <Ionicons name="checkmark" size={16} color="#F5F0E6" /> : null}
                   </View>
                   <Text style={{ flex: 1, color: on ? colours.muted : colours.text, fontSize: 15, fontWeight: '600', textDecorationLine: on ? 'line-through' : 'none' }}>{x.title}</Text>
                 </Pressable>

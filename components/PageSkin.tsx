@@ -47,12 +47,12 @@ export function SkinHeader({ id, title, sub, onBack, backLabel = 'Back' }: { id:
     <View style={{ marginBottom: 20, marginTop: 6 }}>
       {onBack ? (
         <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" style={{ marginBottom: 18 }}>
-          <Text style={{ color: '#B9A6FF', fontSize: 15, fontWeight: '600' }}>{'\u2039'} {backLabel}</Text>
+          <Text style={{ color: '#3B3F9E', fontSize: 15, fontWeight: '600' }}>{'\u2039'} {backLabel}</Text>
         </Pressable>
       ) : null}
-      <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{t.kicker}</Text>
-      <Text style={{ color: '#F4F1FF', fontSize: 46, lineHeight: 50, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{title}</Text>
-      {sub ? <Text style={{ color: '#B9B2D9', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{sub}</Text> : null}
+      <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{t.kicker}</Text>
+      <Text style={{ color: '#1C1A17', fontSize: 40, lineHeight: 44, letterSpacing: -0.4, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>{title}</Text>
+      {sub ? <Text style={{ color: '#5E574E', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{sub}</Text> : null}
     </View>
   );
 }

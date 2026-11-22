@@ -72,10 +72,10 @@ export default function Pipeline() {
   const monthStart = `${today().slice(0, 7)}-01`;
   const quotedIds = new Set(jobs.filter((j) => j.status === 'sent' && j.client_id).map((j) => j.client_id));
   const stages: { name: string; colour: string; cards: Card[] }[] = [
-    { name: 'New', colour: '#FFB561', cards: leads.filter((c) => c.status === 'new' && !quotedIds.has(c.id)).map(person) },
-    { name: 'Talking', colour: '#7FA8FF', cards: leads.filter((c) => c.status === 'talking' && !quotedIds.has(c.id)).map(person) },
-    { name: 'Quoted', colour: '#D7B5FF', cards: jobs.filter((j) => j.status === 'sent').map((j) => quote(j)) },
-    { name: 'Won this month', colour: '#7FE0B0', cards: jobs.filter((j) => ['accepted', 'on', 'done', 'invoiced'].includes(j.status) && (j.accepted_at ?? '').slice(0, 10) >= monthStart).map((j) => quote(j, true)) },
+    { name: 'New', colour: '#A8561A', cards: leads.filter((c) => c.status === 'new' && !quotedIds.has(c.id)).map(person) },
+    { name: 'Talking', colour: '#3B3F9E', cards: leads.filter((c) => c.status === 'talking' && !quotedIds.has(c.id)).map(person) },
+    { name: 'Quoted', colour: '#8A4FB8', cards: jobs.filter((j) => j.status === 'sent').map((j) => quote(j)) },
+    { name: 'Won this month', colour: '#2E8A63', cards: jobs.filter((j) => ['accepted', 'on', 'done', 'invoiced'].includes(j.status) && (j.accepted_at ?? '').slice(0, 10) >= monthStart).map((j) => quote(j, true)) },
   ];
   const sum = (cards: Card[]) => cards.reduce((a, c) => a + (c.value ?? 0), 0);
   const inPlay = sum(stages[0].cards) + sum(stages[1].cards) + sum(stages[2].cards);
@@ -120,7 +120,7 @@ export default function Pipeline() {
         <View key={s.name} style={{ marginBottom: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, marginTop: 6 }}>
             <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: s.colour }} />
-            <Text style={{ color: colours.text, fontSize: 26, fontFamily: 'InstrumentSerif_400Regular', flex: 1 }}>{s.name}</Text>
+            <Text style={{ color: colours.text, fontSize: 26, fontFamily: 'EBGaramond_500Medium', flex: 1 }}>{s.name}</Text>
             <Text style={{ color: s.colour, fontSize: 14, fontWeight: '800' }}>{s.cards.length}{sum(s.cards) ? ` · ${aud(sum(s.cards))}` : ''}</Text>
           </View>
           {!s.cards.length ? <Text style={{ color: colours.faint, fontSize: 13, marginBottom: 10 }}>No one here.</Text> : null}

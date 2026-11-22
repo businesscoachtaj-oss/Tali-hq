@@ -8,17 +8,18 @@ import { colours, radius } from '@/constants/theme';
 export function ModeSwitch({ waiting }: { waiting?: Partial<Record<Mode, number>> }) {
   const mode = useMode();
   return (
-    <View style={{ flexDirection: 'row', backgroundColor: 'rgba(12,10,36,0.78)', borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colours.border }}>
+    // 23 Nov 2026 (paper and ink): two tabs on a ruled line, the side you are on in ink.
+    <View style={{ flexDirection: 'row', borderRadius: radius.pill, borderWidth: 1, borderColor: colours.ink, overflow: 'hidden' }}>
       {(['business', 'life'] as const).map((m) => {
         const on = mode === m, cfg = MODE[m], n = !on ? waiting?.[m] ?? 0 : 0;
         return (
           <Pressable key={m} onPress={() => setMode(m)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={`${cfg.label} mode`}
-            style={{ flex: 1, flexDirection: 'row', gap: 7, paddingVertical: 10, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? cfg.colour : 'transparent' }}>
-            <Ionicons name={cfg.icon} size={16} color={on ? '#141033' : colours.muted} />
-            <Text style={{ fontSize: 15, fontWeight: '800', color: on ? '#141033' : colours.muted }}>{cfg.label}</Text>
+            style={{ flex: 1, flexDirection: 'row', gap: 7, paddingVertical: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? colours.ink : colours.surface }}>
+            <Ionicons name={cfg.icon} size={16} color={on ? colours.bg : colours.muted} />
+            <Text style={{ fontSize: 13, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', color: on ? colours.bg : colours.muted }}>{cfg.label}</Text>
             {n ? (
               <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colours.orange, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#141033' }}>{n}</Text>
+                <Text style={{ fontSize: 11.5, fontWeight: '800', color: colours.bg }}>{n}</Text>
               </View>
             ) : null}
           </Pressable>
@@ -31,7 +32,7 @@ export function ModeSwitch({ waiting }: { waiting?: Partial<Record<Mode, number>
 export function TagPill({ tag, onPress }: { tag: Mode; onPress?: () => void }) {
   const cfg = MODE[tag];
   const pill = (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 8, backgroundColor: cfg.colour + '26', borderWidth: 1, borderColor: cfg.colour + '80' }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 8, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: cfg.colour + '80' }}>
       <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: cfg.colour }} />
       <Text style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 0.6, color: cfg.colour }}>{cfg.label.toUpperCase()}</Text>
     </View>

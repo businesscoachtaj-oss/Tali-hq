@@ -53,7 +53,7 @@ export default function World() {
   const left = pm && pm.weeklyAmount != null ? pm.weeklyAmount - pm.weekSpent : null;
 
   const areas: Area[] = [
-    { title: 'People', line: hasBusiness ? 'Family, friends, clients and everyone who matters' : 'Family, friends and everyone who matters', colour: '#8EF0C8',
+    { title: 'People', line: hasBusiness ? 'Family, friends, clients and everyone who matters' : 'Family, friends and everyone who matters', colour: '#2E7D4F',
       now: [
         p?.next_birthday && p.next_birthday.days <= 30 ? `${p.next_birthday.name}'s birthday is ${inDays(p.next_birthday.days)}` : null,
         p?.stale ? `You have not caught up with ${p.stale.name} in ${stale}` : null,
@@ -101,7 +101,7 @@ export default function World() {
         { icon: 'checkbox-outline', title: 'To do', sub: 'What is on your plate', to: '/list', params: { kind: 'todo' }, live: n(k?.todo_open, 'open thing', 'open things') },
         { icon: 'briefcase-outline', title: 'Run a business?', sub: 'Add it in Settings for invoices, clients and receipts', to: '/settings' },
       ] },
-    { title: 'Health', line: 'Body, food, sleep and headspace', colour: '#FF9EC4',
+    { title: 'Health', line: 'Body, food, sleep and headspace', colour: '#B8487A',
       now: [
         life?.sessions_planned ? `Trained ${life.sessions_done_this_week} of ${life.sessions_planned} sessions this week` : null,
         dueLine(h?.checkup_next),
@@ -139,7 +139,7 @@ export default function World() {
         { icon: 'git-branch-outline', title: 'Decisions', sub: 'What you decided and why', to: '/decisions' },
         { icon: 'moon-outline', title: 'Shut down', sub: 'Two minutes, then off', to: '/shutdown' },
       ] },
-    { title: 'Your words', line: 'What you write, she learns from', colour: '#D7B5FF',
+    { title: 'Your words', line: 'What you write, she learns from', colour: '#8A4FB8',
       now: [wd?.last_journal ? `Last journal entry was ${friendlyDate(isoDate(new Date(wd.last_journal))).toLowerCase()}` : null],
       rows: [
         { icon: 'book-outline', title: 'Journal', sub: 'Your time and your place', to: '/journal', live: n(wd?.journal, 'entry', 'entries') },
@@ -163,8 +163,8 @@ export default function World() {
   return (
     <Screen>
       {split ? <View style={{ marginBottom: 14 }}><ModeSwitch /></View> : null}
-      <SkinHeader id="brain" title={split ? (mode === 'business' ? 'Your business' : 'Your life') : 'Your world'} sub={split ? (mode === 'business' ? 'The business side of your world. Your people are on both sides. Tap a part to step into it.' : 'The life side of your world. Your people are on both sides. Tap a part to step into it.') : 'Everything she looks after, as she sees it. Each star is something she knows. Tap a part of your life to step into it.'} />
-      <View style={{ marginHorizontal: -space.lg }}>
+      <SkinHeader id="brain" title={split ? (mode === 'business' ? 'Your business' : 'Your life') : 'Your world'} sub={split ? (mode === 'business' ? 'The business side of your world. Your people are on both sides. Tap a part to step into it.' : 'The life side of your world. Your people are on both sides. Tap a part to step into it.') : 'Everything she looks after. Tap a part of your life to step into it.'} />
+      <View style={{ marginHorizontal: -space.lg, marginBottom: space.xl }}>
         <WorldMap homeCount={(hm?.admin_open ?? 0) + (hm?.home_open ?? 0) + (pm?.repeats.length ?? 0)} workTo={hasBusiness ? undefined : '/list?kind=todo'} show={split ? PARTS[mode] : undefined} lines={split ? (mode === 'business' ? { People: 'Clients, leads, family, friends', Growth: 'Goals, weekly review, decisions' } : { Growth: 'Habits, learning, wins, someday' }) : undefined} />
       </View>
       <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '800', letterSpacing: 2, marginBottom: space.md }}>EVERYTHING, AS A LIST</Text>
@@ -173,22 +173,22 @@ export default function World() {
         return (
           <View key={a.title} style={{ marginBottom: space.lg }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: a.colour, shadowColor: a.colour, shadowOpacity: 1, shadowRadius: 8 }} />
-              <Text style={{ color: colours.text, fontSize: 28, fontFamily: 'InstrumentSerif_400Regular' }}>{a.title}</Text>
+              <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: a.colour, shadowOpacity: 0 }} />
+              <Text style={{ color: colours.text, fontSize: 28, fontFamily: 'EBGaramond_500Medium' }}>{a.title}</Text>
             </View>
             <Text style={{ color: colours.muted, fontSize: 13.5, marginBottom: 10 }}>{a.line}</Text>
             {/* What is happening in this part right now. Only real lines: with nothing to say, nothing shows. */}
             {now.length ? (
               <View style={{ gap: 6, marginBottom: 10 }}>
                 {now.map((line) => (
-                  <View key={line} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 }}>
+                  <View key={line} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(28,26,23,0.05)', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 }}>
                     <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: a.colour }} />
                     <Text style={{ color: colours.text, fontSize: 13.5, flex: 1 }}>{line}</Text>
                   </View>
                 ))}
               </View>
             ) : null}
-            <View style={{ backgroundColor: a.colour + '22', borderRadius: radius.card, borderWidth: 1, borderColor: a.colour + '80', overflow: 'hidden', shadowColor: a.colour, shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } }}>
+            <View style={{ backgroundColor: '#FFFDF8', borderRadius: radius.card, borderWidth: 1, borderColor: a.colour + '80', overflow: 'hidden', shadowOpacity: 0 }}>
               {a.rows.map((r, i) => (
                 <Pressable key={r.title} onPress={() => router.navigate((r.params ? { pathname: r.to, params: r.params } : r.to) as any)} accessibilityRole="button"
                   style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 14, paddingHorizontal: space.lg, borderTopWidth: i ? 1 : 0, borderTopColor: a.colour + '40' }}>

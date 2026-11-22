@@ -18,8 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colours, elevation, NO_BOTTOM, radius, space, heading, headingSemi } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
-import { PageSky, skyScroll } from '@/components/NightSky';
-import { Aurora } from '@/components/Aurora';
+import { skyScroll } from '@/components/NightSky';
 import type { ScrollViewInstance } from 'react-native';
 
 export const tali = {
@@ -68,8 +67,7 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
     : undefined;
   return (
     <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
-      <PageSky style={StyleSheet.absoluteFill} />
-      <Aurora />
+      {/* 23 Nov 2026 (Taj): paper and ink through the day. Her sky now lives only on the evening screens. */}
       {scroll ? <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh} onScroll={Platform.OS === 'web' ? undefined : (e) => skyScroll.setValue(e.nativeEvent.contentOffset.y)} scrollEventThrottle={16}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -145,25 +143,26 @@ export function Button({
   disabled?: boolean;
 }) {
   const off = disabled || busy;
-  const brand = colours.purple;
+  // 23 Nov 2026: the main button is ink on paper (the "yes" signature).
+  const brand = colours.ink;
   return (
     <Pressable
       accessibilityRole="button"
       onPress={off ? undefined : onPress}
       style={({ pressed }) => [
         styles.btn,
-        kind === 'primary' && { backgroundColor: brand, borderColor: brand, ...elevation.button(brand) },
-        kind === 'danger' && { borderColor: colours.danger, ...elevation.button(colours.danger) },
+        kind === 'primary' && { backgroundColor: brand, borderColor: brand },
+        kind === 'danger' && { borderColor: colours.danger },
         off && { opacity: 0.55 },
         pressed && !off && { opacity: 0.85 },
       ]}>
       {busy ? (
-        <ActivityIndicator color={kind === 'primary' ? colours.onPurple : colours.purple} />
+        <ActivityIndicator color={kind === 'primary' ? colours.bg : colours.text} />
       ) : (
         <Text
           style={[
             styles.btnText,
-            kind === 'primary' && { color: colours.onPurple },
+            kind === 'primary' && { color: colours.bg },
             kind === 'danger' && { color: colours.danger },
           ]}>
           {title}
@@ -187,7 +186,7 @@ export function TaliSays({ children, pose = 'idle' }: PropsWithChildren<{ pose?:
       {/* Her full sprite stays (Taj, 10 Nov 2026): it moves and changes expression; her head alone only blinks. */}
       <TaliAvatar pose={pose} size={64} />
       <View style={styles.bubble}>
-        <Text style={styles.body}>{children}</Text>
+        <Text style={styles.voice}>{children}</Text>
       </View>
     </View>
   );
@@ -210,12 +209,11 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.bg },
   scroll: { flexGrow: 1 },
   inner: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center', padding: space.lg },
-  title: { fontSize: 40, lineHeight: 44, color: colours.text, ...heading },
+  title: { fontSize: 38, lineHeight: 41, color: colours.text, letterSpacing: -0.4, ...heading },
   sub: { fontSize: 15, color: colours.muted, marginTop: space.xs, lineHeight: 21 },
   card: {
     backgroundColor: colours.surface,
-    borderColor: 'rgba(196,178,255,0.30)',
-    borderTopColor: 'rgba(230,220,255,0.55)',
+    borderColor: colours.border,
     borderWidth: 1,
     borderRadius: radius.card,
     padding: space.lg,
@@ -223,7 +221,8 @@ const styles = StyleSheet.create({
     ...elevation.card,
   },
   body: { fontSize: 15, lineHeight: 22, color: colours.text },
-  label: { fontSize: 24, color: colours.text, marginBottom: 10, marginTop: 10, ...headingSemi },
+  voice: { fontSize: 18, lineHeight: 25, color: colours.text, fontFamily: 'EBGaramond_400Regular' },
+  label: { fontSize: 11, fontWeight: '800', letterSpacing: 1.8, textTransform: 'uppercase', color: colours.text, marginBottom: 10, marginTop: 14 },
   input: {
     backgroundColor: colours.surface,
     borderColor: colours.borderStrong,
@@ -238,27 +237,24 @@ const styles = StyleSheet.create({
   btn: {
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colours.borderStrong,
-    backgroundColor: colours.surface,
-    paddingVertical: 13,
+    backgroundColor: 'transparent',
+    borderColor: colours.ink,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: space.sm,
-    ...elevation.lift,
   },
-  btnText: { fontSize: 16, fontWeight: '700', color: colours.text },
+  btnText: { fontSize: 15, fontWeight: '700', color: colours.text, letterSpacing: 0.2 },
   says: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md, marginBottom: space.lg },
   saysImg: { width: 64, height: 120 },
   bubble: {
     flex: 1,
-    backgroundColor: colours.purpleSoft,
-    borderRadius: radius.card,
-    borderBottomLeftRadius: 6,
+    backgroundColor: colours.surface,
+    borderRadius: 2,
     padding: space.md,
     borderWidth: 1,
-    borderColor: 'rgba(108,52,131,0.08)',
-    ...elevation.lift,
+    borderColor: colours.border,
   },
   error: { color: colours.danger, fontSize: 14, marginTop: space.sm },
 });

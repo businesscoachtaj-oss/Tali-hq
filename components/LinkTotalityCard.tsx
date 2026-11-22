@@ -66,7 +66,7 @@ export function LinkTotalityCard({ onChanged }: { onChanged?: () => void }) {
 
   return (
     <Card style={{ marginBottom: space.lg }}>
-      <Text style={{ color: colours.text, fontSize: 22, fontFamily: 'InstrumentSerif_400Regular' }}>Use Totality too?</Text>
+      <Text style={{ color: colours.text, fontSize: 22, fontFamily: 'EBGaramond_500Medium' }}>Use Totality too?</Text>
       <Text style={{ color: colours.muted, fontSize: 15, lineHeight: 22, marginTop: 6 }}>
         If you use Totality or Totality Nutrition, I can bring across what you told me there, so you don't have to tell me twice.
       </Text>

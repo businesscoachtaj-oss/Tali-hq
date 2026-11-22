@@ -51,7 +51,7 @@ export function LibraryShelf() {
   const shown = all ? books : books.slice(0, 3);
   return (
     <Card style={{ marginBottom: space.lg }}>
-      <Text style={{ color: colours.text, fontSize: 22, fontFamily: 'InstrumentSerif_400Regular' }}>Her library</Text>
+      <Text style={{ color: colours.text, fontSize: 22, fontFamily: 'EBGaramond_500Medium' }}>Her library</Text>
       <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20, marginTop: 4, marginBottom: space.sm }}>
         {reading
           ? `${books.length} books on my shelf. I read a few pages each night and keep what is still worth knowing.`

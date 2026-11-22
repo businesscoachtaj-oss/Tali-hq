@@ -8,11 +8,11 @@ import type { Brain } from '@/lib/brain';
 import { colours, radius, space } from '@/constants/theme';
 
 const AREAS: { title: string; kinds: string[]; colour: string }[] = [
-  { title: 'Your people', kinds: ['person', 'client', 'lead'], colour: '#8EF0C8' },
-  { title: 'How you like things', kinds: ['preference', 'rule'], colour: '#9FB7FF' },
-  { title: 'Your life and work', kinds: ['fact', 'event', 'note', 'email', 'journal', 'video'], colour: '#FFE38A' },
-  { title: 'Plans and ideas', kinds: ['idea', 'plan', 'goal', 'decision'], colour: '#FFC37A' },
-  { title: 'What she has learned', kinds: ['lesson', 'mistake', 'skill'], colour: '#D7B5FF' },
+  { title: 'Your people', kinds: ['person', 'client', 'lead'], colour: '#2E7D4F' },
+  { title: 'How you like things', kinds: ['preference', 'rule'], colour: '#3B3F9E' },
+  { title: 'Your life and work', kinds: ['fact', 'event', 'note', 'email', 'journal', 'video'], colour: '#A8841C' },
+  { title: 'Plans and ideas', kinds: ['idea', 'plan', 'goal', 'decision'], colour: '#A8561A' },
+  { title: 'What she has learned', kinds: ['lesson', 'mistake', 'skill'], colour: '#8A4FB8' },
 ];
 
 export function KnowsAbout({ brain, openGroup, openStamp }: { brain: Brain; openGroup?: string; openStamp?: string }) {
@@ -25,23 +25,24 @@ export function KnowsAbout({ brain, openGroup, openStamp }: { brain: Brain; open
   const [shown, setShown] = useState(10);
   const [full, setFull] = useState<number | null>(null);
   return (
-    <View style={{ gap: 10, marginBottom: space.lg }}>
+    // 23 Nov 2026 (paper and ink): a ruled list, like the contents page of a book.
+    <View style={{ marginBottom: space.lg, borderTopWidth: 1, borderTopColor: colours.ink }}>
       {AREAS.map((a) => {
         const list = items.filter((i) => a.kinds.includes(i.kind));
         if (!list.length) return null;
         const isOpen = open === a.title;
         const rows = isOpen ? list.slice(0, shown) : list.slice(0, 2);
         return (
-          <View key={a.title} style={{ backgroundColor: a.colour + '26', borderRadius: radius.card, borderWidth: 1, borderColor: a.colour + (isOpen ? 'CC' : '88'), shadowColor: a.colour, shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } }}>
+          <View key={a.title} style={{ borderBottomWidth: 1, borderBottomColor: colours.border }}>
             <Pressable
               onPress={() => { setOpen(isOpen ? null : a.title); setShown(10); setFull(null); }}
               accessibilityRole="button"
               accessibilityState={{ expanded: isOpen }}
               accessibilityLabel={`${a.title}, ${list.length} ${list.length === 1 ? 'memory' : 'memories'}`}
-              style={{ padding: space.lg, paddingBottom: isOpen ? space.sm : space.lg }}>
+              style={{ paddingVertical: 14, paddingBottom: isOpen ? space.sm : 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: a.colour, shadowColor: a.colour, shadowOpacity: 1, shadowRadius: 8 }} />
-                <Text style={{ flex: 1, color: colours.text, fontSize: 22, fontFamily: 'InstrumentSerif_400Regular' }}>{a.title}</Text>
+                <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: a.colour }} />
+                <Text style={{ flex: 1, color: colours.text, fontSize: 22, fontFamily: 'EBGaramond_500Medium' }}>{a.title}</Text>
                 <Text style={{ color: colours.muted, fontSize: 13 }}>{list.length}</Text>
                 <Text style={{ color: a.colour, fontSize: 18, fontWeight: '700', width: 14, textAlign: 'center' }}>{isOpen ? '−' : '+'}</Text>
               </View>
@@ -51,7 +52,7 @@ export function KnowsAbout({ brain, openGroup, openStamp }: { brain: Brain; open
               {!isOpen && list.length > 2 ? <Text style={{ color: a.colour, fontSize: 13, fontWeight: '700', marginTop: 10 }}>See all {list.length}</Text> : null}
             </Pressable>
             {isOpen ? (
-              <View style={{ paddingHorizontal: space.lg, paddingBottom: space.lg }}>
+              <View style={{ paddingLeft: 19, paddingBottom: space.md }}>
                 {rows.map((it, k) => (
                   <Pressable key={k} onPress={() => setFull(full === k ? null : k)} accessibilityRole="button" style={{ paddingVertical: 10, borderTopWidth: 1, borderTopColor: a.colour + '33' }}>
                     <Text style={{ color: colours.text, fontSize: 14.5, lineHeight: 21 }} numberOfLines={full === k ? undefined : 3}>{it.text}</Text>

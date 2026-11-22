@@ -37,10 +37,10 @@ export type Job = {
 
 export const JOB_STATUS: Record<JobStatus, { label: string; colour: string }> = {
   quote: { label: 'Quote, not sent', colour: '#D2CCEE' },
-  sent: { label: 'Quote sent', colour: '#FFB561' },
-  accepted: { label: 'Accepted', colour: '#7FE0B0' },
-  on: { label: 'On now', colour: '#7FA8FF' },
-  done: { label: 'Done', colour: '#D7B5FF' },
+  sent: { label: 'Quote sent', colour: '#A8561A' },
+  accepted: { label: 'Accepted', colour: '#2E8A63' },
+  on: { label: 'On now', colour: '#3B3F9E' },
+  done: { label: 'Done', colour: '#8A4FB8' },
   invoiced: { label: 'Invoiced', colour: '#9FE8FF' },
   lost: { label: 'Not going ahead', colour: '#FF8A7E' },
 };

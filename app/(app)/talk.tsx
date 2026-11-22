@@ -19,8 +19,6 @@ import { useAuth } from '@/lib/auth';
 import { pickFiles, type PickedFile } from '@/lib/pickFiles';
 import { tali } from '@/components/ui';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
-import { PageSky } from '@/components/NightSky';
-import { Aurora } from '@/components/Aurora';
 import type { TextInputInstance } from 'react-native';
 import { useWide } from '@/lib/wideWeb';
 
@@ -288,15 +286,13 @@ export default function Talk() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
-      <PageSky />
-      <Aurora />
       {/* 22 Nov 2026: on a PC the chat sits in a centred column over her sky (lib/wideWeb.ts). */}
       <KeyboardAvoidingView style={wide ? { flex: 1, width: '100%', maxWidth: 860, alignSelf: 'center' } : { flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>
           <TaliAvatar pose={thinking ? 'head_think' : 'head'} size={48} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 28, color: colours.text, fontFamily: 'InstrumentSerif_400Regular' }}>Tali</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: thinking ? '#FFB04D' : '#8EF0C8' }}>{'●'} {thinking ? 'Thinking' : 'Listening'}</Text>
+            <Text style={{ fontSize: 28, color: colours.text, fontFamily: 'EBGaramond_500Medium' }}>Tali</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: thinking ? '#A8561A' : '#2E7D4F' }}>{'●'} {thinking ? 'Thinking' : 'Listening'}</Text>
           </View>
           <Pressable onPress={() => setHistoryOpen(true)} accessibilityRole="button" accessibilityLabel="Your chats" style={{ borderWidth: 0, borderColor: colours.borderStrong, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12 }}>
             <Text style={{ fontWeight: '700', fontSize: 15, color: colours.purple }}>Chats</Text>
@@ -346,7 +342,7 @@ export default function Talk() {
         ) : empty ? (
           <View style={{ flex: 1, padding: space.lg, justifyContent: 'center', maxWidth: 640, width: '100%', alignSelf: 'center' }}>
             <TaliAvatar pose="wave" size={100} style={{ alignSelf: 'center' }} />
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colours.text, textAlign: 'center', marginTop: space.md }}>
+            <Text style={{ fontSize: 28, lineHeight: 33, color: colours.text, textAlign: 'center', marginTop: space.md, fontFamily: 'EBGaramond_500Medium' }}>
               Hey {profile?.first_name || 'there'}, what are we working on?
             </Text>
             <Text style={{ fontSize: 14, color: colours.muted, textAlign: 'center', marginTop: 6, lineHeight: 20 }}>
@@ -379,22 +375,21 @@ export default function Talk() {
             renderItem={({ item }) => {
               const me = item.role === 'user';
               return (
-                // 10 Nov 2026 look: you're talking to her inside her space. Her words sit in the sky with a
-                // small glowing dot, no bubble. Yours glow violet.
-                <View
+                                <View
+                  // 23 Nov 2026 (paper and ink): yours sit in a ruled box on the right, hers on the page in Garamond
+                  // with her small head beside the first line.
                   style={me ? {
                     alignSelf: 'flex-end',
                     maxWidth: '84%',
-                    backgroundColor: 'rgba(122,77,255,0.35)',
+                    backgroundColor: colours.surface,
                     borderWidth: 1,
-                    borderColor: 'rgba(200,180,255,0.6)',
-                    borderRadius: 22,
+                    borderColor: colours.ink,
+                    borderRadius: 3,
                     paddingVertical: 11,
-                    paddingHorizontal: 16,
+                    paddingHorizontal: 14,
                     opacity: item.pending ? 0.7 : 1,
-                    shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 18, shadowOffset: { width: 0, height: 0 },
-                  } : { alignSelf: 'stretch', paddingLeft: 20, paddingVertical: 6 }}>
-                  {!me ? <View style={{ position: 'absolute', left: 0, top: 15, width: 8, height: 8, borderRadius: 4, backgroundColor: '#D7CCFF', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }} /> : null}
+                  } : { alignSelf: 'stretch', paddingLeft: 38, paddingVertical: 6 }}>
+                  {!me ? <View style={{ position: 'absolute', left: 0, top: 6 }}><TaliAvatar pose="head" size={28} /></View> : null}
                   {item.attachments?.some((a) => !isTaliMade(me, a)) ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: item.content ? 8 : 0 }}>
                       {item.attachments.map((a, i) => isTaliMade(me, a) ? null : a.kind === 'video' ? (
@@ -404,11 +399,11 @@ export default function Talk() {
                           <Image source={{ uri: a.url }} style={{ width: 150, height: 150, borderRadius: 12, backgroundColor: colours.sunk }} resizeMode="cover" />
                         </Pressable>
                       ) : (
-                        <Pressable key={i} onPress={() => a.url && Linking.openURL(a.url)} accessibilityRole="button" accessibilityLabel={`Open ${a.name}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: me ? 'rgba(255,255,255,0.12)' : colours.sunk, borderRadius: 12, padding: 10, maxWidth: 220 }}>
+                        <Pressable key={i} onPress={() => a.url && Linking.openURL(a.url)} accessibilityRole="button" accessibilityLabel={`Open ${a.name}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: me ? 'rgba(28,26,23,0.12)' : colours.sunk, borderRadius: 12, padding: 10, maxWidth: 220 }}>
                           <View style={{ width: 34, height: 40, borderRadius: 6, backgroundColor: colours.danger, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>PDF</Text></View>
                           <View style={{ flex: 1 }}>
-                            <Text numberOfLines={1} style={{ color: me ? '#fff' : colours.text, fontSize: 13, fontWeight: '700' }}>{a.name}</Text>
-                            {a.size ? <Text style={{ color: me ? 'rgba(255,255,255,0.7)' : colours.muted, fontSize: 11 }}>{Math.round(a.size / 1024)} KB</Text> : null}
+                            <Text numberOfLines={1} style={{ color: colours.text, fontSize: 13, fontWeight: '700' }}>{a.name}</Text>
+                            {a.size ? <Text style={{ color: colours.muted, fontSize: 11 }}>{Math.round(a.size / 1024)} KB</Text> : null}
                           </View>
                         </Pressable>
                       ))}
@@ -421,7 +416,7 @@ export default function Talk() {
                     <Text style={{ color: colours.purple, fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 4 }}>{item.meta.deep === 'deepest' ? 'BIG BRAIN' : 'SHE THOUGHT HARDER'}</Text>
                   ) : null}
                   {item.content ? (me
-                    ? <Text style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
+                    ? <Text style={{ color: colours.text, fontSize: 15, lineHeight: 22 }}>{item.content}</Text>
                     : <TaliMessage content={item.content} />) : null}
                   {!me && item.meta?.sources?.length ? <Sources list={item.meta.sources} /> : null}
                   {!me && item.meta?.second_opinion ? <SecondOpinion o={item.meta.second_opinion} /> : null}
@@ -434,16 +429,16 @@ export default function Talk() {
                   {/* When she keeps something from this reply, say so and say where in her brain it went.
                       11 Nov 2026 (Taj: "I thought I'd be able to click it"): tap it to open that group in Her brain. */}
                   {!me && item.meta?.kept ? (
-                    <Pressable onPress={() => router.navigate({ pathname: '/brain', params: { open: item.meta!.kept!.part, t: String(Date.now()) } })} accessibilityRole="link" accessibilityLabel={`New memory, filed under ${item.meta.kept.part}. Open it in her brain.`} style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: keptColour(item.meta.kept.part) + '22', borderWidth: 1, borderColor: keptColour(item.meta.kept.part) + 'AA', shadowColor: keptColour(item.meta.kept.part), shadowOpacity: 0.8, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}>
+                    <Pressable onPress={() => router.navigate({ pathname: '/brain', params: { open: item.meta!.kept!.part, t: String(Date.now()) } })} accessibilityRole="link" accessibilityLabel={`New memory, filed under ${item.meta.kept.part}. Open it in her brain.`} style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: keptColour(item.meta.kept.part) + '22', borderWidth: 1, borderColor: keptColour(item.meta.kept.part) + 'AA', shadowOpacity: 0 }}>
                       <Text style={{ color: keptColour(item.meta.kept.part), fontSize: 13 }}>{'✦'}</Text>
-                      <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>New memory</Text> {item.meta.kept.text} <Text style={{ color: keptColour(item.meta.kept.part), fontWeight: '700' }}>{'→'} {item.meta.kept.part}</Text></Text>
+                      <Text style={{ color: colours.text, fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>New memory</Text> {item.meta.kept.text} <Text style={{ color: keptColour(item.meta.kept.part), fontWeight: '700' }}>{'→'} {item.meta.kept.part}</Text></Text>
                     </Pressable>
                   ) : null}
                   {/* Personal spends she logged from this reply (11 Nov 2026). Tap to open Money on the Personal side. */}
                   {!me && item.meta?.spent?.count ? (
                     <Pressable onPress={() => router.navigate({ pathname: '/money', params: { side: 'personal' } })} accessibilityRole="link" accessibilityLabel="Spending logged. Open your personal money." style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: 'rgba(127,224,176,0.14)', borderWidth: 1, borderColor: 'rgba(127,224,176,0.65)' }}>
                       <Text style={{ color: colours.good, fontSize: 13 }}>{'✦'}</Text>
-                      <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>{item.meta.spent.count === 1 ? '1 spend logged' : `${item.meta.spent.count} spends logged`}</Text> A${item.meta.spent.total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <Text style={{ color: colours.good, fontWeight: '700' }}>{'→'} Money</Text></Text>
+                      <Text style={{ color: colours.text, fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>{item.meta.spent.count === 1 ? '1 spend logged' : `${item.meta.spent.count} spends logged`}</Text> A${item.meta.spent.total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <Text style={{ color: colours.good, fontWeight: '700' }}>{'→'} Money</Text></Text>
                     </Pressable>
                   ) : null}
                   {/* Lists she added to or ticked off from this reply (11 Nov 2026). Tap to open the list. */}
@@ -451,7 +446,7 @@ export default function Talk() {
                   {!me && item.meta?.listed?.count && item.meta.listed.kind in LISTS ? (
                     <Pressable onPress={() => router.navigate({ pathname: '/list', params: { kind: item.meta!.listed!.kind } } as any)} accessibilityRole="link" accessibilityLabel={`Saved to ${LISTS[item.meta.listed.kind as ListKind].title}. Open it.`} style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: 'rgba(127,224,176,0.14)', borderWidth: 1, borderColor: 'rgba(127,224,176,0.65)' }}>
                       <Text style={{ color: colours.good, fontSize: 13 }}>{'✦'}</Text>
-                      <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>Saved to your lists</Text> <Text style={{ color: colours.good, fontWeight: '700' }}>{'→'} {LISTS[item.meta.listed.kind as ListKind].title}</Text></Text>
+                      <Text style={{ color: colours.text, fontSize: 12.5, flexShrink: 1 }}><Text style={{ fontWeight: '800' }}>Saved to your lists</Text> <Text style={{ color: colours.good, fontWeight: '700' }}>{'→'} {LISTS[item.meta.listed.kind as ListKind].title}</Text></Text>
                     </Pressable>
                   ) : null}
                   {item.failed ? (
@@ -466,7 +461,7 @@ export default function Talk() {
                         void send(item.content ?? '', item.files ?? item.attachments ?? [], item.id);
                       }}
                       style={{ marginTop: 4 }}>
-                      <Text style={{ color: '#FFB4A8', fontSize: 12 }}>Not sent. <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }}>Try again</Text></Text>
+                      <Text style={{ color: '#B3392F', fontSize: 12 }}>Not sent. <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }}>Try again</Text></Text>
                     </Pressable>
                   ) : null}
                   {!me && item.meta?.suggest_deep && item.id === rows[rows.length - 1]?.id && !thinking ? (
@@ -508,24 +503,24 @@ export default function Talk() {
           <Text style={{ color: voice.recording ? colours.danger : colours.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: space.lg, paddingTop: 6, backgroundColor: colours.surface, borderTopWidth: pending.length ? 0 : 1, borderTopColor: colours.border }}>{voiceHint}</Text>
         ) : null}
         <DeepSwitch plan={plan} freeDeep={freeDeep} half={half} value={deep} onChange={setDeep} second={second} onSecond={setSecond} canSecond={caps.second_opinion} topBorder={!pending.length && !voiceHint} />
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, paddingTop: plan ? space.sm : space.md, borderTopWidth: 0, borderTopColor: colours.border, backgroundColor: colours.surface }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.md, paddingTop: plan ? space.sm : space.md, borderTopWidth: 0, borderTopColor: colours.border, backgroundColor: colours.bg }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Attach a photo or file"
             onPress={() => (Platform.OS === 'web' && !(caps.video && plan && plan !== 'free') ? attach('file') : setPickerOpen(true))}
             disabled={uploading}
-            style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colours.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: colours.bg }}>
+            style={{ width: 44, height: 44, borderRadius: 3, borderWidth: 1, borderColor: colours.ink, alignItems: 'center', justifyContent: 'center', backgroundColor: colours.surface }}>
             <Text style={{ fontSize: 20, color: colours.muted }}>{uploading ? '…' : '+'}</Text>
           </Pressable>
           <TextInput
             ref={inputRef}
             value={text}
             onChangeText={setText}
-            placeholder="Message Tali"
+            placeholder="Tell Tali anything..."
             placeholderTextColor={colours.faint}
             multiline
             maxLength={2000}
-            style={{ flex: 1, maxHeight: 140, minHeight: 44, borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 22, paddingHorizontal: 14, paddingTop: 11, paddingBottom: 11, fontSize: 16, color: colours.text, backgroundColor: colours.bg }}
+            style={{ flex: 1, maxHeight: 140, minHeight: 44, borderWidth: 1, borderColor: colours.ink, borderRadius: 3, paddingHorizontal: 14, paddingTop: 11, paddingBottom: 11, fontSize: 16, color: colours.text, backgroundColor: colours.surface }}
           />
           {VOICE_NOTES_ON ? <MicButton recording={voice.recording} busy={voice.busy} seconds={voice.seconds} onPress={voice.toggle} disabled={thinking || uploading} /> : null}
           <Pressable
@@ -533,8 +528,8 @@ export default function Talk() {
             accessibilityLabel="Send"
             onPress={() => send()}
             disabled={thinking || uploading || (!text.trim() && !pending.length)}
-            style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, backgroundColor: colours.purple, alignItems: 'center', justifyContent: 'center', opacity: thinking || uploading || (!text.trim() && !pending.length) ? 0.5 : 1, ...elevation.button(colours.purple) }}>
-            <Text style={{ color: colours.onPurple, fontWeight: '700', fontSize: 15 }}>{deep ? 'Think' : 'Send'}</Text>
+            style={{ height: 44, paddingHorizontal: 18, borderRadius: 3, backgroundColor: colours.ink, alignItems: 'center', justifyContent: 'center', opacity: thinking || uploading || (!text.trim() && !pending.length) ? 0.35 : 1 }}>
+            <Text style={{ color: colours.bg, fontWeight: '800', fontSize: 13, letterSpacing: 1.2 }}>{deep ? 'THINK' : 'SEND'}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -684,7 +679,7 @@ function ChatHistory({ visible, currentId, onClose, onOpen, onNew, onDeleted }: 
 }
 
 function keptColour(part: string) {
-  return ({ 'Your people': '#5CF2C0', 'Your life and work': '#7FA8FF', 'Plans and ideas': '#FFE066', 'How you like things': '#FF7EB6' } as Record<string, string>)[part] ?? '#B9A6FF';
+  return ({ 'Your people': '#2E8A63', 'Your life and work': '#3B3F9E', 'Plans and ideas': '#A8841C', 'How you like things': '#B8487A' } as Record<string, string>)[part] ?? '#3B3F9E';
 }
 
 function Chip({ label, onPress, danger }: { label: string; onPress: () => void; danger?: boolean }) {
@@ -758,9 +753,9 @@ const fmtSecs = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(
 function VideoTile({ a, me }: { a: Attachment; me: boolean }) {
   const mins = Math.max(1, Math.ceil((a.seconds ?? 60) / 60));
   return (
-    <View style={{ width: 220, borderRadius: 12, overflow: 'hidden', backgroundColor: me ? 'rgba(255,255,255,0.12)' : colours.sunk }}>
+    <View style={{ width: 220, borderRadius: 12, overflow: 'hidden', backgroundColor: me ? 'rgba(28,26,23,0.12)' : colours.sunk }}>
       <View style={{ height: 118, backgroundColor: '#1F1A2E', alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(28,26,23,0.9)', alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#1F1A2E', fontSize: 16, marginLeft: 3 }}>{'▶'}</Text>
         </View>
         <View style={{ position: 'absolute', right: 8, bottom: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
@@ -768,8 +763,8 @@ function VideoTile({ a, me }: { a: Attachment; me: boolean }) {
         </View>
       </View>
       <View style={{ padding: 8 }}>
-        <Text numberOfLines={1} style={{ color: me ? '#fff' : colours.text, fontSize: 13, fontWeight: '700' }}>{a.name}</Text>
-        <Text style={{ color: me ? 'rgba(255,255,255,0.75)' : colours.muted, fontSize: 11 }}>{mins * COST.videoPerMinute} credits to watch</Text>
+        <Text numberOfLines={1} style={{ color: colours.text, fontSize: 13, fontWeight: '700' }}>{a.name}</Text>
+        <Text style={{ color: colours.muted, fontSize: 11 }}>{mins * COST.videoPerMinute} credits to watch</Text>
       </View>
     </View>
   );

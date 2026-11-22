@@ -6,7 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { myBrain, REGIONS, type BrainItem, type RegionId } from '@/lib/brain';
 import { heading, radius, space } from '@/constants/theme';
 
-const DOTS = [[30, 14, '#8EF0C8'], [44, 10, '#8EF0C8'], [58, 12, '#9FB7FF'], [70, 18, '#B9A6FF'], [22, 26, '#8EF0C8'], [36, 26, '#7FD1FF'], [52, 24, '#D7B5FF'], [66, 30, '#B9A6FF'], [78, 30, '#D7B5FF'], [28, 40, '#FFE38A'], [42, 40, '#9FB7FF'], [56, 38, '#FFC37A'], [70, 44, '#9FB7FF'], [24, 54, '#FF9EC4'], [36, 58, '#FF9EC4'], [50, 54, '#FF7A6E'], [62, 58, '#FF9EC4'], [46, 70, '#A6B0C8']] as const;
+const DOTS = [[30, 14, '#2E7D4F'], [44, 10, '#2E7D4F'], [58, 12, '#9FB7FF'], [70, 18, '#3B3F9E'], [22, 26, '#2E7D4F'], [36, 26, '#7FD1FF'], [52, 24, '#8A4FB8'], [66, 30, '#3B3F9E'], [78, 30, '#8A4FB8'], [28, 40, '#FFE38A'], [42, 40, '#9FB7FF'], [56, 38, '#FFC37A'], [70, 44, '#9FB7FF'], [24, 54, '#B8487A'], [36, 58, '#B8487A'], [50, 54, '#FF7A6E'], [62, 58, '#B8487A'], [46, 70, '#A6B0C8']] as const;
 
 export function BrainNow() {
   const [total, setTotal] = useState<number | null>(null);
@@ -30,12 +30,12 @@ export function BrainNow() {
     <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel="Open Tali's brain"
       style={{ marginTop: space.md, borderRadius: radius.card, backgroundColor: '#1F1D4A', padding: space.lg, flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: '#FFFFFF', fontSize: 19, ...heading }}>Her brain</Text>
+        <Text style={{ color: '#1C1A17', fontSize: 19, ...heading }}>Her brain</Text>
         <Text style={{ color: '#CFC6FF', fontSize: 13.5, marginTop: 3 }}>
           {total.toLocaleString('en-AU')} memories{fresh.length ? `, ${fresh.length} new this week` : ''}
         </Text>
         {newest ? (
-          <Text style={{ color: '#FFFFFF', fontSize: 14, lineHeight: 20, marginTop: space.md }} numberOfLines={2}>
+          <Text style={{ color: '#1C1A17', fontSize: 14, lineHeight: 20, marginTop: space.md }} numberOfLines={2}>
             <Text style={{ color: REGIONS[newest.region].colour, fontWeight: '800' }}>Just learned: </Text>{newest.text}
           </Text>
         ) : (

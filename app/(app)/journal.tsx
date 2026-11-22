@@ -9,6 +9,7 @@ import { recentPatterns, type PatternsBrief } from '@/lib/patterns';
 import { PatternsCard } from '@/components/PatternsCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, TaliSays, Title, useConfirm } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
+import { WeeksOfLife } from '@/components/WeeksOfLife';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { ChipPicker } from '@/components/ChipPicker';
@@ -28,7 +29,7 @@ function when(iso: string) {
 // 11 Nov 2026 journal rework (Taj: the journal is your time and your place). Tali never speaks in it.
 // The page comes first and the mood last, your own words come back on their date, and the month is a
 // calendar coloured by how each day was. Notes live on their own screen (mode "notes").
-const MOOD_COLOUR = ['#E7A6CF', '#FFB561', '#B9A6FF', '#7FE0B0', '#4FD39A'];
+const MOOD_COLOUR = ['#E7A6CF', '#A8561A', '#3B3F9E', '#2E8A63', '#4FD39A'];
 const PROMPTS = ["What's taking up the most room today?", 'What went well today?', 'What are you carrying that you could put down?', 'What do you want to remember about today?', 'What would make tomorrow easier?'];
 const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const LOOK_BACK: [string, (d: Date) => void][] = [
@@ -207,7 +208,7 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
               placeholder={prompt}
               placeholderTextColor={colours.faint}
               accessibilityLabel="Your journal entry"
-              style={{ minHeight: 260, textAlignVertical: 'top', backgroundColor: 'rgba(12,10,36,0.5)', borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 16, padding: 16, color: colours.text, fontSize: 19, lineHeight: 27, fontFamily: 'InstrumentSerif_400Regular', marginBottom: space.md }}
+              style={{ minHeight: 260, textAlignVertical: 'top', backgroundColor: '#EFE8DA', borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 16, padding: 16, color: colours.text, fontSize: 19, lineHeight: 27, fontFamily: 'EBGaramond_500Medium', marginBottom: space.md }}
             />
             <Label>How was today</Label>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md }}>
@@ -250,11 +251,11 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
     <Screen skin="journal" onRefresh={load}>
       {/* 9 Nov 2026: Journal gets the same banner and card style as the other pages. */}
       <SkinHeader id="journal" title={notesMode ? 'Notes' : 'Journal'} sub={notesMode ? 'Things to find again. Tali learns from them unless you keep a note private.' : tab === 'mine' ? 'Your time and your place. Tali learns from it quietly unless you keep an entry private.' : 'Every Sunday evening Tali writes up her week working with you.'} />
-      <View style={{ flexDirection: 'row', backgroundColor: colours.surface, borderRadius: radius.pill, padding: 4, marginBottom: space.md, display: notesMode ? 'none' : 'flex', ...elevation.tile }}>
+      <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: colours.ink, borderRadius: radius.pill, overflow: 'hidden', marginBottom: space.md, display: notesMode ? 'none' : 'flex' }}>
         {(['mine', 'tali'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
-            style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: tab === k ? '#5B1F4A' : 'transparent', alignItems: 'center' }}>
-            <Text style={{ fontWeight: '700', color: tab === k ? '#FFFFFF' : colours.muted }}>
+            style={{ flex: 1, paddingVertical: 9, backgroundColor: tab === k ? colours.ink : colours.surface, alignItems: 'center' }}>
+            <Text style={{ fontWeight: '800', fontSize: 12, letterSpacing: 1.2, textTransform: 'uppercase', color: tab === k ? colours.bg : colours.muted }}>
               {k === 'mine' ? 'Yours' : "Tali's"}{k === 'tali' && hers.some((h) => !h.read_at) ? ' \u2022' : ''}
             </Text>
           </Pressable>
@@ -302,11 +303,13 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
         </>
       ) : (
         <>
+          {/* 23 Nov 2026 (Taj): your life in weeks, at the top of your page. Opt in, see components/WeeksOfLife.tsx. */}
+          <WeeksOfLife />
           {lookBack ? (
             <Pressable accessibilityRole="button" onPress={() => { const e = lookBack.entry; openDraft({ id: e.id, kind: e.kind, title: e.title ?? '', body: e.body, mood: e.mood, private_to_tali: e.private_to_tali, side: e.side ?? null }); }}
               style={{ backgroundColor: colours.paper, borderRadius: 16, padding: 16, marginBottom: space.md }}>
               <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', color: '#7A6A8E' }}>{lookBack.label} · {when(lookBack.entry.created_at)}</Text>
-              <Text numberOfLines={5} style={{ color: colours.ink, fontSize: 19, lineHeight: 26, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{lookBack.entry.body}</Text>
+              <Text numberOfLines={5} style={{ color: colours.ink, fontSize: 19, lineHeight: 26, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>{lookBack.entry.body}</Text>
             </Pressable>
           ) : null}
           <Button title="Write" onPress={() => openDraft(blank())} />
@@ -317,7 +320,7 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
                 {Array.from({ length: month.lead + month.days }, (_, i) => {
                   const day = i - month.lead + 1;
                   const e = day > 0 ? month.byDay.get(day) : undefined;
-                  const box = { width: '100%' as const, aspectRatio: 1, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: e ? (e.mood ? MOOD_COLOUR[e.mood - 1] : colours.purpleInk) : day > 0 ? 'rgba(255,255,255,0.07)' : 'transparent', borderWidth: day === month.today ? 2 : 0, borderColor: '#FFFFFF' };
+                  const box = { width: '100%' as const, aspectRatio: 1, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: e ? (e.mood ? MOOD_COLOUR[e.mood - 1] : colours.purpleInk) : day > 0 ? 'rgba(28,26,23,0.07)' : 'transparent', borderWidth: day === month.today ? 2 : 0, borderColor: '#FFFFFF' };
                   const num = day > 0 ? <Text style={{ fontSize: 11, fontWeight: '700', color: e ? colours.onPurple : colours.faint }}>{day}</Text> : null;
                   return (
                     <View key={i} style={{ width: `${100 / 7}%`, padding: 2.5 }}>

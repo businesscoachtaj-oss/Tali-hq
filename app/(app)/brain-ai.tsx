@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { FOUNDER_USER_ID } from '@/constants/business';
-import { NightBackground, night } from '@/components/NightSky';
+import { PaperBackground as NightBackground, paper as night } from '@/components/NightSky';
 import { BackLink } from '@/components/ui';
 import { REGIONS } from '@/lib/brain';
 import { PART_AI, SAMPLE_PICKS } from '@/lib/brainAiPlan';
@@ -25,7 +25,7 @@ export default function BrainAi() {
       <NightBackground />
       <ScrollView contentContainerStyle={{ padding: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' }}>
         <BackLink onPress={() => router.navigate('/brain')} />
-        <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>How Tali thinks</Text>
+        <Text style={{ color: '#1C1A17', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>How Tali thinks</Text>
         <Text style={{ color: night.muted, fontSize: 15, lineHeight: 22, marginTop: space.sm }}>
           Her thalamus reads everything you ask and sends it to the part of her brain that's best at it. Each part runs on the AI that's best at that job.
         </Text>
@@ -36,13 +36,13 @@ export default function BrainAi() {
             <View key={i} style={{ flexDirection: 'row', gap: 10, padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: night.line }}>
               <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: REGIONS[p.part].colour, marginTop: 5 }} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', lineHeight: 19 }}>{p.ask}</Text>
+                <Text style={{ color: '#1C1A17', fontSize: 14, fontWeight: '700', lineHeight: 19 }}>{p.ask}</Text>
                 <Text style={{ color: night.muted, fontSize: 12.5 }}>
                   <Text style={{ color: REGIONS[p.part].colour, fontWeight: '800' }}>{REGIONS[p.part].name}</Text> · {p.ai}
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>{p.credits ? `${p.credits} cr` : 'Add-on'}</Text>
+                <Text style={{ color: '#1C1A17', fontSize: 13, fontWeight: '800' }}>{p.credits ? `${p.credits} cr` : 'Add-on'}</Text>
                 <Text style={{ color: night.faint, fontSize: 11 }}>{p.when}</Text>
               </View>
             </View>
@@ -57,7 +57,7 @@ export default function BrainAi() {
             return (
               <View key={p.id} style={{ backgroundColor: night.glass, borderWidth: 1, borderColor: night.line, borderLeftWidth: 3, borderLeftColor: REGIONS[p.id].colour, borderRadius: radius.card - 4, padding: space.md, gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ flex: 1, color: '#fff', fontSize: 15, fontWeight: '800' }}>{REGIONS[p.id].name}</Text>
+                  <Text style={{ flex: 1, color: '#1C1A17', fontSize: 15, fontWeight: '800' }}>{REGIONS[p.id].name}</Text>
                   {changed ? (
                     <View style={{ backgroundColor: 'rgba(185,166,255,0.18)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
                       <Text style={{ color: night.accent, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>NEW</Text>
@@ -66,7 +66,7 @@ export default function BrainAi() {
                 </View>
                 <Text style={{ color: night.muted, fontSize: 13 }}>{p.job}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.sm, marginTop: 2 }}>
-                  <Text style={{ flex: 1, color: '#fff', fontSize: 14, fontWeight: '700' }}>{p.ai}</Text>
+                  <Text style={{ flex: 1, color: '#1C1A17', fontSize: 14, fontWeight: '700' }}>{p.ai}</Text>
                   <Text style={{ color: night.accent, fontSize: 12, fontWeight: '800', textAlign: 'right', maxWidth: 140 }}>{p.cost}</Text>
                 </View>
                 {changed ? <Text style={{ color: night.faint, fontSize: 11.5 }}>Was {p.was}</Text> : null}

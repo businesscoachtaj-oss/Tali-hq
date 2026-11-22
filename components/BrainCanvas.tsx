@@ -10,7 +10,7 @@ import { BlendMode, Canvas, PaintStyle, Picture, Skia, StrokeCap, TileMode, crea
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useDerivedValue, useFrameCallback, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { REGIONS, type RegionId } from '@/lib/brain';
+import { REGIONS, regionColour, type RegionId } from '@/lib/brain';
 
 type Props = {
   size: number;
@@ -22,6 +22,8 @@ type Props = {
   lit?: RegionId[] | null;
   onSelect: (id: RegionId | null) => void;
   speed: number;
+  /** 23 Nov 2026: the bright glowing brain for the night screens. Without it she is drawn in ink for paper. */
+  night?: boolean;
 };
 
 const IDS = Object.keys(REGIONS) as RegionId[];
@@ -30,7 +32,7 @@ const DEEP_IDS: RegionId[] = ['hippocampus', 'amygdala', 'thalamus', 'hypothalam
 const SP = 5;
 const MAX_SPARKS = 26;
 
-export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, onSelect, speed }: Props) {
+export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, onSelect, speed, night }: Props) {
   const still = useReducedMotion();
   const focused = useIsFocused();
 
@@ -61,15 +63,20 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
     const fill = IDS.map((id) => {
       const p = Skia.Paint();
       p.setAntiAlias(true);
-      p.setColor(Skia.Color(REGIONS[id].colour));
+      p.setColor(Skia.Color(regionColour(id, night)));
       return p;
     });
     const glowP = IDS.map((id) => {
-      const col = REGIONS[id].colour;
+      const col = regionColour(id, night);
       const p = Skia.Paint();
       p.setAntiAlias(true);
-      p.setBlendMode(BlendMode.Plus);
-      p.setShader(Skia.Shader.MakeRadialGradient({ x: 0, y: 0 }, 32, [Skia.Color('#ffffffcc'), Skia.Color(col), Skia.Color(col), Skia.Color(col + '55'), Skia.Color(col + '00')], [0, 0.1, 0.26, 0.34, 1], TileMode.Clamp));
+      // On paper the glow is a soft wash of the part's own colour, never white (23 Nov 2026).
+      if (night) {
+        p.setBlendMode(BlendMode.Plus);
+        p.setShader(Skia.Shader.MakeRadialGradient({ x: 0, y: 0 }, 32, [Skia.Color('#ffffffcc'), Skia.Color(col), Skia.Color(col), Skia.Color(col + '55'), Skia.Color(col + '00')], [0, 0.1, 0.26, 0.34, 1], TileMode.Clamp));
+      } else {
+        p.setShader(Skia.Shader.MakeRadialGradient({ x: 0, y: 0 }, 32, [Skia.Color(col + '66'), Skia.Color(col + '33'), Skia.Color(col + '00')], [0, 0.3, 1], TileMode.Clamp));
+      }
       return p;
     });
     const line = IDS.map((id) => {
@@ -77,20 +84,23 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
       p.setAntiAlias(true);
       p.setStyle(PaintStyle.Stroke);
       p.setStrokeCap(StrokeCap.Round);
-      p.setBlendMode(BlendMode.Plus);
-      p.setColor(Skia.Color(REGIONS[id].colour));
+      if (night) p.setBlendMode(BlendMode.Plus);
+      p.setColor(Skia.Color(regionColour(id, night)));
       return p;
     });
     const white = Skia.Paint();
     white.setAntiAlias(true);
-    white.setColor(Skia.Color('#ffffff'));
+    white.setColor(Skia.Color(night ? '#ffffff' : '#FFFDF8'));
+    const head = Skia.Paint();
+    head.setAntiAlias(true);
+    head.setColor(Skia.Color(night ? '#ffffff' : '#1C1A17'));
     const link = Skia.Paint();
     link.setAntiAlias(true);
     link.setStyle(PaintStyle.Stroke);
     link.setStrokeWidth(1);
-    link.setColor(Skia.Color('#EEE9FF'));
-    return { fill, glowP, line, white, link };
-  }, []);
+    link.setColor(Skia.Color(night ? '#EEE9FF' : '#1C1A17'));
+    return { fill, glowP, line, white, head, link };
+  }, [night]);
 
   // Everything that moves.
   const ry = useSharedValue(0.6);
@@ -253,8 +263,8 @@ export function BrainCanvas({ size, dots, centres, glow, links, selected, lit, o
           paints.link.setAlphaf(0.6 * dim);
           c.drawLine(px[a], py[a], x, y, paints.link);
           paints.link.setStrokeWidth(1);
-          paints.white.setAlphaf(0.95 * dim);
-          c.drawCircle(x, y, 1.9 * scale, paints.white);
+          paints.head.setAlphaf(0.95 * dim);
+          c.drawCircle(x, y, 1.9 * scale, paints.head);
           const g2 = 16 * scale * pk[b];
           paints.glowP[rb].setAlphaf(0.35 * dim);
           c.save();

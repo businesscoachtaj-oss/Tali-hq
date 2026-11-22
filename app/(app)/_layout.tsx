@@ -12,30 +12,35 @@ import type { ColorValue, ViewInstance } from 'react-native';
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 // Each icon registers itself so the first-run tour can ring the right tab.
-function TabIcon({ name, color, size, index }: { name: IconName; color: string; size: number; index: number }) {
+// 23 Nov 2026 (paper and ink, from the approved mockups): on a phone the tabs are words in small caps
+// with an indigo dot over the one you are on. On a PC side menu the icons stay, they help there.
+function TabIcon({ name, color, size, index, focused, wide }: { name: IconName; color: string; size: number; index: number; focused: boolean; wide: boolean }) {
   const ref = useRef<ViewInstance>(null);
   return (
-    <View ref={ref} onLayout={() => registerTab(index, ref)}>
-      <Ionicons name={name} color={color} size={size} />
+    <View ref={ref} onLayout={() => registerTab(index, ref)} style={wide ? undefined : { height: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
+      {wide ? <Ionicons name={name} color={color} size={size} /> : <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: focused ? colours.purple : 'transparent' }} />}
     </View>
   );
 }
 
+let wideNow = false;
 function icon(name: IconName, index: number) {
-  return ({ color, size }: { color: ColorValue; size: number }) => <TabIcon name={name} color={color as string} size={size} index={index} />;
+  return ({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) => <TabIcon name={name} color={color as string} size={size} index={index} focused={focused} wide={wideNow} />;
 }
 
 export default function AppTabs() {
   // 22 Nov 2026: on a PC the tabs become a side menu with Tali HQ's name and Tali (lib/wideWeb.ts).
   const wide = useWide();
+  wideNow = wide;
   return (
     <>
     <Tabs
       screenOptions={withWideTabs(wide, {
         headerShown: false,
-        tabBarActiveTintColor: colours.purple,
         tabBarInactiveTintColor: colours.faint,
-        tabBarStyle: { backgroundColor: '#0D0B22', borderTopColor: colours.border, ...elevation.tabBar },
+        tabBarStyle: { backgroundColor: colours.bg, borderTopColor: colours.ink, borderTopWidth: 1 },
+        tabBarLabelStyle: { fontSize: 9, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+        tabBarActiveTintColor: colours.ink,
         sceneStyle: { backgroundColor: colours.bg },
         // Speed pass (13 Nov 2026): screens you've left stop re-rendering until you come back.
         // Every tab you visit stays mounted, so before this each one re-rendered on every app change.

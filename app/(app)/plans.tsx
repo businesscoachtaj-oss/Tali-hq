@@ -24,7 +24,7 @@ const FOUNDING_OFF = 0.425; // founding members: 42.5% off for life
 const money = (n: number) => `A$${n.toFixed(2)}`;
 
 // 12 Nov 2026 (Taj): the Business plans. Only what is built is listed. The price charged comes from Stripe.
-const BIZ_BLUE = '#7FA8FF';
+const BIZ_BLUE = '#3B3F9E';
 const BIZ_PRICE = 199.99;
 const BIZ_FEATURES = [
   'Everything in Tali HQ Max, with the same 10,000 credits and 300 images a month',
@@ -167,16 +167,17 @@ export default function Plans() {
     <Screen skin="plans" onRefresh={load}>
       <SkinHeader id="plans" title="Plans" sub={founding ? 'You are a founding member: 42.5% off every paid plan for as long as you stay.' : 'Start free. Upgrade when Tali is pulling her weight.'} onBack={() => goBack('/me')} />
 
-      <View style={{ flexDirection: 'row', alignSelf: 'flex-start', backgroundColor: colours.sunk, borderRadius: radius.pill, padding: 4, gap: 4, marginBottom: space.sm }}>
+      {/* 23 Nov 2026 (Taj): yearly stays an option, with no "save" or "months free" line on it. */}
+      <View style={{ flexDirection: 'row', alignSelf: 'flex-start', borderWidth: 1, borderColor: colours.ink, borderRadius: radius.pill, overflow: 'hidden', marginBottom: space.md }}>
         {([false, true] as const).map((y) => (
           <Pressable
             key={String(y)}
             onPress={() => setYearly(y)}
             accessibilityRole="button"
             accessibilityState={{ selected: yearly === y }}
-            style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: yearly === y ? colours.purple : 'transparent' }}
+            style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: yearly === y ? colours.ink : colours.surface }}
           >
-            <Text style={{ fontWeight: '700', fontSize: 14, color: yearly === y ? '#FFFFFF' : colours.text }}>{y ? 'Yearly, save 15%' : 'Monthly'}</Text>
+            <Text style={{ fontWeight: '800', fontSize: 12, letterSpacing: 1.2, color: yearly === y ? colours.bg : colours.text }}>{y ? 'YEARLY' : 'MONTHLY'}</Text>
           </Pressable>
         ))}
       </View>
@@ -195,10 +196,11 @@ export default function Plans() {
         const appleProduct = IS_IOS && p.id !== 'free' ? products[AppleIap.productIdFor(p.id as 'hq' | 'pro' | 'max', yearly ? 'year' : 'month')] : undefined;
         const priceLabel = p.monthly_price_aud === 0 ? 'Free' : IS_IOS ? (appleProduct ? `${appleProduct.displayPrice} ${per}` : productsLoaded ? 'Unavailable' : '...') : `${money(price)} ${per}`;
         return (
-          <Card key={p.id} style={p.id === 'hq' ? { borderColor: colours.purple, borderWidth: 2 } : p.id === 'max' ? { borderColor: '#F6A02C', borderWidth: 2, shadowColor: '#F6A02C', shadowOpacity: 0.55, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } } : undefined}>
-            {p.id === 'max' ? <Text style={{ color: '#FFC56B', fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 4 }}>HER WHOLE BRAIN</Text> : null}
+          <Card key={p.id} style={p.id === 'hq' ? { borderColor: colours.ink, borderWidth: 2 } : undefined}>
+            {p.id === 'hq' ? <Text style={{ color: colours.purple, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 4 }}>MOST PEOPLE PICK THIS</Text> : null}
+            {p.id === 'max' ? <Text style={{ color: colours.orange, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 4 }}>HER WHOLE BRAIN</Text> : null}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
-              <Text style={{ fontSize: 19, fontWeight: '800', color: colours.text }}>{p.name}</Text>
+              <Text style={{ fontSize: 25, color: colours.text, fontFamily: 'EBGaramond_500Medium' }}>{p.name}</Text>
               <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text }}>
                 {priceLabel}
               </Text>
@@ -208,7 +210,7 @@ export default function Plans() {
             ) : null}
             {yearPrice && !IS_IOS ? (
               <Text style={{ color: colours.muted, fontSize: 13 }}>
-                Works out at {money(price / 12)} a month, billed yearly. 15% less than paying monthly.
+                Works out at {money(price / 12)} a month, billed yearly.
               </Text>
             ) : null}
             {(current || trialHere) ? (
@@ -261,10 +263,10 @@ export default function Plans() {
       {loaded && !IS_IOS ? (
         <>
           <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: colours.muted, marginTop: space.lg, marginBottom: space.sm }}>FOR YOUR BUSINESS</Text>
-          <Card style={{ borderColor: BIZ_BLUE, borderWidth: 2 }}>
+          <Card>
             <Text style={{ color: BIZ_BLUE, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 4 }}>THE BUSINESS TOOLS</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
-              <Text style={{ fontSize: 19, fontWeight: '800', color: colours.text }}>Tali HQ Business</Text>
+              <Text style={{ fontSize: 25, color: colours.text, fontFamily: 'EBGaramond_500Medium' }}>Tali HQ Business</Text>
               <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text }}>{money(BIZ_PRICE)} a month</Text>
             </View>
             <Text style={{ color: colours.muted, fontSize: 13 }}>Billed monthly.</Text>
@@ -287,11 +289,11 @@ export default function Plans() {
           {BIZ_SOON.map((b) => (
             <Card key={b.name}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
-                <Text style={{ fontSize: 19, fontWeight: '800', color: colours.text }}>{b.name}</Text>
+                <Text style={{ fontSize: 25, color: colours.text, fontFamily: 'EBGaramond_500Medium' }}>{b.name}</Text>
                 <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text }}>{money(b.price)} a month</Text>
               </View>
               <Text style={{ color: colours.muted, fontSize: 13.5, lineHeight: 19, marginTop: 6 }}>{b.what}</Text>
-              <View style={{ marginTop: space.md, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
+              <View style={{ marginTop: space.md, alignSelf: 'flex-start', backgroundColor: 'rgba(28,26,23,0.1)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
                 <Text style={{ fontSize: 12.5, fontWeight: '800', color: colours.muted }}>Coming soon</Text>
               </View>
             </Card>
@@ -302,7 +304,7 @@ export default function Plans() {
       <ExtrasCard />
 
       <ErrorText>{error}</ErrorText>
-      {note ? <Text style={{ color: '#7FE0B0', fontWeight: '700', marginBottom: space.sm }}>{note}</Text> : null}
+      {note ? <Text style={{ color: '#2E8A63', fontWeight: '700', marginBottom: space.sm }}>{note}</Text> : null}
       {IS_IOS ? (
         <>
           {stripeOnIos ? <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>Your plan is billed outside the App Store, so it can't be changed here.</Text> : null}
@@ -356,7 +358,7 @@ function ExtrasCard() {
               <Text style={{ fontSize: 12.5, color: colours.muted, lineHeight: 17 }}>{e.what}</Text>
             </View>
             {e.needs && !caps[e.needs] ? (
-              <View accessibilityLabel="Coming soon" style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 9 }}><Text style={{ fontSize: 11.5, fontWeight: '800', color: colours.muted }}>Coming soon</Text></View>
+              <View accessibilityLabel="Coming soon" style={{ backgroundColor: 'rgba(28,26,23,0.1)', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 9 }}><Text style={{ fontSize: 11.5, fontWeight: '800', color: colours.muted }}>Coming soon</Text></View>
             ) : (
               <Text style={{ fontSize: 12.5, fontWeight: '800', color: colours.purpleInk, maxWidth: 92, textAlign: 'right' }}>{e.cost}</Text>
             )}
@@ -378,7 +380,7 @@ function ExtrasCard() {
           ))}
         </View>
         {/* Not on sale until her voice is switched on and the minutes are counted server side. */}
-        <View style={{ marginTop: space.md, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
+        <View style={{ marginTop: space.md, alignSelf: 'flex-start', backgroundColor: 'rgba(28,26,23,0.1)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
           <Text style={{ fontSize: 12.5, fontWeight: '800', color: colours.muted }}>Coming soon</Text>
         </View>
       </Card>

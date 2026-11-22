@@ -20,12 +20,12 @@ import { colours } from '@/constants/theme';
 
 const STATE: Record<Project['status'], string> = { active: 'On the go', paused: 'Paused', done: 'Done' };
 function health(p: Project, tasks: ProjectTask[]): { text: string; colour: string } {
-  if (p.status === 'done') return { text: 'Done', colour: '#D7B5FF' };
+  if (p.status === 'done') return { text: 'Done', colour: '#8A4FB8' };
   if (p.status === 'paused') return { text: 'Paused', colour: colours.muted };
   const open = tasks.filter((t) => !t.done_at).length;
   if (p.due_date && p.due_date < today() && open) return { text: 'Past its date', colour: '#FF8A7E' };
-  if (!tasks.length) return { text: 'No tasks yet', colour: '#FFB561' };
-  if (!open) return { text: 'All ticked', colour: '#7FE0B0' };
+  if (!tasks.length) return { text: 'No tasks yet', colour: '#A8561A' };
+  if (!open) return { text: 'All ticked', colour: '#2E8A63' };
   return { text: 'On the go', colour: BLUE };
 }
 

@@ -145,7 +145,7 @@ export default function Website() {
             <Ionicons name="chevron-back" size={20} color={BLUE} /><Text style={{ color: BLUE, fontSize: 15, fontWeight: '800' }}>Back to editing</Text>
           </Pressable>
           <View style={{ flex: 1 }} />
-          <Pill text="Preview" colour="#FFB561" />
+          <Pill text="Preview" colour="#A8561A" />
         </View>
         <Text style={{ color: colours.faint, fontSize: 12.5, paddingHorizontal: 16, paddingTop: 8 }}>Not saved yet. Your services, booking and quote buttons show on the live page.</Text>
         <PublicSiteView slug="" preview={page} />
@@ -160,7 +160,7 @@ export default function Website() {
     <Screen onRefresh={load}>
       <Head over={site.kind === 'life' ? 'Life' : 'Business'} title="Website" sub="A simple site Tali HQ hosts for you. Fill it in, have a look, then put it live." />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <Pill text={site.published ? 'Live' : has ? 'Not live yet' : 'Not set up yet'} colour={site.published ? '#7FE0B0' : '#FFB561'} />
+        <Pill text={site.published ? 'Live' : has ? 'Not live yet' : 'Not set up yet'} colour={site.published ? '#2E8A63' : '#A8561A'} />
         <Text selectable numberOfLines={1} style={{ flex: 1, color: BLUE, fontSize: 13.5, fontWeight: '800' }}>{SITE_BASE}{slug || 'your-name'}</Text>
       </View>
       {!has ? <TaliLine>Start with your name and one line about what you do. You can change anything later.</TaliLine> : null}
@@ -172,7 +172,7 @@ export default function Website() {
         {(['business', 'life'] as const).map((k) => (
           <Pressable key={k} onPress={() => set({ kind: k, ...(k === 'life' ? { show_services: false, show_booking: false } : {}) })} accessibilityRole="radio" accessibilityState={{ selected: site.kind === k }}
             style={{ flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: radius.pill, backgroundColor: site.kind === k ? BLUE : colours.surface, borderWidth: 1, borderColor: site.kind === k ? BLUE : colours.border }}>
-            <Text style={{ color: site.kind === k ? '#141033' : colours.text, fontWeight: '800' }}>{k === 'business' ? 'My business' : 'Just me'}</Text>
+            <Text style={{ color: site.kind === k ? '#F5F0E6' : colours.text, fontWeight: '800' }}>{k === 'business' ? 'My business' : 'Just me'}</Text>
           </Pressable>
         ))}
       </View>
@@ -250,7 +250,7 @@ export default function Website() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="link-outline" size={18} color={BLUE} />
           <Text style={{ flex: 1, color: colours.text, fontSize: 15.5, fontWeight: '800' }}>Use my own domain</Text>
-          {dom.status === 'live' ? <Pill text="Live" colour="#7FE0B0" /> : dom.status ? <Pill text="Being connected" colour="#FFB561" /> : null}
+          {dom.status === 'live' ? <Pill text="Live" colour="#2E8A63" /> : dom.status ? <Pill text="Being connected" colour="#A8561A" /> : null}
         </View>
         {!dom.unlocked ? (
           <>

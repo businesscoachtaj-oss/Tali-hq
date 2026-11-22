@@ -8,7 +8,7 @@
 // the real ones), parts she holds little in sit a little dimmer, and the Today lens can light several parts.
 import { useEffect, useRef } from 'react';
 import { useIsFocused } from 'expo-router';
-import { REGIONS, type RegionId } from '@/lib/brain';
+import { REGIONS, regionColour, type RegionId } from '@/lib/brain';
 
 type D = { x: number; y: number; z: number; region: RegionId; size: number; ph: number; near: D[]; p?: { sx: number; sy: number; k: number; z: number } };
 type Props = {
@@ -21,6 +21,8 @@ type Props = {
   lit?: RegionId[] | null;
   onSelect: (id: RegionId | null) => void;
   speed: number;
+  /** 23 Nov 2026: the bright glowing brain for the night screens. Without it she is drawn in ink for paper. */
+  night?: boolean;
 };
 
 const DEEP: Partial<Record<RegionId, 1>> = { hippocampus: 1, amygdala: 1, thalamus: 1, hypothalamus: 1, basal_ganglia: 1, corpus_callosum: 1 };
@@ -84,12 +86,20 @@ export function BrainCanvas(props: Props) {
       c.width = c.height = 64;
       const g = c.getContext('2d')!;
       const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-      const col = REGIONS[id].colour;
-      grd.addColorStop(0, '#ffffffcc');
-      grd.addColorStop(0.1, col);
-      grd.addColorStop(0.26, col);
-      grd.addColorStop(0.34, col + '55');
-      grd.addColorStop(1, col + '00');
+      const night = live.current.night;
+      const col = regionColour(id, night);
+      if (night) {
+        grd.addColorStop(0, '#ffffffcc');
+        grd.addColorStop(0.1, col);
+        grd.addColorStop(0.26, col);
+        grd.addColorStop(0.34, col + '55');
+        grd.addColorStop(1, col + '00');
+      } else {
+        // On paper the glow is a soft wash of the part's own colour, never white.
+        grd.addColorStop(0, col + '66');
+        grd.addColorStop(0.3, col + '33');
+        grd.addColorStop(1, col + '00');
+      }
       g.fillStyle = grd;
       g.fillRect(0, 0, 64, 64);
       sprites[id] = c;
@@ -132,8 +142,10 @@ export function BrainCanvas(props: Props) {
       const scale = (size / 400) * zoom;
       const { glow, links, centres } = live.current;
       // The app's lines between parts that share a name, on the whole brain only.
+      const night = !!live.current.night;
+      const lighter = night ? 'lighter' : 'source-over';
       if (!focus) {
-        ctx.strokeStyle = '#EEE9FF';
+        ctx.strokeStyle = night ? '#EEE9FF' : '#1C1A17';
         ctx.lineWidth = 1;
         for (const l of links) {
           const a = project(centres[l.a]), b = project(centres[l.b]);
@@ -152,19 +164,21 @@ export function BrainCanvas(props: Props) {
         const rad = d.size * p.k * scale * (on ? 0.95 : 0.78);
         if (on) {
           const g = rad * 6;
-          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalCompositeOperation = lighter;
           ctx.globalAlpha = a * 0.5;
           ctx.drawImage(sprites[d.region], p.sx - g / 2, p.sy - g / 2, g, g);
           ctx.globalCompositeOperation = 'source-over';
         }
         ctx.globalAlpha = a;
-        ctx.fillStyle = REGIONS[d.region].colour;
+        // On paper, parts she holds nothing in yet are drawn in plain ink; the rest in their colour.
+        ctx.fillStyle = night || on || (glow[d.region] ?? 0) > 0 ? regionColour(d.region, night) : '#1C1A17';
+        if (!night && !on && !((glow[d.region] ?? 0) > 0)) ctx.globalAlpha = a * 0.55;
         ctx.beginPath();
         ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2);
         ctx.fill();
         if (on) {
           ctx.globalAlpha = a * 0.8;
-          ctx.fillStyle = '#fff';
+          ctx.fillStyle = night ? '#fff' : '#FFFDF8';
           ctx.beginPath();
           ctx.arc(p.sx, p.sy, rad * 0.45, 0, Math.PI * 2);
           ctx.fill();
@@ -172,7 +186,7 @@ export function BrainCanvas(props: Props) {
       }
       // The sparks: a thin line that fades behind a bright point running to the next dot.
       if (!reduce) {
-        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalCompositeOperation = lighter;
         ctx.lineCap = 'round';
         for (let s = sparks.length - 1; s >= 0; s--) {
           const sp = sparks[s];
@@ -194,7 +208,7 @@ export function BrainCanvas(props: Props) {
           const A = sp.a.p, B = sp.b.p;
           if (!A || !B) continue;
           const x = A.sx + (B.sx - A.sx) * t, y = A.sy + (B.sy - A.sy) * t;
-          const dim = focus && !focus.includes(sp.b.region) ? 0.5 : 1, col = '#FFFFFF'; // 11 Nov 2026: white sparks
+          const dim = focus && !focus.includes(sp.b.region) ? 0.5 : 1, col = night ? '#FFFFFF' : regionColour(sp.b.region); // 11 Nov 2026: white sparks (in the part's colour on paper)
           ctx.globalAlpha = 0.5 * dim;
           ctx.strokeStyle = col;
           ctx.lineWidth = 1.2 * scale;
@@ -206,7 +220,7 @@ export function BrainCanvas(props: Props) {
           ctx.globalAlpha = 0.35 * dim;
           ctx.drawImage(sprites[sp.b.region], x - g2 / 2, y - g2 / 2, g2, g2);
           ctx.globalAlpha = 0.95 * dim;
-          ctx.fillStyle = '#FFFFFF';
+          ctx.fillStyle = night ? '#FFFFFF' : '#1C1A17';
           ctx.beginPath();
           ctx.arc(x, y, 1.9 * scale, 0, Math.PI * 2);
           ctx.fill();

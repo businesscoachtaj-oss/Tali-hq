@@ -14,8 +14,8 @@ import { TaliAvatar } from '@/components/TaliAvatar';
 const PRIVACY_URL = 'https://totality360.com.au/privacy.html#tali-hq-ai';
 
 const box = { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(196,178,255,0.30)', backgroundColor: 'rgba(58,44,140,0.55)', padding: 14, marginBottom: 10 } as const;
-const head = { color: '#FFFFFF', fontWeight: '800' as const, fontSize: 15, marginBottom: 6 };
-const body = { color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 20 };
+const head = { color: '#1C1A17', fontWeight: '800' as const, fontSize: 15, marginBottom: 6 };
+const body = { color: 'rgba(28,26,23,0.8)', fontSize: 14, lineHeight: 20 };
 
 export function AiConsent({ onDone, gate }: { onDone: () => void; gate: boolean }) {
   const { session, profile, refreshProfile } = useAuth();
@@ -53,12 +53,12 @@ export function AiConsent({ onDone, gate }: { onDone: () => void; gate: boolean 
         <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)' }}>
           <TaliAvatar pose="head" size={42} />
         </View>
-        <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>TALI AND YOUR DATA</Text>
+        <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>TALI AND YOUR DATA</Text>
       </View>
-      <Text style={{ color: '#FFFFFF', fontSize: 34, lineHeight: 38, marginTop: space.md, fontFamily: 'InstrumentSerif_400Regular' }}>
+      <Text style={{ color: '#1C1A17', fontSize: 34, lineHeight: 38, marginTop: space.md, fontFamily: 'EBGaramond_500Medium' }}>
         {gate ? 'Before we start, a yes from you.' : 'How Tali uses AI'}
       </Text>
-      <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, lineHeight: 21, marginTop: 8, marginBottom: space.lg }}>
+      <Text style={{ color: 'rgba(28,26,23,0.75)', fontSize: 15, lineHeight: 21, marginTop: 8, marginBottom: space.lg }}>
         {"I'm an AI. To think, write and remember for you, Tali HQ sends some of your information to the AI companies that run my thinking. Nothing goes to them until you say yes."}
       </Text>
 
@@ -85,14 +85,14 @@ export function AiConsent({ onDone, gate }: { onDone: () => void; gate: boolean 
         <Text style={body}>{"Without a yes you can still use your lists, notes, journal and the rest of the app, but Tali can't chat, write your brief, sort email or study at night. You can change this any time in Me, then Tali and your data."}</Text>
       </View>
 
-      <Text onPress={() => Linking.openURL(PRIVACY_URL)} style={{ color: '#B9A6FF', fontWeight: '800', fontSize: 14, marginBottom: space.lg }}>
+      <Text onPress={() => Linking.openURL(PRIVACY_URL)} style={{ color: '#3B3F9E', fontWeight: '800', fontSize: 14, marginBottom: space.lg }}>
         Read the privacy policy
       </Text>
 
       <ErrorText>{error}</ErrorText>
       {on ? (
         <>
-          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', marginBottom: space.sm }}>
+          <Text style={{ color: 'rgba(28,26,23,0.7)', fontSize: 13, textAlign: 'center', marginBottom: space.sm }}>
             You said yes on {new Date(profile!.ai_consent_at!).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}.
           </Text>
           <Button title="Turn Tali's AI off" kind="danger" onPress={() => answer(false)} busy={busy === 'off'} disabled={!!busy} />

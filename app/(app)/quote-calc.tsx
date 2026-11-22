@@ -89,7 +89,7 @@ export default function QuoteCalc() {
     <Screen onRefresh={load}>
       <Head over="Business" title="Quote calculator" sub="Customers pick what they want and see a rough price. Their request lands in your Pipeline." />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <Pill text={calc.enabled ? 'Live' : has ? 'Switched off' : 'Not set up yet'} colour={calc.enabled ? '#7FE0B0' : '#FFB561'} />
+        <Pill text={calc.enabled ? 'Live' : has ? 'Switched off' : 'Not set up yet'} colour={calc.enabled ? '#2E8A63' : '#A8561A'} />
         <Text selectable numberOfLines={1} style={{ flex: 1, color: BLUE, fontSize: 13.5, fontWeight: '800' }}>{QUOTE_BASE}{slug || 'your-name'}</Text>
       </View>
       {!has ? <TaliLine>Tell me how you price your work and I will set it up. Or add the things to pick yourself below.</TaliLine> : null}
@@ -120,7 +120,7 @@ export default function QuoteCalc() {
             {kinds.map((k) => (
               <Pressable key={k} onPress={() => setItem(it.id, { kind: k, choices: k === 'choice' && it.choices.length < 2 ? [{ label: '', price: 0 }, { label: '', price: 0 }] : it.choices })} accessibilityRole="radio" accessibilityState={{ selected: it.kind === k }}
                 style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: radius.pill, backgroundColor: it.kind === k ? BLUE : colours.bg, borderWidth: 1, borderColor: it.kind === k ? BLUE : colours.border }}>
-                <Text style={{ color: it.kind === k ? '#141033' : colours.text, fontWeight: '800', fontSize: 12.5 }}>{KIND_LABEL[k]}</Text>
+                <Text style={{ color: it.kind === k ? '#F5F0E6' : colours.text, fontWeight: '800', fontSize: 12.5 }}>{KIND_LABEL[k]}</Text>
               </Pressable>
             ))}
           </View>

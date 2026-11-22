@@ -13,7 +13,7 @@ import { REGIONS } from '@/lib/brain';
 import { libraryBook, libraryRead, libraryShelf, bookBlocks, joinMine, loadMineAccount, loadMineLocal, saveMine, NO_MINE, type LibraryMine, type BookBlock, type LibraryBook, type LibraryBookDetail, type LibraryPassage } from '@/lib/library';
 
 type Book = LibraryBook;
-const serif = 'InstrumentSerif_400Regular';
+const serif = 'EBGaramond_500Medium';
 // The book's own words: Literata, a soft serif made for reading on screens.
 const bookFace = 'Literata_400Regular';
 const bookItalic = 'Literata_400Regular_Italic';
@@ -56,7 +56,7 @@ function Standing({ b, w, h, onPress }: { b: Book; w: number; h: number; onPress
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={`${b.title} by ${b.author}. ${done ? 'Finished. Open.' : `${pct}% read.`}`} style={{ alignItems: 'center' }}>
       <View style={{ width: w, height: h, backgroundColor: hue(b), borderTopLeftRadius: 5, borderTopRightRadius: 5, borderRadius: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 5, shadowOffset: { width: 2, height: 0 } }}>
         {/* shading down the left edge and bands top and bottom, like a cloth bound spine */}
-        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, backgroundColor: 'rgba(255,255,255,0.28)' }} />
+        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, backgroundColor: 'rgba(28,26,23,0.28)' }} />
         <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, backgroundColor: 'rgba(0,0,0,0.16)' }} />
         <View style={{ position: 'absolute', left: 0, right: 0, top: 12, height: 3, backgroundColor: 'rgba(40,24,60,0.45)' }} />
         <View style={{ position: 'absolute', left: 0, right: 0, top: 18, height: 1, backgroundColor: 'rgba(40,24,60,0.45)' }} />
@@ -130,11 +130,11 @@ function Cover({ b, w = 58 }: { b: { title: string; author: string; region: stri
       <View style={{ width: w, height: h, backgroundColor: c, borderTopLeftRadius: 5, borderBottomLeftRadius: 5, borderTopRightRadius: 3, borderBottomRightRadius: 3, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 5, shadowOffset: { width: 2, height: 3 } }}>
         {/* rounded spine: dark at the hinge, a soft highlight, two raised bands */}
         <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: spine, backgroundColor: 'rgba(28,20,51,0.30)' }} />
-        <View style={{ position: 'absolute', left: 1.5, top: 0, bottom: 0, width: 2, backgroundColor: 'rgba(255,255,255,0.30)' }} />
+        <View style={{ position: 'absolute', left: 1.5, top: 0, bottom: 0, width: 2, backgroundColor: 'rgba(28,26,23,0.30)' }} />
         <View style={{ position: 'absolute', left: spine, top: 0, bottom: 0, width: 1.5, backgroundColor: 'rgba(28,20,51,0.28)' }} />
-        <View style={{ position: 'absolute', left: spine + 1.5, top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.35)' }} />
-        <View style={{ position: 'absolute', left: 0, width: spine, top: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(255,255,255,0.45)' }} />
-        <View style={{ position: 'absolute', left: 0, width: spine, bottom: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(255,255,255,0.45)' }} />
+        <View style={{ position: 'absolute', left: spine + 1.5, top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(28,26,23,0.35)' }} />
+        <View style={{ position: 'absolute', left: 0, width: spine, top: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(28,26,23,0.45)' }} />
+        <View style={{ position: 'absolute', left: 0, width: spine, bottom: Math.round(h * 0.14), height: 2, backgroundColor: 'rgba(28,26,23,0.45)' }} />
         {/* the pressed frame with the title set inside it */}
         <View style={{ position: 'absolute', left: spine + 5, right: 4, top: 5, bottom: 5, borderWidth: 1, borderColor: 'rgba(28,20,51,0.45)', borderRadius: 2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 }}>
           <View style={{ position: 'absolute', left: 1.5, right: 1.5, top: 1.5, bottom: 1.5, borderWidth: 0.5, borderColor: 'rgba(28,20,51,0.30)', borderRadius: 1 }} />

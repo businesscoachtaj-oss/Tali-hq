@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { colours, radius, space } from '@/constants/theme';
 
-export const BLUE = '#7FA8FF';
+export const BLUE = '#3B3F9E';
 export type Icon = React.ComponentProps<typeof Ionicons>['name'];
 export const aud = (n: number) => `A$${Math.round(n).toLocaleString('en-AU')}`;
 
@@ -15,11 +15,11 @@ export function Head({ back = 'Today', to = '/', over, title, sub }: { back?: st
   return (
     <View style={{ marginBottom: 18, marginTop: 6 }}>
       <Pressable onPress={() => router.navigate(to as any)} hitSlop={12} accessibilityRole="button" style={{ marginBottom: 16 }}>
-        <Text style={{ color: '#B9A6FF', fontSize: 15, fontWeight: '600' }}>{'‹'} {back}</Text>
+        <Text style={{ color: '#3B3F9E', fontSize: 15, fontWeight: '600' }}>{'‹'} {back}</Text>
       </Pressable>
       <Text style={{ color: BLUE, fontSize: 11, fontWeight: '800', letterSpacing: 2 }}>{over.toUpperCase()}</Text>
-      <Text style={{ color: '#F4F1FF', fontSize: 42, lineHeight: 46, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{title}</Text>
-      <Text style={{ color: '#B9B2D9', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{sub}</Text>
+      <Text style={{ color: '#1C1A17', fontSize: 42, lineHeight: 46, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>{title}</Text>
+      <Text style={{ color: '#5E574E', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{sub}</Text>
     </View>
   );
 }
@@ -39,7 +39,7 @@ export function Stats({ items }: { items: { label: string; value: string; colour
 
 export function Pill({ text, colour }: { text: string; colour: string }) {
   return (
-    <View style={{ alignSelf: 'flex-start', borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 9, backgroundColor: colour + '26', borderWidth: 1, borderColor: colour + '80' }}>
+    <View style={{ alignSelf: 'flex-start', borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 9, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: colour + '80' }}>
       <Text style={{ fontSize: 11, fontWeight: '800', color: colour }}>{text}</Text>
     </View>
   );
@@ -47,7 +47,7 @@ export function Pill({ text, colour }: { text: string; colour: string }) {
 
 export function Bar({ pct, colour = BLUE }: { pct: number; colour?: string }) {
   return (
-    <View style={{ height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+    <View style={{ height: 7, borderRadius: 4, backgroundColor: 'rgba(28,26,23,0.12)', overflow: 'hidden' }}>
       <View style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: 7, borderRadius: 4, backgroundColor: colour }} />
     </View>
   );

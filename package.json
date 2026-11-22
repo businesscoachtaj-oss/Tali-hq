@@ -13,6 +13,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@expo-google-fonts/eb-garamond": "^0.4.3",
     "@expo-google-fonts/instrument-serif": "^0.4.1",
     "@expo-google-fonts/literata": "^0.4.3",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",

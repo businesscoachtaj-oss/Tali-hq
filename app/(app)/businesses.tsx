@@ -79,7 +79,7 @@ export default function Businesses() {
   const Row = ({ icon, colour, title, sub, on, first, onPress, onEdit }: { icon: Icon; colour: string; title: string; sub: string; on?: boolean; first?: boolean; onPress: () => void; onEdit?: () => void }) => (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, borderTopWidth: first ? 0 : 1, borderTopColor: colours.border }}>
       <Pressable onPress={busy ? undefined : onPress} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 14 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colour + '26', borderWidth: 1, borderColor: colour + '80', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={icon} size={20} color={colour} /></View>
+        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: colour + '80', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={icon} size={20} color={colour} /></View>
         <View style={{ flex: 1 }}>
           <Text style={{ color: colours.text, fontSize: 16, fontWeight: '800' }}>{title}</Text>
           <Text style={{ color: colours.muted, fontSize: 12.5, marginTop: 2, lineHeight: 17 }}>{sub}</Text>

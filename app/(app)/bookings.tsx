@@ -24,7 +24,7 @@ const pretty = (hm: string) => { const [h, m] = hm.split(':').map(Number); retur
 const timeOf = (iso: string) => new Date(iso).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
 const dayOf = (iso: string) => new Date(iso).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short' });
 const lengthOf = (m: number) => (m >= 60 ? `${Math.round((m / 60) * 10) / 10} h` : `${m} min`);
-const TAG: Record<string, { text: string; colour: string }> = { link: { text: 'From your link', colour: '#FFB561' }, tali: { text: 'Booked by Tali', colour: '#D7B5FF' }, you: { text: 'Booked by you', colour: BLUE } };
+const TAG: Record<string, { text: string; colour: string }> = { link: { text: 'From your link', colour: '#A8561A' }, tali: { text: 'Booked by Tali', colour: '#8A4FB8' }, you: { text: 'Booked by you', colour: BLUE } };
 
 export default function Bookings() {
   const { session } = useAuth();
@@ -113,17 +113,17 @@ export default function Bookings() {
     <Screen onRefresh={load}>
       <BusinessBar />
       <Head over="Business" title="Bookings" sub="Your week, who wants a time, and one link your customers book from. Nothing is confirmed without your yes." />
-      <Stats items={[{ label: 'booked this week', value: String(thisWeek) }, { label: 'waiting on you', value: String(waiting.length), colour: waiting.length ? '#FFB561' : undefined }, { label: 'from your link', value: String(list.filter((b) => b.source === 'link' && b.status !== 'requested').length), colour: colours.good }]} />
+      <Stats items={[{ label: 'booked this week', value: String(thisWeek) }, { label: 'waiting on you', value: String(waiting.length), colour: waiting.length ? '#A8561A' : undefined }, { label: 'from your link', value: String(list.filter((b) => b.source === 'link' && b.status !== 'requested').length), colour: colours.good }]} />
       <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
         {week.map((d) => {
           const iso = isoDate(d), on = iso === day, n = onDay(iso).length;
           return (
             <Pressable key={iso} onPress={() => setDay(iso)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={dayOf(d.toISOString())}
               style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 14, backgroundColor: on ? BLUE : colours.surface, borderWidth: 1, borderColor: on ? BLUE : colours.border }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: on ? '#141033' : colours.faint }}>{DAY[d.getDay()]}</Text>
-              <Text style={{ fontSize: 17, fontWeight: '800', color: on ? '#141033' : colours.text, marginTop: 2 }}>{d.getDate()}</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: on ? '#F5F0E6' : colours.faint }}>{DAY[d.getDay()]}</Text>
+              <Text style={{ fontSize: 17, fontWeight: '800', color: on ? '#F5F0E6' : colours.text, marginTop: 2 }}>{d.getDate()}</Text>
               <View style={{ flexDirection: 'row', gap: 2, marginTop: 4, height: 5 }}>
-                {Array.from({ length: Math.min(n, 4) }).map((_, k) => <View key={k} style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: on ? '#141033' : BLUE }} />)}
+                {Array.from({ length: Math.min(n, 4) }).map((_, k) => <View key={k} style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: on ? '#F5F0E6' : BLUE }} />)}
               </View>
             </Pressable>
           );
@@ -134,7 +134,7 @@ export default function Bookings() {
 
       {waiting.length ? <Label>Waiting on your yes</Label> : null}
       {waiting.map((b) => (
-        <Box key={b.id} edge="#FFB561">
+        <Box key={b.id} edge="#A8561A">
           <H>{b.client_name || 'Someone'}</H>
           <Sub>{b.title}, {dayOf(b.starts_at)} at {timeOf(b.starts_at)}</Sub>
           {b.client_email || b.client_phone ? <Text selectable style={{ color: colours.muted, fontSize: 13, marginTop: 4 }}>{[b.client_email, b.client_phone].filter(Boolean).join(' · ')}</Text> : null}

@@ -4,12 +4,12 @@
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { night } from '@/components/NightSky';
+import { paper as night } from '@/components/NightSky';
 import { radius, space } from '@/constants/theme';
 import { mySleeps, undoSleepChange, type SleepChange, type SleepNight } from '@/lib/sleeps';
 
 const LABEL: Record<SleepChange['type'], { tag: string; colour: string }> = {
-  replaced: { tag: 'Updated', colour: '#8EF0C8' },
+  replaced: { tag: 'Updated', colour: '#2E7D4F' },
   combined: { tag: 'Put together', colour: '#9FB7FF' },
   merged: { tag: 'Said twice', colour: '#FFE38A' },
   faded: { tag: 'Let go', colour: '#D2CCEE' },
@@ -46,7 +46,7 @@ export function LastNightCard({ onChanged }: { onChanged?: () => void }) {
       <LinearGradient colors={['#2A1F4F', '#1B2450']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: space.lg }}>
         <Text style={{ color: night.accent, fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>WHILE YOU SLEPT</Text>
         <Text style={{ color: night.faint, fontSize: 12, marginTop: 2 }}>{niceDate(nightRow.night)}. I went back over what you told me.</Text>
-        {nightRow.learned ? <Text style={{ color: '#fff', fontSize: 17, lineHeight: 24, marginTop: space.sm, fontFamily: 'InstrumentSerif_400Regular' }}>{nightRow.learned}</Text> : null}
+        {nightRow.learned ? <Text style={{ color: '#1C1A17', fontSize: 17, lineHeight: 24, marginTop: space.sm, fontFamily: 'EBGaramond_500Medium' }}>{nightRow.learned}</Text> : null}
 
         {nightRow.changes.length ? (
           <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={{ flexDirection: 'row', alignItems: 'center', marginTop: space.md, paddingVertical: 6 }}>
