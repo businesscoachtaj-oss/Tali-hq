@@ -7,9 +7,9 @@ import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MOODS, rhythmSettings, todaysShutdown, type Shutdown } from '@/lib/rhythm';
-import { Card, Label } from '@/components/ui';
+import { Card, Label, useNight } from '@/components/ui';
 import { TaliAvatar } from '@/components/TaliAvatar';
-import { colours, elevation, radius, space } from '@/constants/theme';
+import { colours as paperColours, nightColours, elevation, radius, space } from '@/constants/theme';
 
 export type ShutdownCardState = { show: boolean; done: Shutdown | null; shutdownTime: string };
 
@@ -56,6 +56,8 @@ export function ShutdownCard({ now, hideLine }: { now?: () => Date; hideLine?: b
 
 // The card itself, with no loading, for Today and for tests.
 export function ShutdownCardView({ done, hideLine }: { done: Shutdown | null; hideLine?: boolean }) {
+  // 23 Nov 2026: on the closed Today (her night sky) the card takes the night palette.
+  const colours = useNight() ? nightColours : paperColours;
   if (done) {
     const m = MOODS.find((x) => x.value === done.mood);
     const lines = done.tomorrow.map((t) => t.text).filter(Boolean);

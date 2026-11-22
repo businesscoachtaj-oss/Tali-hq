@@ -410,7 +410,7 @@ function TemplateSheet({ tpl, plan, mode, hasBiz, current, trackers, homeKey, on
   }
   return (
     <Sheet visible title={tpl.name} sub={`${tpl.desc}. Change any target before it goes on.`} onClose={onClose}>
-      <View style={{ borderRadius: 20, padding: 12, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: colours.border }}>
+      <View style={{ borderRadius: 20, padding: 12, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: colours.border }}>
         <MiniLayout widgets={blocks} blank />
       </View>
       {blocks.some((b) => b.spec) ? head('TARGETS') : null}

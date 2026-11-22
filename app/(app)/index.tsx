@@ -14,7 +14,7 @@ import { HealthCard } from '@/components/HealthCard';
 import { addDays, today } from '@/lib/dates';
 import { DueList } from '@/components/DueList';
 import { AddReminder } from '@/components/AddReminder';
-import { Body, Card, Label } from '@/components/ui';
+import { Body, Card, Label, NightProvider } from '@/components/ui';
 import { DraftCard } from '@/components/DraftCard';
 import { AppTour } from '@/components/AppTour';
 import { TOUR_STEPS, finishTour } from '@/lib/tour';
@@ -448,6 +448,7 @@ export default function Today() {
 
 
   return (
+    <NightProvider value={night}>
     <SafeAreaView style={{ flex: 1, backgroundColor: night ? '#0C0A24' : colours.bg }} edges={NO_BOTTOM}>
       {/* 23 Nov 2026 (paper and ink): Today is paper through the day and goes back into her night sky once the day is shut down. */}
       {night ? <PageSky /> : null}
@@ -566,6 +567,7 @@ export default function Today() {
       </ScrollView>
       {showTour ? <AppTour steps={TOUR_STEPS} onDone={closeTour} firstName={profile?.first_name} /> : null}
     </SafeAreaView>
+    </NightProvider>
   );
 }
 

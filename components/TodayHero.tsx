@@ -72,7 +72,7 @@ export function TodayHero({
             <Text style={{ color: '#1C1A17', fontSize: 50, lineHeight: 52, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>{greeting.replace(', ', ',\n')}</Text>
           </View>
           <View>
-            <View style={{ position: 'absolute', left: 4, top: 14, width: 108, height: 108, borderRadius: 54, backgroundColor: 'rgba(185,166,255,0.18)', shadowColor: '#000', shadowOpacity: 0, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }} />
+            <View style={{ position: 'absolute', left: 4, top: 14, width: 108, height: 108, borderRadius: 54, backgroundColor: 'rgba(59,63,158,0.18)', shadowColor: '#000', shadowOpacity: 0, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }} />
             <TaliAvatar pose="wave" size={118} />
           </View>
         </View>

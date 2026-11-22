@@ -56,7 +56,7 @@ export default function BrainCard() {
         </Pressable>
 
         {/* The card. Kept to one clean block so a screenshot crops neatly. */}
-        <View style={{ width: W, borderRadius: 28, overflow: 'hidden', backgroundColor: '#F5F0E6', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#000', shadowOpacity: 0, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }}>
+        <View style={{ width: W, borderRadius: 28, overflow: 'hidden', backgroundColor: '#F5F0E6', borderWidth: 1, borderColor: 'rgba(28,26,23,0.30)', shadowColor: '#000', shadowOpacity: 0, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }}>
           <NightBackground />
           <View style={{ padding: 22, paddingBottom: 0 }}>
             <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '800', letterSpacing: 2.5 }}>TALI HQ</Text>

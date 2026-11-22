@@ -13,7 +13,7 @@ import { TaliAvatar } from '@/components/TaliAvatar';
 
 const PRIVACY_URL = 'https://totality360.com.au/privacy.html#tali-hq-ai';
 
-const box = { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(196,178,255,0.30)', backgroundColor: 'rgba(58,44,140,0.55)', padding: 14, marginBottom: 10 } as const;
+const box = { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(28,26,23,0.18)', backgroundColor: '#FFFDF8', padding: 14, marginBottom: 10 } as const;
 const head = { color: '#1C1A17', fontWeight: '800' as const, fontSize: 15, marginBottom: 6 };
 const body = { color: 'rgba(28,26,23,0.8)', fontSize: 14, lineHeight: 20 };
 
@@ -50,7 +50,7 @@ export function AiConsent({ onDone, gate }: { onDone: () => void; gate: boolean 
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: gate ? space.lg : 0 }}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)' }}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(59,63,158,0.18)', borderWidth: 1, borderColor: 'rgba(28,26,23,0.30)' }}>
           <TaliAvatar pose="head" size={42} />
         </View>
         <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>TALI AND YOUR DATA</Text>

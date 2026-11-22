@@ -15,10 +15,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colours, elevation, NO_BOTTOM, radius, space, heading, headingSemi } from '@/constants/theme';
+import { colours, nightColours, elevation, NO_BOTTOM, radius, space, heading, headingSemi } from '@/constants/theme';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
-import { skyScroll } from '@/components/NightSky';
+import { PageSky, skyScroll } from '@/components/NightSky';
 import type { ScrollViewInstance } from 'react-native';
 
 export const tali = {
@@ -33,6 +33,13 @@ export const tali = {
 // 11 Nov 2026 (Taj: next page should always go back to the top). A screen's content can ask its
 // page to jump to the top, for example when a reader turns the page.
 const ScrollTop = createContext<() => void>(() => {});
+
+// 23 Nov 2026 (paper and ink): the day is paper, the evening screens (Shut the day down) are her night
+// sky. A night Screen tells the shared parts below to use the night palette.
+const NightCtx = createContext(false);
+export const useNight = () => useContext(NightCtx);
+export const NightProvider = NightCtx.Provider;
+const N = nightColours;
 /** Jumps the screen back to the top whenever any of `deps` changes (not on first show). */
 export function useScrollToTop(deps: unknown[]) {
   const top = useContext(ScrollTop);
@@ -44,7 +51,7 @@ export function useScrollToTop(deps: unknown[]) {
   }, deps);
 }
 
-export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
+export function Screen({ children, scroll = true, onRefresh, bg, skin, night = false }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId; night?: boolean }>) {
   // 9 Nov 2026 look refresh: one page colour everywhere (was a tint per page).
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef<ScrollViewInstance>(null);
@@ -52,7 +59,7 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.scrollTo(0, 0);
   };
-  const body = <ScrollTop.Provider value={toTop}><SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider></ScrollTop.Provider>;
+  const body = <NightCtx.Provider value={night}><ScrollTop.Provider value={toTop}><SkinProvider id={skin}><View style={styles.inner}>{children}</View></SkinProvider></ScrollTop.Provider></NightCtx.Provider>;
   const refresh = onRefresh
     ? (
         <RefreshControl
@@ -66,8 +73,9 @@ export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWi
       )
     : undefined;
   return (
-    <SafeAreaView style={[styles.safe, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
+    <SafeAreaView style={[styles.safe, night ? { backgroundColor: N.bg } : null, bg ? { backgroundColor: bg } : null]} edges={NO_BOTTOM}>
       {/* 23 Nov 2026 (Taj): paper and ink through the day. Her sky now lives only on the evening screens. */}
+      {night ? <PageSky /> : null}
       {scroll ? <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshControl={refresh} onScroll={Platform.OS === 'web' ? undefined : (e) => skyScroll.setValue(e.nativeEvent.contentOffset.y)} scrollEventThrottle={16}>{body}</ScrollView> : body}
     </SafeAreaView>
   );
@@ -99,24 +107,27 @@ export function useConfirm(ms = 3000) {
 }
 
 export function Title({ children, sub }: { children: ReactNode; sub?: ReactNode }) {
+  const night = useNight();
   return (
     <View style={{ marginBottom: space.lg }}>
-      <Text style={styles.title}>{children}</Text>
-      {sub ? <Text style={styles.sub}>{sub}</Text> : null}
+      <Text style={[styles.title, night && { color: N.text }]}>{children}</Text>
+      {sub ? <Text style={[styles.sub, night && { color: N.muted }]}>{sub}</Text> : null}
     </View>
   );
 }
 
 export function Card({ children, style }: PropsWithChildren<{ style?: ViewStyle }>) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  const night = useNight();
+  return <View style={[styles.card, night && { backgroundColor: N.surface, borderColor: N.border, borderRadius: 18 }, style]}>{children}</View>;
 }
 
 export function Body({ children, muted }: PropsWithChildren<{ muted?: boolean }>) {
-  return <Text style={[styles.body, muted && { color: colours.muted }]}>{children}</Text>;
+  const night = useNight();
+  return <Text style={[styles.body, night && { color: N.text }, muted && { color: night ? N.muted : colours.muted }]}>{children}</Text>;
 }
 
 export function Label({ children }: PropsWithChildren) {
-  return <Text style={styles.label}>{children}</Text>;
+  return <Text style={[styles.label, useNight() && { color: N.purple }]}>{children}</Text>;
 }
 
 export function Field(props: TextInputProps & { label?: string }) {
@@ -124,7 +135,7 @@ export function Field(props: TextInputProps & { label?: string }) {
   return (
     <View style={{ marginBottom: space.md }}>
       {label ? <Label>{label}</Label> : null}
-      <TextInput placeholderTextColor={colours.faint} style={[styles.input, style]} {...rest} />
+      <TextInput placeholderTextColor={useNight() ? N.faint : colours.faint} style={[styles.input, useNight() && { backgroundColor: N.sunk, borderColor: N.border, color: N.text, borderRadius: 14 }, style]} {...rest} />
     </View>
   );
 }
@@ -143,26 +154,30 @@ export function Button({
   disabled?: boolean;
 }) {
   const off = disabled || busy;
-  // 23 Nov 2026: the main button is ink on paper (the "yes" signature).
-  const brand = colours.ink;
+  const night = useNight();
+  // 23 Nov 2026: the main button is ink on paper (the "yes" signature). At night, her violet.
+  const brand = night ? N.purple : colours.ink;
+  const onBrand = night ? N.onPurple : colours.bg;
   return (
     <Pressable
       accessibilityRole="button"
       onPress={off ? undefined : onPress}
       style={({ pressed }) => [
         styles.btn,
+        night && { borderColor: N.borderStrong, borderRadius: 999 },
         kind === 'primary' && { backgroundColor: brand, borderColor: brand },
         kind === 'danger' && { borderColor: colours.danger },
         off && { opacity: 0.55 },
         pressed && !off && { opacity: 0.85 },
       ]}>
       {busy ? (
-        <ActivityIndicator color={kind === 'primary' ? colours.bg : colours.text} />
+        <ActivityIndicator color={kind === 'primary' ? onBrand : night ? N.text : colours.text} />
       ) : (
         <Text
           style={[
             styles.btnText,
-            kind === 'primary' && { color: colours.bg },
+            night && { color: N.text },
+            kind === 'primary' && { color: onBrand },
             kind === 'danger' && { color: colours.danger },
           ]}>
           {title}
@@ -175,7 +190,7 @@ export function Button({
 export function BackLink({ onPress, label = 'Back' }: { onPress: () => void; label?: string }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} hitSlop={12} style={{ alignSelf: 'flex-start', paddingVertical: 6, marginBottom: space.sm }}>
-      <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 15 }}>{'\u2039'} {label}</Text>
+      <Text style={{ color: useNight() ? N.purple : colours.purple, fontWeight: '700', fontSize: 15 }}>{'\u2039'} {label}</Text>
     </Pressable>
   );
 }
@@ -185,8 +200,8 @@ export function TaliSays({ children, pose = 'idle' }: PropsWithChildren<{ pose?:
     <View style={styles.says}>
       {/* Her full sprite stays (Taj, 10 Nov 2026): it moves and changes expression; her head alone only blinks. */}
       <TaliAvatar pose={pose} size={64} />
-      <View style={styles.bubble}>
-        <Text style={styles.voice}>{children}</Text>
+      <View style={[styles.bubble, useNight() && { backgroundColor: N.surface, borderColor: N.border, borderRadius: 18 }]}>
+        <Text style={[styles.voice, useNight() && { color: N.text }]}>{children}</Text>
       </View>
     </View>
   );

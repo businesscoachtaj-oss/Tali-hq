@@ -219,7 +219,7 @@ export default function Receipts() {
             {g.items.map((r, i) => (
               <View key={r.id} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: colours.border }}>
                 <Pressable onPress={() => setOpen(open === r.id ? null : r.id)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 11 }}>
-                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(28,26,23,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(28,26,23,0.08)', borderWidth: 1, borderColor: 'rgba(28,26,23,0.25)', alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons name={r.file_kind === 'pdf' ? 'document-text-outline' : 'image-outline'} size={19} color="#3B3F9E" />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -262,7 +262,7 @@ function Chip({ text, on, onPress }: { text: string; on: boolean; onPress: () =>
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(28,26,23,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.25)', borderRadius: 12, padding: space.sm, paddingHorizontal: space.md }}>
+    <View style={{ flex: 1, backgroundColor: 'rgba(28,26,23,0.08)', borderWidth: 1, borderColor: 'rgba(28,26,23,0.25)', borderRadius: 12, padding: space.sm, paddingHorizontal: space.md }}>
       <Text style={{ color: colours.text, fontWeight: '800', fontSize: 17 }}>{value}</Text>
       <Text style={{ color: colours.muted, fontSize: 12 }}>{label}</Text>
     </View>

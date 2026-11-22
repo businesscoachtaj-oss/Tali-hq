@@ -102,7 +102,7 @@ export default function HomeShare() {
       <BackLink onPress={() => router.navigate(`/home-edit?mode=${mode}` as any)} label="Edit home" />
       <Title sub="Send it to a friend, a teammate or your followers. They can copy it into their own HQ.">Share your layout</Title>
 
-      <View style={{ borderRadius: 24, padding: 16, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: colours.purple, marginBottom: space.lg }}>
+      <View style={{ borderRadius: 24, padding: 16, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: colours.purple, marginBottom: space.lg }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <Ionicons name="planet-outline" size={18} color={colours.purple} />
           <Text numberOfLines={1} style={{ color: colours.text, fontSize: 18, fontWeight: '800', flex: 1 }}>{name || 'My HQ'}</Text>

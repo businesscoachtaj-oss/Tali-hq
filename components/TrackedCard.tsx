@@ -45,7 +45,7 @@ export function TrackedCard({ tracked, fresh }: { tracked: Tracked; fresh: boole
         const t = hq.trackers.find((x) => x.id === m.id);
         if (!t) return null;
         return (
-          <View key={m.id} style={{ gap: 8, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: colours.border, backgroundColor: 'rgba(30,24,88,0.55)' }}>
+          <View key={m.id} style={{ gap: 8, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: colours.border, backgroundColor: '#FFFDF8' }}>
             <Text style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: colours.good }}>ADDED TO YOUR {hasBiz ? `${m.home.toUpperCase()} ` : ''}HOME</Text>
             <View style={{ flexDirection: 'row' }}><TrackerTile w={{ id: m.id, kind: 'tracker', tracker: t, size: 'wide' }} /></View>
             <View style={{ flexDirection: 'row', gap: 8 }}>

@@ -209,7 +209,7 @@ export default function TeamHomeEditor() {
       <Sheet visible={!!as} title={as ? `As ${as.name} sees it` : ''} sub="Blocks their seat is not allowed to see are left out." onClose={() => setAs(null)}>
         {as ? (
           <>
-            <View style={{ borderRadius: 20, padding: 12, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: colours.border }}>
+            <View style={{ borderRadius: 20, padding: 12, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: colours.border }}>
               <MiniLayout widgets={widgets.filter((w) => allowedFor(w, as))} blank />
             </View>
             {widgets.filter((w) => !allowedFor(w, as)).map((w) => (

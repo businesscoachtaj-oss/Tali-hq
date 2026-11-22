@@ -59,7 +59,7 @@ export default function BrainAi() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ flex: 1, color: '#1C1A17', fontSize: 15, fontWeight: '800' }}>{REGIONS[p.id].name}</Text>
                   {changed ? (
-                    <View style={{ backgroundColor: 'rgba(185,166,255,0.18)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <View style={{ backgroundColor: 'rgba(59,63,158,0.18)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
                       <Text style={{ color: night.accent, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>NEW</Text>
                     </View>
                   ) : null}

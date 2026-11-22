@@ -25,9 +25,9 @@ import { TextInput } from 'react-native';
 // question moves to just before the preview, and "Looks good" saves both homes. Every screen after
 // the name can be skipped. Building the home here never uses credits or counts as a message.
 type StepId = 'name' | 'plate' | 'work' | 'difference' | 'team' | 'count' | 'targets' | 'about' | 'hq' | 'push';
-const chip = (on: boolean, colour = '#3B3F9E') => ({ paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colour : 'rgba(214,200,255,0.4)', backgroundColor: on ? colour : 'rgba(28,26,23,0.07)' });
+const chip = (on: boolean, colour = '#3B3F9E') => ({ paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colour : 'rgba(28,26,23,0.30)', backgroundColor: on ? colour : 'rgba(28,26,23,0.07)' });
 const chipText = (on: boolean) => ({ color: on ? '#F5F0E6' : '#FFFFFF', fontWeight: '700' as const, fontSize: 15 });
-const field = { backgroundColor: 'rgba(28,26,23,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.4)', borderRadius: 12, color: '#1C1A17', fontSize: 16, paddingHorizontal: 14, paddingVertical: 11 } as const;
+const field = { backgroundColor: 'rgba(28,26,23,0.08)', borderWidth: 1, borderColor: 'rgba(28,26,23,0.30)', borderRadius: 12, color: '#1C1A17', fontSize: 16, paddingHorizontal: 14, paddingVertical: 11 } as const;
 
 export default function Onboarding() {
   const { session, profile, refreshProfile, signOut } = useAuth();
@@ -169,7 +169,7 @@ export default function Onboarding() {
         ))}
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)', shadowColor: '#000', shadowOpacity: 0, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } }}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(59,63,158,0.18)', borderWidth: 1, borderColor: 'rgba(28,26,23,0.30)', shadowColor: '#000', shadowOpacity: 0, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } }}>
           <TaliAvatar pose="head" size={42} />
         </View>
         <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{Q.kicker}  ·  {step + 1} OF {STEPS}</Text>
@@ -185,7 +185,7 @@ export default function Onboarding() {
             const on = plate.includes(o);
             return (
               <Pressable key={o} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setPlate((p) => (on ? p.filter((x) => x !== o) : [...p, o]))}
-                style={{ paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? '#3B3F9E' : 'rgba(214,200,255,0.4)', backgroundColor: on ? '#3B3F9E' : 'rgba(28,26,23,0.07)' }}>
+                style={{ paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? '#3B3F9E' : 'rgba(28,26,23,0.30)', backgroundColor: on ? '#3B3F9E' : 'rgba(28,26,23,0.07)' }}>
                 <Text style={{ color: on ? '#F5F0E6' : '#FFFFFF', fontWeight: '700', fontSize: 15 }}>{o}</Text>
               </Pressable>
             );
@@ -267,7 +267,7 @@ export default function Onboarding() {
           <Text style={{ color: '#3B3F9E', fontWeight: '700', fontSize: 13, marginBottom: 6 }}>Something else</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: space.md }}>
             <TextInput value={customText} onChangeText={setCustomText} onSubmitEditing={addCustom} maxLength={60} placeholder="Pages written, km run, sales calls..." placeholderTextColor="rgba(28,26,23,0.45)" style={[field, { flex: 1 }]} accessibilityLabel="Something else to keep count of" />
-            <Pressable onPress={addCustom} accessibilityRole="button" style={{ paddingHorizontal: 16, justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(214,200,255,0.6)' }}>
+            <Pressable onPress={addCustom} accessibilityRole="button" style={{ paddingHorizontal: 16, justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(28,26,23,0.30)' }}>
               <Text style={{ color: '#3B3F9E', fontWeight: '800' }}>+ Add</Text>
             </Pressable>
           </View>
@@ -282,7 +282,7 @@ export default function Onboarding() {
             const noTarget = p.type === 'scale' || (p.type === 'yesno' && !p.target);
             const renamable = k === 'savings' || k === 'family';
             return (
-              <View key={k} style={{ borderRadius: 16, borderWidth: 1, borderColor: 'rgba(196,178,255,0.30)', backgroundColor: 'rgba(58,44,140,0.55)', padding: 12 }}>
+              <View key={k} style={{ borderRadius: 16, borderWidth: 1, borderColor: 'rgba(28,26,23,0.18)', backgroundColor: '#FFFDF8', padding: 12 }}>
                 {renamable ? (
                   <TextInput value={names[k] ?? p.name} onChangeText={(v) => setNames((n) => ({ ...n, [k]: v }))} maxLength={60} style={[field, { paddingVertical: 7, fontSize: 15, fontWeight: '700', marginBottom: 8 }]} accessibilityLabel={`Name for ${p.name}`} />
                 ) : null}
@@ -301,7 +301,7 @@ export default function Onboarding() {
             );
           })}
           {custom.map((c, i) => (
-            <View key={c.name} style={{ borderRadius: 16, borderWidth: 1, borderColor: 'rgba(196,178,255,0.30)', backgroundColor: 'rgba(58,44,140,0.55)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View key={c.name} style={{ borderRadius: 16, borderWidth: 1, borderColor: 'rgba(28,26,23,0.18)', backgroundColor: '#FFFDF8', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.colour }} />
               <Text numberOfLines={1} style={{ flex: 1, color: '#1C1A17', fontWeight: '800', fontSize: 15 }}>{c.name}</Text>
               {c.type === 'scale' || (c.type === 'yesno' && !c.target) ? <Text style={{ color: 'rgba(28,26,23,0.7)', fontSize: 13 }}>{goalLine(c)}</Text> : (
@@ -318,13 +318,13 @@ export default function Onboarding() {
       {id === 'hq' ? (
         <View style={{ marginBottom: space.lg }}>
           {biz ? <Text style={{ color: '#3B3F9E', fontSize: 12, fontWeight: '800', letterSpacing: 1.6, marginBottom: 8 }}>YOUR LIFE HOME</Text> : null}
-          <View style={{ borderRadius: 22, padding: 12, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: 'rgba(185,166,255,0.5)' }}>
+          <View style={{ borderRadius: 22, padding: 12, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: 'rgba(59,63,158,0.25)' }}>
             <MiniLayout widgets={built.life} blank />
           </View>
           {base.from.life.length ? <Text style={{ color: 'rgba(28,26,23,0.6)', fontSize: 12.5, marginTop: 6 }}>Built from: {base.from.life.join(', ')}</Text> : null}
           {biz ? (<>
             <Text style={{ color: '#A8561A', fontSize: 12, fontWeight: '800', letterSpacing: 1.6, marginTop: space.md, marginBottom: 8 }}>YOUR BUSINESS HOME</Text>
-            <View style={{ borderRadius: 22, padding: 12, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: 'rgba(255,181,97,0.5)' }}>
+            <View style={{ borderRadius: 22, padding: 12, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: 'rgba(255,181,97,0.5)' }}>
               <MiniLayout widgets={built.business} blank />
             </View>
             {base.from.business.length ? <Text style={{ color: 'rgba(28,26,23,0.6)', fontSize: 12.5, marginTop: 6 }}>Built from: {base.from.business.join(', ')}</Text> : null}
@@ -343,7 +343,7 @@ export default function Onboarding() {
             ['Reminders you asked for', 'Only the ones you set or said yes to.'],
             ['Things worth knowing', 'Like when an invoice gets paid.'],
           ].map(([t, d]) => (
-            <View key={t} style={{ borderRadius: 18, borderWidth: 1, borderColor: 'rgba(196,178,255,0.30)', backgroundColor: 'rgba(58,44,140,0.55)', padding: 14, marginBottom: 10 }}>
+            <View key={t} style={{ borderRadius: 18, borderWidth: 1, borderColor: 'rgba(28,26,23,0.18)', backgroundColor: '#FFFDF8', padding: 14, marginBottom: 10 }}>
               <Text style={{ color: '#1C1A17', fontWeight: '800', fontSize: 15 }}>{t}</Text>
               <Text style={{ color: 'rgba(28,26,23,0.75)', fontSize: 13, marginTop: 2 }}>{d}</Text>
             </View>
@@ -371,7 +371,7 @@ export default function Onboarding() {
             const on = tplKeys.includes(t.key);
             return (
               <Pressable key={t.key} onPress={() => setTplKeys((k) => (on ? k.filter((x) => x !== t.key) : [...k, t.key]))} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, backgroundColor: on ? 'rgba(185,166,255,0.22)' : 'rgba(30,24,88,0.93)', borderWidth: 1, borderColor: on ? '#3B3F9E' : 'rgba(196,178,255,0.30)' }}>
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, backgroundColor: on ? 'rgba(59,63,158,0.22)' : '#FFFDF8', borderWidth: 1, borderColor: on ? '#3B3F9E' : 'rgba(28,26,23,0.18)' }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#1C1A17', fontWeight: '800' }}>{t.name}</Text>
                   <Text style={{ color: '#ABA4D0', fontSize: 12 }}>{t.desc}</Text>

@@ -59,7 +59,8 @@ export const elevation = {
   // 6 Nov 2026 (depth pass): white buttons, chips and inputs get a small lift so nothing sits flat
   lift: { shadowColor: ink, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
   // filled brand-colour buttons: pass the button colour so the glow is in its own colour
-  button: (colour: string) => ({ shadowColor: colour, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 }),
+  // 23 Nov 2026 (paper and ink): buttons sit flat on the page, no coloured glow.
+  button: (_colour: string) => ({ shadowOpacity: 0, elevation: 0 }),
   // floating round buttons (help "?", add, etc.)
   fab: (colour: string) => ({ shadowColor: colour, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8 }),
   // bottom tab bar casting upward over the content

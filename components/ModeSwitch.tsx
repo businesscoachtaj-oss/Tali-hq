@@ -2,11 +2,16 @@
 import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MODE, setMode, useMode, type Mode } from '@/lib/mode';
-import { colours, radius } from '@/constants/theme';
+import { colours as paperColours, nightColours, radius } from '@/constants/theme';
+import { useNight } from '@/components/ui';
+
+const colours = paperColours;
 
 /** `waiting` is how many things need you on each side. The side you are not on shows a dot with its count. */
 export function ModeSwitch({ waiting }: { waiting?: Partial<Record<Mode, number>> }) {
   const mode = useMode();
+  const night = useNight();
+  const colours = night ? { ...nightColours, ink: nightColours.purple, bg: nightColours.onPurple, surface: 'rgba(12,10,36,0.7)' } : paperColours;
   return (
     // 23 Nov 2026 (paper and ink): two tabs on a ruled line, the side you are on in ink.
     <View style={{ flexDirection: 'row', borderRadius: radius.pill, borderWidth: 1, borderColor: colours.ink, overflow: 'hidden' }}>
@@ -50,8 +55,8 @@ export function ScopeChips({ value, onChange, counts }: { value: 'mode' | 'all';
         const on = value === o.k;
         return (
           <Pressable key={o.k} onPress={() => onChange(o.k)} accessibilityRole="button" accessibilityState={{ selected: on }}
-            style={{ borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: on ? colours.purple : colours.sunk, borderWidth: 1, borderColor: on ? colours.purple : colours.border }}>
-            <Text style={{ fontSize: 13.5, fontWeight: '700', color: on ? colours.onPurple : colours.muted }}>{o.label}</Text>
+            style={{ borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: on ? colours.ink : colours.surface, borderWidth: 1, borderColor: on ? colours.ink : colours.border }}>
+            <Text style={{ fontSize: 13.5, fontWeight: '700', color: on ? colours.bg : colours.muted }}>{o.label}</Text>
           </Pressable>
         );
       })}

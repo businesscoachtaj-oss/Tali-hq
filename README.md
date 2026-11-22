@@ -536,3 +536,19 @@ Apple rejected 1.0.2 on 21 Nov (guidelines 5.1.1(i), 5.1.2(i) and 3.1.1). This b
 **Checked.** Every screen (61, signed in, business mode, consent, onboarding, long names) at 320x568, 360x640, 390x844, 768x1024, 1024x1366 and 1440x900 with canned data: nothing off screen or cut. Android prebuild: portrait and camera not required, no recording service. Not proven: a real iPhone purchase (needs the products in App Store Connect and a sandbox tester).
 
 **Release order.** 1) Products and the server notification URL in App Store Connect. 2) Privacy policy section `#tali-hq-ai` live. 3) Merge, build 1.0.3 for both stores, submit. 4) Only once 1.0.3 is live in both stores, deploy the consent-checked functions (until then phone builds without the screen would lose Tali).
+
+## 23 Nov 2026: Paper and ink (the new look), life in weeks
+
+Taj approved the paper and ink mockups ("A mind that grows with you"). Same features, tabs, modes, brain and sprite; a new look.
+
+**Look.** `constants/theme.ts`: cream paper (`#F5F0E6`), ink (`#1C1A17`), one indigo accent (`#3B3F9E`), square-ish corners, EB Garamond (`@expo-google-fonts/eb-garamond`, loaded in `app/_layout.tsx`) for headings and Tali's words, small spaced caps for labels. Buttons are ink and flat (`elevation.button` no longer glows). The old night tokens stay as `nightColours`. A one-off sweep swapped the old bright night colours for deeper ones across the app (excluding the night screens, the public sites and the brain drawing).
+
+**Night stays night.** Shut the day down (`Screen night`), Sleep and Today after the day is shut down keep her night sky. `components/ui.tsx` has `NightProvider`/`useNight` so Card, Title, Label, Field, Button, BackLink and TaliSays switch to the night palette on those screens; `ShutdownCard` and `ModeSwitch` follow it too.
+
+**Her brain.** Region colours deepened for paper (`lib/brain.ts`, with `NIGHT_REGION_COLOURS` and `regionColour(id, night)` for the sky). `BrainCanvas` (web and Skia) and `BrainGlobe` take `night`; on paper the glow is a soft colour wash, empty regions and links are ink, sparks keep their region colour. Still 3D, spinning, with sparks.
+
+**Screens.** Today (`components/BrainSky.tsx`, paper branch): date and side, greeting, small spinning brain beside her level, "A note from Tali", what needs you as a ruled list (tap for what she knows that touches it), the lens as a quiet filter row, "Tell Tali anything". Talk: no sky; her words in Garamond on the page with her head beside them, yours in a ruled box, ink send bar. Her brain: brain first on paper, parts as ink chips, plain level card, then what she knows as a ruled list (`KnowsAbout`). Your world (`WorldMap`): a ruled list, each part with its own small moving shape. Plans: every plan and add-on stays; yearly is just an option (no "save 15%" or months free); Tali HQ marked "Most people pick this". Tab bar: words in small caps with a dot over the current tab (icons stay in the PC side menu). Drafts (`DraftCard`): ink yes button, Garamond title.
+
+**Life in weeks** (`components/WeeksOfLife.tsx`, top of the Journal's Yours tab). Opt in: add a birthday and every week of an average Australian life (about 83 years, ABS 2021 to 2023) shows as a square, lived weeks in ink, this week indigo, the rest blank; it fills in on its own each week. A short reflection in Tali's voice changes each week. "Take it off" clears it. Stored in `profiles.birth_date` (migration `20261123000094_birth_date.sql`, applied 23 Nov with Taj's yes; column grants added) and read on its own, so the shared profile load is unchanged.
+
+**Checked.** `tsc` clean; every main screen captured from a web export with canned data at 390x844, plus onboarding, the closed Today, Shut the day down and Sleep.
