@@ -56,6 +56,8 @@ export default function AppTabs() {
       <Tabs.Screen name="brain" options={{ title: 'Her brain', tabBarIcon: icon('sparkles-outline', 2) }} />
       <Tabs.Screen name="world" options={{ title: 'Your world', tabBarIcon: icon('planet-outline', 3) }} />
       <Tabs.Screen name="journal" options={{ ...HIDDEN_TAB, title: 'Journal' }} />
+      <Tabs.Screen name="time" options={{ ...HIDDEN_TAB, title: 'Your time' }} />
+      <Tabs.Screen name="philosophy" options={{ ...HIDDEN_TAB, title: 'Your philosophy' }} />
       <Tabs.Screen name="notes" options={{ ...HIDDEN_TAB, title: 'Notes' }} />
       <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline', 4) }} />
       <Tabs.Screen name="settings" options={{ ...HIDDEN_TAB, title: 'Settings' }} />

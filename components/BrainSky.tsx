@@ -6,6 +6,7 @@ import { Animated, Easing, Pressable, Text, View, useWindowDimensions } from 're
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BrainGlobe } from '@/components/BrainGlobe';
+import { QuoteOfDay } from '@/components/QuoteOfDay';
 import { TaliAvatar } from '@/components/TaliAvatar';
 import { myBrain, myConnections, myUpcoming, type Brain, type RegionId, type Upcoming } from '@/lib/brain';
 import { inboundEmails, openReminders, pendingApprovals, type Approval, type InboundEmail, type Reminder } from '@/lib/data';
@@ -282,6 +283,9 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
             })}
           </View>
         ) : null}
+
+        {/* 23 Nov 2026: a thought for today from the schools you follow (Your philosophy). */}
+        <QuoteOfDay />
 
         {/* The lens stays: a quiet row of filters, not a mode. */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 14 }}>

@@ -5,7 +5,7 @@
 // choose, the page you are on and the READ stamp you earn by finishing a book (saved to your account).
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useFocusLoad } from '@/lib/useFocusLoad';
 import { BackLink, Button, Card, ErrorText, Field, Loading, Screen, TaliSays, Title, goBack, useScrollToTop } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
@@ -181,6 +181,10 @@ function Shelf({ books, mine, open, toggle, resume }: { books: Book[]; mine: Min
     <>
       <BackLink onPress={() => goBack('/(app)/brain')} label="Her brain" />
       <Title sub="Every book I have read or am reading. Put the ones you like on your shelf.">Tali's library</Title>
+      {/* 23 Nov 2026: the schools of philosophy, with what to read first from this library. */}
+      <Pressable onPress={() => router.navigate('/philosophy' as any)} accessibilityRole="link" style={{ marginTop: -8, marginBottom: 16 }}>
+        <Text style={{ color: colours.purple, fontSize: 14, fontWeight: '700' }}>Not sure where to start? Pick a school of philosophy ›</Text>
+      </Pressable>
       <TaliSays pose="idle">
         {books.length} books in my library. I have finished {done.length} and kept {kept.toLocaleString('en-AU')} things so far. I read a few pages every night.
       </TaliSays>
