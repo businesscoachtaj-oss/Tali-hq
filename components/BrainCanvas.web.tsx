@@ -7,7 +7,7 @@
 // What is different from the website, on purpose: no auto tour and no made up memories (the app shows
 // the real ones), parts she holds little in sit a little dimmer, and the Today lens can light several parts.
 import { useEffect, useRef } from 'react';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from 'expo-router';
 import { REGIONS, type RegionId } from '@/lib/brain';
 
 type D = { x: number; y: number; z: number; region: RegionId; size: number; ph: number; near: D[]; p?: { sx: number; sy: number; k: number; z: number } };

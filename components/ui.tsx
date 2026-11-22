@@ -20,6 +20,7 @@ import { TaliAvatar } from '@/components/TaliAvatar';
 import { SKINS, SkinProvider, type SkinId } from '@/components/PageSkin';
 import { PageSky, skyScroll } from '@/components/NightSky';
 import { Aurora } from '@/components/Aurora';
+import type { ScrollViewInstance } from 'react-native';
 
 export const tali = {
   idle: require('@/assets/tali/tali_idle.png'),
@@ -47,7 +48,7 @@ export function useScrollToTop(deps: unknown[]) {
 export function Screen({ children, scroll = true, onRefresh, bg, skin }: PropsWithChildren<{ scroll?: boolean; onRefresh?: () => Promise<unknown> | void; bg?: string; skin?: SkinId }>) {
   // 9 Nov 2026 look refresh: one page colour everywhere (was a tint per page).
   const [refreshing, setRefreshing] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const toTop = () => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.scrollTo(0, 0);

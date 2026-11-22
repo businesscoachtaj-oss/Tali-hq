@@ -24,6 +24,7 @@ import { MS_SCOPES, MsError, authUrl, calendarCreate, calendarEvents, calendarSu
 import type { MsConnection } from '../_shared/microsoft.ts';
 import { pushUser } from '../_shared/push.ts';
 import { learnRecent, type DayOneMail } from '../_brain_outside/dayOne.ts';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent, consentedIds } from '../_shared/consent.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -220,6 +221,8 @@ async function triage(system: string, user: string) {
 async function mailSync() {
   const { data: conns } = await admin.from('microsoft_connections').select('*').contains('scopes', ['mail']).is('last_error', null);
   let users = 0, saved = 0;
+  // 22 Nov 2026: mail is still saved, but only people who said yes to AI get it sorted by Tali.
+  const aiOk = await consentedIds(admin, (conns ?? []).map((c: any) => c.user_id));
   for (const conn of conns ?? []) {
     users++;
     try {
@@ -239,7 +242,7 @@ async function mailSync() {
           .single();
         if (error || !row) continue;
         saved++;
-        if (!ANTHROPIC_KEY) continue;
+        if (!ANTHROPIC_KEY || !aiOk.has(conn.user_id)) continue;
         const { data: consume } = await admin.rpc('chat_try_consume', { p_user_id: conn.user_id, p_feature: 'outlook_sort', p_credits: 1 });
         if (!consume?.ok) {
           await admin.from('inbound_emails').update({ category: 'fyi', summary: m.snippet }).eq('id', row.id);
@@ -314,6 +317,7 @@ async function recentMailHeaders(conn: MsConnection): Promise<DayOneMail[]> {
 }
 
 async function learnFromMicrosoft(userId: string) {
+  if (!(await hasAiConsent(admin, userId))) return fail(AI_CONSENT_CODE, AI_CONSENT_MESSAGE, 403);
   const conn = await loadConnection(admin, userId);
   if (!conn) return json({ ok: false, learned: 0, code: 'not_connected', message: 'Connect Outlook in Settings first.' }, 400);
   const { data: prof } = await admin.from('profiles').select('timezone').eq('id', userId).maybeSingle();

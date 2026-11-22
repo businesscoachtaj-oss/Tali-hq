@@ -47,6 +47,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { pushUser } from '../_shared/push.ts';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent, consentedIds } from '../_shared/consent.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
@@ -224,7 +225,7 @@ async function handleForwarded(userId: string, gmail: string, m: { emailId: stri
     .select('id')
     .single();
   if (error || !row) return Response.json({ ok: true, duplicate: true });
-  if (!ANTHROPIC_KEY) return Response.json({ ok: true, saved: row.id, forwarded: 'gmail', sorted: false });
+  if (!ANTHROPIC_KEY || !(await hasAiConsent(admin, userId))) return Response.json({ ok: true, saved: row.id, forwarded: 'gmail', sorted: false });
   const { data: consume } = await admin.rpc('chat_try_consume', { p_user_id: userId, p_feature: 'gmail_sort', p_credits: 1 });
   if (!consume?.ok) {
     await admin.from('inbound_emails').update({ category: 'fyi', summary: snippet }).eq('id', row.id);
@@ -343,6 +344,7 @@ async function ownerAddresses(userId: string) {
 // if anything fails. Returns how many were kept, or why it could not run.
 async function rememberForwarded(userId: string, mail: { key: string; fromName: string | null; fromEmail: string; subject: string; text: string }): Promise<{ ok: true; saved: number; summary: string } | { ok: false; reason: string }> {
   if (!ANTHROPIC_KEY) return { ok: false, reason: 'not_ready' };
+  if (!(await hasAiConsent(admin, userId))) return { ok: false, reason: AI_CONSENT_CODE };
   const { data: consume } = await admin.rpc('chat_try_consume', { p_user_id: userId, p_feature: 'tali_email', p_credits: 1 });
   if (!consume?.ok) return { ok: false, reason: String(consume?.reason ?? 'no_access') };
   const usageId = consume.usage_id as number;
@@ -655,6 +657,10 @@ Deno.serve(async (req) => {
 
   // Summary and draft reply. 1 credit; if out of credits the email is still saved, just without a draft.
   if (!ANTHROPIC_KEY) return Response.json({ ok: true, saved: row.id, drafted: false });
+  if (!(await hasAiConsent(admin, inbox.user_id))) {
+    await notify(inbox.user_id, 'New email for Tali', `${from.name ?? from.email}: ${subject}`);
+    return Response.json({ ok: true, saved: row.id, drafted: false, reason: AI_CONSENT_CODE });
+  }
   const { data: consume } = await admin.rpc('chat_try_consume', { p_user_id: inbox.user_id, p_feature: 'tali_email', p_credits: 1 });
   if (!consume?.ok) {
     await notify(inbox.user_id, 'New email for Tali', `${from.name ?? from.email}: ${subject}`);

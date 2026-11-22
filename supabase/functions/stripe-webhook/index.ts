@@ -9,6 +9,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { planForPrice, stripe, verifyStripeSignature, businessTierForPrice } from '../_shared/stripe.ts';
+import { planForAppleProduct } from '../_shared/appleProducts.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
@@ -47,12 +48,35 @@ async function syncSubscription(s: any) {
   const status = STATUS[s.status] ?? 'incomplete';
   const ended = status === 'canceled';
   const periodEnd = s.current_period_end ?? s.items?.data?.[0]?.current_period_end;
+  // 22 Nov 2026: someone can also pay through the App Store on iPhone (tali-apple-verify). A Stripe
+  // subscription that is paying takes over billing. One that ends, or never got paid, hands back to a
+  // still-running App Store subscription instead of dropping them to Free.
+  const { data: row } = await admin.from('subscriptions').select('billing_source, apple_expires_at, apple_product_id').eq('user_id', target).maybeSingle();
+  const applePlan = planForAppleProduct(row?.apple_product_id);
+  const appleLive = !!applePlan && !!row?.apple_expires_at && new Date(row.apple_expires_at).getTime() > Date.now();
+  const stripePaying = !ended && (status === 'active' || status === 'past_due');
+  if (appleLive && !stripePaying) {
+    await admin
+      .from('subscriptions')
+      .update({
+        plan_id: applePlan,
+        business_tier: null,
+        status: 'active',
+        billing_source: 'apple',
+        stripe_customer_id: s.customer,
+        stripe_subscription_id: ended ? null : s.id,
+        current_period_end: row!.apple_expires_at,
+      })
+      .eq('user_id', target);
+    return;
+  }
   await admin
     .from('subscriptions')
     .update({
       plan_id: ended || !plan ? 'free' : plan,
       business_tier: ended || !plan ? null : businessTierForPrice(priceId),
       status: ended ? 'active' : status,
+      billing_source: 'stripe',
       stripe_customer_id: s.customer,
       stripe_subscription_id: ended ? null : s.id,
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,

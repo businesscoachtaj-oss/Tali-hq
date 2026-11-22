@@ -14,6 +14,8 @@ export type Profile = {
   brief_push: boolean;
   onboarded_at: string | null;
   tour_done_at: string | null;
+  // 22 Nov 2026: when they said yes to Tali using AI (lib/aiConsent.ts). Null until then.
+  ai_consent_at?: string | null;
 };
 
 type AuthValue = {
@@ -38,7 +40,7 @@ export function useAuth() {
   return value;
 }
 
-const PROFILE_COLUMNS = 'id, first_name, business_name, business_type, has_business, about_me, timezone, brief_time, brief_push, onboarded_at, tour_done_at';
+const PROFILE_COLUMNS = 'id, first_name, business_name, business_type, has_business, about_me, timezone, brief_time, brief_push, onboarded_at, tour_done_at, ai_consent_at';
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);

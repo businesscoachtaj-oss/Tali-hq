@@ -29,7 +29,6 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const sorry = (message: string) => json({ ok: false, message });
 
 const ROLE: Record<string, string> = { trainer: 'a personal trainer', gym_admin: 'a gym owner', client: 'a member', nutrition_only: 'a Totality Nutrition member' };
-const PLAN: Record<string, string> = { solo_10: 'Solo 10', solo_20: 'Solo 20', solo_50: 'Solo 50', solo_100: 'Solo 100', studio: 'Studio', club: 'Club', enterprise: 'Enterprise' };
 const clean = (v: unknown, max = 60) => String(v ?? '').replace(/[\u2013\u2014]/g, ' to ').replace(/\s+/g, ' ').trim().slice(0, max);
 
 type Item = { kind: 'fact' | 'preference'; content: string };
@@ -39,8 +38,8 @@ export function toMemories(s: any): Item[] {
   const role = ROLE[String(s?.role ?? '')];
   const business = clean(s?.business_name, 80);
   if (role) out.push({ kind: 'fact', content: `Uses Totality as ${role}${business && s.role !== 'client' ? `, trading as ${business}` : ''}.` });
-  const plan = PLAN[String(s?.plan ?? '')];
-  if (plan && (s?.role === 'trainer' || s?.role === 'gym_admin') && s?.plan_status === 'active') out.push({ kind: 'fact', content: `Their Totality plan is ${plan}.` });
+  // 22 Nov 2026: the Totality plan name is no longer copied into her brain. App Review read plan names
+  // like Solo 10 in Tali HQ as paid content bought outside the app (guideline 3.1.1).
   const t = s?.training ?? {};
   const goal = clean(t.goal);
   if (goal) out.push({ kind: 'fact', content: `Main training goal, chosen in Totality: ${goal}.` });

@@ -344,8 +344,9 @@ export async function plans(): Promise<Plan[]> {
   return (data as Plan[]) ?? [];
 }
 
-export async function mySubscription(): Promise<{ plan_id: string; status: string; founding_member: boolean; stripe_customer_id: string | null; stripe_subscription_id: string | null; current_period_end: string | null } | null> {
-  const { data } = await supabase.from('subscriptions').select('plan_id, status, founding_member, stripe_customer_id, stripe_subscription_id, current_period_end').maybeSingle();
+export async function mySubscription(): Promise<{ plan_id: string; status: string; founding_member: boolean; stripe_customer_id: string | null; stripe_subscription_id: string | null; current_period_end: string | null; billing_source?: 'stripe' | 'apple'; apple_expires_at?: string | null } | null> {
+  // 22 Nov 2026: billing_source says whether the plan is paid through Stripe or the App Store.
+  const { data } = await supabase.from('subscriptions').select('plan_id, status, founding_member, stripe_customer_id, stripe_subscription_id, current_period_end, billing_source, apple_expires_at').maybeSingle();
   return (data as any) ?? null;
 }
 

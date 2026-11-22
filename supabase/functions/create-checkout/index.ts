@@ -60,9 +60,13 @@ Deno.serve(async (req) => {
   }
   if (!ALLOWED.includes(origin)) return json({ ok: false, code: 'bad_request', message: 'Bad return address.' }, 400);
 
-  const { data: sub } = await admin.from('subscriptions').select('plan_id, status, trial_ends_at, founding_member, stripe_customer_id, stripe_subscription_id').eq('user_id', user.id).maybeSingle();
+  const { data: sub } = await admin.from('subscriptions').select('plan_id, status, trial_ends_at, founding_member, stripe_customer_id, stripe_subscription_id, billing_source, apple_expires_at').eq('user_id', user.id).maybeSingle();
   if (sub?.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(sub.status)) {
     return json({ ok: false, code: 'already_subscribed', message: 'You already have a plan. Manage it from Me.' }, 409);
+  }
+  // 22 Nov 2026: already paying through the App Store, so no second bill here.
+  if (sub?.billing_source === 'apple' && sub.apple_expires_at && new Date(sub.apple_expires_at).getTime() > Date.now() && sub.plan_id !== 'free') {
+    return json({ ok: false, code: 'apple_subscribed', message: "Your plan is paid through the App Store. Change it in your iPhone's App Store settings." }, 409);
   }
 
   try {

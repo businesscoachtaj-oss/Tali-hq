@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_KEY;
@@ -24,9 +25,23 @@ async function freshToken(): Promise<string | null> {
     .finally(() => { fixingSession = null; });
   return fixingSession;
 }
+// 22 Nov 2026 (App Review 5.1.1 and 5.1.2): a function that answers 'ai_consent' means this person has
+// not said yes to Tali using AI. Open "Tali and your data" so they can, instead of a dead end.
+let consentShownAt = 0;
+async function maybeAskConsent(res: Response) {
+  try {
+    const body = await res.clone().json();
+    if (body?.code !== 'ai_consent' && body?.error !== 'ai_consent') return;
+    if (Date.now() - consentShownAt < 3000) return;
+    consentShownAt = Date.now();
+    router.navigate('/ai-data' as any);
+  } catch {}
+}
+
 const fetchWithFreshSession: typeof fetch = async (input, init) => {
   const res = await fetch(input, init);
   const target = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+  if (res.status === 403 && target.includes('/functions/v1/')) void maybeAskConsent(res);
   if (res.status !== 401 || !target.includes('/functions/v1/')) return res;
   const { data } = await supabase.auth.getSession();
   if (!data.session) return res;

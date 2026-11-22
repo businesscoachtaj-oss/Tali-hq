@@ -17,6 +17,7 @@
 // Secrets: ANTHROPIC_API_KEY (required), TALI_MODEL (optional, default claude-haiku-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent } from '../_shared/consent.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -109,6 +110,7 @@ Deno.serve(async (req) => {
     const { data: u } = await admin.auth.getUser(token);
     const user = u?.user;
     if (!user) return json({ ok: false, message: 'Please sign in again.' }, 401);
+    if (!(await hasAiConsent(admin, user.id))) return json({ ok: false, code: AI_CONSENT_CODE, message: AI_CONSENT_MESSAGE }, 403);
 
     const { data: sub } = await admin.from('subscriptions').select('plan_id, status, business_tier').eq('user_id', user.id).maybeSingle();
     const allowed = user.id === FOUNDER || (!!sub?.business_tier && sub.plan_id === 'max' && ['active', 'past_due'].includes(String(sub.status)));

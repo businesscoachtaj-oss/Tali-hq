@@ -3,14 +3,16 @@
 //   signed in, not onboarded  -> onboarding
 //   signed in, onboarded      -> (app) tabs
 //   opened a reset link       -> reset-password, until they set a new one
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import '@/lib/webFit';
 import { Loading } from '@/components/ui';
+import { loadSkip, onSkipChange, skipState } from '@/lib/aiConsent';
 import { customHost, DomainSite } from '@/components/DomainSite';
 import { colours } from '@/constants/theme';
 import { useFonts, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold } from '@expo-google-fonts/plus-jakarta-sans';
@@ -44,7 +46,16 @@ function RootNavigator() {
   const { isLoading, session, profile, profileReady, recovering } = useAuth();
   const signedIn = !!session;
   const onboarded = !!profile?.onboarded_at;
-  const ready = !isLoading && profileReady && signedIn && !recovering && onboarded;
+  // 22 Nov 2026 (App Review 5.1.1 and 5.1.2): a yes to Tali using AI, or "Not now" on this device,
+  // comes before onboarding and the app.
+  const userId = session?.user.id;
+  const skipped = useSyncExternalStore(onSkipChange, () => skipState(userId), () => skipState(userId));
+  useEffect(() => {
+    if (userId) loadSkip(userId);
+  }, [userId]);
+  const consentKnown = !signedIn || skipped !== null;
+  const askConsent = signedIn && !recovering && !profile?.ai_consent_at && skipped === false;
+  const ready = !isLoading && profileReady && signedIn && !recovering && onboarded && !askConsent;
 
   // Notification taps on phone builds: route by data.url once the app screens are available.
   useEffect(() => {
@@ -56,7 +67,7 @@ function RootNavigator() {
 
   // Wait for the signed-in user's profile too, or onboarding flashes up for a moment after sign in.
   const [fontsReady] = useFonts({ PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, InstrumentSerif_400Regular, Literata_400Regular, Literata_400Regular_Italic, Literata_600SemiBold });
-  if (isLoading || !profileReady || !fontsReady) return <Loading />;
+  if (isLoading || !profileReady || !fontsReady || !consentKnown) return <Loading />;
 
   // 12 Nov 2026: opened on somebody's own domain. Show their site, not the app.
   const ownDomain = customHost();
@@ -70,10 +81,13 @@ function RootNavigator() {
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !recovering && !onboarded}>
+      <Stack.Protected guard={askConsent}>
+        <Stack.Screen name="ai-consent" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && !recovering && !askConsent && !onboarded}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !recovering && onboarded}>
+      <Stack.Protected guard={signedIn && !recovering && !askConsent && onboarded}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
       {/* 12 Nov 2026: the public booking page, the public website and the public quote calculator. Anyone with the link can open them,

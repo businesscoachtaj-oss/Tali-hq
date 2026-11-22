@@ -9,6 +9,7 @@
 // Secrets: TALI_VOICE_URL (the voice server's https address), TALI_VOICE_KEY (its shared key).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent } from '../_shared/consent.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const VOICE_URL = (Deno.env.get('TALI_VOICE_URL') ?? '').replace(/\/+$/, '');
@@ -30,6 +31,7 @@ Deno.serve(async (req) => {
   const { data: u } = await admin.auth.getUser(token);
   const user = u?.user;
   if (!user) return fail('unauthorized', 'Please sign in again.', 401);
+  if (!(await hasAiConsent(admin, user.id))) return fail(AI_CONSENT_CODE, AI_CONSENT_MESSAGE, 403);
 
   const { data: pro } = await admin.rpc('has_pro', { p_user_id: user.id });
   if (pro !== true) return fail('not_pro', 'Tali reading her replies out loud is part of Tali HQ Pro.', 402);

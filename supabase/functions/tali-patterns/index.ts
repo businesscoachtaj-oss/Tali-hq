@@ -17,6 +17,8 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { claudeMessages } from '../_shared/claude.ts';
 import { pushUser } from '../_shared/push.ts';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent } from '../_shared/consent.ts';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent, consentedIds } from '../_shared/consent.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -299,6 +301,7 @@ async function logRun(userId: string, status: 'ok' | 'failed' | 'skipped', summa
 
 // One user. manual = replace this month's row instead of skipping.
 async function patternsOne(userId: string, manual: boolean) {
+  if (!manual && !(await hasAiConsent(admin, userId))) return { skipped: 'no AI consent yet' } as any;
   const { data: prof } = await admin.from('profiles').select('first_name, business_name, business_type, timezone').eq('id', userId).maybeSingle();
   const tz = prof?.timezone || 'Australia/Sydney';
   const today = localDate(tz);
@@ -391,6 +394,7 @@ Deno.serve(async (req) => {
   const { data: u } = await admin.auth.getUser(token);
   const user = u?.user;
   if (!user) return fail('unauthorized', 'Please sign in again.', 401);
+  if (!(await hasAiConsent(admin, user.id))) return fail(AI_CONSENT_CODE, AI_CONSENT_MESSAGE, 403);
   const { data: pro } = await admin.rpc('has_pro', { p_user_id: user.id });
   if (pro !== true) return fail('not_pro', 'Patterns are part of Tali HQ Pro.', 402);
   const r = await patternsOne(user.id, true);

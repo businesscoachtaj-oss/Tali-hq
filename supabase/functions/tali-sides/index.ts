@@ -15,6 +15,7 @@
 // Secrets: ANTHROPIC_API_KEY (required), TALI_MODEL (optional, default claude-haiku-5-5).
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent } from '../_shared/consent.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -136,6 +137,7 @@ Deno.serve(async (req) => {
     const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
     const { data: u } = await admin.auth.getUser(token);
     if (!u?.user) return json({ ok: false, message: 'Please sign in again.' }, 401);
+    if (!(await hasAiConsent(admin, u.user.id))) return json({ ok: false, code: AI_CONSENT_CODE, message: AI_CONSENT_MESSAGE }, 403);
     return json({ ok: true, ...(await sortFor(u.user.id)) });
   } catch (e) {
     console.error('tali-sides failed', String(e));
