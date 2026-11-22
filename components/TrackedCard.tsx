@@ -45,7 +45,7 @@ export function TrackedCard({ tracked, fresh }: { tracked: Tracked; fresh: boole
         const t = hq.trackers.find((x) => x.id === m.id);
         if (!t) return null;
         return (
-          <View key={m.id} style={{ gap: 8, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: colours.border, backgroundColor: 'rgba(30,24,88,0.55)' }}>
+          <View key={m.id} style={{ gap: 8, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: colours.border, backgroundColor: '#FFFDF8' }}>
             <Text style={{ fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: colours.good }}>ADDED TO YOUR {hasBiz ? `${m.home.toUpperCase()} ` : ''}HOME</Text>
             <View style={{ flexDirection: 'row' }}><TrackerTile w={{ id: m.id, kind: 'tracker', tracker: t, size: 'wide' }} /></View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -64,7 +64,7 @@ export function TrackedCard({ tracked, fresh }: { tracked: Tracked; fresh: boole
         <Pressable key={`${l.id}${i}`} onPress={() => router.navigate(`/tracker?id=${l.id}` as any)} accessibilityRole="link" accessibilityLabel={`Logged to ${l.name}. Open it`}
           style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: 'rgba(127,224,176,0.14)', borderWidth: 1, borderColor: 'rgba(127,224,176,0.5)' }}>
           <Text style={{ color: colours.good, fontSize: 13 }}>{'✦'}</Text>
-          <Text style={{ color: '#FFFFFF', fontSize: 12.5, flexShrink: 1 }}>
+          <Text style={{ color: '#1C1A17', fontSize: 12.5, flexShrink: 1 }}>
             <Text style={{ fontWeight: '800' }}>Logged</Text> {l.type === 'yesno' ? (l.amount ? 'done' : 'not done') : `${fmt({ type: l.type as any, unit: l.unit, period: 'day', target: null }, l.amount)}${unitOf({ type: l.type as any, unit: l.unit, period: 'day', target: null }) ? ` ${l.unit}` : ''}`} to {l.name} <Text style={{ color: colours.good, fontWeight: '700' }}>{'→'}</Text>
           </Text>
         </Pressable>

@@ -20,8 +20,8 @@ import { colours, radius } from '@/constants/theme';
 export type Business = { id: string; name: string; about: string; colour: string; abn: string | null; payment_details: string | null };
 /** The main business has id null. */
 export type AnyBusiness = { id: string | null; name: string; colour: string; about: string };
-export const MAIN_COLOUR = '#7FA8FF';
-export const BUSINESS_COLOURS = ['#7FE0B0', '#FFB561', '#FF8A7E', '#9FE8FF', '#D7B5FF'];
+export const MAIN_COLOUR = '#3B3F9E';
+export const BUSINESS_COLOURS = ['#2E8A63', '#A8561A', '#FF8A7E', '#9FE8FF', '#8A4FB8'];
 
 type State = { loaded: boolean; userId: string | null; extras: Business[]; current: string | null; all: boolean };
 let state: State = { loaded: false, userId: null, extras: [], current: null, all: false };

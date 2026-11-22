@@ -18,6 +18,7 @@ import { colours } from '@/constants/theme';
 import { useFonts, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold } from '@expo-google-fonts/plus-jakarta-sans';
 import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
 import { Literata_400Regular, Literata_400Regular_Italic, Literata_600SemiBold } from '@expo-google-fonts/literata';
+import { EBGaramond_400Regular, EBGaramond_400Regular_Italic, EBGaramond_500Medium } from '@expo-google-fonts/eb-garamond';
 
 // Where a tapped push goes (4 Nov 2026). Pushes carry data.url ('/', '/inbox', ...), the same shape
 // the web service worker (public/sw.js) opens. Phone builds land here instead.
@@ -35,7 +36,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <RootNavigator />
       </AuthProvider>
     </SafeAreaProvider>
@@ -66,7 +67,7 @@ function RootNavigator() {
   }, [ready]);
 
   // Wait for the signed-in user's profile too, or onboarding flashes up for a moment after sign in.
-  const [fontsReady] = useFonts({ PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, InstrumentSerif_400Regular, Literata_400Regular, Literata_400Regular_Italic, Literata_600SemiBold });
+  const [fontsReady] = useFonts({ PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, InstrumentSerif_400Regular, Literata_400Regular, Literata_400Regular_Italic, Literata_600SemiBold, EBGaramond_400Regular, EBGaramond_400Regular_Italic, EBGaramond_500Medium });
   if (isLoading || !profileReady || !fontsReady || !consentKnown) return <Loading />;
 
   // 12 Nov 2026: opened on somebody's own domain. Show their site, not the app.

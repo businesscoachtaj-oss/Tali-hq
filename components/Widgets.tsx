@@ -27,7 +27,7 @@ export function DotRing({ pct, colour, size = 74, n = 28 }: { pct: number; colou
         const d = lit ? 6 : 4.5;
         return (
           <View key={i} style={{ position: 'absolute', left: size / 2 + r * Math.cos(a) - d / 2, top: size / 2 + r * Math.sin(a) - d / 2, width: d, height: d, borderRadius: d,
-            backgroundColor: lit ? colour : 'rgba(255,255,255,0.16)', shadowColor: colour, shadowOpacity: lit ? 0.9 : 0, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } }} />
+            backgroundColor: lit ? colour : 'rgba(28,26,23,0.16)', shadowColor: colour, shadowOpacity: lit ? 0.9 : 0, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } }} />
         );
       })}
     </View>
@@ -36,7 +36,7 @@ export function DotRing({ pct, colour, size = 74, n = 28 }: { pct: number; colou
 
 export function Bar({ pct, colour }: { pct: number; colour: string }) {
   return (
-    <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+    <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(28,26,23,0.12)', overflow: 'hidden' }}>
       <View style={{ width: `${Math.max(3, Math.min(100, pct * 100))}%`, height: 8, borderRadius: 4, backgroundColor: colour }} />
     </View>
   );
@@ -48,7 +48,7 @@ function Head({ tr, pin }: { tr: Drawn; pin?: boolean }) {
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tr.colour }} />
       <Text numberOfLines={1} style={{ flexShrink: 1, color: colours.muted, fontSize: 12.5, fontWeight: '700' }}>{tr.name}</Text>
       {tr.team ? <Ionicons name="people" size={12} color={colours.faint} /> : null}
-      {pin ? <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(127,168,255,0.6)', backgroundColor: 'rgba(127,168,255,0.14)' }}><Text style={{ color: '#7FA8FF', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 }}>PINNED</Text></View> : null}
+      {pin ? <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(127,168,255,0.6)', backgroundColor: 'rgba(127,168,255,0.14)' }}><Text style={{ color: '#3B3F9E', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 }}>PINNED</Text></View> : null}
     </View>
   );
 }
@@ -90,7 +90,7 @@ export function TrackerBody({ tr, wide }: { tr: Drawn; wide?: boolean }) {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
           {week.map((v, i) => (
             <View key={i} style={{ alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: v ? tr.colour : 'rgba(255,255,255,0.12)', borderWidth: i === 6 ? 1.5 : 0, borderColor: colours.text }} />
+              <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: v ? tr.colour : 'rgba(28,26,23,0.12)', borderWidth: i === 6 ? 1.5 : 0, borderColor: colours.text }} />
               <Text style={{ color: colours.faint, fontSize: 10 }}>{DAYS[(new Date().getDay() + 6 - (6 - i) + 7) % 7]}</Text>
             </View>
           ))}
@@ -219,8 +219,8 @@ export function TrackerTile({ w, preview }: { w: Widget; preview?: boolean }) {
       {err ? <Text style={{ color: colours.danger, fontSize: 11, marginTop: 4 }}>{err}</Text> : null}
       <Pressable onPress={quickLog} onLongPress={live ? () => setSheet(true) : undefined} delayLongPress={350} hitSlop={10} accessibilityRole="button"
         accessibilityLabel={tr.type === 'yesno' ? (doneToday ? `Untick ${tr.name}` : `Tick ${tr.name}`) : `Log ${tr.name}. Hold for an amount`}
-        style={{ position: 'absolute', right: 8, top: 8, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: doneToday ? tr.colour : 'rgba(255,255,255,0.10)' }}>
-        <Ionicons name={tr.type === 'yesno' ? 'checkmark' : 'add'} size={17} color={doneToday ? '#141033' : colours.text} />
+        style={{ position: 'absolute', right: 8, top: 8, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: doneToday ? tr.colour : 'rgba(28,26,23,0.10)' }}>
+        <Ionicons name={tr.type === 'yesno' ? 'checkmark' : 'add'} size={17} color={doneToday ? '#F5F0E6' : colours.text} />
       </Pressable>
       {live ? <LogSheet tr={tr} visible={sheet} onClose={() => setSheet(false)} /> : null}
     </Pressable>
@@ -247,7 +247,7 @@ export function ExtraTile({ w, onChange }: { w: Widget; onChange?: (extra: Extra
   if (x.type === 'note') {
     return (
       <View style={[tile, lift, { width: w.size === 'wide' ? '100%' : '48.6%', backgroundColor: colours.paper, borderColor: 'rgba(42,35,64,0.15)' }]}>
-        <Text style={{ color: colours.ink, fontSize: 16, lineHeight: 23, fontFamily: 'InstrumentSerif_400Regular' }}>{x.text || 'Tap Edit home to write your note.'}</Text>
+        <Text style={{ color: colours.ink, fontSize: 16, lineHeight: 23, fontFamily: 'EBGaramond_500Medium' }}>{x.text || 'Tap Edit home to write your note.'}</Text>
       </View>
     );
   }
@@ -265,7 +265,7 @@ export function ExtraTile({ w, onChange }: { w: Widget; onChange?: (extra: Extra
       {x.items.map((it, i) => (
         <Pressable key={`${i}${it.t}`} onPress={() => toggle(i)} accessibilityRole="checkbox" accessibilityState={{ checked: it.done }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 }}>
           <View style={{ width: 22, height: 22, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: it.done ? colours.purple : 'transparent', borderWidth: 2, borderColor: it.done ? colours.purple : colours.purpleInk }}>
-            {it.done ? <Ionicons name="checkmark" size={14} color="#141033" /> : null}
+            {it.done ? <Ionicons name="checkmark" size={14} color="#F5F0E6" /> : null}
           </View>
           <Text style={{ flex: 1, color: it.done ? colours.faint : colours.text, fontSize: 15, textDecorationLine: it.done ? 'line-through' : 'none' }}>{it.t}</Text>
         </Pressable>
@@ -337,7 +337,7 @@ export function BlockPreview({ w, compact, blank }: { w: Widget; compact?: boole
     <View style={[tile, { padding: compact ? 10 : 14, backgroundColor: colours.sunk }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Text numberOfLines={1} style={{ flexShrink: 1, color: colours.text, fontWeight: '800', fontSize: compact ? 13.5 : 15 }}>{meta?.title ?? 'Block'}</Text>
-        {w.pin === 'pinned' ? <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(127,168,255,0.6)', backgroundColor: 'rgba(127,168,255,0.14)' }}><Text style={{ color: '#7FA8FF', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 }}>PINNED</Text></View> : null}
+        {w.pin === 'pinned' ? <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(127,168,255,0.6)', backgroundColor: 'rgba(127,168,255,0.14)' }}><Text style={{ color: '#3B3F9E', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 }}>PINNED</Text></View> : null}
       </View>
       <Text style={{ color: colours.faint, fontSize: 12, marginTop: 2 }} numberOfLines={1}>{meta?.sub}</Text>
     </View>

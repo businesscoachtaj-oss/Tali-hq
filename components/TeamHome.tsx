@@ -44,8 +44,8 @@ export function TeamHomeSection({ team, tick }: { team: TeamHome; tick: number }
   return (
     <View style={{ marginTop: space.md }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Ionicons name="people" size={14} color="#7FA8FF" />
-        <Text style={{ flex: 1, color: '#7FA8FF', fontSize: 12, fontWeight: '800', letterSpacing: 1.6 }}>{team.business.toUpperCase()} TEAM HOME</Text>
+        <Ionicons name="people" size={14} color="#3B3F9E" />
+        <Text style={{ flex: 1, color: '#3B3F9E', fontSize: 12, fontWeight: '800', letterSpacing: 1.6 }}>{team.business.toUpperCase()} TEAM HOME</Text>
         {hiddenCount ? (
           <Pressable onPress={() => saveLayout(key, (mine ?? []).filter((b) => team.blocks.find((t) => t.id === b.id)?.pin === 'pinned')).catch(() => {})} hitSlop={8}>
             <Text style={{ color: colours.purple, fontSize: 12.5, fontWeight: '700' }}>Bring back {hiddenCount}</Text>

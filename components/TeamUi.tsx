@@ -8,9 +8,9 @@ import { router } from 'expo-router';
 import { claimInvites, myWork, SEATS, type Seat, type Work } from '@/lib/team';
 import { colours, radius, space } from '@/constants/theme';
 
-export const GREEN = '#7FE0B0';
-export const ORANGE = '#FFB561';
-const PALETTE = [BLUE, GREEN, ORANGE, '#FF8A7E', '#9FE8FF', '#D7B5FF'];
+export const GREEN = '#2E8A63';
+export const ORANGE = '#A8561A';
+const PALETTE = [BLUE, GREEN, ORANGE, '#FF8A7E', '#9FE8FF', '#8A4FB8'];
 /** A steady colour for a person, from their id, so they look the same on every screen. */
 export const colourFor = (id: string) => PALETTE[[...id].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PALETTE.length];
 

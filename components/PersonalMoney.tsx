@@ -15,7 +15,7 @@ import {
 } from '@/lib/personalMoney';
 
 const BAR: Record<string, string> = {
-  Groceries: '#B9A6FF', Rent: '#7FD1FF', Bills: '#9FB7FF', 'Eating out': '#FFC37A', Transport: '#FFB561', Fun: '#7FE0B0', Health: '#8EF0C8', Shopping: '#FF9EC7', Other: '#C9C2EE',
+  Groceries: '#3B3F9E', Rent: '#7FD1FF', Bills: '#9FB7FF', 'Eating out': '#FFC37A', Transport: '#A8561A', Fun: '#2E8A63', Health: '#2E7D4F', Shopping: '#FF9EC7', Other: '#C9C2EE',
 };
 const SOURCE: Record<Spend['source'], string> = { tali: 'told Tali', receipt: 'receipt', manual: 'typed in', repeat: 'repeats' };
 const EVERY: Record<Repeat['every'], string> = { week: 'every week', fortnight: 'every fortnight', month: 'every month' };
@@ -274,12 +274,12 @@ export function PersonalMoney({ refreshKey }: { refreshKey: number }) {
 const tileLabel = { fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: colours.muted } as const;
 const tileSub = { fontSize: 12.5, color: colours.muted, marginTop: 2 } as const;
 const formTitle = { fontSize: 16, fontWeight: '800', color: colours.text, marginBottom: space.sm } as const;
-const section = { color: colours.text, fontSize: 24, fontFamily: 'InstrumentSerif_400Regular', marginTop: space.md, marginBottom: space.sm } as const;
+const section = { color: colours.text, fontSize: 24, fontFamily: 'EBGaramond_500Medium', marginTop: space.md, marginBottom: space.sm } as const;
 
 function Bar({ pct, colour }: { pct: number; colour: string }) {
   const w = Math.max(0, Math.min(1, Number.isFinite(pct) ? pct : 0));
   return (
-    <View style={{ height: 8, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.14)', marginTop: 8, overflow: 'hidden' }}>
+    <View style={{ height: 8, borderRadius: 99, backgroundColor: 'rgba(28,26,23,0.14)', marginTop: 8, overflow: 'hidden' }}>
       <View style={{ width: `${w * 100}%`, height: 8, borderRadius: 99, backgroundColor: colour }} />
     </View>
   );

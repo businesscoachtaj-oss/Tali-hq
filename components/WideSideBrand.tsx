@@ -26,8 +26,8 @@ export function WideSideBrand() {
 
 const s = StyleSheet.create({
   top: { position: 'absolute', left: 0, top: 0, width: SIDEBAR, height: SIDE_TOP, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 22, zIndex: 2 },
-  head: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)' },
-  kicker: { fontSize: 13, fontWeight: '800', letterSpacing: 3, color: '#B9A6FF' },
-  name: { fontSize: 15, fontWeight: '700', color: '#F4F1FF', marginTop: 2 },
+  head: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(59,63,158,0.18)', borderWidth: 1, borderColor: 'rgba(28,26,23,0.30)' },
+  kicker: { fontSize: 13, fontWeight: '800', letterSpacing: 3, color: '#3B3F9E' },
+  name: { fontSize: 15, fontWeight: '700', color: '#1C1A17', marginTop: 2 },
   tali: { position: 'absolute', left: 0, bottom: 24, width: SIDEBAR, alignItems: 'center', zIndex: 2 },
 });

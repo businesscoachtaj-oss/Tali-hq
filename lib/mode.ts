@@ -7,8 +7,8 @@ import { useAuth } from './auth';
 
 export type Mode = 'business' | 'life';
 export const MODE = {
-  business: { label: 'Business', colour: '#7FA8FF', icon: 'briefcase-outline' as const },
-  life: { label: 'Life', colour: '#FF9EC4', icon: 'heart-outline' as const },
+  business: { label: 'Business', colour: '#3B3F9E', icon: 'briefcase-outline' as const },
+  life: { label: 'Life', colour: '#B8487A', icon: 'heart-outline' as const },
 };
 
 const KEY = 'tali.mode';

@@ -29,7 +29,7 @@ export default function Dates() {
         if (!p.birthday) continue;
         const n = birthdayNext(p.birthday);
         if (n.days > 90) continue;
-        out.push({ key: 'b' + p.id, title: `${p.name}'s birthday`, sub: n.turning ? `Turning ${n.turning}` : 'Birthday', days: n.days, date: n.date, colour: '#8EF0C8', go: () => router.navigate({ pathname: '/person', params: { id: p.id } } as any) });
+        out.push({ key: 'b' + p.id, title: `${p.name}'s birthday`, sub: n.turning ? `Turning ${n.turning}` : 'Birthday', days: n.days, date: n.date, colour: '#2E7D4F', go: () => router.navigate({ pathname: '/person', params: { id: p.id } } as any) });
       }
       lists.forEach((list, li) => {
         const kind = DATED[li];
@@ -37,13 +37,13 @@ export default function Dates() {
           if (i.done_at || !i.due_date) continue;
           const days = Math.round((new Date(`${i.due_date}T12:00:00`).getTime() - t) / 86400000);
           if (days > 90) continue;
-          out.push({ key: 'i' + i.id, title: i.title, sub: LISTS[kind].title, days, date: i.due_date, colour: kind === 'checkup' ? '#FF9EC4' : kind === 'todo' ? '#9FB7FF' : '#9FE8FF', go: () => router.navigate({ pathname: '/list', params: { kind } } as any) });
+          out.push({ key: 'i' + i.id, title: i.title, sub: LISTS[kind].title, days, date: i.due_date, colour: kind === 'checkup' ? '#B8487A' : kind === 'todo' ? '#9FB7FF' : '#9FE8FF', go: () => router.navigate({ pathname: '/list', params: { kind } } as any) });
         }
       });
       const names = new Set(out.map((r) => r.title.toLowerCase()));
       for (const u of known) {
         if (names.has(u.text.toLowerCase())) continue;
-        out.push({ key: 'm' + u.id, title: u.text, sub: u.yearly ? 'Every year' : 'Tali knows this', days: u.days_away, date: u.date, colour: '#D7B5FF', go: () => router.navigate('/brain') });
+        out.push({ key: 'm' + u.id, title: u.text, sub: u.yearly ? 'Every year' : 'Tali knows this', days: u.days_away, date: u.date, colour: '#8A4FB8', go: () => router.navigate('/brain') });
       }
       setRows(out.sort((a, b) => a.days - b.days));
     } catch (e: any) {

@@ -9,12 +9,12 @@ import { router, useFocusEffect } from 'expo-router';
 import { myBrain, type Brain } from '@/lib/brain';
 
 const CLUSTERS = [
-  { name: 'People', colour: '#5CF2C0', kinds: ['person', 'client', 'lead'], to: '/clients', at: [0.0, 0.0], line: 'Family, friends, clients' },
-  { name: 'Work', colour: '#7FA8FF', kinds: ['fact', 'note', 'email', 'skill'], to: '/invoices', at: [1.0, 0.17], line: 'Email, money, to do, rules' },
-  { name: 'Health', colour: '#FF7EB6', kinds: ['event'], to: '/life', at: [0.0, 0.35], line: 'Training, food, sleep, headspace' },
-  { name: 'Home and money', colour: '#5CD9FF', kinds: [], to: '/money?side=personal', at: [1.0, 0.52], line: 'Spending, bills, life admin' },
-  { name: 'Growth', colour: '#FFE066', kinds: ['idea', 'plan', 'goal', 'decision'], to: '/goals', at: [0.0, 0.7], line: 'Goals, habits, learning, wins' },
-  { name: 'Your words', colour: '#D7B5FF', kinds: ['journal', 'lesson', 'mistake'], to: '/journal', at: [0.75, 0.88], line: 'Journal, notes, ideas' },
+  { name: 'People', colour: '#2E8A63', kinds: ['person', 'client', 'lead'], to: '/clients', at: [0.0, 0.0], line: 'Family, friends, clients' },
+  { name: 'Work', colour: '#3B3F9E', kinds: ['fact', 'note', 'email', 'skill'], to: '/invoices', at: [1.0, 0.17], line: 'Email, money, to do, rules' },
+  { name: 'Health', colour: '#B8487A', kinds: ['event'], to: '/life', at: [0.0, 0.35], line: 'Training, food, sleep, headspace' },
+  { name: 'Home and money', colour: '#2C7FA8', kinds: [], to: '/money?side=personal', at: [1.0, 0.52], line: 'Spending, bills, life admin' },
+  { name: 'Growth', colour: '#A8841C', kinds: ['idea', 'plan', 'goal', 'decision'], to: '/goals', at: [0.0, 0.7], line: 'Goals, habits, learning, wins' },
+  { name: 'Your words', colour: '#8A4FB8', kinds: ['journal', 'lesson', 'mistake'], to: '/journal', at: [0.75, 0.88], line: 'Journal, notes, ideas' },
 ] as const;
 
 // The map itself, so Your world (the tab) can show it above the list (10 Nov 2026).
@@ -34,31 +34,28 @@ export function WorldMap({ homeCount = 0, workTo, show, lines }: { homeCount?: n
     const i = CLUSTERS_.indexOf(c), last = Math.max(1, CLUSTERS_.length - 1);
     return { x: 100 + (i % 2) * (W - 200), y: 70 + (i / last) * (H - 290) };
   };
+  // 23 Nov 2026 (paper and ink, from the approved mockup): the map is now a ruled list. Each part keeps
+  // its own small moving shape on the left, then its name, what is in it, and how much she knows.
+  void H; void centre;
   return (
-    <View style={{ height: H, width: W, alignSelf: 'center' }}>
-      {CLUSTERS_.map((c, i) => {
-        if (i === CLUSTERS_.length - 1) return null;
-        const k = centre(c); const n2 = centre(CLUSTERS_[i + 1]);
-        const len = Math.hypot(n2.x - k.x, n2.y - k.y), ang = Math.atan2(n2.y - k.y, n2.x - k.x);
-        return <View key={'l' + i} pointerEvents="none" style={{ position: 'absolute', left: (k.x + n2.x) / 2 - len / 2, top: (k.y + n2.y) / 2, width: len, height: 1, backgroundColor: 'rgba(214,200,255,0.18)', transform: [{ rotate: `${ang}rad` }] }} />;
-      })}
+    <View style={{ width: W, alignSelf: 'center', paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: '#1C1A17' }}>
       {CLUSTERS_.map((c) => {
-        const k = centre(c);
         const home = c.name === 'Home and money';
         const count = home ? homeCount : items.filter((it) => (c.kinds as readonly string[]).includes(it.kind)).length;
         const to = c.name === 'Work' && workTo ? workTo : c.to;
         return (
-          <Pressable key={c.name} onPress={() => router.navigate(to as any)} accessibilityRole="button" accessibilityLabel={c.name}
-            style={{ position: 'absolute', left: k.x - 90, top: k.y - 70, width: 180, height: 200 }}>
-            <View style={{ position: 'absolute', left: 30, top: 10, width: 120, height: 120, borderRadius: 60, backgroundColor: c.colour, opacity: 0.16, shadowColor: c.colour, shadowOpacity: 1, shadowRadius: 40 }} />
-            <View style={{ position: 'absolute', left: 20, top: 0, width: 140, height: 140 }}>
-              <Form kind={c.name} colour={c.colour} n={Math.min(40, 10 + count * 3)} />
+          <Pressable key={c.name} onPress={() => router.navigate(to as any)} accessibilityRole="button" accessibilityLabel={`${c.name}, ${count} ${home ? 'she is tracking' : 'she knows'}`}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(28,26,23,0.16)' }}>
+            <View style={{ width: 58, height: 58, overflow: 'hidden' }}>
+              <View style={{ position: 'absolute', left: -41, top: -41, width: 140, height: 140, transform: [{ scale: 0.42 }] }}>
+                <Form kind={c.name} colour={c.colour} n={Math.min(28, 10 + count * 2)} />
+              </View>
             </View>
-            <View style={{ position: 'absolute', left: 0, right: 0, top: 138, alignItems: 'center' }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 24, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: c.colour, textShadowRadius: 12, textAlign: 'center' }}>{c.name}</Text>
-              <Text style={{ color: c.colour, fontSize: 12, fontWeight: '800' }}>{count ? `${count} ${count === 1 ? 'thing' : 'things'} ${home ? 'she is tracking' : 'she knows'}` : 'Nothing yet'}</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11.5, marginTop: 2 }}>{lines?.[c.name] ?? c.line}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#1C1A17', fontSize: 22, fontFamily: 'EBGaramond_500Medium' }}>{c.name}</Text>
+              <Text style={{ color: '#5E574E', fontSize: 12.5, marginTop: 1 }}>{lines?.[c.name] ?? c.line}</Text>
             </View>
+            <Text style={{ color: '#3B3F9E', fontSize: 12, fontWeight: '800', textAlign: 'right', maxWidth: 90 }}>{count ? `${count} ${home ? 'tracked' : 'she knows'}` : 'Nothing yet'}</Text>
           </Pressable>
         );
       })}
@@ -128,7 +125,7 @@ function depthFade(z: number) {
   return Math.max(0.25, Math.min(1, 0.62 - z / 110));
 }
 
-const star = (r: number, colour: string) => ({ position: 'absolute' as const, left: C - r / 2, top: C - r / 2, width: r, height: r, borderRadius: r, backgroundColor: colour, shadowColor: colour, shadowOpacity: 1, shadowRadius: 6 });
+const star = (r: number, colour: string) => ({ position: 'absolute' as const, left: C - r / 2, top: C - r / 2, width: r, height: r, borderRadius: r, backgroundColor: colour, shadowOpacity: 0 });
 
 function Form({ kind, colour, n }: { kind: string; colour: string; n: number }) {
   if (kind === 'People') return <PeopleForm colour={colour} n={n} />;
@@ -207,7 +204,7 @@ function WorkForm({ colour }: { colour: string }) {
   return (
     <Reanimated.View style={[{ position: 'absolute', width: 140, height: 140 }, board]}>
       {cells.map((c, i) => c.on ? (
-        <Reanimated.View key={i} style={[{ position: 'absolute', left: c.x, top: c.y, width: 12, height: 12, borderRadius: 3, backgroundColor: colour, shadowColor: colour, shadowOpacity: 1, shadowRadius: 6 }, c.b ? glowB : glowA]} />
+        <Reanimated.View key={i} style={[{ position: 'absolute', left: c.x, top: c.y, width: 12, height: 12, borderRadius: 3, backgroundColor: colour, shadowOpacity: 0 }, c.b ? glowB : glowA]} />
       ) : (
         <View key={i} style={{ position: 'absolute', left: c.x + 3, top: c.y + 3, width: 6, height: 6, borderRadius: 1.5, backgroundColor: colour, opacity: 0.35 }} />
       ))}

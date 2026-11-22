@@ -50,6 +50,24 @@ export function Sky({ children, dark }: { children: ReactNode; dark?: boolean })
 }
 
 /** The same sky behind one card. Pass the card's radius through `style` so the stars are clipped to it. */
+// 23 Nov 2026 (paper and ink): the daytime twins of night and NightBackground, for the brain page, the
+// brain card and the morning cards. The night versions stay for Shut the day down, Sleep and the closed Today.
+export const paper = {
+  ink: '#1C1A17',
+  muted: '#5E574E',
+  faint: '#8C8478',
+  glass: 'rgba(28,26,23,0.05)',
+  line: 'rgba(28,26,23,0.16)',
+  accent: '#3B3F9E',
+  accent2: '#2C7FA8',
+  sky: ['#FFFDF8', '#FBF7EE', '#F5F0E6'] as const,
+  black: '#1C1A17',
+};
+
+export function PaperBackground({ style }: { style?: StyleProp<ViewStyle> }) {
+  return <View style={[StyleSheet.absoluteFill, { backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: 'rgba(28,26,23,0.16)' }, style]} pointerEvents="none" />;
+}
+
 export function NightBackground({ style }: { style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }, style]} pointerEvents="none">

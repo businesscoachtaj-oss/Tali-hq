@@ -26,7 +26,7 @@ function Chips<T extends string>({ items, value, onPick, locked = [] }: { items:
         const on = k === value, lock = locked.includes(k);
         return (
           <Pressable key={k} onPress={() => (lock ? router.navigate('/plans') : onPick(k))} accessibilityRole="radio" accessibilityState={{ selected: on, disabled: lock }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colours.purple : colours.border, backgroundColor: on ? colours.purple : 'rgba(255,255,255,0.05)', opacity: lock ? 0.55 : 1 }}>
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colours.purple : colours.border, backgroundColor: on ? colours.purple : 'rgba(28,26,23,0.05)', opacity: lock ? 0.55 : 1 }}>
             {lock ? <Ionicons name="lock-closed" size={12} color={colours.orange} /> : null}
             <Text style={{ color: on ? colours.onPurple : colours.text, fontWeight: '700' }}>{items[k]}</Text>
           </Pressable>
@@ -188,7 +188,7 @@ export default function WidgetNew() {
 
       {hq.plan === 'biz' && (hasBiz ? side !== 'life' : false) ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.card, backgroundColor: 'rgba(127,168,255,0.12)', borderWidth: 1, borderColor: 'rgba(127,168,255,0.5)', marginBottom: space.lg }}>
-          <Ionicons name="people" size={18} color="#7FA8FF" />
+          <Ionicons name="people" size={18} color="#3B3F9E" />
           <View style={{ flex: 1 }}>
             <Text style={{ color: colours.text, fontWeight: '800' }}>Team tracker</Text>
             <Text style={{ color: colours.muted, fontSize: 12.5 }}>Everyone on your team logs to it. You see the total and each person's share. Add it to your Team layout to put it on their homes.</Text>

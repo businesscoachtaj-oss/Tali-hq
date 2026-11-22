@@ -146,11 +146,11 @@ export default function List() {
     <Screen skin={cfg.skin} onRefresh={load}>
       <View style={{ marginBottom: 20, marginTop: 6 }}>
         <Pressable onPress={back} hitSlop={12} accessibilityRole="button" style={{ marginBottom: 18 }}>
-          <Text style={{ color: '#B9A6FF', fontSize: 15, fontWeight: '600' }}>{'‹'} Your world</Text>
+          <Text style={{ color: '#3B3F9E', fontSize: 15, fontWeight: '600' }}>{'‹'} Your world</Text>
         </Pressable>
-        <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{(tagged ? (scope === 'all' ? 'Life and business' : MODE[mode].label) : cfg.back).toUpperCase()}</Text>
-        <Text style={{ color: '#F4F1FF', fontSize: 46, lineHeight: 50, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{cfg.title}</Text>
-        <Text style={{ color: '#B9B2D9', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{cfg.sub}</Text>
+        <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{(tagged ? (scope === 'all' ? 'Life and business' : MODE[mode].label) : cfg.back).toUpperCase()}</Text>
+        <Text style={{ color: '#1C1A17', fontSize: 46, lineHeight: 50, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>{cfg.title}</Text>
+        <Text style={{ color: '#5E574E', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{cfg.sub}</Text>
       </View>
       <Button title={cfg.add} onPress={() => setDraft(blank())} />
       <Button title="Tell Tali" kind="ghost" onPress={() => router.navigate({ pathname: '/talk', params: { ask: cfg.ask } })} />

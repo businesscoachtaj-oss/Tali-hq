@@ -11,7 +11,7 @@ export function BizLock({ title, sub, points, paid }: { title: string; sub: stri
   return (
     <Screen>
       <Head over={paid ? 'Your world' : 'Business'} title={title} sub={sub} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start', borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: BLUE + '26', borderWidth: 1, borderColor: BLUE + '80', marginBottom: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start', borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: BLUE + '80', marginBottom: 14 }}>
         <Ionicons name="lock-closed-outline" size={16} color={BLUE} />
         <Text style={{ color: BLUE, fontWeight: '800', fontSize: 13 }}>{paid ? 'Comes with any paid plan' : 'Comes with Tali HQ Business'}</Text>
       </View>

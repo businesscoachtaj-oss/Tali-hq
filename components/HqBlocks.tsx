@@ -25,7 +25,7 @@ export function BlockLabel({ children, pin, right }: { children: ReactNode; pin?
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, marginBottom: 10, width: '100%' }}>
       {/* Same heading as the rest of the app (Label in components/ui.tsx). */}
       <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 24, color: colours.text, ...headingSemi }}>{children}</Text>
-      {pin ? <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(127,168,255,0.6)', backgroundColor: 'rgba(127,168,255,0.14)' }}><Text style={{ color: '#7FA8FF', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 }}>PINNED</Text></View> : null}
+      {pin ? <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(127,168,255,0.6)', backgroundColor: 'rgba(127,168,255,0.14)' }}><Text style={{ color: '#3B3F9E', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 }}>PINNED</Text></View> : null}
       <View style={{ flex: 1 }} />
       {right}
     </View>
@@ -133,7 +133,7 @@ export function TaliPickBlock({ note }: { note: HomeNote | undefined }) {
 export function NoteStrip({ note }: { note: HomeNote }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: note.kind === 'team' ? 'rgba(127,168,255,0.14)' : colours.orangeSoft, borderRadius: 14, borderWidth: 1, borderColor: note.kind === 'team' ? 'rgba(127,168,255,0.5)' : 'rgba(255,181,97,0.5)', paddingVertical: 10, paddingHorizontal: 12, marginTop: space.sm, width: '100%' }}>
-      <Ionicons name={note.kind === 'team' ? 'people-outline' : 'notifications-outline'} size={16} color={note.kind === 'team' ? '#7FA8FF' : colours.orange} />
+      <Ionicons name={note.kind === 'team' ? 'people-outline' : 'notifications-outline'} size={16} color={note.kind === 'team' ? '#3B3F9E' : colours.orange} />
       <Text style={{ flex: 1, color: colours.text, fontSize: 13.5, lineHeight: 19 }}>{note.body}</Text>
       <Pressable onPress={() => seenNote(note.id)} hitSlop={10} accessibilityLabel="Dismiss"><Ionicons name="close" size={16} color={colours.faint} /></Pressable>
     </View>
@@ -261,7 +261,7 @@ export function QuoteRateBlock({ board }: { board: Board }) {
         <Text style={{ color: colours.text, fontSize: 32, fontWeight: '800' }}>{rate === null ? 'No answer yet' : `${rate}%`}</Text>
         {rate !== null ? <Text style={{ color: colours.faint, fontSize: 12, marginBottom: 6 }}>of quotes won, last 90 days</Text> : null}
       </View>
-      <View style={{ flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', marginTop: 8, backgroundColor: 'rgba(255,255,255,0.12)' }}>
+      <View style={{ flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', marginTop: 8, backgroundColor: 'rgba(28,26,23,0.12)' }}>
         <View style={{ flex: q.won || 0.0001, backgroundColor: colours.good }} />
         <View style={{ flex: q.waiting || 0.0001, backgroundColor: colours.orange }} />
         <View style={{ flex: q.lost || 0.0001, backgroundColor: colours.danger }} />
@@ -272,7 +272,7 @@ export function QuoteRateBlock({ board }: { board: Board }) {
 }
 
 const Stars = ({ n, size = 13 }: { n: number; size?: number }) => (
-  <View style={{ flexDirection: 'row', gap: 1 }}>{[1, 2, 3, 4, 5].map((i) => <Ionicons key={i} name={i <= Math.round(n) ? 'star' : 'star-outline'} size={size} color="#FFE08A" />)}</View>
+  <View style={{ flexDirection: 'row', gap: 1 }}>{[1, 2, 3, 4, 5].map((i) => <Ionicons key={i} name={i <= Math.round(n) ? 'star' : 'star-outline'} size={size} color="#A8841C" />)}</View>
 );
 
 export function HappinessBlock({ board, onChanged, canEdit = true }: { board: Board; onChanged: () => void; canEdit?: boolean }) {
@@ -328,7 +328,7 @@ export function HappinessBlock({ board, onChanged, canEdit = true }: { board: Bo
       <Sheet visible={open} title="Log a review" sub="Copy it in from Google, Facebook or wherever it landed." onClose={() => setOpen(false)}>
         <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <Pressable key={i} onPress={() => setRating(i)} accessibilityLabel={`${i} stars`} hitSlop={4}><Ionicons name={i <= rating ? 'star' : 'star-outline'} size={34} color="#FFE08A" /></Pressable>
+            <Pressable key={i} onPress={() => setRating(i)} accessibilityLabel={`${i} stars`} hitSlop={4}><Ionicons name={i <= rating ? 'star' : 'star-outline'} size={34} color="#A8841C" /></Pressable>
           ))}
         </View>
         <TextInput value={name} onChangeText={setName} placeholder="Who left it (optional)" placeholderTextColor={colours.faint} style={input} maxLength={80} />

@@ -6,7 +6,7 @@ import { Pressable, ScrollView, Share, Text, View, useWindowDimensions } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { NightBackground } from '@/components/NightSky';
+import { PaperBackground as NightBackground } from '@/components/NightSky';
 import { Aurora } from '@/components/Aurora';
 import { BrainGlobe } from '@/components/BrainGlobe';
 import { myBrain, REGIONS, type Brain, type RegionId } from '@/lib/brain';
@@ -52,18 +52,18 @@ export default function BrainCard() {
       <Aurora />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, alignItems: 'center' }}>
         <Pressable onPress={() => router.navigate('/me')} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginBottom: 12 }}>
-          <Text style={{ color: '#B9A6FF', fontSize: 15, fontWeight: '700' }}>{'‹'} Me</Text>
+          <Text style={{ color: '#3B3F9E', fontSize: 15, fontWeight: '700' }}>{'‹'} Me</Text>
         </Pressable>
 
         {/* The card. Kept to one clean block so a screenshot crops neatly. */}
-        <View style={{ width: W, borderRadius: 28, overflow: 'hidden', backgroundColor: '#0C0A24', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#7A4DFF', shadowOpacity: 0.8, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }}>
+        <View style={{ width: W, borderRadius: 28, overflow: 'hidden', backgroundColor: '#F5F0E6', borderWidth: 1, borderColor: 'rgba(28,26,23,0.30)', shadowColor: '#000', shadowOpacity: 0, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }}>
           <NightBackground />
           <View style={{ padding: 22, paddingBottom: 0 }}>
-            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '800', letterSpacing: 2.5 }}>TALI HQ</Text>
-            <Text style={{ color: '#FFFFFF', fontSize: 36, lineHeight: 40, marginTop: 8, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 }}>
+            <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '800', letterSpacing: 2.5 }}>TALI HQ</Text>
+            <Text style={{ color: '#1C1A17', fontSize: 36, lineHeight: 40, marginTop: 8, fontFamily: 'EBGaramond_500Medium' }}>
               {name ? `${name}'s Tali` : 'My Tali'}
             </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, marginTop: 4 }}>
+            <Text style={{ color: 'rgba(28,26,23,0.8)', fontSize: 15, marginTop: 4 }}>
               {days ? `Day ${days}. ` : ''}{total ? `${total} ${total === 1 ? 'memory' : 'memories'} and growing.` : 'Her brain is just getting started.'}
             </Text>
           </View>
@@ -74,8 +74,8 @@ export default function BrainCard() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, paddingHorizontal: 16 }}>
               {groups.map((g) => (
                 <View key={g.label} style={{ alignItems: 'center', minWidth: 58 }}>
-                  <Text style={{ color: REGIONS[g.region].colour, fontSize: 24, fontWeight: '800', textShadowColor: REGIONS[g.region].colour, textShadowRadius: 10 }}>{g.n}</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '700' }}>{g.label}</Text>
+                  <Text style={{ color: REGIONS[g.region].colour, fontSize: 24, fontWeight: '800'}}>{g.n}</Text>
+                  <Text style={{ color: 'rgba(28,26,23,0.75)', fontSize: 12, fontWeight: '700' }}>{g.label}</Text>
                 </View>
               ))}
             </View>
@@ -84,24 +84,24 @@ export default function BrainCard() {
             {level ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#F6A02C', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ color: '#141033', fontSize: 16, fontWeight: '800' }}>{level.level}</Text>
+                  <Text style={{ color: '#F5F0E6', fontSize: 16, fontWeight: '800' }}>{level.level}</Text>
                 </View>
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>{level.name}</Text>
+                <Text style={{ color: '#1C1A17', fontSize: 14, fontWeight: '800' }}>{level.name}</Text>
               </View>
             ) : <View />}
-            <Text style={{ color: '#B9A6FF', fontSize: 13, fontWeight: '800' }}>talihq.com.au</Text>
+            <Text style={{ color: '#3B3F9E', fontSize: 13, fontWeight: '800' }}>talihq.com.au</Text>
           </View>
         </View>
 
-        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', marginTop: 18, lineHeight: 19, maxWidth: 340 }}>
+        <Text style={{ color: 'rgba(28,26,23,0.7)', fontSize: 13, textAlign: 'center', marginTop: 18, lineHeight: 19, maxWidth: 340 }}>
           Only numbers are on the card. Nothing she remembers about you is shown. Screenshot it to post it, or share the words.
         </Text>
         <Pressable onPress={() => {
           // Where there is no share sheet (a desktop browser), copy the words instead.
           Share.share({ message: words }).catch(async () => { await Clipboard.setStringAsync(words).catch(() => {}); setCopied(true); });
         }} accessibilityRole="button"
-          style={{ marginTop: 14, backgroundColor: '#B9A6FF', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 28, shadowColor: '#B9A6FF', shadowOpacity: 0.8, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } }}>
-          <Text style={{ color: '#141033', fontWeight: '800', fontSize: 16 }}>{copied ? 'Copied the words' : 'Share'}</Text>
+          style={{ marginTop: 14, backgroundColor: '#3B3F9E', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 28, shadowColor: '#000', shadowOpacity: 0, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } }}>
+          <Text style={{ color: '#F5F0E6', fontWeight: '800', fontSize: 16 }}>{copied ? 'Copied the words' : 'Share'}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

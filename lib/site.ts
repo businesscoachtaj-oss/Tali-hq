@@ -7,7 +7,7 @@ export type SiteSection = { heading: string; text: string };
 export type Site = { slug: string; published: boolean; kind: 'business' | 'life'; title: string; tagline: string; about: string; sections: SiteSection[]; accent: string; show_services: boolean; show_booking: boolean; show_contact: boolean; contact_email: string; contact_phone: string };
 export type Enquiry = { id: string; name: string; email: string | null; phone: string | null; message: string; created_at: string };
 export const SITE_BASE = 'https://talihq.com.au/site/';
-export const ACCENTS = ['#7FA8FF', '#B98CFF', '#7FE0B0', '#FFB561', '#FF8A7E', '#F472B6'];
+export const ACCENTS = ['#3B3F9E', '#B98CFF', '#2E8A63', '#A8561A', '#FF8A7E', '#F472B6'];
 
 export const blankSite = (kind: Site['kind']): Site => ({ slug: '', published: false, kind, title: '', tagline: '', about: '', sections: [], accent: ACCENTS[0], show_services: kind === 'business', show_booking: kind === 'business', show_contact: true, contact_email: '', contact_phone: '' });
 

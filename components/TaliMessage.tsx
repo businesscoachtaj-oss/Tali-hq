@@ -141,7 +141,8 @@ function Inline({ text, style }: { text: string; style?: object }) {
 }
 
 // 11 Nov 2026 (Taj: chat is a little hard to read): bigger body text with more room between lines.
-const body = { color: colours.text, fontSize: 16, lineHeight: 25 };
+// 23 Nov 2026 (paper and ink): her words are set like a book, in Garamond, straight on the page.
+const body = { color: colours.text, fontSize: 18, lineHeight: 26, fontFamily: 'EBGaramond_400Regular' };
 
 function DraftBlock({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -158,7 +159,7 @@ function DraftBlock({ text }: { text: string }) {
           setCopied(true);
           setTimeout(() => setCopied(false), 1800);
         }}
-        style={{ alignSelf: 'flex-start', marginTop: 4, backgroundColor: colours.surface, borderWidth: 1, borderColor: '#DCC6E6', borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 14 }}>
+        style={{ alignSelf: 'flex-start', marginTop: 4, backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.ink, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 14 }}>
         <Text style={{ color: colours.purple, fontSize: 13, fontWeight: '700' }}>{copied ? 'Copied' : 'Copy'}</Text>
       </Pressable>
     </View>
@@ -169,16 +170,16 @@ export function TaliMessage({ content }: { content: string }) {
   const blocks = parseTali(content);
   const [copiedAll, setCopiedAll] = useState(false);
   if (!blocks.length) return null;
-  // Her words sit on a dark glass panel so they read the same over any part of the sky.
+  // No panel on paper: her words sit on the page like the mockups.
   return (
-    <View style={{ gap: 10, backgroundColor: 'rgba(12,10,36,0.74)', borderWidth: 1, borderColor: colours.borderStrong, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16 }}>
+    <View style={{ gap: 10 }}>
       {blocks.map((b, i) => {
         switch (b.type) {
           case 'widget':
             // 17 Nov 2026: trackers she makes now show as a card under her reply (components/TrackedCard.tsx).
             return null;
           case 'lead':
-            return <Inline key={i} text={b.text} style={{ color: colours.text, fontSize: 16.5, lineHeight: 23, fontWeight: '700' }} />;
+            return <Inline key={i} text={b.text} style={{ color: colours.text, fontSize: 20, lineHeight: 27, fontFamily: 'EBGaramond_500Medium' }} />;
           case 'para':
             return <Inline key={i} text={b.text} style={body} />;
           case 'bullets':

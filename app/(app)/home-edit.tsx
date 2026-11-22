@@ -133,7 +133,7 @@ export default function HomeEdit() {
           <Pressable onPress={() => move(w.id, 1)} disabled={i === n - 1} hitSlop={6} accessibilityLabel={`Move ${widgetTitle(w)} down`}><Ionicons name="chevron-down" size={15} color={i === n - 1 ? 'transparent' : colours.faint} /></Pressable>
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={dragging ? { shadowColor: colours.purple, shadowOpacity: 0.8, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } } : null}>
+          <View style={dragging ? { shadowOpacity: 0 } : null}>
             <BlockPreview w={w} compact />
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
@@ -161,12 +161,12 @@ export default function HomeEdit() {
       <Title sub="Move, resize, hide or take off anything. This is your HQ.">Edit home</Title>
 
       {hasBiz ? (
-        <View style={{ flexDirection: 'row', backgroundColor: 'rgba(12,10,36,0.78)', borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colours.border, marginBottom: space.md }}>
+        <View style={{ flexDirection: 'row', backgroundColor: '#EFE8DA', borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colours.border, marginBottom: space.md }}>
           {(['business', 'life'] as const).map((m) => {
             const on = mode === m;
             return (
               <Pressable key={m} onPress={() => { setMode(m); router.setParams({ mode: m }); }} style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, alignItems: 'center', backgroundColor: on ? MODE[m].colour : 'transparent' }}>
-                <Text numberOfLines={1} style={{ fontWeight: '800', color: on ? '#141033' : colours.muted }}>{m === 'business' && bz.many ? bz.here.name : `${MODE[m].label} home`}</Text>
+                <Text numberOfLines={1} style={{ fontWeight: '800', color: on ? '#F5F0E6' : colours.muted }}>{m === 'business' && bz.many ? bz.here.name : `${MODE[m].label} home`}</Text>
               </Pressable>
             );
           })}
@@ -248,7 +248,7 @@ export default function HomeEdit() {
       </View>
       {plan === 'biz' && mode === 'business' && hasBiz ? (
         <Pressable onPress={() => router.navigate('/team-home' as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: radius.card, borderWidth: 1, borderColor: 'rgba(127,168,255,0.5)', backgroundColor: 'rgba(127,168,255,0.12)', marginTop: space.md }}>
-          <Ionicons name="people" size={18} color="#7FA8FF" />
+          <Ionicons name="people" size={18} color="#3B3F9E" />
           <View style={{ flex: 1 }}>
             <Text style={{ color: colours.text, fontWeight: '800' }}>Team layout</Text>
             <Text style={{ color: colours.muted, fontSize: 12.5 }}>Set the home your team starts from, and push it to every seat.</Text>
@@ -410,7 +410,7 @@ function TemplateSheet({ tpl, plan, mode, hasBiz, current, trackers, homeKey, on
   }
   return (
     <Sheet visible title={tpl.name} sub={`${tpl.desc}. Change any target before it goes on.`} onClose={onClose}>
-      <View style={{ borderRadius: 20, padding: 12, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: colours.border }}>
+      <View style={{ borderRadius: 20, padding: 12, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: colours.border }}>
         <MiniLayout widgets={blocks} blank />
       </View>
       {blocks.some((b) => b.spec) ? head('TARGETS') : null}

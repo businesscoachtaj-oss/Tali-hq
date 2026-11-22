@@ -23,8 +23,8 @@ const ago = (iso: string | null) => {
 function Step({ n, title, done, active, children }: { n: number; title: string; done: boolean; active: boolean; children?: React.ReactNode }) {
   return (
     <View style={{ flexDirection: 'row', gap: space.md, opacity: done || active ? 1 : 0.55 }}>
-      <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? '#8EF0C8' : active ? colours.purple : 'transparent', borderWidth: done || active ? 0 : 1.5, borderColor: colours.border }}>
-        <Text style={{ fontWeight: '800', fontSize: 14, color: done || active ? '#141033' : colours.muted }}>{done ? '✓' : n}</Text>
+      <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? '#2E7D4F' : active ? colours.purple : 'transparent', borderWidth: done || active ? 0 : 1.5, borderColor: colours.border }}>
+        <Text style={{ fontWeight: '800', fontSize: 14, color: done || active ? '#F5F0E6' : colours.muted }}>{done ? '✓' : n}</Text>
       </View>
       <View style={{ flex: 1, paddingBottom: space.md }}>
         <Text style={{ color: colours.text, fontSize: 16, fontWeight: '800', marginTop: 4 }}>{title}</Text>
@@ -56,7 +56,7 @@ export function ForwardGmailGuide() {
   if (f.state === 'working' && !open) {
     return (
       <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: 'rgba(142,240,200,0.14)', borderWidth: 1, borderColor: 'rgba(142,240,200,0.55)', borderRadius: radius.card, padding: space.md, marginBottom: space.md }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#8EF0C8' }} />
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#2E7D4F' }} />
         <View style={{ flex: 1 }}>
           <Text style={{ color: colours.text, fontSize: 15, fontWeight: '800' }}>Your Gmail is coming to me</Text>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>Last email arrived {ago(f.last_at)}. Replies go out from your own Gmail.</Text>
@@ -69,7 +69,7 @@ export function ForwardGmailGuide() {
   const stage = f.state === 'working' ? 4 : f.state === 'code' ? 2 : 1;
   return (
     <Card style={{ marginBottom: space.md }}>
-      <Text style={{ color: colours.text, fontSize: 22, fontFamily: 'InstrumentSerif_400Regular' }}>Send your Gmail to me</Text>
+      <Text style={{ color: colours.text, fontSize: 22, fontFamily: 'EBGaramond_500Medium' }}>Send your Gmail to me</Text>
       <Text style={{ color: colours.muted, fontSize: 14, lineHeight: 20, marginTop: 4, marginBottom: space.md }}>
         Three steps, about a minute, done once. Gmail keeps its own copy of everything. You need Gmail open on a computer for this, because the Gmail phone app does not have the setting.
       </Text>

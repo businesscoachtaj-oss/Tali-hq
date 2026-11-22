@@ -11,7 +11,7 @@ import { SkinHeader } from '@/components/PageSkin';
 import { colours, space } from '@/constants/theme';
 
 const MOODS = ['Rough', 'Meh', 'Okay', 'Good', 'Great'];
-const MOOD_COLOUR = ['#E7A6CF', '#FFB561', '#B9A6FF', '#7FE0B0', '#4FD39A'];
+const MOOD_COLOUR = ['#E7A6CF', '#A8561A', '#3B3F9E', '#2E8A63', '#4FD39A'];
 const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function Headspace() {
@@ -54,7 +54,7 @@ export default function Headspace() {
             <View key={d.iso} style={{ width: `${100 / 7}%`, padding: 3, alignItems: 'center' }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: colours.faint, marginBottom: 4 }}>{DAY_LETTER[d.date.getDay()]}</Text>
               <View accessibilityLabel={`${friendlyDate(d.iso)}: ${d.mood ? MOODS[d.mood - 1] : 'no mood'}`}
-                style={{ width: '100%', aspectRatio: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: d.mood ? MOOD_COLOUR[d.mood - 1] : 'rgba(255,255,255,0.07)' }}>
+                style={{ width: '100%', aspectRatio: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: d.mood ? MOOD_COLOUR[d.mood - 1] : 'rgba(28,26,23,0.07)' }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: d.mood ? colours.onPurple : colours.faint }}>{d.date.getDate()}</Text>
               </View>
             </View>

@@ -57,7 +57,7 @@ export default function BodyScreen() {
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 3 }}>
             {shown.map((r) => (
-              <View key={r.id} style={{ flex: 1, height: `${hi === lo ? 60 : 25 + ((r.kg - lo) / (hi - lo)) * 75}%`, backgroundColor: '#FF9EC4', borderRadius: 4, opacity: r.id === latest.id ? 1 : 0.55 }} />
+              <View key={r.id} style={{ flex: 1, height: `${hi === lo ? 60 : 25 + ((r.kg - lo) / (hi - lo)) * 75}%`, backgroundColor: '#B8487A', borderRadius: 4, opacity: r.id === latest.id ? 1 : 0.55 }} />
             ))}
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>

@@ -130,7 +130,7 @@ export default function Jobs() {
         {open && status !== 'lost' ? (
           <>
             <View style={{ flexDirection: 'row', gap: 4, marginBottom: 6 }}>
-              {JOB_STEPS.map((s, i) => <View key={s} style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: i <= step ? JOB_STATUS[status].colour : 'rgba(255,255,255,0.14)' }} />)}
+              {JOB_STEPS.map((s, i) => <View key={s} style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: i <= step ? JOB_STATUS[status].colour : 'rgba(28,26,23,0.14)' }} />)}
             </View>
             <View style={{ flexDirection: 'row', marginBottom: 14 }}>
               {['Quote', 'Sent', 'Accepted', 'On now', 'Done', 'Invoiced'].map((s, i) => <Text key={s} style={{ flex: 1, fontSize: 10, fontWeight: '700', color: i <= step ? JOB_STATUS[status].colour : colours.faint }}>{s}</Text>)}
@@ -234,7 +234,7 @@ export default function Jobs() {
     <Screen onRefresh={load}>
       <BusinessBar />
       <Head over="Business" title="Jobs and quotes" sub="A quote becomes a job, and a job becomes an invoice. Each one shows what is next." />
-      <Stats items={[{ label: 'quotes out', value: aud(quotesOut.reduce((a, j) => a + j.total, 0)), colour: '#FFB561' }, { label: 'jobs on now', value: String(onNow.length) }, { label: 'ready to invoice', value: aud(toInvoice.reduce((a, j) => a + j.total, 0)), colour: colours.good }]} />
+      <Stats items={[{ label: 'quotes out', value: aud(quotesOut.reduce((a, j) => a + j.total, 0)), colour: '#A8561A' }, { label: 'jobs on now', value: String(onNow.length) }, { label: 'ready to invoice', value: aud(toInvoice.reduce((a, j) => a + j.total, 0)), colour: colours.good }]} />
       <Button title="New quote" onPress={() => { setError(''); setDraft({ title: '', client_id: null, client_name: '', client_email: '', address: '', items: [blankItem()], gst: !!settings?.gst_registered, notes: '' }); }} />
       <Button title="Tell Tali about a job" kind="ghost" onPress={() => router.navigate({ pathname: '/talk', params: { ask: 'Help me price a quote for ' } })} />
       <ErrorText>{error}</ErrorText>

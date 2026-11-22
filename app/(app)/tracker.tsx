@@ -149,7 +149,7 @@ export default function TrackerPage() {
           </View>
           <Pressable onPress={quick} onLongPress={() => setLog(true)} delayLongPress={350} accessibilityRole="button" accessibilityLabel={tr.type === 'yesno' ? (doneToday ? 'Untick today' : 'Tick today') : 'Log. Hold for an amount'}
             style={{ width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: doneToday ? colours.good : tr.colour }}>
-            <Ionicons name={tr.type === 'yesno' ? 'checkmark' : 'add'} size={30} color="#141033" />
+            <Ionicons name={tr.type === 'yesno' ? 'checkmark' : 'add'} size={30} color="#F5F0E6" />
           </Pressable>
         </View>
         {tr.target || tr.countDown ? <View style={{ marginTop: 12 }}><ProgressBar pct={pct} colour={tr.colour} /></View> : null}
@@ -190,7 +190,7 @@ export default function TrackerPage() {
       ) : null}
 
       {/* 3. Range, 4. the chart */}
-      <View style={{ flexDirection: 'row', backgroundColor: 'rgba(12,10,36,0.78)', borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colours.border, marginBottom: space.md }}>
+      <View style={{ flexDirection: 'row', backgroundColor: '#EFE8DA', borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colours.border, marginBottom: space.md }}>
         {SPANS.map((s) => {
           const on = (free ? 'week' : span) === s.key, lock = free && s.key !== 'week';
           return (
@@ -354,7 +354,7 @@ function ChartBar({ b, tr, h, line }: { b: Bar; tr: Tracker; h: number; line: bo
         {h ? (
           <View style={{ width: '100%', height: h, alignItems: 'center' }}>
             <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: tr.colour, marginTop: -4, borderWidth: b.now ? 2 : 0, borderColor: '#fff' }} />
-            <View style={{ flex: 1, width: '100%', backgroundColor: tr.colour + '26', borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
+            <View style={{ flex: 1, width: '100%', backgroundColor: '#FFFDF8', borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
           </View>
         ) : null}
       </View>
@@ -380,8 +380,8 @@ function YesNoChart({ tr, days, span, today }: { tr: Tracker; days: Days; span: 
           const k = shift(start, i);
           return (
             <View key={i} style={{ alignItems: 'center', gap: 6 }}>
-              <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: days[k] ? tr.colour : 'rgba(255,255,255,0.10)', borderWidth: k === today ? 2 : 0, borderColor: colours.text }}>
-                {days[k] ? <Ionicons name="checkmark" size={18} color="#141033" /> : null}
+              <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: days[k] ? tr.colour : 'rgba(28,26,23,0.10)', borderWidth: k === today ? 2 : 0, borderColor: colours.text }}>
+                {days[k] ? <Ionicons name="checkmark" size={18} color="#F5F0E6" /> : null}
               </View>
               <Text style={{ color: k === today ? colours.text : colours.faint, fontSize: 11, fontWeight: k === today ? '800' : '400' }}>{d}</Text>
             </View>
@@ -402,8 +402,8 @@ function YesNoChart({ tr, days, span, today }: { tr: Tracker; days: Days; span: 
               const k = shift(start, w * 7 + i);
               return (
                 <View key={i} style={{ flex: 1, alignItems: 'center' }}>
-                  <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: k > today ? 'transparent' : days[k] ? tr.colour : 'rgba(255,255,255,0.08)', borderWidth: k === today ? 2 : 0, borderColor: colours.text }}>
-                    <Text style={{ color: days[k] ? '#141033' : colours.faint, fontSize: 11, fontWeight: '700' }}>{k > today ? '' : dateOf(k).getDate()}</Text>
+                  <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: k > today ? 'transparent' : days[k] ? tr.colour : 'rgba(28,26,23,0.08)', borderWidth: k === today ? 2 : 0, borderColor: colours.text }}>
+                    <Text style={{ color: days[k] ? '#F5F0E6' : colours.faint, fontSize: 11, fontWeight: '700' }}>{k > today ? '' : dateOf(k).getDate()}</Text>
                   </View>
                 </View>
               );
@@ -419,7 +419,7 @@ function YesNoChart({ tr, days, span, today }: { tr: Tracker; days: Days; span: 
         <View key={w} style={{ flex: 1, gap: 2 }}>
           {D.map((_, i) => {
             const k = shift(start, w * 7 + i);
-            return <View key={i} style={{ aspectRatio: 1, borderRadius: 2, backgroundColor: k > today ? 'transparent' : days[k] ? tr.colour : 'rgba(255,255,255,0.08)' }} />;
+            return <View key={i} style={{ aspectRatio: 1, borderRadius: 2, backgroundColor: k > today ? 'transparent' : days[k] ? tr.colour : 'rgba(28,26,23,0.08)' }} />;
           })}
         </View>
       ))}

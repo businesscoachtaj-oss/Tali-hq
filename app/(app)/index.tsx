@@ -14,7 +14,7 @@ import { HealthCard } from '@/components/HealthCard';
 import { addDays, today } from '@/lib/dates';
 import { DueList } from '@/components/DueList';
 import { AddReminder } from '@/components/AddReminder';
-import { Body, Card, Label } from '@/components/ui';
+import { Body, Card, Label, NightProvider } from '@/components/ui';
 import { DraftCard } from '@/components/DraftCard';
 import { AppTour } from '@/components/AppTour';
 import { TOUR_STEPS, finishTour } from '@/lib/tour';
@@ -40,7 +40,6 @@ import { SheNoticed } from '@/components/SheNoticed';
 import { patternsThisMonth, type PatternsBrief } from '@/lib/patterns';
 import { PageSky, skyScroll } from '@/components/NightSky';
 import { setDayShut } from '@/lib/sky';
-import { Aurora } from '@/components/Aurora';
 // 12 Nov 2026 (Taj): Business and Life modes.
 import { ModeSwitch, TagPill } from '@/components/ModeSwitch';
 import { BusinessTools, ComingUpList, HabitsList, MoneyStats, MoneyWeekCard, PipelineRow, YoursCard, comingUp } from '@/components/ModeToday';
@@ -449,9 +448,10 @@ export default function Today() {
 
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
-      <PageSky />
-      <Aurora />
+    <NightProvider value={night}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: night ? '#0C0A24' : colours.bg }} edges={NO_BOTTOM}>
+      {/* 23 Nov 2026 (paper and ink): Today is paper through the day and goes back into her night sky once the day is shut down. */}
+      {night ? <PageSky /> : null}
       <ScrollView
         ref={scrollRef}
         onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; if (Platform.OS !== 'web') skyScroll.setValue(scrollY.current); }}
@@ -567,6 +567,7 @@ export default function Today() {
       </ScrollView>
       {showTour ? <AppTour steps={TOUR_STEPS} onDone={closeTour} firstName={profile?.first_name} /> : null}
     </SafeAreaView>
+    </NightProvider>
   );
 }
 

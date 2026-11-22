@@ -159,7 +159,7 @@ export default function TeamHomeEditor() {
       ) : null}
 
       {widgets.length || pushed ? (
-        <View style={{ backgroundColor: colours.sunk, borderRadius: radius.card, borderWidth: 1, borderColor: dirty ? '#7FA8FF' : colours.border, padding: 14, marginTop: space.sm }}>
+        <View style={{ backgroundColor: colours.sunk, borderRadius: radius.card, borderWidth: 1, borderColor: dirty ? '#3B3F9E' : colours.border, padding: 14, marginTop: space.sm }}>
           <Text style={{ color: colours.text, fontWeight: '800', fontSize: 15 }}>{!pushed ? 'Not pushed yet' : dirty ? 'Changes not pushed yet' : 'Your team has this layout'}</Text>
           <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19, marginTop: 4 }}>
             {dirty && changes ? `${active.length} ${active.length === 1 ? 'person gets' : 'people get'} this: ${changes}.` : !pushed ? `Push it and it lands on ${active.length} ${active.length === 1 ? "person's" : "people's"} home.` : `Pushed ${new Date(pushedAt ?? Date.now()).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}.`}
@@ -209,7 +209,7 @@ export default function TeamHomeEditor() {
       <Sheet visible={!!as} title={as ? `As ${as.name} sees it` : ''} sub="Blocks their seat is not allowed to see are left out." onClose={() => setAs(null)}>
         {as ? (
           <>
-            <View style={{ borderRadius: 20, padding: 12, backgroundColor: 'rgba(30,24,88,0.6)', borderWidth: 1, borderColor: colours.border }}>
+            <View style={{ borderRadius: 20, padding: 12, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: colours.border }}>
               <MiniLayout widgets={widgets.filter((w) => allowedFor(w, as))} blank />
             </View>
             {widgets.filter((w) => !allowedFor(w, as)).map((w) => (

@@ -71,11 +71,11 @@ export default function Books() {
         {list.map((x) => (
           <Pressable key={x.key} onPress={() => setKey(x.key)} accessibilityRole="radio" accessibilityState={{ selected: key === x.key }}
             style={{ borderRadius: radius.pill, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: key === x.key ? BLUE : colours.surface, borderWidth: 1, borderColor: key === x.key ? BLUE : colours.border }}>
-            <Text style={{ fontSize: 13.5, fontWeight: '700', color: key === x.key ? '#141033' : colours.text }}>{x.label}</Text>
+            <Text style={{ fontSize: 13.5, fontWeight: '700', color: key === x.key ? '#F5F0E6' : colours.text }}>{x.label}</Text>
           </Pressable>
         ))}
       </View>
-      <Stats items={[{ label: 'Money in', value: aud2(pack.income), colour: '#7FE0B0' }, { label: 'Money out', value: aud2(pack.expenses) }]} />
+      <Stats items={[{ label: 'Money in', value: aud2(pack.income), colour: '#2E8A63' }, { label: 'Money out', value: aud2(pack.expenses) }]} />
       <Stats items={[{ label: 'GST collected', value: aud2(pack.gstCollected) }, { label: 'GST paid', value: aud2(pack.gstPaid) }]} />
       {empty ? <TaliLine>Nothing is saved for this quarter yet. Paid invoices and receipts show up here as you add them.</TaliLine> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
@@ -83,7 +83,7 @@ export default function Books() {
       <View style={card}>
         <Line first icon="document-text-outline" title="Invoices paid" sub={`${pack.paid.length} paid this quarter`} right={<Text style={{ color: colours.text, fontWeight: '800' }}>{aud2(pack.income)}</Text>} />
         <Line icon="camera-outline" title="Receipts" sub={pack.byCategory.length ? pack.byCategory.slice(0, 3).map((c) => `${c.category} ${aud2(c.amount)}`).join(', ') : `${pack.spent.length} dated this quarter`} right={<Text style={{ color: colours.text, fontWeight: '800' }}>{aud2(pack.expenses)}</Text>} />
-        <Line icon="time-outline" title="Still owed to you" sub={`${pack.owed.length} sent this quarter and not paid`} colour={pack.owed.length ? '#FFB561' : BLUE} right={<Text style={{ color: colours.text, fontWeight: '800' }}>{aud2(pack.outstanding)}</Text>} />
+        <Line icon="time-outline" title="Still owed to you" sub={`${pack.owed.length} sent this quarter and not paid`} colour={pack.owed.length ? '#A8561A' : BLUE} right={<Text style={{ color: colours.text, fontWeight: '800' }}>{aud2(pack.outstanding)}</Text>} />
       </View>
       <View style={{ height: 14 }} />
       <Button title={`Share the ${q.label} pack`} busy={busy} disabled={empty} onPress={async () => { setBusy(true); setError(''); try { await sharePack(pack, name); } catch { setError('Could not make the PDF. Try again.'); } setBusy(false); }} />

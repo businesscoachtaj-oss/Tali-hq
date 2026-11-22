@@ -41,18 +41,20 @@ export function SkinProvider({ id, children }: { id?: SkinId; children: ReactNod
 
 // 9 Nov 2026 concept "Inside her mind": no banner boxes. A small kicker and a big serif title, floating
 // in her sky like everything else.
-export function SkinHeader({ id, title, sub, onBack, backLabel = 'Back' }: { id: SkinId; title: string; sub?: string; onBack?: () => void; backLabel?: string }) {
+export function SkinHeader({ id, title, sub, onBack, backLabel = 'Back', night = false }: { id: SkinId; title: string; sub?: string; onBack?: () => void; backLabel?: string; night?: boolean }) {
   const t = SKINS[id];
+  // 23 Nov 2026: night pages (Shut the day down) keep her violet and white.
+  const k = night ? '#B9A6FF' : '#3B3F9E', ink = night ? '#F4F1FF' : '#1C1A17', sub2 = night ? '#B9B2D9' : '#5E574E';
   return (
     <View style={{ marginBottom: 20, marginTop: 6 }}>
       {onBack ? (
         <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" style={{ marginBottom: 18 }}>
-          <Text style={{ color: '#B9A6FF', fontSize: 15, fontWeight: '600' }}>{'\u2039'} {backLabel}</Text>
+          <Text style={{ color: k, fontSize: 15, fontWeight: '600' }}>{'\u2039'} {backLabel}</Text>
         </Pressable>
       ) : null}
-      <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{t.kicker}</Text>
-      <Text style={{ color: '#F4F1FF', fontSize: 46, lineHeight: 50, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{title}</Text>
-      {sub ? <Text style={{ color: '#B9B2D9', fontSize: 15, lineHeight: 22, marginTop: 8 }}>{sub}</Text> : null}
+      <Text style={{ color: k, fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{t.kicker}</Text>
+      <Text style={{ color: ink, fontSize: 40, lineHeight: 44, letterSpacing: -0.4, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>{title}</Text>
+      {sub ? <Text style={{ color: sub2, fontSize: 15, lineHeight: 22, marginTop: 8 }}>{sub}</Text> : null}
     </View>
   );
 }

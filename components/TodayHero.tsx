@@ -68,18 +68,18 @@ export function TodayHero({
       <View style={{ marginBottom: 22, paddingTop: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
-            <Text style={{ color: '#F4F1FF', fontSize: 50, lineHeight: 52, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{greeting.replace(', ', ',\n')}</Text>
+            <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
+            <Text style={{ color: '#1C1A17', fontSize: 50, lineHeight: 52, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>{greeting.replace(', ', ',\n')}</Text>
           </View>
           <View>
-            <View style={{ position: 'absolute', left: 4, top: 14, width: 108, height: 108, borderRadius: 54, backgroundColor: 'rgba(185,166,255,0.18)', shadowColor: '#B9A6FF', shadowOpacity: 0.8, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }} />
+            <View style={{ position: 'absolute', left: 4, top: 14, width: 108, height: 108, borderRadius: 54, backgroundColor: 'rgba(59,63,158,0.18)', shadowColor: '#000', shadowOpacity: 0, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }} />
             <TaliAvatar pose="wave" size={118} />
           </View>
         </View>
         {/* Her note to you, on warm paper (the HQ desk), pinned in her sky. */}
-        <View style={{ marginTop: 16, backgroundColor: '#F3ECDD', borderRadius: 6, padding: 18, transform: [{ rotate: '-0.6deg' }], shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } }}>
+        <View style={{ marginTop: 16, backgroundColor: '#F3ECDD', borderRadius: 6, padding: 18, transform: [{ rotate: '-0.6deg' }], shadowOpacity: 0, shadowOffset: { width: 0, height: 10 } }}>
           <Text style={{ color: '#7A6A9A', fontSize: 11, fontWeight: '700', letterSpacing: 1.6 }}>A NOTE FROM TALI</Text>
-          <Text style={{ color: '#2A2340', fontSize: 25, lineHeight: 30, marginTop: 8, fontFamily: 'InstrumentSerif_400Regular' }}>{line}</Text>
+          <Text style={{ color: '#2A2340', fontSize: 25, lineHeight: 30, marginTop: 8, fontFamily: 'EBGaramond_500Medium' }}>{line}</Text>
           {briefLabel && onBrief ? (
             <Pressable onPress={onBrief} accessibilityRole="button" style={{ marginTop: 12 }}>
               <Text style={{ color: '#5A2A6E', fontSize: 15, fontWeight: '700' }}>{briefLabel} {'›'}</Text>
@@ -89,12 +89,12 @@ export function TodayHero({
         {brainTotal !== null ? (
           <Pressable onPress={() => router.navigate('/brain')} accessibilityRole="button" style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={{ width: 44, height: 40 }}>
-              {[[4, 6, '#8EF0C8'], [16, 2, '#9FB7FF'], [28, 8, '#D7B5FF'], [8, 18, '#FFE38A'], [22, 18, '#7FD1FF'], [34, 22, '#FF9EC4'], [14, 30, '#FFC37A'], [28, 32, '#B9A6FF']].map(([x, y, c], k) => (
-                <View key={k} style={{ position: 'absolute', left: x as number, top: y as number, width: 7, height: 7, borderRadius: 4, backgroundColor: c as string, shadowColor: c as string, shadowOpacity: 1, shadowRadius: 6 }} />
+              {[[4, 6, '#2E7D4F'], [16, 2, '#9FB7FF'], [28, 8, '#8A4FB8'], [8, 18, '#FFE38A'], [22, 18, '#7FD1FF'], [34, 22, '#B8487A'], [14, 30, '#FFC37A'], [28, 32, '#3B3F9E']].map(([x, y, c], k) => (
+                <View key={k} style={{ position: 'absolute', left: x as number, top: y as number, width: 7, height: 7, borderRadius: 4, backgroundColor: c as string, shadowOpacity: 0 }} />
               ))}
             </View>
-            <Text style={{ flex: 1, color: '#B9B2D9', fontSize: 14 }}>
-              <Text style={{ color: '#F4F1FF', fontWeight: '700' }}>{brainTotal.toLocaleString('en-AU')} memories</Text>{brainNew ? `, ${brainNew} new this week` : ''}. Step into her brain {'›'}
+            <Text style={{ flex: 1, color: '#5E574E', fontSize: 14 }}>
+              <Text style={{ color: '#1C1A17', fontWeight: '700' }}>{brainTotal.toLocaleString('en-AU')} memories</Text>{brainNew ? `, ${brainNew} new this week` : ''}. Step into her brain {'›'}
             </Text>
           </Pressable>
         ) : null}
@@ -134,7 +134,7 @@ export function TodayHero({
           <View style={h.levelTop}>
             <View style={[h.badge, n && h.badgeNight]}>
               {n ? <LinearGradient colors={[sky.accent, sky.accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 18 }]} /> : null}
-              <Text style={[h.badgeNum, n && { color: '#141033' }]}>{level.level}</Text>
+              <Text style={[h.badgeNum, n && { color: '#F5F0E6' }]}>{level.level}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[h.levelLabel, n && { color: sky.accent }]}>TALI'S LEVEL</Text>
@@ -155,28 +155,28 @@ export function TodayHero({
 const h = StyleSheet.create({
   card: { borderRadius: RADIUS, padding: space.lg, paddingTop: space.xl, marginBottom: space.lg, overflow: 'hidden', backgroundColor: colours.purple, ...elevation.card, shadowOpacity: 0.18 },
   cardNight: { backgroundColor: sky.sky[1], shadowColor: sky.accent2, shadowOpacity: 0.25 },
-  greeting: { color: '#FFFFFF', fontSize: 28, letterSpacing: -0.5, fontFamily: 'PlusJakartaSans_800ExtraBold' },
-  sub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
+  greeting: { color: '#1C1A17', fontSize: 28, letterSpacing: -0.5, fontFamily: 'PlusJakartaSans_800ExtraBold' },
+  sub: { color: 'rgba(28,26,23,0.7)', fontSize: 13, marginTop: 2 },
   hello: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: space.sm },
-  bubble: { flex: 1, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 16, borderBottomLeftRadius: 4, padding: space.md },
+  bubble: { flex: 1, backgroundColor: 'rgba(28,26,23,0.14)', borderRadius: 16, borderBottomLeftRadius: 4, padding: space.md },
   bubbleNight: { backgroundColor: sky.glass, borderWidth: 1, borderColor: sky.line },
-  bubbleText: { color: '#FFFFFF', fontSize: 15, lineHeight: 21 },
-  briefLink: { alignSelf: 'flex-start', marginTop: space.sm, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
-  briefLinkText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  bubbleText: { color: '#1C1A17', fontSize: 15, lineHeight: 21 },
+  briefLink: { alignSelf: 'flex-start', marginTop: space.sm, backgroundColor: 'rgba(28,26,23,0.18)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  briefLinkText: { color: '#1C1A17', fontSize: 13, fontWeight: '800' },
   nightRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.sm, marginTop: space.sm },
   bedTime: { color: sky.muted, fontSize: 13, fontWeight: '700' },
   sleepBtn: { borderRadius: 999, paddingVertical: 7, paddingHorizontal: 14, overflow: 'hidden', shadowColor: sky.accent2, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 4 },
-  sleepBtnText: { color: '#141033', fontSize: 13, fontWeight: '800' },
+  sleepBtnText: { color: '#F5F0E6', fontSize: 13, fontWeight: '800' },
   level: { marginTop: space.md, backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 16, padding: space.md },
   levelNight: { backgroundColor: sky.glass, borderWidth: 1, borderColor: sky.line },
   levelTop: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   badge: { width: 36, height: 36, borderRadius: 18, backgroundColor: colours.orange, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', ...elevation.button(colours.orange) },
   badgeNight: { backgroundColor: sky.accent, shadowColor: sky.accent },
-  badgeNum: { color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
+  badgeNum: { color: '#1C1A17', fontSize: 20, fontWeight: '800' },
   levelLabel: { color: '#F6B04C', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  levelName: { color: '#FFFFFF', fontSize: 17, fontWeight: '800', marginTop: 1 },
-  xp: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '700' },
-  bar: { height: 6, backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 4, marginTop: space.md, overflow: 'hidden' },
+  levelName: { color: '#1C1A17', fontSize: 17, fontWeight: '800', marginTop: 1 },
+  xp: { color: 'rgba(28,26,23,0.85)', fontSize: 14, fontWeight: '700' },
+  bar: { height: 6, backgroundColor: 'rgba(28,26,23,0.16)', borderRadius: 4, marginTop: space.md, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 4 },
-  next: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 6 },
+  next: { color: 'rgba(28,26,23,0.7)', fontSize: 12, marginTop: 6 },
 });

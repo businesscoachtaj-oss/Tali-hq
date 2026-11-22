@@ -313,7 +313,7 @@ function Tile({ icon, title, sub, locked, pro, onPress }: { icon: React.Componen
 }
 
 function BrainDots() {
-  const dots = [[30, 14, '#8EF0C8'], [44, 10, '#8EF0C8'], [58, 12, '#9FB7FF'], [70, 18, '#B9A6FF'], [22, 26, '#8EF0C8'], [36, 26, '#7FD1FF'], [52, 24, '#D7B5FF'], [66, 30, '#B9A6FF'], [78, 30, '#D7B5FF'], [28, 40, '#FFE38A'], [42, 40, '#9FB7FF'], [56, 38, '#FFC37A'], [70, 44, '#9FB7FF'], [24, 54, '#FF9EC4'], [36, 58, '#FF9EC4'], [50, 54, '#FF7A6E'], [62, 58, '#FF9EC4'], [46, 70, '#A6B0C8']] as const;
+  const dots = [[30, 14, '#2E7D4F'], [44, 10, '#2E7D4F'], [58, 12, '#9FB7FF'], [70, 18, '#3B3F9E'], [22, 26, '#2E7D4F'], [36, 26, '#7FD1FF'], [52, 24, '#8A4FB8'], [66, 30, '#3B3F9E'], [78, 30, '#8A4FB8'], [28, 40, '#FFE38A'], [42, 40, '#9FB7FF'], [56, 38, '#FFC37A'], [70, 44, '#9FB7FF'], [24, 54, '#B8487A'], [36, 58, '#B8487A'], [50, 54, '#FF7A6E'], [62, 58, '#B8487A'], [46, 70, '#A6B0C8']] as const;
   return (
     <View style={{ width: 96, height: 84 }}>
       {dots.map(([x, y, c], i) => (

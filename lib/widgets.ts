@@ -94,7 +94,7 @@ export type Block = {
 /** A block ready to draw: a tracker block has its tracker. */
 export type Widget = Block & { tracker?: Tracker | (TrackerSpec & Partial<Tracker>) };
 
-export const COLOURS = ['#B9A6FF', '#FFB561', '#7FE0B0', '#8FD3FF', '#FF9AD5', '#FFE08A'];
+export const COLOURS = ['#3B3F9E', '#A8561A', '#2E8A63', '#2C7FA8', '#B8487A', '#A8841C'];
 
 type Meta = { title: string; sub: string; modes: Mode[]; group: string; plan?: 'paid' | 'biz'; hint: string; wide?: boolean };
 export const BUILTINS: Record<BuiltIn, Meta> = {
@@ -130,36 +130,36 @@ export const BIZ_SWAP: Partial<Record<BuiltIn, BuiltIn | null>> = { leads: 'pipe
 type Preset = TrackerSpec & { group: string; for: string[]; home: 'life' | 'business' };
 // Ready-made trackers for the gallery, templates and onboarding (30).
 export const TRACKER_PRESETS: Record<string, Preset> = {
-  water:      { group: 'Health', home: 'life', for: ['Health and habits'], name: 'Water', type: 'count', unit: 'L', target: 3, period: 'day', style: 'ring', colour: '#8FD3FF', step: 0.25 },
-  steps:      { group: 'Health', home: 'life', for: ['Health and habits'], name: 'Steps', type: 'count', unit: 'steps', target: 10000, period: 'day', style: 'bar', colour: '#7FE0B0', step: null },
-  sleep:      { group: 'Health', home: 'life', for: ['Health and habits'], name: 'Sleep', type: 'time', unit: 'h', target: 8, period: 'day', style: 'chart', colour: '#B9A6FF', step: null },
-  gym:        { group: 'Health', home: 'life', for: ['Health and habits'], name: 'Gym sessions', type: 'count', unit: 'sessions', target: 4, period: 'week', style: 'ring', colour: '#FFB561', step: 1 },
-  read:       { group: 'Mind', home: 'life', for: ['Big goals'], name: 'Read 20 minutes', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#FFE08A' },
-  meditate:   { group: 'Mind', home: 'life', for: ['Health and habits'], name: 'Meditate', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#FF9AD5' },
-  mood:       { group: 'Mind', home: 'life', for: [], name: 'Mood', type: 'scale', unit: '/5', target: null, period: 'day', style: 'chart', colour: '#FF9AD5' },
-  in_bed:     { group: 'Mind', home: 'life', for: [], name: 'In bed by 10:30', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#B9A6FF' },
-  screens_off:{ group: 'Mind', home: 'life', for: [], name: 'Screens off before bed', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#8FD3FF' },
-  savings:    { group: 'Money', home: 'life', for: ['Money', 'Big goals'], name: 'House deposit', type: 'money', unit: 'A$', target: 20000, period: 'total', style: 'bar', colour: '#7FE0B0', step: null },
-  spend:      { group: 'Money', home: 'life', for: ['Money'], name: 'Spent this week', type: 'money', unit: 'A$', target: 400, period: 'week', style: 'bar', colour: '#FFB561', step: null, source: 'spend' },
-  no_spend:   { group: 'Money', home: 'life', for: [], name: 'No-spend days', type: 'yesno', unit: 'days', target: 3, period: 'week', style: 'streak', colour: '#7FE0B0' },
-  debt:       { group: 'Money', home: 'life', for: [], name: 'Debt left', type: 'money', unit: 'A$', target: 0, period: 'total', style: 'bar', colour: '#FF9AD5', step: null, countDown: true, startValue: 5000 },
-  extra_paid: { group: 'Money', home: 'life', for: [], name: 'Extra paid this month', type: 'money', unit: 'A$', target: 200, period: 'month', style: 'number', colour: '#FFE08A', step: null },
-  family:     { group: 'People', home: 'life', for: ['The people in my life'], name: 'Called Mum', type: 'yesno', unit: '', target: null, period: 'week', style: 'number', colour: '#FF9AD5' },
-  date_night: { group: 'People', home: 'life', for: [], name: 'Date night', type: 'yesno', unit: '', target: null, period: 'week', style: 'number', colour: '#FFB561' },
-  family_dinner: { group: 'People', home: 'life', for: [], name: 'Family dinner', type: 'count', unit: 'dinners', target: 4, period: 'week', style: 'ring', colour: '#FFE08A', step: 1 },
-  calls:      { group: 'Business', home: 'business', for: ['My business', 'More customers'], name: 'Cold calls', type: 'count', unit: 'calls', target: 20, period: 'week', style: 'ring', colour: '#FFB561', step: 1 },
-  revenue:    { group: 'Business', home: 'business', for: ['My business', 'Getting paid on time'], name: 'Revenue', type: 'money', unit: 'A$', target: 8000, period: 'month', style: 'bar', colour: '#7FE0B0', step: null, source: 'invoices_paid' },
-  quotes:     { group: 'Business', home: 'business', for: ['My business', 'Keeping on top of jobs'], name: 'Quotes sent', type: 'count', unit: 'quotes', target: 5, period: 'week', style: 'number', colour: '#B9A6FF', step: 1, source: 'quotes_sent' },
-  reviews:    { group: 'Business', home: 'business', for: ['More customers', 'Growing online'], name: 'Google reviews', type: 'count', unit: 'reviews', target: 50, period: 'total', style: 'chart', colour: '#FFE08A', step: 1 },
-  posts:      { group: 'Business', home: 'business', for: ['More customers', 'Filling my diary', 'Growing online'], name: 'Posts this week', type: 'count', unit: 'posts', target: 3, period: 'week', style: 'ring', colour: '#FF9AD5', step: 1 },
-  jobs_done:  { group: 'Business', home: 'business', for: [], name: 'Jobs finished', type: 'count', unit: 'jobs', target: 10, period: 'week', style: 'ring', colour: '#8FD3FF', step: 1, source: 'jobs_done' },
-  bookings:   { group: 'Business', home: 'business', for: [], name: 'Bookings', type: 'count', unit: 'bookings', target: 30, period: 'week', style: 'ring', colour: '#8FD3FF', step: 1, source: 'bookings' },
-  rebooked:   { group: 'Business', home: 'business', for: [], name: 'Rebooked', type: 'count', unit: 'customers', target: 10, period: 'week', style: 'number', colour: '#7FE0B0', step: 1 },
-  first_customers: { group: 'Business', home: 'business', for: [], name: 'First customers', type: 'count', unit: 'customers', target: 10, period: 'total', style: 'bar', colour: '#FFB561', step: 1 },
-  hours_on_it:{ group: 'Business', home: 'business', for: [], name: 'Hours on it', type: 'time', unit: 'h', target: 8, period: 'week', style: 'bar', colour: '#B9A6FF', step: 0.5 },
-  launch_tasks:{ group: 'Business', home: 'business', for: [], name: 'Launch tasks done', type: 'count', unit: 'tasks', target: 20, period: 'total', style: 'bar', colour: '#FF9AD5', step: 1 },
-  deepwork:   { group: 'Work', home: 'business', for: ['My week and to-dos'], name: 'Deep work', type: 'time', unit: 'h', target: 15, period: 'week', style: 'bar', colour: '#8FD3FF', step: 0.5 },
-  inbox_zero: { group: 'Work', home: 'business', for: [], name: 'Inbox zero', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#7FE0B0' },
+  water:      { group: 'Health', home: 'life', for: ['Health and habits'], name: 'Water', type: 'count', unit: 'L', target: 3, period: 'day', style: 'ring', colour: '#2C7FA8', step: 0.25 },
+  steps:      { group: 'Health', home: 'life', for: ['Health and habits'], name: 'Steps', type: 'count', unit: 'steps', target: 10000, period: 'day', style: 'bar', colour: '#2E8A63', step: null },
+  sleep:      { group: 'Health', home: 'life', for: ['Health and habits'], name: 'Sleep', type: 'time', unit: 'h', target: 8, period: 'day', style: 'chart', colour: '#3B3F9E', step: null },
+  gym:        { group: 'Health', home: 'life', for: ['Health and habits'], name: 'Gym sessions', type: 'count', unit: 'sessions', target: 4, period: 'week', style: 'ring', colour: '#A8561A', step: 1 },
+  read:       { group: 'Mind', home: 'life', for: ['Big goals'], name: 'Read 20 minutes', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#A8841C' },
+  meditate:   { group: 'Mind', home: 'life', for: ['Health and habits'], name: 'Meditate', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#B8487A' },
+  mood:       { group: 'Mind', home: 'life', for: [], name: 'Mood', type: 'scale', unit: '/5', target: null, period: 'day', style: 'chart', colour: '#B8487A' },
+  in_bed:     { group: 'Mind', home: 'life', for: [], name: 'In bed by 10:30', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#3B3F9E' },
+  screens_off:{ group: 'Mind', home: 'life', for: [], name: 'Screens off before bed', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#2C7FA8' },
+  savings:    { group: 'Money', home: 'life', for: ['Money', 'Big goals'], name: 'House deposit', type: 'money', unit: 'A$', target: 20000, period: 'total', style: 'bar', colour: '#2E8A63', step: null },
+  spend:      { group: 'Money', home: 'life', for: ['Money'], name: 'Spent this week', type: 'money', unit: 'A$', target: 400, period: 'week', style: 'bar', colour: '#A8561A', step: null, source: 'spend' },
+  no_spend:   { group: 'Money', home: 'life', for: [], name: 'No-spend days', type: 'yesno', unit: 'days', target: 3, period: 'week', style: 'streak', colour: '#2E8A63' },
+  debt:       { group: 'Money', home: 'life', for: [], name: 'Debt left', type: 'money', unit: 'A$', target: 0, period: 'total', style: 'bar', colour: '#B8487A', step: null, countDown: true, startValue: 5000 },
+  extra_paid: { group: 'Money', home: 'life', for: [], name: 'Extra paid this month', type: 'money', unit: 'A$', target: 200, period: 'month', style: 'number', colour: '#A8841C', step: null },
+  family:     { group: 'People', home: 'life', for: ['The people in my life'], name: 'Called Mum', type: 'yesno', unit: '', target: null, period: 'week', style: 'number', colour: '#B8487A' },
+  date_night: { group: 'People', home: 'life', for: [], name: 'Date night', type: 'yesno', unit: '', target: null, period: 'week', style: 'number', colour: '#A8561A' },
+  family_dinner: { group: 'People', home: 'life', for: [], name: 'Family dinner', type: 'count', unit: 'dinners', target: 4, period: 'week', style: 'ring', colour: '#A8841C', step: 1 },
+  calls:      { group: 'Business', home: 'business', for: ['My business', 'More customers'], name: 'Cold calls', type: 'count', unit: 'calls', target: 20, period: 'week', style: 'ring', colour: '#A8561A', step: 1 },
+  revenue:    { group: 'Business', home: 'business', for: ['My business', 'Getting paid on time'], name: 'Revenue', type: 'money', unit: 'A$', target: 8000, period: 'month', style: 'bar', colour: '#2E8A63', step: null, source: 'invoices_paid' },
+  quotes:     { group: 'Business', home: 'business', for: ['My business', 'Keeping on top of jobs'], name: 'Quotes sent', type: 'count', unit: 'quotes', target: 5, period: 'week', style: 'number', colour: '#3B3F9E', step: 1, source: 'quotes_sent' },
+  reviews:    { group: 'Business', home: 'business', for: ['More customers', 'Growing online'], name: 'Google reviews', type: 'count', unit: 'reviews', target: 50, period: 'total', style: 'chart', colour: '#A8841C', step: 1 },
+  posts:      { group: 'Business', home: 'business', for: ['More customers', 'Filling my diary', 'Growing online'], name: 'Posts this week', type: 'count', unit: 'posts', target: 3, period: 'week', style: 'ring', colour: '#B8487A', step: 1 },
+  jobs_done:  { group: 'Business', home: 'business', for: [], name: 'Jobs finished', type: 'count', unit: 'jobs', target: 10, period: 'week', style: 'ring', colour: '#2C7FA8', step: 1, source: 'jobs_done' },
+  bookings:   { group: 'Business', home: 'business', for: [], name: 'Bookings', type: 'count', unit: 'bookings', target: 30, period: 'week', style: 'ring', colour: '#2C7FA8', step: 1, source: 'bookings' },
+  rebooked:   { group: 'Business', home: 'business', for: [], name: 'Rebooked', type: 'count', unit: 'customers', target: 10, period: 'week', style: 'number', colour: '#2E8A63', step: 1 },
+  first_customers: { group: 'Business', home: 'business', for: [], name: 'First customers', type: 'count', unit: 'customers', target: 10, period: 'total', style: 'bar', colour: '#A8561A', step: 1 },
+  hours_on_it:{ group: 'Business', home: 'business', for: [], name: 'Hours on it', type: 'time', unit: 'h', target: 8, period: 'week', style: 'bar', colour: '#3B3F9E', step: 0.5 },
+  launch_tasks:{ group: 'Business', home: 'business', for: [], name: 'Launch tasks done', type: 'count', unit: 'tasks', target: 20, period: 'total', style: 'bar', colour: '#B8487A', step: 1 },
+  deepwork:   { group: 'Work', home: 'business', for: ['My week and to-dos'], name: 'Deep work', type: 'time', unit: 'h', target: 15, period: 'week', style: 'bar', colour: '#2C7FA8', step: 0.5 },
+  inbox_zero: { group: 'Work', home: 'business', for: [], name: 'Inbox zero', type: 'yesno', unit: '', target: null, period: 'day', style: 'streak', colour: '#2E8A63' },
 };
 export function presetSpec(key: string, over: Partial<TrackerSpec> = {}): TrackerSpec {
   const { group: _g, for: _f, home: _h, ...spec } = TRACKER_PRESETS[key];

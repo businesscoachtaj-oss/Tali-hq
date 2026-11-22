@@ -9,7 +9,8 @@ import { useFocusLoad } from '@/lib/useFocusLoad';
 import { MOODS, finishDay, todaysShutdown, tomorrowSuggestions, type Shutdown } from '@/lib/rhythm';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Loading, Screen, TaliSays, Title } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
-import { colours, elevation, radius, space } from '@/constants/theme';
+// 23 Nov 2026 (paper and ink): Shut the day down stays in her night sky, so this page uses the night palette.
+import { nightColours as colours, elevation, radius, space } from '@/constants/theme';
 
 export default function ShutdownScreen() {
   const { profile } = useAuth();
@@ -84,7 +85,7 @@ export default function ShutdownScreen() {
     const m = MOODS.find((x) => x.value === done.mood);
     const lines = done.tomorrow.map((t) => t.text).filter(Boolean);
     return (
-      <Screen skin="dusk" onRefresh={load}>
+      <Screen skin="dusk" night onRefresh={load}>
         <BackLink onPress={() => router.navigate('/')} label="Today" />
         <Title sub="Day closed. See you in the morning.">G'night, {name} 😊</Title>
         <TaliSays pose={(done.mood ?? 3) >= 4 ? 'celebrate' : 'idle'}>{done.tali_line}</TaliSays>
@@ -114,8 +115,8 @@ export default function ShutdownScreen() {
   }
 
   return (
-    <Screen skin="dusk" onRefresh={load}>
-      <SkinHeader id="dusk" title="Shut the day down" sub="Two minutes, then switch off." onBack={() => router.navigate('/')} backLabel="Today" />
+    <Screen skin="dusk" night onRefresh={load}>
+      <SkinHeader night id="dusk" title="Shut the day down" sub="Two minutes, then switch off." onBack={() => router.navigate('/')} backLabel="Today" />
       <TaliSays pose="idle">Right, {name}. How did today go? Be honest, I'm not marking it.</TaliSays>
       <ErrorText>{loadError}</ErrorText>
 

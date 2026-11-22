@@ -15,13 +15,19 @@ import { taliLevel, type Level } from '@/lib/level';
 import { registerTarget } from '@/lib/tourTargets';
 import type { ViewInstance } from 'react-native';
 
+// 23 Nov 2026 (paper and ink): deepened so the stars read on cream paper. NIGHT_AREA is the bright set
+// for the closed day, when Today goes back into her night sky.
 const AREA = {
-  people: { name: 'People', colour: '#5CF2C0' },
-  work: { name: 'Work', colour: '#7FA8FF' },
-  money: { name: 'Money', colour: '#FFB04D' },
-  health: { name: 'Health', colour: '#FF7EB6' },
-  growth: { name: 'Growth', colour: '#FFE066' },
+  people: { name: 'People', colour: '#2E8A63' },
+  work: { name: 'Work', colour: '#3B3F9E' },
+  money: { name: 'Money', colour: '#A8561A' },
+  health: { name: 'Health', colour: '#B8487A' },
+  growth: { name: 'Growth', colour: '#A8841C' },
 } as const;
+const NIGHT_AREA: Record<keyof typeof AREA, string> = { people: '#5CF2C0', work: '#7FA8FF', money: '#FFB04D', health: '#FF7EB6', growth: '#FFE066' };
+// The two looks for the top of Today: paper through the day, her night sky once the day is closed.
+const PAPER = { kicker: '#3B3F9E', greet: '#5E574E', line: '#1C1A17', text: '#1C1A17', sub: '#5E574E', faint: '#8C8478', chip: '#FFFDF8', chipLine: 'rgba(28,26,23,0.18)', card: '#FFFDF8', btnText: '#F5F0E6', ghost: 'rgba(28,26,23,0.45)', soft: 'rgba(28,26,23,0.06)', ring: 'rgba(59,63,158,0.08)', ringLine: 'rgba(59,63,158,0.28)', ink: '#1C1A17' };
+const NIGHT = { kicker: '#B9A6FF', greet: '#F4F1FF', line: '#FFFFFF', text: '#FFFFFF', sub: 'rgba(255,255,255,0.78)', faint: 'rgba(255,255,255,0.6)', chip: 'rgba(10,8,32,0.78)', chipLine: 'rgba(214,200,255,0.3)', card: 'rgba(20,16,52,0.92)', btnText: '#0C0A24', ghost: 'rgba(255,255,255,0.45)', soft: 'rgba(255,255,255,0.08)', ring: 'rgba(185,166,255,0.18)', ringLine: 'rgba(214,200,255,0.6)', ink: '#FFFFFF' };
 type Area = keyof typeof AREA;
 type Star = { key: string; title: string; sub: string; area: Area; size: number; full?: string; links: Link[]; action?: string; to?: string; ask?: string; seed?: string; fallback?: Link[]; done?: string };
 // `done` is set on things she is only reminding you of (an idea, a date). It is what gets remembered
@@ -189,28 +195,139 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
     registerTarget('tell', tellRef);
   }, []);
 
+  const T = closed ? NIGHT : PAPER;
+  const ac = (a: Area) => (closed ? NIGHT_AREA[a] : AREA[a].colour);
+  // 23 Nov 2026 (paper and ink, Taj approved the mockups): through the day the top of Today reads like a
+  // page. Date and side, her greeting, her brain small and still spinning beside her level, then what needs
+  // you as a list. Tap a line for everything she knows that touches it. The night sky below is untouched.
+  if (!closed) {
+    const kicker = `${new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })}${side ? `  ·  ${side}` : ''}`.toUpperCase();
+    const list = lens ? stars.filter((x) => x.area === lens) : stars;
+    return (
+      <View style={{ width: W, alignSelf: 'center', paddingHorizontal: 20 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingTop: 14 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: PAPER.kicker, fontSize: 11, fontWeight: '800', letterSpacing: 2 }}>{kicker}</Text>
+            <Text style={{ color: PAPER.line, fontSize: 36, lineHeight: 41, letterSpacing: -0.4, marginTop: 8, fontFamily: 'EBGaramond_500Medium' }}>{greeting}</Text>
+            {sub ? <Text style={{ color: PAPER.sub, fontSize: 13.5, marginTop: 2 }}>{sub}</Text> : null}
+          </View>
+          <TaliAvatar pose="head" size={42} />
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14 }}>
+          <Pressable ref={brainRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel="Open her brain" style={{ width: 128, height: 128, alignItems: 'center', justifyContent: 'center' }}>
+            <BrainGlobe size={128} counts={counts as any} links={brain?.links ?? []} selected={null} lit={lens ? LENS_REGIONS[lens] : null} speed={1} onSelect={() => router.navigate('/brain')} />
+          </Pressable>
+          {level ? (
+            <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`} style={{ flex: 1 }}>
+              <Text style={{ color: PAPER.ink, fontSize: 11, fontWeight: '800', letterSpacing: 1.8 }}>{`TALI'S LEVEL ${level.level}`}</Text>
+              <Text style={{ color: PAPER.ink, fontSize: 19, marginTop: 2, fontFamily: 'EBGaramond_500Medium' }}>{level.name}</Text>
+              <View style={{ height: 4, backgroundColor: '#E6DFD1', marginTop: 8, overflow: 'hidden' }}>
+                <View style={{ width: `${Math.max(4, Math.round(level.progress * 100))}%`, height: 4, backgroundColor: PAPER.kicker }} />
+              </View>
+              <Text style={{ color: PAPER.sub, fontSize: 12, lineHeight: 17, marginTop: 6 }}>{level.next ? `${level.toNext} XP to ${level.next}. Her brain grows every time you talk.` : `${level.xp} XP. Her brain grows every time you talk.`}</Text>
+            </Pressable>
+          ) : <View style={{ flex: 1 }} />}
+        </View>
+
+        <View style={{ height: 1, backgroundColor: PAPER.ink, marginTop: 16 }} />
+        <Text style={{ color: PAPER.ink, fontSize: 11, fontWeight: '800', letterSpacing: 1.8, marginTop: 14 }}>A NOTE FROM TALI</Text>
+        <Text style={{ color: PAPER.line, fontSize: 21, lineHeight: 28, marginTop: 6, fontFamily: 'EBGaramond_400Regular' }}>{line}</Text>
+
+        {list.length ? (
+          <View style={{ marginTop: 10 }}>
+            {list.map((s) => {
+              const on = focus === s.key; const c = AREA[s.area].colour;
+              return (
+                <View key={s.key}>
+                  <Pressable onPress={() => pick(on ? null : s.key)} accessibilityRole="button" accessibilityState={{ expanded: on }} accessibilityLabel={s.full ?? s.title}
+                    style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: PAPER.chipLine }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c, marginTop: 9 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: PAPER.text, fontSize: 18.5, lineHeight: 24, fontFamily: 'EBGaramond_500Medium' }}>{s.full && s.full.length < 70 ? s.full : s.title}</Text>
+                      <Text style={{ color: PAPER.sub, fontSize: 12.5, marginTop: 1 }} numberOfLines={2}>{s.sub}</Text>
+                    </View>
+                    <Text style={{ color: PAPER.faint, fontSize: 18, marginTop: 2 }}>{on ? '−' : '+'}</Text>
+                  </Pressable>
+                  {on && sel ? (() => {
+                    const to = sel.to;
+                    const go = () => { if (!to) return; if (to === '/talk' && sel.ask) router.navigate({ pathname: '/talk', params: { ask: sel.ask } } as any); else router.navigate(to as any); };
+                    return (
+                      <View style={{ paddingVertical: 12, paddingLeft: 20 }}>
+                        {sel.links.length ? <Text style={{ color: PAPER.kicker, fontSize: 10.5, fontWeight: '800', letterSpacing: 1.6 }}>FROM HER BRAIN</Text> : null}
+                        {sel.links.map((l, k) => (
+                          <Pressable key={k} onPress={() => router.navigate({ pathname: '/talk', params: { ask: `Tell me more about this: ${l.full ?? l.text}` } } as any)} accessibilityRole="button" accessibilityLabel={l.full ?? l.text}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: AREA[l.area].colour }} />
+                            <Text style={{ flex: 1, color: PAPER.text, fontSize: 13.5, textDecorationLine: 'underline', textDecorationColor: PAPER.chipLine }}>{l.full ?? l.text}</Text>
+                          </Pressable>
+                        ))}
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                          {sel.action ? (
+                            <Pressable accessibilityRole="button" disabled={!to} onPress={go} style={{ backgroundColor: to ? PAPER.ink : PAPER.soft, borderRadius: 3, paddingVertical: 10, paddingHorizontal: 16 }}>
+                              <Text style={{ color: to ? PAPER.btnText : PAPER.sub, fontWeight: '800', fontSize: 14 }}>{sel.action}</Text>
+                            </Pressable>
+                          ) : null}
+                          {sel.done ? (
+                            <Pressable accessibilityRole="button" accessibilityHint="Takes this off Today. Tali still remembers it." onPress={() => finish(sel.done!)} style={{ borderRadius: 3, paddingVertical: 9, paddingHorizontal: 15, borderWidth: 1, borderColor: PAPER.ink }}>
+                              <Text style={{ color: PAPER.text, fontWeight: '700', fontSize: 14 }}>Done with this</Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+                      </View>
+                    );
+                  })() : null}
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
+
+        {/* The lens stays: a quiet row of filters, not a mode. */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 14 }}>
+          {(Object.keys(AREA) as Area[]).filter((a) => !life || (a !== 'work' && a !== 'money')).map((a) => {
+            const on = lens === a; const n = stars.filter((x) => x.area === a).length;
+            return (
+              <Pressable key={a} onPress={() => setLens(on ? null : a)} hitSlop={6} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${AREA[a].name}, ${n} today`}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, opacity: lens && !on ? 0.45 : 1, borderBottomWidth: on ? 1.5 : 0, borderBottomColor: AREA[a].colour, paddingBottom: 2 }}>
+                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: AREA[a].colour }} />
+                <Text style={{ color: PAPER.text, fontSize: 12.5, fontWeight: '700' }}>{AREA[a].name}{n ? ` ${n}` : ''}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Pressable ref={tellRef} collapsable={false} onPress={() => router.navigate('/talk')} accessibilityRole="button"
+          style={{ marginTop: 18, borderRadius: 3, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: PAPER.card, borderWidth: 1, borderColor: PAPER.ink, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Text style={{ flex: 1, color: PAPER.faint, fontSize: 15.5 }}>{lens ? `Tell her about ${AREA[lens].name.toLowerCase()}...` : 'Tell Tali anything...'}</Text>
+          <Text style={{ color: PAPER.ink, fontSize: 11, fontWeight: '800', letterSpacing: 1.4 }}>{'●'} TALK</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={{ width: W, alignSelf: 'center' }}>
         <View style={{ paddingHorizontal: 20, paddingTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(185,166,255,0.18)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.6)', shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } }}>
+          <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: T.ring, borderWidth: 1, borderColor: T.ringLine, ...(closed ? { shadowColor: '#B9A6FF', shadowOpacity: 1, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } } : null) }}>
             <TaliAvatar pose="head" size={42} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#B9A6FF', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>{closed ? 'DAY CLOSED  ·  ' : ''}{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
-            <Text style={{ color: '#F4F1FF', fontSize: 15, marginTop: 2 }}>{greeting}{sub ? `  ·  ${sub}` : ''}</Text>
+            <Text style={{ color: T.kicker, fontSize: 11, fontWeight: '800', letterSpacing: 2 }}>{closed ? 'DAY CLOSED  ·  ' : ''}{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
+            <Text style={{ color: T.greet, fontSize: 15, marginTop: 2 }}>{greeting}{sub ? `  ·  ${sub}` : ''}</Text>
           </View>
         </View>
         {/* Her words float in the space. */}
-        <Text style={{ color: '#FFFFFF', fontSize: 32, lineHeight: 36, paddingHorizontal: 20, marginTop: 10, fontFamily: 'InstrumentSerif_400Regular', textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 }}>{line}</Text>
+        <Text style={{ color: T.line, fontSize: 34, lineHeight: 38, letterSpacing: -0.4, paddingHorizontal: 20, marginTop: 12, fontFamily: closed ? 'InstrumentSerif_400Regular' : 'EBGaramond_500Medium', ...(closed ? { textShadowColor: 'rgba(185,166,255,0.8)', textShadowRadius: 18 } : null) }}>{line}</Text>
 
         {/* The stage: her brain, with your day orbiting it. */}
         {/* Tapping the empty sky closes whatever is open. */}
         <Pressable ref={brainRef} collapsable={false} onPress={() => focus && pick(null)} accessible={false} style={{ height: stageH, marginTop: 10 }}>
           <View style={{ position: 'absolute', left: cx - globe / 2, top: cy - globe / 2, opacity: sel ? 0.35 : 1 }}>
-            <BrainGlobe size={globe} counts={counts as any} links={brain?.links ?? []} selected={null} lit={lens && !focus ? LENS_REGIONS[lens] : null} speed={closed ? 0.5 : 1} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
+            <BrainGlobe night={closed} size={globe} counts={counts as any} links={brain?.links ?? []} selected={null} lit={lens && !focus ? LENS_REGIONS[lens] : null} speed={closed ? 0.5 : 1} onSelect={() => (focus ? pick(null) : router.navigate('/brain'))} />
           </View>
           {shownStars.map((s, i) => {
-            const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = (!!focus && !on) || (!!lens && !focus && s.area !== lens);
+            const p = pos(i); const c = ac(s.area); const on = focus === s.key; const dim = (!!focus && !on) || (!!lens && !focus && s.area !== lens);
             const sx = p.x + 8, sy = p.y + 8;
             return <Beam key={'l' + s.key} x1={sx} y1={sy} x2={cx} y2={cy} colour={c} opacity={dim ? 0.08 : on ? 0.9 : 0.35} />;
           })}
@@ -224,24 +341,24 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
             const on = openLink?.text === l.text;
             return (
               <View key={'s' + k} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
-                <Beam x1={p.x + 8} y1={p.y + 8} x2={lx} y2={ly} colour={AREA[l.area].colour} opacity={0.9} />
+                <Beam x1={p.x + 8} y1={p.y + 8} x2={lx} y2={ly} colour={ac(l.area)} opacity={0.9} />
                 <Pressable onPress={() => setOpenLink(on ? null : l)} accessibilityRole="button" accessibilityLabel={l.full ?? l.text} hitSlop={6}
                   style={{ position: 'absolute', left: lx - 5, top: ly - 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <View style={{ width: 10, height: 10 }}><Glow colour={AREA[l.area].colour} size={10} /></View>
-                  <Text numberOfLines={1} style={{ color: '#FFFFFF', fontSize: 12.5, fontWeight: '700', maxWidth: 170, backgroundColor: on ? AREA[l.area].colour + '44' : 'rgba(10,8,32,0.9)', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 9, overflow: 'hidden', borderWidth: 1, borderColor: AREA[l.area].colour + (on ? 'FF' : '88') }}>{l.text}</Text>
+                  <View style={{ width: 10, height: 10 }}><Glow colour={ac(l.area)} size={10} night={closed} /></View>
+                  <Text numberOfLines={1} style={{ color: T.text, fontSize: 12.5, fontWeight: '700', maxWidth: 170, backgroundColor: on ? ac(l.area) + '33' : T.chip, borderRadius: closed ? 10 : 3, paddingVertical: 6, paddingHorizontal: 9, overflow: 'hidden', borderWidth: 1, borderColor: ac(l.area) + (on ? 'FF' : '88') }}>{l.text}</Text>
                 </Pressable>
               </View>
             );
           }) : null}
           {shownStars.map((s, i) => {
-            const p = pos(i); const c = AREA[s.area].colour; const on = focus === s.key; const dim = (!!focus && !on) || (!!lens && !focus && s.area !== lens);
+            const p = pos(i); const c = ac(s.area); const on = focus === s.key; const dim = (!!focus && !on) || (!!lens && !focus && s.area !== lens);
             return (
               <Pressable key={s.key} onPress={() => pick(on ? null : s.key)} accessibilityRole="button" accessibilityLabel={s.full ?? s.title}
                 style={{ position: 'absolute', left: p.x, top: p.y, flexDirection: 'row', alignItems: 'flex-start', gap: 8, opacity: dim ? 0.12 : 1, maxWidth: 160 }}>
-                <Pulse colour={c} size={s.size} on={on} strong={s.area === 'money'} delay={i * 350} />
-                <View style={{ flexShrink: 1, backgroundColor: 'rgba(10,8,32,0.78)', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 9, borderWidth: 1, borderColor: c + '66' }}>
-                  <Text style={{ color: '#FFFFFF', fontSize: 13.5, fontWeight: '800' }}>{s.title}</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 11.5, marginTop: 1 }} numberOfLines={2}>{s.sub}</Text>
+                <Pulse colour={c} size={s.size} on={on} strong={s.area === 'money'} delay={i * 350} night={closed} />
+                <View style={{ flexShrink: 1, backgroundColor: T.chip, borderRadius: closed ? 12 : 3, paddingVertical: 6, paddingHorizontal: 9, borderWidth: 1, borderColor: c + '66' }}>
+                  <Text style={{ color: T.text, fontSize: 13.5, fontWeight: '800' }}>{s.title}</Text>
+                  <Text style={{ color: T.sub, fontSize: 11.5, marginTop: 1 }} numberOfLines={2}>{s.sub}</Text>
                 </View>
               </Pressable>
             );
@@ -251,38 +368,38 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
         {sel ? (() => {
           // The card reads out whatever is open in full: the star itself, or one of its connections.
           const area = openLink ? openLink.area : sel.area;
-          const c = AREA[area].colour;
+          const c = ac(area);
           const words = openLink ? (openLink.full ?? openLink.text) : (sel.full ?? sel.title);
           const ask = openLink ? `Tell me more about this: ${openLink.full ?? openLink.text}` : sel.ask;
           const to = openLink ? '/talk' : sel.to;
           const go = () => { if (!to) return; if (to === '/talk' && ask) router.navigate({ pathname: '/talk', params: { ask } } as any); else router.navigate(to as any); };
           return (
-            <View style={{ marginHorizontal: 16, marginTop: 6, padding: 18, borderRadius: 22, backgroundColor: 'rgba(20,16,52,0.92)', borderWidth: 1, borderColor: c + '99', shadowColor: c, shadowOpacity: 0.6, shadowRadius: 26, shadowOffset: { width: 0, height: 0 } }}>
+            <View style={{ marginHorizontal: 16, marginTop: 6, padding: 18, borderRadius: closed ? 22 : 4, backgroundColor: T.card, borderWidth: 1, borderColor: c + '99', ...(closed ? { shadowColor: c, shadowOpacity: 0.6, shadowRadius: 26, shadowOffset: { width: 0, height: 0 } } : null) }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={{ flex: 1, color: c, fontSize: 11, fontWeight: '800', letterSpacing: 2 }}>{openLink ? `CONNECTED  ·  ${AREA[area].name.toUpperCase()}` : AREA[area].name.toUpperCase()}</Text>
                 <Pressable onPress={() => (openLink ? setOpenLink(null) : pick(null))} accessibilityRole="button" accessibilityLabel={openLink ? 'Back' : 'Close'} hitSlop={14}
-                  style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' }}>
-                  <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>{openLink ? '‹' : '✕'}</Text>
+                  style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: T.soft }}>
+                  <Text style={{ color: T.text, fontSize: 16, fontWeight: '700' }}>{openLink ? '‹' : '✕'}</Text>
                 </Pressable>
               </View>
-              <Text style={{ color: '#FFFFFF', fontSize: words.length > 70 ? 19 : 26, lineHeight: words.length > 70 ? 26 : 31, marginTop: 6, fontFamily: 'InstrumentSerif_400Regular' }}>{words}</Text>
-              {!openLink ? <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginTop: 4 }}>{sel.sub}</Text> : null}
-              {!openLink && sel.links.length ? <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12.5, marginTop: 8 }}>Tap a connection to read it.</Text> : null}
+              <Text style={{ color: T.text, fontSize: words.length > 70 ? 19 : 26, lineHeight: words.length > 70 ? 26 : 31, marginTop: 6, fontFamily: closed ? 'InstrumentSerif_400Regular' : 'EBGaramond_400Regular' }}>{words}</Text>
+              {!openLink ? <Text style={{ color: T.sub, fontSize: 14, marginTop: 4 }}>{sel.sub}</Text> : null}
+              {!openLink && sel.links.length ? <Text style={{ color: T.faint, fontSize: 12.5, marginTop: 8 }}>Tap a connection to read it.</Text> : null}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
               {openLink || sel.action ? (
                 <Pressable accessibilityRole="button" disabled={!to} onPress={go}
-                  style={{ marginTop: 16, alignSelf: 'flex-start', backgroundColor: to ? c : 'rgba(255,255,255,0.12)', borderRadius: 999, paddingVertical: 12, paddingHorizontal: 20, shadowColor: c, shadowOpacity: to ? 0.8 : 0, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } }}>
-                  <Text style={{ color: to ? '#0C0A24' : 'rgba(255,255,255,0.8)', fontWeight: '800', fontSize: 15 }}>{openLink ? 'Talk about this' : sel.action}</Text>
+                  style={{ marginTop: 16, alignSelf: 'flex-start', backgroundColor: to ? (closed ? c : T.ink) : T.soft, borderRadius: closed ? 999 : 3, paddingVertical: 12, paddingHorizontal: 20, ...(closed ? { shadowColor: c, shadowOpacity: to ? 0.8 : 0, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } } : null) }}>
+                  <Text style={{ color: to ? T.btnText : T.sub, fontWeight: '800', fontSize: 15 }}>{openLink ? 'Talk about this' : sel.action}</Text>
                 </Pressable>
               ) : null}
               {!openLink && sel.done ? (
                 <Pressable accessibilityRole="button" accessibilityHint="Takes this off Today. Tali still remembers it." onPress={() => finish(sel.done!)}
-                  style={{ marginTop: 16, borderRadius: 999, paddingVertical: 11, paddingHorizontal: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)' }}>
-                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Done with this</Text>
+                  style={{ marginTop: 16, borderRadius: closed ? 999 : 3, paddingVertical: 11, paddingHorizontal: 18, borderWidth: 1, borderColor: T.ghost }}>
+                  <Text style={{ color: T.text, fontWeight: '700', fontSize: 15 }}>Done with this</Text>
                 </Pressable>
               ) : null}
               </View>
-              {!openLink && sel.done ? <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, marginTop: 10 }}>Done takes it off Today. She still remembers it.</Text> : null}
+              {!openLink && sel.done ? <Text style={{ color: T.faint, fontSize: 12.5, marginTop: 10 }}>Done takes it off Today. She still remembers it.</Text> : null}
             </View>
           );
         })() : closed ? (
@@ -300,9 +417,9 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
               const on = lens === a; const n = stars.filter((x) => x.area === a).length;
               return (
                 <Pressable key={a} onPress={() => setLens(on ? null : a)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${AREA[a].name}, ${n} today`}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: on ? AREA[a].colour : 'rgba(214,200,255,0.3)', backgroundColor: on ? AREA[a].colour : 'rgba(255,255,255,0.06)', opacity: lens && !on ? 0.55 : 1 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: on ? '#0C0A24' : AREA[a].colour }} />
-                  <Text style={{ color: on ? '#0C0A24' : 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '800' }}>{AREA[a].name}{n ? ` ${n}` : ''}</Text>
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 3, borderWidth: 1, borderColor: on ? AREA[a].colour : T.chipLine, backgroundColor: on ? AREA[a].colour : T.chip, opacity: lens && !on ? 0.55 : 1 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: on ? '#FFFDF8' : AREA[a].colour }} />
+                  <Text style={{ color: on ? '#FFFDF8' : T.text, fontSize: 13, fontWeight: '800' }}>{AREA[a].name}{n ? ` ${n}` : ''}</Text>
                 </Pressable>
               );
             })}
@@ -312,29 +429,30 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
         {/* Tali's level stays (Taj, 10 Nov 2026): it's how you see her grow. */}
         {level && !closed ? (
           <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`}
-            style={{ marginHorizontal: 16, marginTop: 22, padding: 14, borderRadius: 20, backgroundColor: 'rgba(64,46,160,0.92)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.5)', shadowColor: '#7A4DFF', shadowOpacity: 0.7, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } }}>
+            style={{ marginHorizontal: 16, marginTop: 22, padding: 14, borderRadius: 4, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: '#1C1A17' }}>
+            {/* 23 Nov 2026 (paper and ink): her level as a plain card, ink rule and indigo bar. */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#F6A02C', alignItems: 'center', justifyContent: 'center', shadowColor: '#F6A02C', shadowOpacity: 1, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } }}>
-                <Text style={{ color: '#141033', fontSize: 19, fontWeight: '800' }}>{level.level}</Text>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#3B3F9E', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#F5F0E6', fontSize: 19, fontWeight: '800' }}>{level.level}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#FFC56B', fontSize: 11, fontWeight: '800', letterSpacing: 1.6 }}>TALI'S LEVEL</Text>
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '800' }}>{level.name}</Text>
+                <Text style={{ color: '#3B3F9E', fontSize: 11, fontWeight: '800', letterSpacing: 1.6 }}>TALI'S LEVEL</Text>
+                <Text style={{ color: '#1C1A17', fontSize: 20, fontFamily: 'EBGaramond_500Medium' }}>{level.name}</Text>
               </View>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '700' }}>{level.xp} XP</Text>
+              <Text style={{ color: '#5E574E', fontSize: 14, fontWeight: '700' }}>{level.xp} XP</Text>
             </View>
-            <View style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.18)', marginTop: 12, overflow: 'hidden' }}>
-              <View style={{ width: `${Math.max(4, Math.round(level.progress * 100))}%`, height: 6, borderRadius: 3, backgroundColor: '#F6A02C' }} />
+            <View style={{ height: 6, backgroundColor: '#E6DFD1', marginTop: 12, overflow: 'hidden' }}>
+              <View style={{ width: `${Math.max(4, Math.round(level.progress * 100))}%`, height: 6, backgroundColor: '#3B3F9E' }} />
             </View>
-            {level.next ? <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12.5, marginTop: 8 }}>{level.toNext} XP to {level.next}. Her brain grows every time you talk.</Text> : null}
+            {level.next ? <Text style={{ color: '#8C8478', fontSize: 12.5, marginTop: 8 }}>{level.toNext} XP to {level.next}. Her brain grows every time you talk.</Text> : null}
           </Pressable>
         ) : null}
 
 {closed ? null : (
                 <Pressable ref={tellRef} collapsable={false} onPress={() => router.navigate('/talk')} accessibilityRole="button"
-          style={{ marginHorizontal: 16, marginTop: 22, borderRadius: 999, paddingVertical: 16, paddingHorizontal: 22, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(214,200,255,0.45)', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Text style={{ flex: 1, color: 'rgba(255,255,255,0.65)', fontSize: 16 }}>{lens ? `Tell her about ${AREA[lens].name.toLowerCase()}...` : 'Tell her anything...'}</Text>
-          <Text style={{ color: '#B9A6FF', fontSize: 18 }}>{'●'}</Text>
+          style={{ marginHorizontal: 16, marginTop: 22, borderRadius: 3, paddingVertical: 16, paddingHorizontal: 18, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: '#1C1A17', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Text style={{ flex: 1, color: '#8C8478', fontSize: 16 }}>{lens ? `Tell her about ${AREA[lens].name.toLowerCase()}...` : 'Tell her anything...'}</Text>
+          <Text style={{ color: '#3B3F9E', fontSize: 18 }}>{'●'}</Text>
         </Pressable>
         )}
     </View>
@@ -343,6 +461,7 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
 
 // A thin glowing line between two points, drawn with a rotated view (no SVG needed).
 function Beam({ x1, y1, x2, y2, colour, opacity }: { x1: number; y1: number; x2: number; y2: number; colour: string; opacity: number }) {
+  // On paper a beam is a plain ink line in the star's colour; the soft shadow only shows on the night sky.
   const len = Math.hypot(x2 - x1, y2 - y1);
   const ang = Math.atan2(y2 - y1, x2 - x1);
   return (
@@ -351,7 +470,7 @@ function Beam({ x1, y1, x2, y2, colour, opacity }: { x1: number; y1: number; x2:
 }
 
 // A star that breathes. Urgent ones (money) pulse bigger so your eye goes there first.
-function Pulse({ colour, size, on, strong, delay }: { colour: string; size: number; on: boolean; strong: boolean; delay: number }) {
+function Pulse({ colour, size, on, strong, delay, night }: { colour: string; size: number; on: boolean; strong: boolean; delay: number; night?: boolean }) {
   const v = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(Animated.sequence([
@@ -369,14 +488,14 @@ function Pulse({ colour, size, on, strong, delay }: { colour: string; size: numb
     <View style={{ width: size, height: size, marginTop: 2 }}>
       <Animated.View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: colour, opacity: ring, transform: [{ scale: ringScale }] }} />
       <Animated.View style={{ width: size, height: size, transform: [{ scale }] }}>
-        <Glow colour={colour} size={size} />
+        <Glow colour={colour} size={size} night={night} />
       </Animated.View>
     </View>
   );
 }
 
 // The same glow as a picked part of her brain: three soft rings of colour and a white core.
-function Glow({ colour, size }: { colour: string; size: number }) {
+function Glow({ colour, size, night }: { colour: string; size: number; night?: boolean }) {
   const b = size;
   return (
     <>
@@ -384,7 +503,7 @@ function Glow({ colour, size }: { colour: string; size: number }) {
       <View style={{ position: 'absolute', width: b * 2.6, height: b * 2.6, left: -b * 0.8, top: -b * 0.8, borderRadius: b * 1.3, backgroundColor: colour, opacity: 0.16 }} />
       <View style={{ position: 'absolute', width: b * 1.6, height: b * 1.6, left: -b * 0.3, top: -b * 0.3, borderRadius: b * 0.8, backgroundColor: colour, opacity: 0.3 }} />
       <View style={{ position: 'absolute', width: b, height: b, left: 0, top: 0, borderRadius: b / 2, backgroundColor: colour }} />
-      <View style={{ position: 'absolute', width: b * 0.45, height: b * 0.45, left: b * 0.275, top: b * 0.275, borderRadius: b, backgroundColor: '#FFFFFF', opacity: 0.85 }} />
+      <View style={{ position: 'absolute', width: b * 0.45, height: b * 0.45, left: b * 0.275, top: b * 0.275, borderRadius: b, backgroundColor: night ? '#FFFFFF' : '#FFFDF8', opacity: 0.85 }} />
     </>
   );
 }

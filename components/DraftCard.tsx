@@ -168,12 +168,12 @@ export function DraftCard({ item, onDecided }: { item: Approval; onDecided: (id:
   }
 
   return (
-    <Card style={{ borderLeftWidth: 5, borderLeftColor: colours.orange }}>
-      <Text style={{ fontSize: 12, color: colours.muted, fontWeight: '700', textTransform: 'uppercase' }}>
+    <Card style={{ borderLeftWidth: 3, borderLeftColor: colours.ink }}>
+      <Text style={{ fontSize: 11, color: colours.muted, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase' }}>
         {stripeSend ? 'Invoice' : gmailSend ? 'Email from your Gmail' : outlookSend ? 'Email from your Outlook' : calendarBook || outlookBook ? 'Calendar invite' : taliSend ? 'Email to your Tali address' : KIND_LABEL[item.kind] ?? 'Draft'}
         {item.draft?.to ? ` · to ${item.draft.to_name ?? item.draft.to}` : ''}
       </Text>
-      <Text style={{ fontSize: 15, fontWeight: '700', color: colours.text, marginTop: 2 }}>{item.title}</Text>
+      <Text style={{ fontSize: 20, lineHeight: 26, color: colours.text, marginTop: 4, fontFamily: 'EBGaramond_500Medium' }}>{item.title}</Text>
       {(gmailSend || outlookSend) && item.draft?.summary ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>They said: {item.draft.summary}</Text> : null}
       {(gmailSend || outlookSend || taliSend) && subject ? <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2 }}>Subject: {subject}</Text> : null}
       {body ? (
@@ -261,12 +261,11 @@ function Chip({ label, onPress, primary, ghost, disabled }: { label: string; onP
         paddingHorizontal: 14,
         borderRadius: radius.pill,
         borderWidth: 1,
-        borderColor: primary ? colours.purple : ghost ? 'transparent' : colours.borderStrong,
-        backgroundColor: primary ? colours.purple : 'transparent',
+        borderColor: ghost ? 'transparent' : colours.ink,
+        backgroundColor: primary ? colours.ink : 'transparent',
         opacity: disabled ? 0.5 : 1,
-        ...(primary ? elevation.button(colours.purple) : null),
       }}>
-      <Text style={{ fontWeight: '700', fontSize: 13, color: primary ? colours.onPurple : ghost ? colours.muted : colours.text }}>{label}</Text>
+      <Text style={{ fontWeight: '700', fontSize: 13, color: primary ? colours.bg : ghost ? colours.muted : colours.text }}>{label}</Text>
     </Pressable>
   );
 }

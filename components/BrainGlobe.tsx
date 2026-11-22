@@ -13,7 +13,7 @@ import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { REGIONS, type RegionId } from '@/lib/brain';
+import { REGIONS, regionColour, type RegionId } from '@/lib/brain';
 import { BrainCanvas } from '@/components/BrainCanvas';
 
 type P3 = { x: number; y: number; z: number };
@@ -338,7 +338,7 @@ export function BrainGlobe(props: GlobeProps) {
 // 11 Nov 2026 (Taj: the dots a little bigger on the full brain). Same brain, each dot 15% larger.
 const BIG_DOTS = BRAIN.dots.map((d) => ({ ...d, size: d.size * 1.15 }));
 
-function BrainGlobeCanvas({ size, counts, links, selected, lit, onSelect, speed = 1, bigDots }: GlobeProps) {
+function BrainGlobeCanvas({ size, counts, links, selected, lit, onSelect, speed = 1, bigDots, night }: GlobeProps) {
   const glow = useMemo(() => {
     const max = Math.max(1, ...Object.values(counts).map((n) => n ?? 0));
     const out = {} as Record<RegionId, number>;
@@ -357,7 +357,7 @@ function BrainGlobeCanvas({ size, counts, links, selected, lit, onSelect, speed 
     }
     return out.slice(0, 18);
   }, [links]);
-  return <BrainCanvas size={size} dots={bigDots ? BIG_DOTS : BRAIN.dots} centres={BRAIN.centres} glow={glow} links={pairs} selected={selected} lit={lit} onSelect={onSelect} speed={speed} />;
+  return <BrainCanvas size={size} dots={bigDots ? BIG_DOTS : BRAIN.dots} centres={BRAIN.centres} glow={glow} links={pairs} selected={selected} lit={lit} onSelect={onSelect} speed={speed} night={night} />;
 }
 
 function BrainGlobeViews({
@@ -368,9 +368,12 @@ function BrainGlobeViews({
   lit,
   onSelect,
   speed = 1,
+  night,
 }: {
   /** The full brain page draws its dots a little bigger. Only the drawn version uses it. */
   bigDots?: boolean;
+  /** 23 Nov 2026: the bright brain for the night screens (Sleep, a closed day). Otherwise ink on paper. */
+  night?: boolean;
   size: number;
   counts: Partial<Record<RegionId, number>>;
   links: { regions: RegionId[]; count: number }[];
@@ -529,7 +532,7 @@ function BrainGlobeViews({
               half={half}
               scale={scale}
               glow={glow[d.region]}
-              colour={REGIONS[d.region].colour}
+              colour={regionColour(d.region, night)}
               mode={lit ? (lit.includes(d.region) ? 'on' : 'off') : selected == null ? 'all' : selected === d.region ? 'on' : 'off'}
               ph={(i * 2.399) % 6.283}
             />
@@ -546,6 +549,6 @@ function BrainGlobeViews({
 const styles = StyleSheet.create({
   dot: { position: 'absolute', left: 0, top: 0 },
   ring: { position: 'absolute' },
-  link: { position: 'absolute', left: 0, top: 0, height: 1, backgroundColor: '#EEE9FF', borderRadius: 1 },
+  link: { position: 'absolute', left: 0, top: 0, height: 1, backgroundColor: 'rgba(28,26,23,0.5)', borderRadius: 1 },
   trail: { position: 'absolute', left: 0, top: 0, height: 2.5, borderRadius: 2 },
 });

@@ -135,7 +135,7 @@ export default function Sleep() {
               </View>
               <View style={s.brainWrap}>
                 <View style={s.brainGlow} />
-                <BrainGlobe size={230} counts={{}} links={[]} selected={null} onSelect={() => {}} speed={st.status === 'paused' ? 0.15 : 0.4} />
+                <BrainGlobe night size={230} counts={{}} links={[]} selected={null} onSelect={() => {}} speed={st.status === 'paused' ? 0.15 : 0.4} />
               </View>
               <Text style={s.bigTime}>{left ?? '∞'}</Text>
               <Text style={s.npSub}>{st.status === 'paused' ? 'Paused' : left ? (fading ? 'Fading out now' : st.fade ? 'left, then a slow fade' : 'left') : 'Until you stop it'}</Text>
