@@ -53,6 +53,9 @@ module.exports = {
       // ADDED (22 Nov 2026): portrait and camera wanted but not required, so Google Play stops
       // hiding the app from devices without them (the upload warning).
       './plugins/withOptionalPortrait',
+      // ADDED (22 Nov 2026): code shrinking (R8) off, same as Totality and Nutrition. With it on, the
+      // SDK 58 Android build ran out of memory on EAS twice (Gradle daemon killed during R8).
+      ['expo-build-properties', { android: { enableMinifyInReleaseBuilds: false, enableShrinkResourcesInReleaseBuilds: false } }],
     ],
     extra: {
       eas: { projectId: '4fcc84f2-1512-4bdb-a354-80b468efd453' },
