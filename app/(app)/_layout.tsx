@@ -23,15 +23,19 @@ function TabIcon({ name, color, size, index, focused, wide }: { name: IconName; 
   );
 }
 
-let wideNow = false;
-function icon(name: IconName, index: number) {
-  return ({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) => <TabIcon name={name} color={color as string} size={size} index={index} focused={focused} wide={wideNow} />;
+function makeIcon(wide: boolean) {
+  return function icon(name: IconName, index: number) {
+    function TabBarIcon({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) {
+      return <TabIcon name={name} color={color as string} size={size} index={index} focused={focused} wide={wide} />;
+    }
+    return TabBarIcon;
+  };
 }
 
 export default function AppTabs() {
   // 22 Nov 2026: on a PC the tabs become a side menu with Tali HQ's name and Tali (lib/wideWeb.ts).
   const wide = useWide();
-  wideNow = wide;
+  const icon = makeIcon(wide);
   return (
     <>
     <Tabs

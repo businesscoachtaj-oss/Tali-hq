@@ -220,7 +220,7 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
           </Pressable>
           {level ? (
             <Pressable ref={levelRef} collapsable={false} onPress={() => router.navigate('/brain')} accessibilityRole="button" accessibilityLabel={`Tali's level ${level.level}, ${level.name}, ${level.xp} XP`} style={{ flex: 1 }}>
-              <Text style={{ color: PAPER.ink, fontSize: 11, fontWeight: '800', letterSpacing: 1.8 }}>TALI'S LEVEL {level.level}</Text>
+              <Text style={{ color: PAPER.ink, fontSize: 11, fontWeight: '800', letterSpacing: 1.8 }}>{`TALI'S LEVEL ${level.level}`}</Text>
               <Text style={{ color: PAPER.ink, fontSize: 19, marginTop: 2, fontFamily: 'EBGaramond_500Medium' }}>{level.name}</Text>
               <View style={{ height: 4, backgroundColor: '#E6DFD1', marginTop: 8, overflow: 'hidden' }}>
                 <View style={{ width: `${Math.max(4, Math.round(level.progress * 100))}%`, height: 4, backgroundColor: PAPER.kicker }} />
