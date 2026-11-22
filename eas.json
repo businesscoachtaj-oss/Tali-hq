@@ -26,7 +26,8 @@
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://jbyzblwrywgxilhmfyjt.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_6boNZk1eRN8-7Z4PIbxB3w_n4VDXf51"
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_6boNZk1eRN8-7Z4PIbxB3w_n4VDXf51",
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "armeabi-v7a,arm64-v8a"
       }
     }
   },
