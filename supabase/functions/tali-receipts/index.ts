@@ -12,6 +12,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import JSZip from 'npm:jszip@3.10.1';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent } from '../_shared/consent.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -142,7 +143,10 @@ Deno.serve(async (req) => {
   if (!paid) return fail('no_plan', 'Receipts are part of Tali HQ and Pro.', 403);
   const body = await req.json().catch(() => ({}));
   try {
-    if (body.action === 'read') return await read(user.id, String(body.path ?? ''));
+    if (body.action === 'read') {
+      if (!(await hasAiConsent(admin, user.id))) return fail(AI_CONSENT_CODE, AI_CONSENT_MESSAGE, 403);
+      return await read(user.id, String(body.path ?? ''));
+    }
     if (body.action === 'zip') return await zip(user.id, String(body.from ?? ''), String(body.to ?? ''));
     return fail('bad_request', 'Unknown action.');
   } catch (e) {

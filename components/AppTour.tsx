@@ -12,6 +12,7 @@ import { measureTabNow, type TabPos } from '@/lib/tourTabPositions';
 import { bringTargetIntoView, scrollTourToTop, type Rect } from '@/lib/tourTargets';
 import { tali } from '@/components/ui';
 import { colours, elevation, radius, space } from '@/constants/theme';
+import type { ViewInstance } from 'react-native';
 
 export type TourStep = {
   title: string;
@@ -33,7 +34,7 @@ export function AppTour({ steps, onDone, firstName }: { steps: TourStep[]; onDon
   const [tabPos, setTabPos] = useState<TabPos | null>(null);
   const [rect, setRect] = useState<Rect | null>(null);
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
-  const overlayRef = useRef<View>(null);
+  const overlayRef = useRef<ViewInstance>(null);
   const pulse = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
 

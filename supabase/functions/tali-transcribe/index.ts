@@ -12,6 +12,7 @@
 // Deployed with verify_jwt false; the JWT is checked here, like tali-chat.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent } from '../_shared/consent.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
@@ -46,6 +47,7 @@ Deno.serve(async (req) => {
   const { data: u } = await admin.auth.getUser(token);
   const user = u?.user;
   if (!user) return fail('unauthorized', 'Please sign in again.', 401);
+  if (!(await hasAiConsent(admin, user.id))) return fail(AI_CONSENT_CODE, AI_CONSENT_MESSAGE, 403);
 
   let body: { path?: string; duration?: number };
   try {

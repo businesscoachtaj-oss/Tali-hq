@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Image, Pressable, Text, View, TextInput } from 'react-native';
+import { Image, Platform, Pressable, Text, View, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -157,11 +157,11 @@ export default function Me() {
             <View style={{ height: 8, backgroundColor: colours.sunk, borderRadius: 8, marginTop: space.sm, overflow: 'hidden' }}>
               <View style={{ height: 8, width: `${Math.min(100, (left / Math.max(credits.creditsMonth, 1)) * 100)}%`, backgroundColor: colours.purple, borderRadius: 8 }} />
             </View>
-            {/* 6 Nov 2026 (Taj): buy extra credits, images or a bundle. */}
-            <Pressable onPress={() => router.navigate('/top-up' as any)} accessibilityRole="button" style={{ marginTop: space.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
+            {/* 6 Nov 2026 (Taj): buy extra credits, images or a bundle. 22 Nov 2026: not on iPhone (App Review 3.1.1). */}
+            {Platform.OS === 'ios' ? null : <Pressable onPress={() => router.navigate('/top-up' as any)} accessibilityRole="button" style={{ marginTop: space.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: radius.pill, backgroundColor: colours.purpleSoft }}>
               <Ionicons name="add-circle-outline" size={18} color={colours.purple} />
               <Text style={{ color: colours.purple, fontWeight: '800', fontSize: 14 }}>Top up</Text>
-            </Pressable>
+            </Pressable>}
           </>
         ) : credits && freeLeft ? (
           <>
@@ -247,6 +247,8 @@ export default function Me() {
         {/* 17 Nov 2026 (Build your HQ): Edit home lives above the widgets on Today and here. */}
         <MenuRow title="Edit home" sub="Add, move, resize or remove what is on Today" onPress={() => router.navigate('/home-edit' as any)} />
         <MenuRow title="Settings" sub="Your details, rhythm, notifications" onPress={() => router.navigate('/settings')} />
+        {/* 22 Nov 2026: what goes to the AI companies, and the yes or no for it. */}
+        <MenuRow title="Tali and your data" sub={profile?.ai_consent_at ? 'What she sends to AI companies. Turn it off here' : 'Tali is off. Say yes here to use her'} onPress={() => router.navigate('/ai-data' as any)} />
         <MenuRow title="Show me around again" sub="The quick tour of Tali HQ" onPress={async () => {
           if (!session) return;
           try { await resetTour(session.user.id); await refreshProfile(); router.navigate('/'); } catch (e: any) { setError(e?.message ?? 'Could not restart the tour.'); }

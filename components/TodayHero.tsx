@@ -12,6 +12,7 @@ import { taliLevel, type Level } from '@/lib/level';
 import { registerTarget } from '@/lib/tourTargets';
 import { colours, elevation, space } from '@/constants/theme';
 import { myBrain } from '@/lib/brain';
+import type { ViewInstance } from 'react-native';
 
 const RADIUS = 22;
 
@@ -35,7 +36,7 @@ export function TodayHero({
   nightLine?: string | null;
 }) {
   const [level, setLevel] = useState<Level | null>(null);
-  const levelRef = useRef<View>(null);
+  const levelRef = useRef<ViewInstance>(null);
   useEffect(() => {
     registerTarget('level', levelRef);
   }, []);

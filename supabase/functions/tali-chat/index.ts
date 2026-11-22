@@ -34,6 +34,7 @@ import { calendarSummary, loadConnection } from '../_shared/google.ts';
 import { calendarSummary as msCalendarSummary, loadConnection as loadMsConnection } from '../_shared/microsoft.ts';
 import { capabilities, COSTS, deleteVideo, describeVideo, moderate, rerankMemories, RERANK_MODEL, secondOpinion, uploadVideo, videoCredits } from '../_shared/brainAi.ts';
 import { embedQuery } from '../_shared/brainEmbed.ts';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent } from '../_shared/consent.ts';
 
 // Vendor and model names are only ever stored or returned for the founder. Customers see plain words.
 const FOUNDER_ID = 'e89ca9de-a86e-4dd6-8094-bc518566352e';
@@ -576,6 +577,7 @@ Deno.serve(async (req) => {
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   const user = userData?.user;
   if (userErr || !user) return fail('unauthorized', 'Please sign in again.', 401);
+  if (!(await hasAiConsent(admin, user.id))) return fail(AI_CONSENT_CODE, AI_CONSENT_MESSAGE, 403);
 
   let body: { conversationId?: string; text?: string; attachments?: unknown; deep?: unknown; action?: unknown; second_opinion?: unknown };
   try {

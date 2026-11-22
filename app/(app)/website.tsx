@@ -254,9 +254,10 @@ export default function Website() {
         </View>
         {!dom.unlocked ? (
           <>
-            <Sub>Put your site on an address you already own, like yourbusiness.com.au. {DOMAIN_PRICE} once, with any paid plan. You keep paying your domain company for the domain itself.</Sub>
+            <Sub>{Platform.OS === 'ios' ? 'Put your site on an address you already own, like yourbusiness.com.au.' : `Put your site on an address you already own, like yourbusiness.com.au. ${DOMAIN_PRICE} once, with any paid plan. You keep paying your domain company for the domain itself.`}</Sub>
             <View style={{ height: 10 }} />
-            <Button title={`Unlock my own domain, ${DOMAIN_PRICE}`} kind="ghost" busy={domBusy} onPress={unlockDomain} />
+            {/* 22 Nov 2026: not sold on iPhone (App Review 3.1.1). */}
+            {Platform.OS === 'ios' ? null : <Button title={`Unlock my own domain, ${DOMAIN_PRICE}`} kind="ghost" busy={domBusy} onPress={unlockDomain} />}
           </>
         ) : dom.status === 'live' ? (
           <Text selectable style={{ color: BLUE, fontSize: 14.5, fontWeight: '800', marginTop: 6 }}>{dom.domain}</Text>

@@ -13,6 +13,7 @@ import { loadMoneyPicture, type MoneyPicture } from '@/lib/money';
 import { addDays } from '@/lib/dates';
 import { taliLevel, type Level } from '@/lib/level';
 import { registerTarget } from '@/lib/tourTargets';
+import type { ViewInstance } from 'react-native';
 
 const AREA = {
   people: { name: 'People', colour: '#5CF2C0' },
@@ -179,9 +180,9 @@ export function BrainSky({ greeting, sub, nightLine, lens: lensIn, onLens, side,
   const line = sel ? "Here's everything I know that touches this." : closed ? (nightLine?.trim() || "Day's done. Bed time?") : lens ? (inLens ? `${inLens} ${inLens === 1 ? 'thing' : 'things'} for ${AREA[lens].name.toLowerCase()} today.` : `Nothing for ${AREA[lens].name.toLowerCase()} today. Tell me something.`) : needs ? (life ? `${needs} ${needs === 1 ? 'thing' : 'things'} for you today. Work can wait.` : `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you. I've got the rest.`) : 'All quiet. Tell me anything.';
 
   // Spots the first-run tour points at (10 Nov 2026).
-  const brainRef = useRef<View>(null);
-  const levelRef = useRef<View>(null);
-  const tellRef = useRef<View>(null);
+  const brainRef = useRef<ViewInstance>(null);
+  const levelRef = useRef<ViewInstance>(null);
+  const tellRef = useRef<ViewInstance>(null);
   useEffect(() => {
     registerTarget('brain', brainRef);
     registerTarget('level', levelRef);

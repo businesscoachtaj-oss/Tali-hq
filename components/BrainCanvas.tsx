@@ -5,7 +5,7 @@
 // Skia is a native library, so this first ships in the 1.0.2 store builds, not over the air to 1.0.1.
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from 'expo-router';
 import { BlendMode, Canvas, PaintStyle, Picture, Skia, StrokeCap, TileMode, createPicture } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useDerivedValue, useFrameCallback, useReducedMotion, useSharedValue } from 'react-native-reanimated';

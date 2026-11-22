@@ -7,7 +7,7 @@ import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from 'rea
 import { router, useLocalSearchParams } from 'expo-router';
 import { useFocusLoad } from '@/lib/useFocusLoad';
 import { Ionicons } from '@expo/vector-icons';
-import { Card, ErrorText, Screen, goBack } from '@/components/ui';
+import { Card, ErrorText, Screen, goBack, Button } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
 import { colours, elevation, radius, space } from '@/constants/theme';
 import { myCredits, startTopup, type Credits } from '@/lib/data';
@@ -77,6 +77,16 @@ export default function TopUp() {
     setBusy(false);
     if (!res.ok || !res.url) return setError(res.message ?? 'Could not start checkout.');
     web ? window.location.assign(res.url) : Linking.openURL(res.url);
+  }
+
+  // 22 Nov 2026 (App Review 3.1.1): top ups are not sold in the iPhone app.
+  if (Platform.OS === 'ios') {
+    return (
+      <Screen skin="topup">
+        <SkinHeader id="topup" title="Top up" sub="Top ups aren't available in the iPhone app." onBack={() => goBack('/me')} backLabel="Back" />
+        <Button title="See plans" onPress={() => router.navigate('/plans')} />
+      </Screen>
+    );
   }
 
   return (

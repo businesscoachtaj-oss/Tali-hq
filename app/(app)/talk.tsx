@@ -21,6 +21,8 @@ import { tali } from '@/components/ui';
 import { colours, elevation, NO_BOTTOM, radius, space } from '@/constants/theme';
 import { PageSky } from '@/components/NightSky';
 import { Aurora } from '@/components/Aurora';
+import type { TextInputInstance } from 'react-native';
+import { useWide } from '@/lib/wideWeb';
 
 // An image Tali made (it carries her prompt, or is still a placeholder with no file yet).
 const isTaliMade = (me: boolean, a: Attachment) => !me && a.kind === 'image' && (!!a.prompt || !a.path);
@@ -36,6 +38,7 @@ const STARTERS = [
 ];
 
 export default function Talk() {
+  const wide = useWide();
   const { profile } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
@@ -126,7 +129,7 @@ export default function Talk() {
     if (index >= 0) list.scrollToIndex({ index, viewPosition: 0, viewOffset: 8, animated: true });
     else list.scrollToEnd({ animated: true });
   }
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   // Share to Tali (2 Nov 2026): the PWA is a share target, so a text, DM screenshot caption or link
   // shared from another app lands here as ?text=&title=&url=. It goes into the composer for the
   // user to add a word to and send; nothing is sent on its own.
@@ -287,7 +290,8 @@ export default function Talk() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colours.bg }} edges={NO_BOTTOM}>
       <PageSky />
       <Aurora />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* 22 Nov 2026: on a PC the chat sits in a centred column over her sky (lib/wideWeb.ts). */}
+      <KeyboardAvoidingView style={wide ? { flex: 1, width: '100%', maxWidth: 860, alignSelf: 'center' } : { flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colours.border }}>
           <TaliAvatar pose={thinking ? 'head_think' : 'head'} size={48} />
           <View style={{ flex: 1 }}>
@@ -476,14 +480,15 @@ export default function Talk() {
                 </View>
               );
             }}
-            ListFooterComponent={thinking ? <TaliThinking label={deepSending ? 'Having a proper think. About half a minute.' : undefined} /> : null}
+            ListFooterComponent={thinking ? <TaliThinking label={deepSending ? 'Having a proper think. About half a minute.' : undefined} /> : undefined}
           />
         )}
 
         {notice ? <Text style={{ color: colours.muted, fontSize: 13, textAlign: 'center', paddingHorizontal: space.lg, paddingBottom: 6 }}>{notice}</Text> : null}
         {notice && outOfCredits ? (
-          <Pressable onPress={() => router.navigate('/top-up' as any)} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: colours.purple, marginBottom: 8 }}>
-            <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 14 }}>Top up</Text>
+          // 22 Nov 2026: top ups are not sold on iPhone (App Review 3.1.1), so it points to the plans there.
+          <Pressable onPress={() => router.navigate((Platform.OS === 'ios' ? '/plans' : '/top-up') as any)} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: colours.purple, marginBottom: 8 }}>
+            <Text style={{ color: colours.onPurple, fontWeight: '800', fontSize: 14 }}>{Platform.OS === 'ios' ? 'See plans' : 'Top up'}</Text>
           </Pressable>
         ) : null}
 

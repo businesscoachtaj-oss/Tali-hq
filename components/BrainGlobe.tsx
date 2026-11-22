@@ -8,7 +8,7 @@
 // as an over the air update on iPhone, Android and the web. Names shared by more than one part
 // (a client who shows up in lessons and in facts) are drawn as lines between those parts on the whole brain.
 import { Component, memo, useEffect, useMemo, type ReactNode } from 'react';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from 'react-native-reanimated';

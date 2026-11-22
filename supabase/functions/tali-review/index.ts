@@ -16,6 +16,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { claudeMessages } from '../_shared/claude.ts';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent } from '../_shared/consent.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -133,6 +134,7 @@ Deno.serve(async (req) => {
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   const user = userData?.user;
   if (userErr || !user) return fail('unauthorized', 'Please sign in again.', 401);
+  if (!(await hasAiConsent(admin, user.id))) return fail(AI_CONSENT_CODE, AI_CONSENT_MESSAGE, 403);
 
   const { data: prof } = await admin.from('profiles').select('first_name, timezone, review_day').eq('id', user.id).maybeSingle();
   const tz = prof?.timezone || 'Australia/Sydney';

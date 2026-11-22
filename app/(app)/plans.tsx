@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from 'react-native';
+import * as AppleIap from '@/lib/appleIap';
+import { useAuth } from '@/lib/auth';
 import { useFocusLoad } from '@/lib/useFocusLoad';
 import { myCredits, mySubscription, openBillingPortal, plans as loadPlans, startCheckout, type Credits, type Plan } from '@/lib/data';
 import { BackLink, Button, Card, ErrorText, Screen, Title, goBack } from '@/components/ui';
@@ -9,6 +11,13 @@ import { COST, VOICE_ADDON } from '@/lib/brainAiPlan';
 import { useCapabilities, type Capabilities } from '@/lib/capabilities';
 
 const APP_WEB_URL = 'https://talihq.com.au';
+
+// 22 Nov 2026 (App Review 3.1.1): on iPhone the plans are sold through Apple In-App Purchase, with
+// Apple's prices, Restore Purchases and the renewal terms Apple asks for. Business, top ups and the
+// voice add-on are not sold on iPhone. Web and Android keep Stripe exactly as before.
+const IS_IOS = Platform.OS === 'ios' && AppleIap.IAP_SUPPORTED;
+const APPLE_EULA_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+const PRIVACY_URL = 'https://totality360.com.au/privacy.html';
 
 const FOUNDING_OFF = 0.425; // founding members: 42.5% off for life
 
@@ -46,6 +55,10 @@ export default function Plans() {
   // So the screen isn't blank cards and no buttons while plans load (4 Nov 2026).
   const [loaded, setLoaded] = useState(false);
   const web = Platform.OS === 'web';
+  const { session } = useAuth();
+  const [products, setProducts] = useState<Record<string, AppleIap.IapProduct>>({});
+  const [productsLoaded, setProductsLoaded] = useState(!IS_IOS);
+  const [note, setNote] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -62,11 +75,69 @@ export default function Plans() {
 
   useFocusLoad(load); // Speed pass (13 Nov 2026): see lib/useFocusLoad.ts
 
+  // iPhone: Apple's products and prices, and purchases StoreKit hands back (also ones left over from
+  // last time, which StoreKit re-delivers until the server has confirmed them).
+  useEffect(() => {
+    if (!IS_IOS) return;
+    AppleIap.loadProducts().then(setProducts).catch(() => {}).finally(() => setProductsLoaded(true));
+    const stop = AppleIap.listenForPurchases(
+      (purchase) => { void applePurchased(purchase); },
+      (message) => { setBusy(null); if (message) setError(message); },
+    );
+    return stop;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function applePurchased(purchase: unknown) {
+    const r = await AppleIap.completePurchase(purchase);
+    setBusy(null);
+    if (r.error) return setError(r.error);
+    if (r.active) {
+      setNote('Thank you. Your plan is on.');
+      await load();
+    }
+  }
+
+  async function appleBuy(plan: 'hq' | 'pro' | 'max') {
+    const id = AppleIap.productIdFor(plan, yearly ? 'year' : 'month');
+    if (!products[id] || !session) return setError('Plans are not available from the App Store right now. Try again shortly.');
+    setError('');
+    setNote('');
+    setBusy(plan);
+    try {
+      const purchase = await AppleIap.buy(id, session.user.id);
+      if (purchase) await applePurchased(purchase);
+    } catch (e: any) {
+      setBusy(null);
+      if (e?.code !== 'user-cancelled') setError(e?.message || 'The purchase did not go through.');
+    }
+  }
+
+  async function appleRestore() {
+    setError('');
+    setNote('');
+    setBusy('restore');
+    try {
+      const r = await AppleIap.restore();
+      if (!r) setNote('No Tali HQ subscription was found for this Apple ID.');
+      else if (r.error) setError(r.error);
+      else { setNote(r.active ? 'Restored. Your plan is on.' : 'Your App Store subscription has ended.'); await load(); }
+    } catch {
+      setError('Could not reach the App Store. Try again.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   // Paying means a real Stripe subscription. A customer id alone is not enough: checkout creates the
   // customer before payment, so someone who backs out of checkout would lose the Choose buttons and
   // land on an empty Manage billing page (5 Nov 2026). Same rule as create-checkout.
   const paying = !!sub?.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(sub.status);
-  const founding = !!sub?.founding_member;
+  // 22 Nov 2026: paying through the App Store. On iPhone, plan changes go through Apple; elsewhere the
+  // App Store subscription is managed from the iPhone's settings.
+  const appleBilled = sub?.billing_source === 'apple' && !!sub?.apple_expires_at && new Date(sub.apple_expires_at).getTime() > Date.now() && sub.plan_id !== 'free';
+  const stripeOnIos = IS_IOS && paying && sub?.billing_source !== 'apple';
+  const founding = !!sub?.founding_member && !IS_IOS;
   const onBiz = !!credits?.businessTier;
 
   // Phones open Stripe in the browser, the same way Totality does (3 Nov 2026). Stripe sends them
@@ -121,19 +192,21 @@ export default function Plans() {
         const full = yearPrice ?? p.monthly_price_aud;
         const price = founding && full > 0 ? full * (1 - FOUNDING_OFF) : full;
         const per = yearPrice ? 'a year' : 'a month';
+        const appleProduct = IS_IOS && p.id !== 'free' ? products[AppleIap.productIdFor(p.id as 'hq' | 'pro' | 'max', yearly ? 'year' : 'month')] : undefined;
+        const priceLabel = p.monthly_price_aud === 0 ? 'Free' : IS_IOS ? (appleProduct ? `${appleProduct.displayPrice} ${per}` : productsLoaded ? 'Unavailable' : '...') : `${money(price)} ${per}`;
         return (
           <Card key={p.id} style={p.id === 'hq' ? { borderColor: colours.purple, borderWidth: 2 } : p.id === 'max' ? { borderColor: '#F6A02C', borderWidth: 2, shadowColor: '#F6A02C', shadowOpacity: 0.55, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } } : undefined}>
             {p.id === 'max' ? <Text style={{ color: '#FFC56B', fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 4 }}>HER WHOLE BRAIN</Text> : null}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
               <Text style={{ fontSize: 19, fontWeight: '800', color: colours.text }}>{p.name}</Text>
               <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text }}>
-                {p.monthly_price_aud === 0 ? 'Free' : `${money(price)} ${per}`}
+                {priceLabel}
               </Text>
             </View>
             {founding && full > 0 ? (
               <Text style={{ color: colours.muted, fontSize: 13, textDecorationLine: 'line-through' }}>{money(full)} {per}</Text>
             ) : null}
-            {yearPrice ? (
+            {yearPrice && !IS_IOS ? (
               <Text style={{ color: colours.muted, fontSize: 13 }}>
                 Works out at {money(price / 12)} a month, billed yearly. 15% less than paying monthly.
               </Text>
@@ -150,11 +223,15 @@ export default function Plans() {
                 </Text>
               ))}
             </View>
-            {p.id !== 'free' && !paying ? (
+            {p.id !== 'free' && !paying && !appleBilled && !IS_IOS ? (
               <Button title={trialHere ? `Keep ${p.name} after my trial` : `Choose ${p.name}`} onPress={() => go(p.id as 'hq' | 'pro' | 'max')} busy={busy === p.id} disabled={!!busy} kind={p.id === 'hq' ? 'primary' : 'ghost'} />
             ) : null}
+            {/* iPhone: Apple In-App Purchase. Moving between HQ, Pro and Max also goes through Apple. */}
+            {p.id !== 'free' && IS_IOS && !stripeOnIos && !current ? (
+              <Button title={trialHere ? `Keep ${p.name} after my trial` : appleBilled ? `Switch to ${p.name}` : `Choose ${p.name}`} onPress={() => appleBuy(p.id as 'hq' | 'pro' | 'max')} busy={busy === p.id} disabled={!!busy || !appleProduct} kind={p.id === 'hq' ? 'primary' : 'ghost'} />
+            ) : null}
             {/* Paying HQ members switch plans through Stripe's portal, so point them there rather than a second checkout (4 Nov 2026). */}
-            {p.id === 'max' && paying && credits?.plan !== 'max' ? (
+            {p.id === 'max' && paying && !IS_IOS && credits?.plan !== 'max' ? (
               <>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
                   You're on {credits?.plan === 'pro' ? 'Tali HQ Pro' : 'Tali HQ'}. Switching to Max happens in Manage billing, where your card already is.
@@ -162,7 +239,7 @@ export default function Plans() {
                 <Button title="Switch to Max in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
               </>
             ) : null}
-            {p.id === 'pro' && paying && credits?.plan === 'hq' ? (
+            {p.id === 'pro' && paying && !IS_IOS && credits?.plan === 'hq' ? (
               <>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
                   You're on Tali HQ. Switching to Pro happens in Manage billing, where your card already is.
@@ -170,7 +247,7 @@ export default function Plans() {
                 <Button title="Switch to Pro in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
               </>
             ) : null}
-            {trialHere && !paying && trialEnd ? (
+            {trialHere && !paying && trialEnd && !IS_IOS ? (
               <Text style={{ color: colours.muted, fontSize: 13, marginTop: 6 }}>
                 {deferred
                   ? `You won't be charged until ${trialEnd.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}.`
@@ -181,7 +258,7 @@ export default function Plans() {
         );
       })}
 
-      {loaded ? (
+      {loaded && !IS_IOS ? (
         <>
           <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: colours.muted, marginTop: space.lg, marginBottom: space.sm }}>FOR YOUR BUSINESS</Text>
           <Card style={{ borderColor: BIZ_BLUE, borderWidth: 2 }}>
@@ -199,7 +276,7 @@ export default function Plans() {
             <View style={{ marginTop: space.sm, gap: 4 }}>
               {BIZ_FEATURES.map((f) => <Text key={f} style={{ fontSize: 14, color: colours.text, lineHeight: 20 }}>{'✓'} {f}</Text>)}
             </View>
-            {!paying ? <Button title="Choose Tali HQ Business" onPress={() => go('biz')} busy={busy === 'biz'} disabled={!!busy} kind="ghost" /> : null}
+            {!paying && !appleBilled ? <Button title="Choose Tali HQ Business" onPress={() => go('biz')} busy={busy === 'biz'} disabled={!!busy} kind="ghost" /> : null}
             {paying && !onBiz ? (
               <>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>Switching to Business happens in Manage billing, where your card already is.</Text>
@@ -225,10 +302,29 @@ export default function Plans() {
       <ExtrasCard />
 
       <ErrorText>{error}</ErrorText>
-      {paying ? <Button title="Manage billing" onPress={manage} busy={busy === 'portal'} /> : null}
-      <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 18 }}>
-        Prices in Australian dollars. Cancel any time from Manage billing. Credits reset each month, on yearly plans too.
-      </Text>
+      {note ? <Text style={{ color: '#7FE0B0', fontWeight: '700', marginBottom: space.sm }}>{note}</Text> : null}
+      {IS_IOS ? (
+        <>
+          {stripeOnIos ? <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>Your plan is billed outside the App Store, so it can't be changed here.</Text> : null}
+          {appleBilled ? <Button title="Manage subscription" kind="ghost" onPress={() => AppleIap.openManageSubscriptions()} /> : null}
+          <Button title="Restore purchases" kind="ghost" onPress={appleRestore} busy={busy === 'restore'} disabled={!!busy && busy !== 'restore'} />
+          <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 18 }}>
+            Tali HQ, Pro and Max are auto-renewing subscriptions, monthly or yearly, at the price shown. Payment is charged to your Apple ID account at confirmation of purchase. The subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period, and your account is charged for renewal within 24 hours before the end of the current period. You can manage and cancel it in your App Store account settings. Credits reset each month, on yearly plans too.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: space.md, marginTop: space.sm }}>
+            <Text style={{ color: colours.purpleInk, fontWeight: '700', fontSize: 13 }} onPress={() => Linking.openURL(APPLE_EULA_URL)}>Terms of Use</Text>
+            <Text style={{ color: colours.purpleInk, fontWeight: '700', fontSize: 13 }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>
+          </View>
+        </>
+      ) : (
+        <>
+          {paying ? <Button title="Manage billing" onPress={manage} busy={busy === 'portal'} /> : null}
+          {appleBilled && !paying ? <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19, marginTop: space.sm }}>Your plan is paid through the App Store. Change or cancel it in your iPhone's App Store settings.</Text> : null}
+          <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 18 }}>
+            Prices in Australian dollars. Cancel any time from Manage billing. Credits reset each month, on yearly plans too.
+          </Text>
+        </>
+      )}
     </Screen>
   );
 }
@@ -267,6 +363,9 @@ function ExtrasCard() {
           </View>
         ))}
       </Card>
+      {/* 22 Nov 2026: add-ons are not sold on iPhone (App Review 3.1.1). */}
+      {IS_IOS ? null : (
+        <>
       <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: colours.muted, marginTop: space.lg, marginBottom: space.sm }}>ADD-ONS</Text>
       <Card style={{ borderColor: colours.purple, borderWidth: 1 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
@@ -283,6 +382,8 @@ function ExtrasCard() {
           <Text style={{ fontSize: 12.5, fontWeight: '800', color: colours.muted }}>Coming soon</Text>
         </View>
       </Card>
+        </>
+      )}
     </>
   );
 }

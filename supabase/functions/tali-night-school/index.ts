@@ -11,6 +11,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { claudeMessages } from '../_shared/claude.ts';
+import { AI_CONSENT_CODE, AI_CONSENT_MESSAGE, hasAiConsent, consentedIds } from '../_shared/consent.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -85,6 +86,7 @@ async function study(system: string, user: string, tz: string) {
 }
 
 async function studyOne(row: { user_id: string; topic: string; local_date: string }) {
+  if (!(await hasAiConsent(admin, row.user_id))) return { user: row.user_id, skipped: 'no AI consent yet' };
   const { data: consume, error } = await admin.rpc('chat_try_consume', { p_user_id: row.user_id, p_feature: 'night_school', p_credits: 1 });
   if (error || !consume?.ok) return { user: row.user_id, skipped: consume?.reason ?? error?.message ?? 'no credits' };
   const usageId = consume.usage_id as number;

@@ -2,7 +2,7 @@
 
 ## Expo HAS CHANGED
 
-This app is pinned to **Expo SDK 54** (React Native 0.81.5, React 19.1, expo-router 6), the same set Totality and Totality Nutrition ship on. Read the exact versioned docs at https://docs.expo.dev/versions/v54.0.0/ before writing any code. Do not bump the SDK without Taj's say-so.
+This app is on **Expo SDK 58** (React Native 0.88.1, React 19.3, expo-router 58), the same set Totality, Totality Training and Totality Nutrition ship on (moved from SDK 54 on 22 Nov 2026 with Taj's yes). Read the exact versioned docs at https://docs.expo.dev/versions/v58.0.0/ before writing any code. Do not bump the SDK without Taj's say-so.
 
 ## What this is
 

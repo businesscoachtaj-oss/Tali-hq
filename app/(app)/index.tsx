@@ -57,6 +57,7 @@ import { TeamHomeSection } from '@/components/TeamHome';
 import { useBoard } from '@/lib/hqBoard';
 import { useBusinesses } from '@/lib/businesses';
 import { behind } from '@/lib/trackerMath';
+import type { ScrollViewInstance, ViewInstance } from 'react-native';
 
 function greeting() {
   const h = new Date().getHours();
@@ -92,13 +93,13 @@ export default function Today() {
   const [tourClosed, setTourClosed] = useState(false);
   const showTour = !!profile && !profile.tour_done_at && !tourClosed;
   // Spots the tour points at, and a scroller so it can bring each one into view.
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const scrollY = useRef(0);
-  const heroRef = useRef<View>(null);
-  const yesRef = useRef<View>(null);
-  const dueRef = useRef<View>(null);
-  const glanceRef = useRef<View>(null);
-  const editRef = useRef<View>(null);
+  const heroRef = useRef<ViewInstance>(null);
+  const yesRef = useRef<ViewInstance>(null);
+  const dueRef = useRef<ViewInstance>(null);
+  const glanceRef = useRef<ViewInstance>(null);
+  const editRef = useRef<ViewInstance>(null);
   useEffect(() => {
     registerTarget('edit', editRef);
     registerTarget('hero', heroRef);
