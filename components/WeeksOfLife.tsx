@@ -6,12 +6,13 @@
 // own here, not in the profile everyone loads, so the app keeps working if the column is not there yet.
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { colours, radius, space } from '@/constants/theme';
 
 // ABS life tables 2021 to 2023: 81.1 years for men and 85.1 for women at birth. About 83 on average.
-const YEARS = 83;
-const COLS = 52;
+export const YEARS = 83;
+export const COLS = 52;
 const WEEK_MS = 7 * 86400000;
 
 function parseBirthday(raw: string): string | null {
@@ -25,7 +26,7 @@ function parseBirthday(raw: string): string | null {
 }
 
 /** Weeks lived, counted the way the grid fills: one row per year of life, 52 squares a row. */
-function weeksLived(birth: string, now = new Date()): number {
+export function weeksLived(birth: string, now = new Date()): number {
   const b = new Date(`${birth}T00:00:00`);
   let years = now.getFullYear() - b.getFullYear();
   const thisYearBday = new Date(now.getFullYear(), b.getMonth(), b.getDate());
@@ -123,6 +124,9 @@ export function WeeksOfLife() {
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.sm }}>
             <Text style={{ color: colours.faint, fontSize: 11.5, lineHeight: 16, flex: 1, marginRight: 12 }}>Each square is a week, one row for every year. The indigo one is now, and it fills in on its own next week. Based on an average Australian life of about {YEARS} years.</Text>
+            <Pressable onPress={() => router.navigate('/time' as any)} hitSlop={8} accessibilityRole="link" style={{ marginRight: 14 }}>
+              <Text style={{ color: colours.purple, fontSize: 12, fontWeight: '700' }}>More like this ›</Text>
+            </Pressable>
             <Pressable onPress={() => save(null)} hitSlop={8} accessibilityRole="button" disabled={busy}>
               <Text style={{ color: colours.muted, fontSize: 12, textDecorationLine: 'underline' }}>Take it off</Text>
             </Pressable>

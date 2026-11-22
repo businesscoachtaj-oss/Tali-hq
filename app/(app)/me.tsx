@@ -242,6 +242,8 @@ export default function Me() {
       </Card>
 
       <Card style={{ marginTop: space.md, paddingVertical: 4 }}>
+        <MenuRow title="Your philosophy" sub="Pick a school: its texts, lessons, things to try and a daily thought" onPress={() => router.navigate('/philosophy' as any)} />
+        <MenuRow title="Your time" sub="Your weeks, your summers and the people you love, counted" onPress={() => router.navigate('/time' as any)} />
         <MenuRow title="Share her brain" sub="A card of how much she knows, with nothing private on it" onPress={() => router.navigate('/brain-card')} />
         <MenuRow title={exporting ? 'Putting it together...' : 'Download her brain'} sub={exportNote || 'Everything she knows about you, as a file you keep'} onPress={() => { if (!exporting) void download(); }} />
         {/* 17 Nov 2026 (Build your HQ): Edit home lives above the widgets on Today and here. */}

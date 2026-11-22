@@ -552,3 +552,13 @@ Taj approved the paper and ink mockups ("A mind that grows with you"). Same feat
 **Life in weeks** (`components/WeeksOfLife.tsx`, top of the Journal's Yours tab). Opt in: add a birthday and every week of an average Australian life (about 83 years, ABS 2021 to 2023) shows as a square, lived weeks in ink, this week indigo, the rest blank; it fills in on its own each week. A short reflection in Tali's voice changes each week. "Take it off" clears it. Stored in `profiles.birth_date` (migration `20261123000094_birth_date.sql`, applied 23 Nov with Taj's yes; column grants added) and read on its own, so the shared profile load is unchanged.
 
 **Checked.** `tsc` clean; every main screen captured from a web export with canned data at 390x844, plus onboarding, the closed Today, Shut the day down and Sleep.
+
+## 23 Nov 2026 (later): Your time and Your philosophy (free for everyone)
+
+**Your time** (`app/(app)/time.tsx`, `lib/time.ts`). Honest counts from your birthday: weeks left (same sum as the Journal's life in weeks), summers, mornings and full moons, each with a short thought from Tali. Then the people you love: add a name, who they are, their age and how often you see them, and Tali counts roughly how many more times you'll be together (the shorter of their years left on the Australian life tables and yours, times how often). A child counts weekends until they turn 18. Stored in `time_people` (own rows only). Opened from Me and from "More like this" on the life in weeks card.
+
+**Your philosophy** (`app/(app)/philosophy.tsx`, `lib/philosophy.ts`). Seven schools (Stoicism, Epicureanism, Buddhism, Taoism, Confucianism, Existentialism, Transcendentalism). Each has the idea in plain words, three lessons, three things to try this week, what to read first (opens in Tali's library when the book is there), further reading and a quote. Follow one or more (`profiles.philosophies`). Quotes are word for word from public domain translations, checked 23 Nov 2026, with the translator named.
+
+**A thought for today** (`components/QuoteOfDay.tsx`, on Today under what needs you). Once you follow a school, one quote a day from those schools. Keep it (`saved_quotes`, listed on Your philosophy) or Not today (hidden until tomorrow, on the device). Opened from Me, the Library and the quote itself.
+
+Migration `20261123000095_your_time_and_philosophy.sql`: `time_people`, `profiles.philosophies`, `saved_quotes`, with RLS and column grants. Every screen hides cleanly if the tables are not there yet.

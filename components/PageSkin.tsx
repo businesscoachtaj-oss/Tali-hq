@@ -6,7 +6,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, Text, View } from 'react-native';
 
-export type SkinId = 'gym' | 'finish' | 'planner' | 'dusk' | 'crossroads' | 'cork' | 'receipt' | 'banknote' | 'airmail' | 'control' | 'nightschool' | 'shoebox' | 'topup' | 'founder' | 'affiliate' | 'settings' | 'plans' | 'brain' | 'journal';
+export type SkinId = 'gym' | 'finish' | 'planner' | 'dusk' | 'crossroads' | 'cork' | 'receipt' | 'banknote' | 'airmail' | 'control' | 'nightschool' | 'shoebox' | 'topup' | 'founder' | 'affiliate' | 'settings' | 'plans' | 'brain' | 'journal' | 'time' | 'philosophy';
 
 type Skin = { colors: [string, string]; bg: string; icon: React.ComponentProps<typeof Ionicons>['name']; kicker: string };
 
@@ -31,6 +31,8 @@ export const SKINS: Record<SkinId, Skin> = {
   plans: { colors: ['#4A2160', '#6C3483'], bg: '#F3EEF6', icon: 'sparkles-outline', kicker: 'YOUR PLAN' },
   journal: { colors: ['#5B1F4A', '#B24D8C'], bg: '#F6ECF2', icon: 'book-outline', kicker: 'YOUR THOUGHTS, YOUR WEEK' },
   brain: { colors: ['#17133A', '#46307E'], bg: '#ECE8F6', icon: 'bulb-outline', kicker: 'EVERYTHING TALI KNOWS' },
+  philosophy: { colors: ['#1C1A17', '#3B3F9E'], bg: '#F5F0E6', icon: 'library-outline', kicker: 'HOW TO LIVE' },
+  time: { colors: ['#1C1A17', '#3B3F9E'], bg: '#F5F0E6', icon: 'hourglass-outline', kicker: 'REMINDERS WORTH KEEPING' },
 };
 
 const SkinCtx = createContext<Skin | null>(null);
