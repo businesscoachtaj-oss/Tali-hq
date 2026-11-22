@@ -35,6 +35,20 @@ function weeksLived(birth: string, now = new Date()): number {
   return years * COLS + weeks;
 }
 
+// 23 Nov 2026 (Taj: "a more philosophical, insightful tone and narrative"). One reflection a week, in
+// Tali's voice, turning over as the new square fills in. Paraphrased ideas only, no quotes.
+const THOUGHTS = [
+  "Seneca thought life was long enough, if you knew how to use it. Most of it slips by while we wait for some other week to begin. The indigo square is the only one you can do anything with.",
+  "Every filled square held a Monday you probably can't remember, and a few hold days you'll never forget. You don't get to pick which weeks become the ones that matter. You do get to keep showing up for them.",
+  "A whole life fits on one page. Seen like this, a single week is a real piece of it, big enough to start something and small enough to waste without noticing.",
+  "Marcus Aurelius wrote reminders to himself that his time was short, so he would live that day better. This page is the same reminder, drawn in squares.",
+  "Most weeks look alike from the outside. The ones that change a life usually turn on something small: one honest conversation, one decision made, one hour spent on the thing you keep putting off.",
+  "The filled squares are spent and the blank ones are promised to no one. What you have is this week, and that has always been enough to change the direction of the next.",
+  "When people look back on long lives, they rarely talk about what they owned. They talk about who was there and what they made. Those are built a week at a time, starting with this one.",
+  "You won't remember most of this week. The people you spend it with might. That is a good enough reason to spend some of it on them.",
+];
+const thoughtFor = (lived: number) => THOUGHTS[lived % THOUGHTS.length];
+
 const Grid = memo(function Grid({ lived, cell, gap }: { lived: number; cell: number; gap: number }) {
   const rows = [];
   for (let r = 0; r < YEARS; r++) {
@@ -46,7 +60,7 @@ const Grid = memo(function Grid({ lived, cell, gap }: { lived: number; cell: num
     }
     rows.push(
       <View key={r} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: gap }}>
-        <Text style={{ width: 18, fontSize: 8, color: colours.faint, textAlign: 'right', marginRight: 4 }}>{r % 10 === 0 ? r : ''}</Text>
+        <Text style={{ width: 18, height: cell, fontSize: 8, lineHeight: cell + 1, color: colours.faint, textAlign: 'right', marginRight: 4, overflow: 'visible' }}>{r % 10 === 0 ? r : ''}</Text>
         {cells}
       </View>,
     );
@@ -97,17 +111,18 @@ export function WeeksOfLife() {
       <Text style={{ color: colours.purple, fontSize: 11, fontWeight: '800', letterSpacing: 1.8 }}>YOUR LIFE IN WEEKS</Text>
       {birth ? (
         <>
-          <Text style={{ color: colours.text, fontSize: 22, lineHeight: 28, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>
+          <Text style={{ color: colours.text, fontSize: 23, lineHeight: 29, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>
             {left > 0
-              ? `You've lived ${lived.toLocaleString('en-AU')} weeks. About ${left.toLocaleString('en-AU')} to go, if your life runs to the average.`
-              : `You've lived ${lived.toLocaleString('en-AU')} weeks, past the average life. Every week from here is a bonus.`}
+              ? `${lived.toLocaleString('en-AU')} weeks behind you. Roughly ${left.toLocaleString('en-AU')} ahead, if yours runs to the average.`
+              : `${lived.toLocaleString('en-AU')} weeks behind you, more than the average life is given. Every one from here is a gift.`}
           </Text>
-          <Text style={{ color: colours.muted, fontSize: 13, lineHeight: 19, marginTop: 6 }}>Each square is a week. Filled ones are behind you, the indigo one is this week, and a new one fills in every week. Make this one count.</Text>
+          <Text style={{ color: colours.text, fontSize: 17, lineHeight: 25, marginTop: 10, fontFamily: 'EBGaramond_400Regular_Italic' }}>{thoughtFor(lived)}</Text>
+          <Text style={{ color: colours.faint, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, marginTop: 6 }}>TALI</Text>
           <View style={{ marginTop: space.md }}>
             <Grid lived={lived} cell={cell} gap={gap} />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.sm }}>
-            <Text style={{ color: colours.faint, fontSize: 11.5, flex: 1 }}>Based on an average Australian life of about {YEARS} years.</Text>
+            <Text style={{ color: colours.faint, fontSize: 11.5, lineHeight: 16, flex: 1, marginRight: 12 }}>Each square is a week, one row for every year. The indigo one is now, and it fills in on its own next week. Based on an average Australian life of about {YEARS} years.</Text>
             <Pressable onPress={() => save(null)} hitSlop={8} accessibilityRole="button" disabled={busy}>
               <Text style={{ color: colours.muted, fontSize: 12, textDecorationLine: 'underline' }}>Take it off</Text>
             </Pressable>
@@ -115,8 +130,8 @@ export function WeeksOfLife() {
         </>
       ) : (
         <>
-          <Text style={{ color: colours.text, fontSize: 21, lineHeight: 27, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>Every week of an average life, on one page.</Text>
-          <Text style={{ color: colours.muted, fontSize: 13.5, lineHeight: 20, marginTop: 6 }}>Add your birthday and the weeks you've lived fill in, with the rest left blank. It can be confronting. It's also a good nudge to spend this week on what matters.</Text>
+          <Text style={{ color: colours.text, fontSize: 23, lineHeight: 29, marginTop: 6, fontFamily: 'EBGaramond_500Medium' }}>Your whole life fits on one page.</Text>
+          <Text style={{ color: colours.text, fontSize: 17, lineHeight: 25, marginTop: 8, fontFamily: 'EBGaramond_400Regular_Italic' }}>About four thousand weeks, if it runs to the average. Add your birthday and the ones you've lived fill in, with the rest left blank. It can be hard to look at. It's also one of the clearest pictures of time there is, and a quiet reason to spend this week well.</Text>
           <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md }}>
             <TextInput value={draft} onChangeText={setDraft} placeholder="DD/MM/YYYY" placeholderTextColor={colours.faint} keyboardType="numbers-and-punctuation" maxLength={10} accessibilityLabel="Your birthday"
               style={{ flex: 1, borderWidth: 1, borderColor: colours.ink, borderRadius: radius.input, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: colours.text, backgroundColor: colours.bg }} />
