@@ -562,3 +562,9 @@ Taj approved the paper and ink mockups ("A mind that grows with you"). Same feat
 **A thought for today** (`components/QuoteOfDay.tsx`, on Today under what needs you). Once you follow a school, one quote a day from those schools. Keep it (`saved_quotes`, listed on Your philosophy) or Not today (hidden until tomorrow, on the device). Opened from Me, the Library and the quote itself.
 
 Migration `20261123000095_your_time_and_philosophy.sql`: `time_people`, `profiles.philosophies`, `saved_quotes`, with RLS and column grants. Every screen hides cleanly if the tables are not there yet.
+
+## 23 Nov 2026: phone sign in fix ("Invalid API key")
+
+- After today's first OTA updates, iPhones showed "Invalid API key" on sign in. The EAS update job picked up an `EXPO_PUBLIC_SUPABASE_URL` saved on Expo's side, which won over `.env.production`, so the phone bundle had a server address that did not match the key. Web was not affected.
+- `lib/supabase.ts` now only accepts the Tali HQ project (`jbyzblwrywgxilhmfyjt`) and falls back to its public URL and publishable key if the build hands it anything else.
+- `.eas/workflows/publish-update.yml` sets the three public values on the update job itself.

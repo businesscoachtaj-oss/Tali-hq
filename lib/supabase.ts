@@ -3,8 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const key = process.env.EXPO_PUBLIC_SUPABASE_KEY;
+// 23 Nov 2026 (Taj's iPhone showed "Invalid API key" after the first OTA): the EAS update job had an
+// EXPO_PUBLIC_SUPABASE_URL set on Expo's side that won over .env.production, so phones got a server
+// address that did not match the key. Both values are public (publishable key, protected by RLS), so
+// the app now only accepts the Tali HQ project and falls back to it if anything else turns up.
+const TALI_HQ_URL = 'https://jbyzblwrywgxilhmfyjt.supabase.co';
+const TALI_HQ_KEY = 'sb_publishable_6boNZk1eRN8-7Z4PIbxB3w_n4VDXf51';
+const envUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const envKey = process.env.EXPO_PUBLIC_SUPABASE_KEY;
+const envIsTali = !!envUrl && envUrl.includes('jbyzblwrywgxilhmfyjt') && !!envKey;
+const url = envIsTali ? envUrl : TALI_HQ_URL;
+const key = envIsTali ? envKey : TALI_HQ_KEY;
 
 // EAS builds from a clean git checkout, so .env never reaches the cloud builder.
 // The values live in eas.json's env blocks (both are public). Fail loudly instead

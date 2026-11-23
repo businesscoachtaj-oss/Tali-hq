@@ -8,6 +8,11 @@ on:
 jobs:
   update:
     type: update
+    # 23 Nov 2026: set these here so a value saved on Expo's side can never replace them again.
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://jbyzblwrywgxilhmfyjt.supabase.co
+      EXPO_PUBLIC_SUPABASE_KEY: sb_publishable_6boNZk1eRN8-7Z4PIbxB3w_n4VDXf51
+      EXPO_PUBLIC_INBOUND_DOMAIN: tali.totality360.com.au
     params:
       channel: production
-      message: "First OTA channel for Tali HQ"
+      message: "Tali HQ update"
