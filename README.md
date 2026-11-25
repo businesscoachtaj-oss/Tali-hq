@@ -568,3 +568,12 @@ Migration `20261123000095_your_time_and_philosophy.sql`: `time_people`, `profile
 - After today's first OTA updates, iPhones showed "Invalid API key" on sign in. The EAS update job picked up an `EXPO_PUBLIC_SUPABASE_URL` saved on Expo's side, which won over `.env.production`, so the phone bundle had a server address that did not match the key. Web was not affected.
 - `lib/supabase.ts` now only accepts the Tali HQ project (`jbyzblwrywgxilhmfyjt`) and falls back to its public URL and publishable key if the build hands it anything else.
 - `.eas/workflows/publish-update.yml` sets the three public values on the update job itself.
+
+## 25 Nov 2026: Ponder (brain games) keeps its data here
+
+Ponder is a separate brain games app (its own repo). Its sign in is a normal Tali HQ sign in, so a Ponder sign-up also gets the Tali HQ profile, the welcome email and the 7 day trial (Taj chose this).
+
+- Migration `20261125000098_ponder.sql` (applied 25 Nov with Taj's yes). `ponder_` tables, RLS on `auth.uid()`. Kids have no login: a paired family device holds a token, kids sign in on it with a 4 digit PIN (bcrypt, in a table no client reads), 5 wrong tries in 10 minutes locks the device for a while. Pairing codes are 6 characters, one use, 10 minutes. `ponder_for_tali(user)` and `ponder_weekly_notes()` are server only.
+- `tali-brief` adds the last 7 days in Ponder (games, brain habits, sleep from Wind Down, lessons) to the brief context. Tali uses it at most once and only when it helps. Nothing changes for people who don't play.
+- New `ponder-weekly-note` (verify_jwt false, it checks for the service role itself): the Sunday note to the family member a Gentle player chose to share with, sent with Resend. Not scheduled yet.
+- Ponder's Delete my account calls `delete-account` (same account). Deleting the auth user cascades every `ponder_` row, so nothing else is needed.
