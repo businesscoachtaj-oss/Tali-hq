@@ -135,7 +135,7 @@ article pre { margin: 10px 0; }
 <div class="ep"><span class="m r">DELETE</span><b>/v1/businesses/{business_id}/clients/{client_id}</b></div>
 <p>Forgets one client: their facts and events. Use this when a person asks to be forgotten.</p>
 <div class="ep"><span class="m">GET</span><b>/v1/me</b></div>
-<p>Your plan, mode and answers used this period.</p>
+<p>Your plan, mode and answers used this period. On Pay as you go it shows <code>credits_left</code> and when they run out instead.</p>
 
 <h2 id="panel">The drop-in panel</h2>
 <p>The panel is a ready-made Tali for a client's page in your product: what she knows, things she noticed, and buttons to draft a reply, brief the user or suggest a time. It carries your name for her and your colour.</p>
@@ -165,16 +165,17 @@ article pre { margin: 10px 0; }
 <h2 id="limits">Limits and errors</h2>
 <ul>
 <li><b>Sandbox.</b> 5 businesses and 300 answers a month, free.</li>
-<li><b>Your cap.</b> On a plan, answers past the included ones are billed per 1,000 after the period ends. Tali stops at your cap, which starts at three times your included answers. Change it in the console.</li>
+<li><b>Pay as you go.</b> Answer credits bought in the console, up to 10 businesses. Each answer uses its credits. Remembering uses 1 credit for every 5 learning calls. Tali stops when credits run out. Credits last 12 months from your last top up.</li>
+<li><b>Your cap.</b> On a monthly plan, answers past the included ones are billed per 1,000 after the period ends. Tali stops at your cap, which starts at three times your included answers. Change it in the console.</li>
 <li><b>Speed.</b> 120 requests a minute.</li>
-<li><b>Remembering is free</b> within fair use: learning from events up to ten times your plan's answers each period. Past that, events are still stored.</li>
+<li><b>On a monthly plan, remembering is free</b> within fair use: learning from events up to ten times your plan's answers each period. Past that, events are still stored. Credits you have left are used before extra answers are billed.</li>
 </ul>
 <p>Errors come back as <code>{ "error": { "code", "message" } }</code>.</p>
 <div class="scroll"><table>
 <tr><th>Status</th><th>code</th><th>Meaning</th></tr>
 <tr><td>400</td><td>various</td><td>Something is missing or not right. The message says what.</td></tr>
 <tr><td>401</td><td><code>bad_key</code>, <code>bad_token</code>, <code>expired</code></td><td>The key or panel token is not valid.</td></tr>
-<tr><td>402</td><td><code>not_active</code>, <code>business_limit</code></td><td>The licence is not active, or the plan's businesses are all used.</td></tr>
+<tr><td>402</td><td><code>not_active</code>, <code>business_limit</code>, <code>no_credits</code></td><td>The licence is not active, the plan's businesses are all used, or Pay as you go is out of credits.</td></tr>
 <tr><td>403</td><td><code>switched_off</code></td><td>That kind of answer is switched off under Customise.</td></tr>
 <tr><td>429</td><td><code>slow_down</code>, <code>sandbox_limit</code>, <code>cap_reached</code></td><td>Too fast, or a limit was reached.</td></tr>
 <tr><td>502</td><td><code>try_again</code></td><td>Tali could not answer just now. Nothing was charged.</td></tr>

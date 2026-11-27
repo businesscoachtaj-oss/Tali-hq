@@ -39,7 +39,7 @@ function costAud(tokensIn: number, tokensOut: number) {
 }
 
 // 27 Nov 2026: Tali Brain licence prices, A$ a month (the same numbers as supabase/functions/brain-api).
-const LICENCE_PRICE: Record<string, number> = { starter: 290, pilot: 990, growth: 2990, platform: 7500 };
+const LICENCE_PRICE: Record<string, number> = { pilot: 990, growth: 2990, platform: 7500 }; // Starter retired 27 Nov 2026 for Pay as you go
 
 export default function Founder() {
   const [s, setS] = useState<FounderStats | null>(null);
@@ -121,13 +121,15 @@ export default function Founder() {
               <View style={{ height: space.lg }} />
               <Label>Tali Brain licences</Label>
               <Card>
-                <Row k="On a paid plan" v={n(licences.filter((l) => l.status === 'active' || l.status === 'past_due').length)} />
+                <Row k="On a monthly plan" v={n(licences.filter((l) => (l.status === 'active' || l.status === 'past_due') && l.plan !== 'payg').length)} />
+                <Row k="On Pay as you go" v={n(licences.filter((l) => l.status === 'active' && l.plan === 'payg').length)} />
+                <Row k="Credit sales, last 30 days (before GST)" v={`A$${n(Math.round(licences.reduce((a, l) => a + Number(l.credits_aud_30d ?? 0), 0)))}`} />
                 <Row k="Licence income a month (before GST)" v={`A$${n(licences.reduce((a, l) => a + (l.status === 'active' || l.status === 'past_due' ? LICENCE_PRICE[l.plan ?? ''] ?? 0 : 0), 0))}`} />
                 <Row k="In the free sandbox" v={n(licences.filter((l) => l.status === 'sandbox').length)} />
                 <Row k="Brain API uptime, last 30 days" v={uptime?.percent != null ? `${uptime.percent}% of ${n(uptime.checks)} checks` : 'Measuring'} last={licences.length === 0} />
                 {licences.map((l, i) => (
-                  <Row key={l.id} k={`${l.name} (${l.status === 'sandbox' ? 'sandbox' : `${l.plan ?? 'no plan'}${l.status === 'active' ? '' : `, ${l.status.replace('_', ' ')}`}`})`}
-                    v={l.status === 'sandbox' ? `${n(l.test_answers)} test answers` : `${n(l.businesses)} businesses, ${n(l.answers)} answers`} last={i === licences.length - 1} />
+                  <Row key={l.id} k={`${l.name} (${l.status === 'sandbox' ? 'sandbox' : `${l.plan === 'payg' ? 'pay as you go' : l.plan ?? 'no plan'}${l.status === 'active' ? '' : `, ${l.status.replace('_', ' ')}`}`})`}
+                    v={l.status === 'sandbox' ? `${n(l.test_answers)} test answers` : `${n(l.businesses)} businesses, ${n(l.answers)} answers${l.plan === 'payg' ? `, ${n(l.credits_left)} credits left` : ''}`} last={i === licences.length - 1} />
                 ))}
               </Card>
               <Text style={{ color: colours.faint, fontSize: 12, marginTop: 6, lineHeight: 17 }}>Software companies that license Tali's brain. Their console is at talihq.com.au/brain/console.</Text>

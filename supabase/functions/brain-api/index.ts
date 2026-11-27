@@ -24,6 +24,9 @@
 //   Console sign in (a Supabase session), POST /console { action }: keys, settings, usage, billing.
 //   Cron (x-tali-key), POST /internal/daily: checks Stripe and bills answers over the plan.
 // GET /public/plans is open: the pricing page reads it so prices live in one place.
+// Pay as you go (27 Nov 2026, replaced Starter): prepaid answer credits bought from the console, no
+// monthly fee, up to 10 businesses. Remembering costs 1 credit for every 5 learning calls. Credits last
+// 12 months from the last top up. On a monthly plan, credits left are used before extra answers are billed.
 //
 // Tali never sends, books or spends here. She returns drafts and suggestions; the licensee's software
 // acts only after its user says yes, and reports back with /outcome.
@@ -46,12 +49,18 @@ const ORIGINS = [...ALLOWED, new URL(SITE).origin, new URL(SITE).origin.replace(
 // Stripe prices were made 27 Nov 2026 in the Totality 360 account (product prod_Vhf7Tcfg1dqf2d).
 type Plan = { name: string; price: number; price_id: string; businesses: number | null; answers: number; over: number; months: number; own_name: boolean; colours: boolean; white: boolean; actions: boolean };
 const PLANS: Record<string, Plan> = {
-  starter: { name: 'Starter', price: 290, price_id: 'price_1UgFnpPy9YlWBZ02hjqB3z8P', businesses: 10, answers: 2000, over: 70, months: 1, own_name: false, colours: false, white: false, actions: false },
   pilot: { name: 'Pilot', price: 990, price_id: 'price_1UgFnpPy9YlWBZ02Un9A8a0R', businesses: 50, answers: 10000, over: 60, months: 3, own_name: false, colours: false, white: false, actions: false },
   growth: { name: 'Growth', price: 2990, price_id: 'price_1UgFnqPy9YlWBZ0298CjGaKe', businesses: 500, answers: 50000, over: 50, months: 12, own_name: true, colours: true, white: false, actions: false },
   platform: { name: 'Platform', price: 7500, price_id: 'price_1UgFnrPy9YlWBZ02hM3NySdk', businesses: null, answers: 100000, over: 40, months: 12, own_name: true, colours: true, white: true, actions: true },
 };
 const PRICE_SETUP = 'price_1UgFnrPy9YlWBZ02tBREnVsW'; // A$3,000 one-off
+// Pay as you go credit packs, A$ plus GST (Stripe product prod_VhfkUzloG7cJCi, made 27 Nov 2026).
+const PAYG = { name: 'Pay as you go', businesses: 10, learn_per_credit: 5, months_valid: 12 };
+const PACKS: Record<string, { answers: number; price: number; price_id: string }> = {
+  p1: { answers: 1000, price: 80, price_id: 'price_1UgGPWPy9YlWBZ02zPPrP9VL' },
+  p5: { answers: 5000, price: 375, price_id: 'price_1UgGPXPy9YlWBZ02ZDkavVYb' },
+  p20: { answers: 20000, price: 1400, price_id: 'price_1UgGPXPy9YlWBZ025OmsmfZn' },
+};
 const SETUP_PRICE = 3000;
 // Stripe billing portal set ups (made 27 Nov 2026). Inside a plan's minimum term the portal has no cancel button.
 const PORTAL_LOCKED = 'bpc_1UgGHjPy9YlWBZ02fVjFw5W2';
@@ -139,10 +148,19 @@ async function used(c: Ctx) {
   return Number(data ?? 0);
 }
 const capOf = (c: Ctx) => (c.mode === 'test' ? SANDBOX.answers : c.s.cap ?? (PLANS[c.lic.plan]?.answers ?? 0) * 3);
+const isPayg = (c: Ctx) => c.mode === 'live' && c.lic.plan === 'payg';
+async function credits(licId: string): Promise<{ balance: number; raw_balance: number; bought: number; used: number; expired: boolean; ever: boolean; last_top_up: string | null; expires_at: string | null }> {
+  const { data } = await admin.rpc('licence_credit_balance', { p_licensee: licId });
+  return (data ?? { balance: 0, raw_balance: 0, bought: 0, used: 0, expired: false, ever: false, last_top_up: null, expires_at: null }) as any;
+}
 async function guard(c: Ctx, units: number): Promise<Response | null> {
   const since = new Date(Date.now() - 60_000).toISOString();
   const { count } = await admin.from('licence_answers').select('id', { count: 'exact', head: true }).eq('licensee_id', c.lic.id).gte('created_at', since);
   if ((count ?? 0) >= 120) return fail(429, 'slow_down', 'Too many requests this minute. Try again shortly.');
+  if (isPayg(c)) {
+    const cr = await credits(c.lic.id);
+    return cr.balance >= units ? null : fail(402, 'no_credits', cr.expired ? 'Your answer credits ran out 12 months after your last top up. Top up in the console, under Usage and billing.' : 'This licence is out of answer credits. Top up in the console, under Usage and billing.');
+  }
   const u = await used(c);
   if (u + units > capOf(c)) {
     return c.mode === 'test'
@@ -151,7 +169,7 @@ async function guard(c: Ctx, units: number): Promise<Response | null> {
   }
   return null;
 }
-const record = (c: Ctx, row: Record<string, unknown>) => admin.from('licence_answers').insert({ licensee_id: c.lic.id, mode: c.mode, ...row }).select('id').single();
+const record = (c: Ctx, row: Record<string, unknown>) => admin.from('licence_answers').insert({ licensee_id: c.lic.id, mode: c.mode, payg: isPayg(c), ...row }).select('id').single();
 
 // ── Businesses and clients ───────────────────────────────────────────────────────────────────────
 async function business(c: Ctx, ext: unknown, name?: unknown, create = true): Promise<any | Response> {
@@ -165,7 +183,7 @@ async function business(c: Ctx, ext: unknown, name?: unknown, create = true): Pr
     return { ...had, name: nm ?? had.name };
   }
   if (!create) return fail(404, 'no_business', 'No brain for that business yet.');
-  const max = c.mode === 'test' ? SANDBOX.businesses : PLANS[c.lic.plan]?.businesses ?? null;
+  const max = c.mode === 'test' ? SANDBOX.businesses : c.lic.plan === 'payg' ? PAYG.businesses : PLANS[c.lic.plan]?.businesses ?? null;
   if (max !== null) {
     const { count } = await admin.from('licence_businesses').select('id', { count: 'exact', head: true }).eq('licensee_id', c.lic.id).eq('mode', c.mode);
     if ((count ?? 0) >= max) return fail(402, 'business_limit', c.mode === 'test' ? `The sandbox holds ${max} businesses.` : `Your plan covers ${max} businesses. Move up a plan in the console to add more.`);
@@ -342,11 +360,16 @@ async function postEvents(c: Ctx, body: any) {
   }
   let learned: any[] = [], skipped: string | undefined;
   if (texts.length && body.learn !== false) {
-    // Remembering is free, within fair use: ten times the plan's answers each period (twice, in the sandbox).
-    const { count } = await admin.from('licence_answers').select('id', { count: 'exact', head: true }).eq('licensee_id', c.lic.id).eq('mode', c.mode).eq('kind', 'learn').gte('created_at', periodFrom(c));
-    const fair = c.mode === 'test' ? SANDBOX.answers * 2 : (PLANS[c.lic.plan]?.answers ?? 0) * 10;
-    if ((count ?? 0) >= fair) skipped = 'fair_use';
-    else {
+    if (isPayg(c)) {
+      // Pay as you go: remembering costs 1 credit for every 5 learning calls, so it needs credits left.
+      if ((await credits(c.lic.id)).balance <= 0) skipped = 'no_credits';
+    } else {
+      // Plans: remembering is free, within fair use: ten times the plan's answers each period (twice, in the sandbox).
+      const { count } = await admin.from('licence_answers').select('id', { count: 'exact', head: true }).eq('licensee_id', c.lic.id).eq('mode', c.mode).eq('kind', 'learn').gte('created_at', periodFrom(c));
+      const fair = c.mode === 'test' ? SANDBOX.answers * 2 : (PLANS[c.lic.plan]?.answers ?? 0) * 10;
+      if ((count ?? 0) >= fair) skipped = 'fair_use';
+    }
+    if (!skipped) {
       try { learned = await learn(c, biz, cl, texts.join('\n\n'), list.length === 1 && EVENT_TYPES.includes(list[0].type) ? list[0].type : 'events'); }
       catch (e) { console.error('brain-api learn', String(e)); skipped = 'try_later'; }
     }
@@ -471,6 +494,10 @@ async function api(req: Request, c: Ctx, path: string, u: URL): Promise<Response
 
   if (m === 'GET' && seg[1] === 'me') {
     const plan = PLANS[c.lic.plan];
+    if (isPayg(c)) {
+      const cr = await credits(c.lic.id);
+      return json({ licensee: c.lic.name, mode: c.mode, plan: 'payg', credits_left: cr.balance, credits_expire_at: cr.expires_at, answers_this_month: await used(c), assistant: { name: c.s.assistant_name } });
+    }
     return json({ licensee: c.lic.name, mode: c.mode, plan: c.mode === 'test' ? 'sandbox' : c.lic.plan, answers_used: await used(c), answers_included: c.mode === 'test' ? SANDBOX.answers : plan?.answers ?? 0, answers_cap: capOf(c), period_start: periodFrom(c), assistant: { name: c.s.assistant_name } });
   }
 
@@ -627,14 +654,36 @@ function minimumUntil(lic: any): Date | null {
 }
 const planForPrice = (id: string) => Object.keys(PLANS).find((k) => PLANS[k].price_id === id) ?? null;
 
+// Credit packs paid for at Stripe Checkout, recorded once each (ref is the Checkout session id).
+async function claimCredits(lic: any) {
+  const list = await stripe('GET', 'checkout/sessions', { customer: lic.stripe_customer_id, limit: 25 });
+  for (const s of list.data ?? []) {
+    if (s.metadata?.kind !== 'brain_credits' || s.metadata?.tali_licensee_id !== lic.id || s.payment_status !== 'paid') continue;
+    const pack = PACKS[s.metadata.pack];
+    if (!pack) continue;
+    const { data: had } = await admin.from('licence_credits').select('id').eq('ref', s.id).maybeSingle();
+    if (had) continue;
+    // Credits run out 12 months after the last top up. Anything left from before then is cleared first.
+    const cr = await credits(lic.id);
+    if (cr.expired && cr.raw_balance > 0) await admin.from('licence_credits').insert({ licensee_id: lic.id, credits: -cr.raw_balance, kind: 'adjust', ref: `expired_${s.id}` });
+    await admin.from('licence_credits').insert({ licensee_id: lic.id, credits: pack.answers, kind: 'pack', pack: s.metadata.pack, amount_aud: (s.amount_total ?? 0) / 100, ref: s.id });
+  }
+}
+
 // Brings a licence in line with Stripe, and bills answers over the plan for a period that has ended.
 async function syncBilling(lic: any): Promise<any> {
   if (!STRIPE || !lic.stripe_customer_id) return lic;
+  await claimCredits(lic).catch((e) => console.error('brain-api credits', lic.id, String(e)));
   const list = await stripe('GET', 'subscriptions', { customer: lic.stripe_customer_id, status: 'all', limit: 10 });
   const mine = (list.data ?? []).filter((s: any) => s.metadata?.tali_licensee_id === lic.id);
   const sub = mine.find((s: any) => ['active', 'trialing', 'past_due', 'unpaid'].includes(s.status));
   let set: Record<string, unknown>;
-  if (!sub) set = ['active', 'past_due'].includes(lic.status) ? { status: 'cancelled' } : {};
+  if (!sub) {
+    // No monthly plan. Anyone who has ever bought credits is on Pay as you go; otherwise the licence has ended.
+    const cr = await credits(lic.id);
+    set = cr.ever ? (lic.plan === 'payg' && lic.status === 'active' ? {} : { plan: 'payg', status: 'active', stripe_subscription_id: null, period_start: null, period_end: null })
+      : ['active', 'past_due'].includes(lic.status) ? { status: 'cancelled' } : {};
+  }
   else {
     const item = sub.items?.data?.[0];
     const ps = new Date((sub.current_period_start ?? item?.current_period_start) * 1000).toISOString();
@@ -646,9 +695,19 @@ async function syncBilling(lic: any): Promise<any> {
         admin.rpc('licence_answers_used', { p_licensee: lic.id, p_mode: 'live', p_from: lic.period_start }),
         admin.rpc('licence_answers_used', { p_licensee: lic.id, p_mode: 'live', p_from: lic.period_end }),
       ]);
-      const over = Number(a.data ?? 0) - Number(b.data ?? 0) - PLANS[lic.plan].answers;
+      let over = Number(a.data ?? 0) - Number(b.data ?? 0) - (PLANS[lic.plan]?.answers ?? Infinity);
+      const tag = `${lic.id}_${Math.floor(new Date(lic.period_end).getTime() / 1000)}`;
       if (over > 0) {
-        const tag = `${lic.id}_${Math.floor(new Date(lic.period_end).getTime() / 1000)}`;
+        // Credits left are used before anything is billed. Done once per period (the ref), so a retry bills the same amount.
+        const { data: done } = await admin.from('licence_credits').select('credits').eq('ref', `overage_${tag}`).maybeSingle();
+        let use = done ? -done.credits : Math.min(over, (await credits(lic.id)).balance);
+        if (!done && use > 0) {
+          const { error } = await admin.from('licence_credits').insert({ licensee_id: lic.id, credits: -use, kind: 'overage', ref: `overage_${tag}` });
+          if (error) use = 0;
+        }
+        over -= use;
+      }
+      if (over > 0) {
         const tax = lic.country === 'AU' ? [await gstRate()] : undefined;
         await stripe('POST', 'invoiceitems', {
           customer: lic.stripe_customer_id, currency: 'aud', amount: Math.round((over * PLANS[lic.plan].over * 100) / 1000), tax_rates: tax,
@@ -672,19 +731,21 @@ async function syncBilling(lic: any): Promise<any> {
 const publicPlans = () => ({
   plans: Object.entries(PLANS).map(([id, p]) => ({ id, name: p.name, price: p.price, businesses: p.businesses, answers: p.answers, over: p.over, months: p.months, own_name: p.own_name, colours: p.colours, white: p.white, actions: p.actions })),
   setup: SETUP_PRICE, sandbox: SANDBOX, currency: 'AUD',
+  payg: { ...PAYG, packs: Object.entries(PACKS).map(([id, k]) => ({ id, answers: k.answers, price: k.price })) },
 });
 const KEY_COLS = 'id, name, mode, last4, created_at, last_used_at, revoked_at';
 
 async function consoleState(lic: any) {
   const from = lic.period_start ?? monthStart();
-  const [keys, live, test] = await Promise.all([
+  const [keys, live, test, cr] = await Promise.all([
     admin.from('licence_keys').select(KEY_COLS).eq('licensee_id', lic.id).order('created_at', { ascending: false }),
     admin.rpc('licence_stats', { p_licensee: lic.id, p_mode: 'live', p_from: from }),
     admin.rpc('licence_stats', { p_licensee: lic.id, p_mode: 'test', p_from: monthStart() }),
+    credits(lic.id),
   ]);
   return {
     licensee: { id: lic.id, name: lic.name, country: lic.country, plan: lic.plan, status: lic.status, period_start: lic.period_start, period_end: lic.period_end, minimum_until: minimumUntil(lic)?.toISOString() ?? null, settings: tidySettings(lic.settings ?? {}) },
-    keys: keys.data ?? [], stats: { live: live.data, test: test.data }, ...publicPlans(), voice_notes: !!OPENAI, billing_ready: !!STRIPE,
+    keys: keys.data ?? [], stats: { live: live.data, test: test.data }, credits: { balance: cr.balance, bought: cr.bought, used: cr.used, last_top_up: cr.last_top_up, expires_at: cr.expires_at }, ...publicPlans(), voice_notes: !!OPENAI, billing_ready: !!STRIPE,
   };
 }
 
@@ -714,7 +775,7 @@ async function consoleApi(req: Request, token: string): Promise<Response> {
     }
     if (action === 'create_key') {
       const mode = body.mode === 'live' ? 'live' : 'test';
-      if (mode === 'live' && !['active', 'past_due'].includes(lic.status)) return fail(402, 'not_active', 'Live keys come with a plan. Pick one under Usage and billing.');
+      if (mode === 'live' && !['active', 'past_due'].includes(lic.status)) return fail(402, 'not_active', 'Live keys come with Pay as you go or a plan. Buy credits or pick a plan under Usage and billing.');
       const { count } = await admin.from('licence_keys').select('id', { count: 'exact', head: true }).eq('licensee_id', lic.id).eq('mode', mode).is('revoked_at', null);
       if ((count ?? 0) >= 5) return fail(400, 'too_many', 'You have 5 keys of that kind. Revoke one first.');
       const key = newKey(mode);
@@ -777,6 +838,26 @@ async function consoleApi(req: Request, token: string): Promise<Response> {
         success_url: `${origin}/brain/console?paid=1`, cancel_url: `${origin}/brain/console?tab=billing`,
       };
       // Older Stripe API versions do not know branding_settings: fall back to the account's look.
+      const session = await stripe('POST', 'checkout/sessions', { ...params, branding_settings: CHECKOUT_LOOK }).catch(() => stripe('POST', 'checkout/sessions', params));
+      return json({ url: session.url });
+    }
+    if (action === 'buy_credits') {
+      const pack = PACKS[body.pack];
+      if (!pack) return fail(400, 'bad_pack', 'Pick a pack.');
+      let customer = lic.stripe_customer_id;
+      if (!customer) {
+        customer = (await stripe('POST', 'customers', { email: me.email, name: lic.name, metadata: { tali_licensee_id: lic.id } })).id;
+        await admin.from('licensees').update({ stripe_customer_id: customer }).eq('id', lic.id);
+      }
+      const tax = lic.country === 'AU' ? [await gstRate()] : undefined;
+      const meta = { tali_licensee_id: lic.id, kind: 'brain_credits', pack: body.pack };
+      const params = {
+        mode: 'payment', customer, line_items: [{ price: pack.price_id, quantity: 1, tax_rates: tax }],
+        metadata: meta, payment_intent_data: { metadata: meta }, invoice_creation: { enabled: true, invoice_data: { metadata: meta } },
+        billing_address_collection: 'required', tax_id_collection: { enabled: true }, customer_update: { name: 'auto', address: 'auto' },
+        custom_text: { submit: { message: `${pack.answers.toLocaleString('en-AU')} answer credits, used up to 12 months from your last top up. By paying you agree to the Tali Brain licence terms at ${SITE.replace(/^https?:\/\//, '')}/brain/terms.` } },
+        success_url: `${origin}/brain/console?tab=billing&credits=1`, cancel_url: `${origin}/brain/console?tab=billing`,
+      };
       const session = await stripe('POST', 'checkout/sessions', { ...params, branding_settings: CHECKOUT_LOOK }).catch(() => stripe('POST', 'checkout/sessions', params));
       return json({ url: session.url });
     }
