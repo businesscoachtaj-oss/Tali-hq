@@ -583,3 +583,17 @@ Ponder is a separate brain games app (its own repo). Its sign in is a normal Tal
 - `supabase/functions/tali-api`: read clients and leads (never family or friends), website enquiries, bookings, paid invoices and accepted quotes; add a client or lead, a reminder or a note. Nothing sends, spends or deletes.
 - Zapier app in `integrations/zapier-tali-hq` (6 polling triggers, 4 actions, 1 search). Passes `zapier validate`. Publish steps in its README.
 - To go live: `npx supabase functions deploy tali-api --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt`.
+
+## Tali Brain licence (27 Nov 2026)
+
+Software companies can now license Tali's brain for their own product. Each business on their platform gets its own private brain. This is separate from Tali HQ accounts and from Totality: nothing is shared with either.
+
+- **Database**: migration `20261127000100_brain_licence.sql` (applied). Tables `licensees`, `licence_keys`, `licence_businesses`, `licence_clients`, `licence_memories`, `licence_events`, `licence_answers`. All server only (RLS on, no policies). Crons `licence-daily` (checks Stripe, bills answers over the plan) and `licence-ended-tidy` (deletes live brains 30 days after a licence ends).
+- **Function**: `supabase/functions/brain-api` (deployed, verify_jwt off, version 2). API keys `thb_live_` and `thb_test_` for the licensee's servers, short lived `thp_` tokens for the drop-in panel, a Supabase sign in for the console, and `x-tali-key` for the daily job. The header comment lists every route. Tali never sends or books: she returns drafts and suggestions, and the licensee's software acts after its user says yes.
+- **Plans** (A$ a month plus GST for Australian companies, set in `brain-api`): Starter 290 (10 businesses, 2,000 answers, then 70 per 1,000), Pilot 990 (50, 10,000, 60, 3 month minimum), Growth 2,990 (500, 50,000, 50, 12 months), Platform 7,500 (unlimited, 100,000, 40, 12 months). Optional setup 3,000 once. Free sandbox: 5 businesses and 300 answers a month on test keys. Stripe product `prod_Vhf7Tcfg1dqf2d` in the Totality 360 account; price ids are in the function.
+- **Billing**: Stripe Checkout from the console, plan changes on the same subscription, the Stripe billing portal for cards and invoices. Answers over the plan are invoiced when a period ends (idempotent). Each licensee has a cap (three times the included answers unless they change it). No Stripe webhook is used: the console and the daily job read Stripe directly, and `stripe-webhook` ignores these subscriptions because they carry no `tali_user_id`.
+- **Pages** (static, in `public/brain/`, served with the web app): `/brain` pricing, `/brain/console`, `/brain/docs`, `/brain/terms`, `/brain/panel` (the drop-in panel, shown in an iframe). `vercel.json` sends `/brain/api/*` to the function, so the public API address is `https://talihq.com.au/brain/api/v1`.
+- **Founder screen**: a "Tali Brain licences" card (`licence_founder_stats()`): licences on a plan, licence income a month, sandboxes, and each licensee's businesses and answers.
+- **Not built**: Tali on the phone (Twilio), web search and video inside licence answers.
+- **Before the first paying licensee**: have a lawyer read `/brain/terms`.
+

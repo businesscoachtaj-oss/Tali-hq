@@ -937,6 +937,14 @@ export async function founderTopups(): Promise<FounderTopups | null> {
   return data as FounderTopups;
 }
 
+// 27 Nov 2026: the Tali Brain licences (software companies that license the brain), for the Founder screen.
+export type FounderLicence = { id: string; name: string; country: string; plan: string | null; status: string; created_at: string; businesses: number; answers: number; test_answers: number };
+export async function founderLicences(): Promise<FounderLicence[] | null> {
+  const { data, error } = await supabase.rpc('licence_founder_stats');
+  if (error || !data) return null;
+  return data as FounderLicence[];
+}
+
 // ---------- Talk back to a draft (2 Nov 2026) ----------
 // instruction: 'shorter' | 'warmer' | 'formal' | 'casual' or anything in the user's words.
 export async function editDraft(approvalId: string, instruction: string): Promise<{ ok: true; body: string; subject: string | null } | { ok: false; message: string }> {

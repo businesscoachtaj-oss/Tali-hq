@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tali Brain: Tali's brain inside your software</title>
+<meta name="description" content="License Tali's brain for your software. A private brain for each business on your platform that remembers every client and drafts replies, briefings and bookings for a person to approve.">
+<link rel="icon" href="/brain/img/tali_head_idle.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/brain/brain.css">
+<style>
+.hero { display: grid; grid-template-columns: 1fr 150px; gap: 20px; align-items: start; }
+.hero img { width: 150px; height: auto; }
+.flow { display: grid; grid-template-columns: 1fr 64px 1.25fr 64px 1fr; align-items: stretch; margin-top: 28px; }
+.arrow { display: flex; align-items: center; justify-content: center; flex-direction: column; color: var(--purple); font-weight: 800; font-size: 26px; }
+.arrow span { font-size: 10.5px; font-weight: 700; color: var(--faint); letter-spacing: 0.5px; text-align: center; }
+.brainbox { background: var(--purple); color: #F5F0E6; border-color: var(--purple); }
+.brainbox .kicker { color: #CFCBF5; } .brainbox ul.plain li { color: #E6E2FA; border-color: rgba(245,240,230,0.2); }
+.spaces { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0 12px; }
+.space { background: rgba(245,240,230,0.12); border: 1px solid rgba(245,240,230,0.25); border-radius: 4px; font-size: 11px; font-weight: 700; padding: 7px 6px; text-align: center; }
+.n { font-family: 'EB Garamond', Georgia, serif; font-size: 30px; color: var(--purple); line-height: 1; }
+.step p, .buyer span { font-size: 13.5px; color: var(--muted); display: block; margin-top: 4px; }
+.crm { border-radius: 8px; overflow: hidden; border: 1px solid #cfd6df; background: #fff; box-shadow: 0 10px 30px rgba(20,30,50,0.12); margin-top: 24px; }
+.crmtop { background: #0F3B57; color: #fff; padding: 12px 18px; display: flex; gap: 18px; font-size: 13px; flex-wrap: wrap; } .crmtop span { opacity: 0.7; }
+.crmbody { display: grid; grid-template-columns: 1fr 380px; }
+.crmleft { padding: 20px; background: #F4F7FA; min-width: 0; }
+.crmcard { background: #fff; border: 1px solid #DDE3EA; border-radius: 8px; padding: 14px; margin-bottom: 12px; font-size: 13px; color: #24313D; }
+.tl { padding: 8px 0; border-top: 1px solid #E6EBF0; } .tl:first-of-type { border-top: 0; } .tl small { color: #7A8794; display: block; }
+.panel { border-left: 1px solid var(--border); background: var(--bg); padding: 16px; min-width: 0; }
+.ph { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; } .ph img { width: 34px; } .ph small { display: block; font-size: 11px; color: var(--faint); }
+.pcard { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 13px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
+.pcard .kicker { margin-bottom: 6px; color: #0F3B57; }
+.fact { padding: 5px 0; border-top: 1px solid var(--border); } .fact:first-of-type { border-top: 0; } .fact small { display: block; color: var(--faint); font-size: 11px; }
+.navy { background: #0F3B57; border-color: #0F3B57; }
+.price { font-family: 'EB Garamond', Georgia, serif; font-size: 38px; line-height: 1; margin: 12px 0 2px; } .price small { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: var(--muted); }
+.tier.mid { border: 2px solid var(--purple); }
+.tier ul.plain li { color: var(--text); }
+details { border-top: 1px solid var(--border); padding: 14px 0; } summary { font-weight: 700; cursor: pointer; } details p { color: var(--muted); margin-top: 8px; max-width: 760px; }
+@media (max-width: 900px) { .flow { grid-template-columns: 1fr; gap: 10px; } .arrow { flex-direction: row; gap: 8px; } .crmbody { grid-template-columns: 1fr; } .panel { border-left: 0; border-top: 1px solid var(--border); } }
+@media (max-width: 620px) { .hero { grid-template-columns: 1fr; } .hero img { display: none; } }
+</style>
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/brain"><img src="/brain/img/tali_head_idle.png" alt="">Tali Brain</a>
+  <nav class="navlinks"><a class="hide-s" href="#how">How it works</a><a class="hide-s" href="#pricing">Pricing</a><a href="/brain/docs">Docs</a><a class="btn sm" href="/brain/console">Console</a></nav>
+</header>
+
+<main>
+<section class="wrap" style="padding-top:24px">
+  <div class="hero">
+    <div>
+      <div class="kicker">For software companies</div>
+      <h1>Tali's brain, inside your software</h1>
+      <p class="lede">Give every business on your platform an assistant that remembers their clients. Tali learns from the notes, messages and bookings your software already has, then drafts replies, briefings and bookings for a person to approve. Every business gets its own private brain. Nothing is shared between them.</p>
+      <div class="row" style="margin-top:20px"><a class="btn" href="/brain/console">Start free in the sandbox</a><a class="btn ghost" href="/brain/docs">Read the docs</a></div>
+    </div>
+    <img src="/brain/img/tali_wave.png" alt="Tali waving">
+  </div>
+  <div class="flow">
+    <div class="card"><div class="kicker">Your software</div><h3 style="margin:6px 0 8px">Sends what happens</h3><ul class="plain"><li>Client notes</li><li>Emails and messages</li><li>Bookings and calls</li><li>Voice notes, documents and images</li></ul></div>
+    <div class="arrow">→<span>THE TALI<br>API</span></div>
+    <div class="card brainbox"><div class="kicker">Tali Brain</div><h3 style="margin:6px 0 0">A private brain for each business</h3>
+      <div class="spaces"><div class="space">Business A</div><div class="space">Business B</div><div class="space">Business C</div><div class="space">Business D</div><div class="space">Business E</div><div class="space">and the rest</div></div>
+      <ul class="plain"><li>Remembers each client, business by business</li><li>Finds the facts that matter for each answer</li><li>Says where every fact came from</li></ul></div>
+    <div class="arrow">→<span>BACK TO<br>YOUR APP</span></div>
+    <div class="card"><div class="kicker">Your users</div><h3 style="margin:6px 0 8px">Get answers to approve</h3><ul class="plain"><li>Drafted replies</li><li>Briefings before a call</li><li>The best time to book</li><li>Things Tali noticed</li></ul></div>
+  </div>
+</section>
+
+<section class="wrap" id="how">
+  <div class="kicker">How it works</div>
+  <h2>Live in your product in days</h2>
+  <div class="grid g5" style="margin-top:20px">
+    <div class="step"><div class="n">1</div><h3>Sign up and test</h3><p>The console, test keys and a free sandbox straight away.</p></div>
+    <div class="step"><div class="n">2</div><h3>One brain per business</h3><p>Send your own business ID. Tali makes its brain the first time she sees it.</p></div>
+    <div class="step"><div class="n">3</div><h3>Send what happens</h3><p>Notes, messages and bookings. Tali keeps the facts that last. Remembering is free.</p></div>
+    <div class="step"><div class="n">4</div><h3>Ask Tali</h3><p>A draft, a briefing, a summary, a time to book or a question. One call each.</p></div>
+    <div class="step"><div class="n">5</div><h3>People say yes</h3><p>Tali never sends or books. Your user approves, then your software acts.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="kicker">What your users see</div>
+  <h2>Inside your product, in your colours</h2>
+  <p class="lede">Use the API to build Tali into your own screens, or drop in the ready-made panel with one line. This is a made-up real estate CRM called Harbourline.</p>
+  <div class="crm">
+    <div class="crmtop"><b>Harbourline</b><span>Contacts</span><span>Listings</span><span>Inspections</span><span style="margin-left:auto">Sam Lee · Coastline Realty</span></div>
+    <div class="crmbody">
+      <div class="crmleft">
+        <div style="font-size:21px;font-weight:800;color:#0F3B57">Priya Shah</div>
+        <div style="font-size:13px;color:#5B6B7A;margin:2px 0 14px">Buyer · 3 bed · Manly, Freshwater, Queenscliff</div>
+        <div class="crmcard"><b style="color:#0F3B57">Activity</b>
+          <div class="tl"><b>Email from Priya</b> "Can we see Lauderdale Ave this Saturday? Also what are the strata fees?"<small>Today, 8:12am</small></div>
+          <div class="tl"><b>Note by Sam</b> Loved the light at Bower St, hated the road noise. Kids start school in Feb.<small>Sat 21 Nov</small></div>
+          <div class="tl"><b>Call</b> 12 minutes<small>Tue 17 Nov</small></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><img src="/brain/img/tali_head_idle.png" alt=""><div><b>Harbour Assist</b><small>powered by Tali</small></div></div>
+        <div class="pcard"><div class="kicker">What I know about Priya</div>
+          <div class="fact">Budget $1.1m to $1.25m, finance approved until February<small>From a call, 17 Nov</small></div>
+          <div class="fact">Wants to walk to the beach. Hates road noise.<small>From a note, 21 Nov</small></div>
+          <div class="fact">Two kids starting school in February<small>From a note, 21 Nov</small></div>
+        </div>
+        <div class="pcard"><div class="kicker">Drafted reply</div>Hi Priya, Saturday at 10:30 works for 22 Lauderdale Ave. It's a quiet street, a 5 minute walk to the beach, and the strata fees are $1,150 a quarter. See you there. Sam
+          <div class="row" style="gap:8px;margin-top:10px"><span class="btn sm navy">Send</span><span class="btn sm ghost">Edit</span></div></div>
+        <div class="pcard" style="background:var(--orangeSoft)"><div class="kicker o" style="color:var(--orange)">I noticed something</div>Strata fees matter to Priya. Remember that?
+          <div class="row" style="gap:8px;margin-top:10px"><span class="btn sm ghost">Remember it</span><span class="btn sm ghost">No</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="grid g2">
+    <div class="card"><div class="kicker">Yours to shape</div><h2 style="margin:6px 0 10px">Make her yours</h2>
+      <ul class="plain"><li>Her name in your product</li><li>How she sounds, and your own house rules</li><li>What she remembers about each client, for your industry</li><li>What she can do: drafts, briefings, summaries, bookings, questions</li><li>The panel's colour</li><li>On Platform: your own actions for her to suggest</li></ul></div>
+    <div class="card"><div class="kicker o">Never changes</div><h2 style="margin:6px 0 10px">Safe by design</h2>
+      <ul class="plain"><li>A person says yes before anything is sent or booked</li><li>Each business's brain is private to that business</li><li>No card, bank or ID numbers are ever kept</li><li>Health, money and legal details are only kept if the client said them</li><li>Export or delete any business's brain, or one client's facts, any time</li><li>Stored in Sydney</li></ul></div>
+  </div>
+  <div class="line" style="margin:32px 0 20px"></div>
+  <div class="kicker o">Who it's for</div>
+  <div class="grid g5" style="margin-top:12px">
+    <div class="buyer"><b>Accounting software</b><span>Each client's entities, deadlines and worries.</span></div>
+    <div class="buyer"><b>Real estate CRMs</b><span>Budgets, suburbs, must haves, inspections.</span></div>
+    <div class="buyer"><b>Recruitment software</b><span>Candidate goals, notice periods, what they turned down.</span></div>
+    <div class="buyer"><b>Tutoring platforms</b><span>Each student's gaps, wins and what the parents care about.</span></div>
+    <div class="buyer"><b>Booking and wellness platforms</b><span>Salons, spas, clinics and studios.</span></div>
+  </div>
+</section>
+
+<section class="wrap" id="pricing">
+  <div class="kicker">Pricing</div>
+  <h2>A monthly licence, with answers included</h2>
+  <p class="lede">An answer is one draft, briefing, summary, booking suggestion or question. Remembering is free. Prices are in Australian dollars, plus GST for Australian companies.</p>
+  <div class="grid g4" id="tiers" style="margin-top:22px"></div>
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card"><h3>Free sandbox</h3><ul class="plain" style="margin-top:6px"><li id="sandboxLine">Test keys, 5 businesses and 300 answers a month</li><li>Every feature switched on so you can try it</li><li>No card needed</li></ul></div>
+    <div class="card"><h3>In every licence</h3><ul class="plain" style="margin-top:6px"><li>Memory and memory search, no limit on facts</li><li>The API and the drop-in panel</li><li>A cap you set, so a bill never surprises you</li><li>Export and delete</li></ul></div>
+    <div class="card"><h3>Counted as extra answers</h3><ul class="plain" style="margin-top:6px"><li>Voice notes: 1 answer a minute</li><li>Documents (PDF): 2 answers each</li><li>Images: 2 answers each</li><li id="setupLine">Optional setup with us: A$3,000 once</li></ul></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="kicker">Questions</div>
+  <h2>Good to know</h2>
+  <div style="margin-top:14px">
+    <details><summary>Do my customers deal with you?</summary><p>No. Tali lives inside your product under the name you choose. Your customers deal with you. You pay us the licence, and what you charge your customers for it is up to you.</p></details>
+    <details><summary>Can we pass the licence on to other companies?</summary><p>No. The licence covers Tali inside your own software, for the businesses on your platform.</p></details>
+    <details><summary>What happens if we go over our answers?</summary><p>Extra answers are billed per 1,000 at your plan's rate, after the month ends. You set a cap in the console, and Tali stops at the cap until you raise it.</p></details>
+    <details><summary>Where is the data?</summary><p>Each brain is stored in Sydney, Australia. To write an answer, the facts needed for that answer are sent to our AI providers, who do not use them to train their models. You can export or delete a brain at any time.</p></details>
+    <details><summary>Can Tali send messages or make bookings herself?</summary><p>No. She writes drafts and suggestions. Your software sends or books only after your user says yes.</p></details>
+  </div>
+  <div class="card" style="margin-top:28px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+    <div><h2>Try it with your own data</h2><p class="muted" style="margin-top:4px">Make a test key and send your first note in a few minutes.</p></div>
+    <a class="btn" href="/brain/console">Open the console</a>
+  </div>
+</section>
+</main>
+
+<footer class="wrap foot">
+  <span>Tali Brain is made by Totality 360 Pty Ltd, Australia.</span>
+  <span><a href="/brain/docs">Docs</a> · <a href="/brain/terms">Licence terms</a> · <a href="mailto:taj@totality360.com.au">taj@totality360.com.au</a></span>
+</footer>
+
+<script>
+// Prices come from the API so they live in one place. These are shown until it answers.
+var FALLBACK = { plans: [
+  { id: 'starter', name: 'Starter', price: 290, businesses: 10, answers: 2000, over: 70, months: 1, own_name: false, white: false, actions: false },
+  { id: 'pilot', name: 'Pilot', price: 990, businesses: 50, answers: 10000, over: 60, months: 3, own_name: false, white: false, actions: false },
+  { id: 'growth', name: 'Growth', price: 2990, businesses: 500, answers: 50000, over: 50, months: 12, own_name: true, white: false, actions: false },
+  { id: 'platform', name: 'Platform', price: 7500, businesses: null, answers: 100000, over: 40, months: 12, own_name: true, white: true, actions: true } ],
+  setup: 3000, sandbox: { businesses: 5, answers: 300 } };
+var TAG = { starter: ['Small platforms', ''], pilot: ['To start', ''], growth: ['Most will pick', 'o'], platform: ['Big platforms', 'g'] };
+function n(x) { return Number(x).toLocaleString('en-AU'); }
+function render(d) {
+  document.getElementById('tiers').innerHTML = d.plans.map(function (p) {
+    var lines = [
+      p.businesses ? 'Up to ' + n(p.businesses) + ' businesses' : 'Unlimited businesses',
+      n(p.answers) + ' answers a month', 'Then A$' + p.over + ' per 1,000',
+      p.white ? 'Fully your brand' : p.own_name ? 'Your own name for her, with "powered by Tali"' : "She's called Tali",
+      p.actions ? 'Your own actions for her to suggest' : p.own_name ? 'Your colour on the panel' : 'The API and the drop-in panel',
+      p.id === 'platform' ? 'A named contact' : p.id === 'growth' ? 'Priority email support' : 'Email support' ];
+    return '<div class="card tier' + (p.id === 'growth' ? ' mid' : '') + '"><span class="pill ' + TAG[p.id][1] + '">' + TAG[p.id][0] + '</span><h2 style="margin-top:10px">' + p.name + '</h2>' +
+      '<div class="price">A$' + n(p.price) + '<small> a month</small></div><div class="small muted">' + (p.months > 1 ? p.months + ' month minimum' : 'No lock-in') + '</div>' +
+      '<ul class="plain" style="margin-top:12px">' + lines.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul></div>';
+  }).join('');
+  document.getElementById('sandboxLine').textContent = 'Test keys, ' + d.sandbox.businesses + ' businesses and ' + n(d.sandbox.answers) + ' answers a month';
+  document.getElementById('setupLine').textContent = 'Optional setup with us: A$' + n(d.setup) + ' once';
+}
+render(FALLBACK);
+fetch('/brain/api/public/plans').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && d.plans) render(d); }).catch(function () {});
+</script>
+</body>
+</html>

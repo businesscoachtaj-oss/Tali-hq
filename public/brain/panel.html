@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tali panel</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/brain/brain.css">
+<style>
+/* The drop-in panel (27 Nov 2026). Lives in an iframe inside the licensee's product. */
+:root { --accent: #3B3F9E; }
+body { padding: 14px max(14px, env(safe-area-inset-right, 0px)) 20px max(14px, env(safe-area-inset-left, 0px)); font-size: 13.5px; }
+.ph { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; } .ph img { width: 34px; height: auto; } .ph b { font-size: 15px; } .ph small { display: block; font-size: 11px; color: var(--faint); }
+.pcard { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 13px; margin-bottom: 10px; line-height: 1.5; }
+.pcard .kicker { color: var(--accent); margin-bottom: 6px; }
+.fact { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--border); } .fact:first-of-type { border-top: 0; }
+.fact div { flex: 1; min-width: 0; } .fact small { display: block; color: var(--faint); font-size: 11px; }
+.x { border: 0; background: none; color: var(--faint); font-size: 16px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+.btn.a { background: var(--accent); border-color: var(--accent); }
+.notice { background: var(--orangeSoft); border-color: rgba(168,86,26,0.25); } .notice .kicker { color: var(--orange); }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+textarea { font-size: 13.5px; line-height: 1.5; }
+.text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.addrow { display: flex; gap: 8px; margin-top: 10px; } .addrow input { font-size: 13.5px; padding: 7px 9px; }
+</style>
+</head>
+<body>
+<div id="p"><p class="muted">Loading...</p></div>
+<script>
+// Talks to brain-api with the short lived panel token in the address. The host page can send
+// { type: 'tali:context', message, free_slots, context } and hears back 'tali:ready', 'tali:send'
+// and 'tali:book'. Tali never sends or books: the host does, after the click.
+var API = '/brain/api', TOKEN = new URLSearchParams(location.search).get('token') || '';
+var S = { st: null, ctx: {}, ans: {}, busy: '', err: '', edit: false };
+var el = document.getElementById('p'), framed = window.parent !== window;
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function day(d) { return d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''; }
+function host(msg) { if (framed) window.parent.postMessage(msg, '*'); }
+async function api(method, path, body) {
+  var res = await fetch(API + '/panel/' + path, { method: method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + TOKEN }, body: body ? JSON.stringify(body) : undefined });
+  var out = await res.json().catch(function () { return {}; });
+  if (!res.ok) throw new Error((out.error && out.error.message) || 'Something went wrong. Please try again.');
+  return out;
+}
+function src(m) {
+  var w = { note: 'From a note', message: 'From a message', email: 'From an email', call: 'From a call', booking: 'From a booking', form: 'From a form', voice_note: 'From a voice note', document: 'From a document', image: 'From an image', staff: 'Added by your team', noticed: 'Noticed by ' + S.st.assistant.name, events: 'From your records', api: 'Added' }[m.source] || 'From your records';
+  return w + (m.source_date ? ', ' + day(m.source_date) : '') + (m.until ? ' · until ' + day(m.until) : '');
+}
+function draw() {
+  var s = S.st, a = s.assistant, first = String(s.client.name).split(' ')[0], msg = S.ctx.message || (s.last_message && s.last_message.text) || '';
+  document.documentElement.style.setProperty('--accent', a.colour);
+  var h = '<div class="ph"><img src="/brain/img/tali_head_idle.png" alt=""><div><b>' + esc(a.name) + '</b>' + (a.powered_by ? '<small>powered by Tali</small>' : '') + '</div></div>';
+  if (S.err) h += '<div class="pcard" style="color:var(--danger)">' + esc(S.err) + '</div>';
+  h += '<div class="pcard"><div class="kicker">What I know about ' + esc(first) + '</div>' +
+    (s.kept.length ? s.kept.map(function (m) { return '<div class="fact"><div>' + esc(m.fact) + '<small>' + esc(src(m)) + '</small></div><button class="x" data-del="' + m.id + '" aria-label="Forget this">×</button></div>'; }).join('') : '<p class="muted">Nothing yet. I learn from your notes and messages, or tell me below.</p>') +
+    '<div class="addrow"><input id="nf" placeholder="Tell me something about ' + esc(first) + '" maxlength="300"><button class="btn sm ghost" id="add">Add</button></div></div>';
+  s.suggested.forEach(function (m) { h += '<div class="pcard notice"><div class="kicker">I noticed something</div>' + esc(m.fact) + '<div class="acts"><button class="btn sm ghost" data-keep="' + m.id + '">Remember it</button><button class="btn sm ghost" data-del="' + m.id + '">No</button></div></div>'; });
+  var d = S.ans.draft;
+  if (d) h += '<div class="pcard"><div class="kicker">Drafted reply</div>' + (S.edit ? '<textarea id="dt" rows="8">' + esc(d.text) + '</textarea>' : '<div class="text">' + esc(d.text) + '</div>') +
+    (d.done ? '<p class="small muted" style="margin-top:8px">' + esc(d.done) + '</p>' : '<div class="acts"><button class="btn sm a" id="send">' + (framed ? 'Use this reply' : 'Copy') + '</button><button class="btn sm ghost" id="edit">' + (S.edit ? 'Done editing' : 'Edit') + '</button><button class="btn sm ghost" id="drop">Not this</button></div>') + '</div>';
+  var b = S.ans.booking;
+  if (b && b.booking) h += '<div class="pcard"><div class="kicker">Book it?</div><b>' + esc(b.booking.title) + '</b><br>' + esc(b.booking.slot) + (b.booking.why ? '<p class="small muted" style="margin-top:4px">' + esc(b.booking.why) + '</p>' : '') +
+    (b.done ? '<p class="small muted" style="margin-top:8px">' + esc(b.done) + '</p>' : '<div class="acts"><button class="btn sm a" id="book">Book</button><button class="btn sm ghost" id="nobook">Another time</button></div>') + '</div>';
+  ['brief', 'summary'].forEach(function (k) { if (S.ans[k]) h += '<div class="pcard"><div class="kicker">' + (k === 'brief' ? 'Before you talk to ' + esc(first) : 'Where things stand') + '</div><div class="text">' + esc(S.ans[k].text) + '</div></div>'; });
+  var btns = [];
+  if (s.abilities.draft && msg && !d) btns.push(['draft', 'Draft a reply']);
+  if (s.abilities.booking && (S.ctx.free_slots || []).length && !b) btns.push(['booking', 'Suggest a time']);
+  if (s.abilities.brief && !S.ans.brief) btns.push(['brief', 'Brief me']);
+  if (s.abilities.summary && !S.ans.summary) btns.push(['summary', 'Where things stand']);
+  if (btns.length) h += '<div class="acts">' + btns.map(function (x, i) { return '<button class="btn sm ' + (i ? 'ghost' : 'a') + '" data-ask="' + x[0] + '"' + (S.busy ? ' disabled' : '') + '>' + (S.busy === x[0] ? 'Thinking...' : x[1]) + '</button>'; }).join('') + '</div>';
+  h += '<p class="small faint" style="margin-top:14px">Nothing is sent or booked until you say so.</p>';
+  el.innerHTML = h;
+
+  el.querySelectorAll('[data-ask]').forEach(function (x) { x.onclick = function () { ask(x.dataset.ask); }; });
+  el.querySelectorAll('[data-del]').forEach(function (x) { x.onclick = function () { api('DELETE', 'memories/' + x.dataset.del).then(reload).catch(oops); }; });
+  el.querySelectorAll('[data-keep]').forEach(function (x) { x.onclick = function () { api('PATCH', 'memories/' + x.dataset.keep, { status: 'kept' }).then(reload).catch(oops); }; });
+  var add = function () { var v = document.getElementById('nf').value.trim(); if (v) api('POST', 'memories', { fact: v }).then(reload).catch(oops); };
+  document.getElementById('add').onclick = add;
+  document.getElementById('nf').onkeydown = function (e) { if (e.key === 'Enter') add(); };
+  var q = function (id) { return document.getElementById(id); };
+  if (q('edit')) q('edit').onclick = function () { if (S.edit) { d.text = q('dt').value; d.edited = true; } S.edit = !S.edit; draw(); };
+  if (q('drop')) q('drop').onclick = function () { api('POST', 'outcome', { id: d.id, outcome: 'rejected' }).catch(function () {}); delete S.ans.draft; S.edit = false; draw(); };
+  if (q('send')) q('send').onclick = function () {
+    if (S.edit) { d.text = q('dt').value; d.edited = true; S.edit = false; }
+    api('POST', 'outcome', { id: d.id, outcome: d.edited ? 'edited' : 'approved' }).catch(function () {});
+    if (framed) { host({ type: 'tali:send', text: d.text, answer_id: d.id }); d.done = 'Passed to your message box.'; }
+    else if (navigator.clipboard) navigator.clipboard.writeText(d.text).then(function () { d.done = 'Copied.'; draw(); }).catch(function () {});
+    draw();
+  };
+  if (q('book')) q('book').onclick = function () { api('POST', 'outcome', { id: b.id, outcome: 'approved' }).catch(function () {}); host({ type: 'tali:book', slot: b.booking.slot, title: b.booking.title, answer_id: b.id }); b.done = 'Passed to your calendar.'; draw(); };
+  if (q('nobook')) q('nobook').onclick = function () { api('POST', 'outcome', { id: b.id, outcome: 'rejected' }).catch(function () {}); delete S.ans.booking; draw(); };
+}
+function oops(e) { S.err = e.message; S.busy = ''; draw(); }
+function reload() { return api('GET', 'state').then(function (st) { S.st = st; S.err = ''; draw(); }); }
+function ask(kind) {
+  S.busy = kind; S.err = ''; draw();
+  api('POST', 'answer', { kind: kind, message: S.ctx.message, free_slots: S.ctx.free_slots, context: S.ctx.context, channel: S.ctx.channel })
+    .then(function (r) { S.ans[kind] = r; S.busy = ''; return reload(); }).catch(oops);
+}
+window.addEventListener('message', function (e) { var m = e.data; if (m && m.type === 'tali:context') { S.ctx = { message: m.message, free_slots: m.free_slots, context: m.context, channel: m.channel }; if (S.st) draw(); } });
+if (!TOKEN) el.innerHTML = '<p class="muted">This panel needs a token. See the docs.</p>';
+else reload().then(function () { host({ type: 'tali:ready' }); }).catch(function (e) { el.innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; });
+</script>
+</body>
+</html>

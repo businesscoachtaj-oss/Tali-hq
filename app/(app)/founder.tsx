@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusLoad } from '@/lib/useFocusLoad';
-import { founderMail, founderStats, founderTopups, type FounderMail, type FounderStats, type FounderTopups } from '@/lib/data';
+import { founderLicences, founderMail, founderStats, founderTopups, type FounderLicence, type FounderMail, type FounderStats, type FounderTopups } from '@/lib/data';
 import { BackLink, Body, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { FounderOps } from '@/components/FounderOps';
 import { SkinHeader } from '@/components/PageSkin';
@@ -38,11 +38,15 @@ function costAud(tokensIn: number, tokensOut: number) {
   return ((tokensIn / 1e6) * USD_IN_PER_M + (tokensOut / 1e6) * USD_OUT_PER_M) * AUD_PER_USD;
 }
 
+// 27 Nov 2026: Tali Brain licence prices, A$ a month (the same numbers as supabase/functions/brain-api).
+const LICENCE_PRICE: Record<string, number> = { starter: 290, pilot: 990, growth: 2990, platform: 7500 };
+
 export default function Founder() {
   const [s, setS] = useState<FounderStats | null>(null);
   const [error, setError] = useState('');
   const [topups, setTopups] = useState<FounderTopups | null>(null);
   const [mail, setMail] = useState<FounderMail | null>(null);
+  const [licences, setLicences] = useState<FounderLicence[] | null>(null); // 27 Nov 2026: Tali Brain licences
 
   const load = useCallback(async () => {
     setError('');
@@ -51,6 +55,7 @@ export default function Founder() {
       setS(st);
       setTopups(tu);
       founderMail().then(setMail).catch(() => setMail(null));
+      founderLicences().then(setLicences).catch(() => setLicences(null));
     } catch (e: any) {
       setError(e?.message ?? 'Could not load.');
     }
@@ -106,6 +111,23 @@ export default function Founder() {
                 <Row k="Still on the old Gmail read (ends 24 Nov)" v={n(mail.old_read_left)} last />
               </Card>
               <Text style={{ color: colours.faint, fontSize: 12, marginTop: 6, lineHeight: 17 }}>The limits are Resend's free plan and are shared with every email the three apps send.</Text>
+            </>
+          ) : null}
+
+          {licences ? (
+            <>
+              <View style={{ height: space.lg }} />
+              <Label>Tali Brain licences</Label>
+              <Card>
+                <Row k="On a paid plan" v={n(licences.filter((l) => l.status === 'active' || l.status === 'past_due').length)} />
+                <Row k="Licence income a month (before GST)" v={`A$${n(licences.reduce((a, l) => a + (l.status === 'active' || l.status === 'past_due' ? LICENCE_PRICE[l.plan ?? ''] ?? 0 : 0), 0))}`} />
+                <Row k="In the free sandbox" v={n(licences.filter((l) => l.status === 'sandbox').length)} last={licences.length === 0} />
+                {licences.map((l, i) => (
+                  <Row key={l.id} k={`${l.name} (${l.status === 'sandbox' ? 'sandbox' : `${l.plan ?? 'no plan'}${l.status === 'active' ? '' : `, ${l.status.replace('_', ' ')}`}`})`}
+                    v={l.status === 'sandbox' ? `${n(l.test_answers)} test answers` : `${n(l.businesses)} businesses, ${n(l.answers)} answers`} last={i === licences.length - 1} />
+                ))}
+              </Card>
+              <Text style={{ color: colours.faint, fontSize: 12, marginTop: 6, lineHeight: 17 }}>Software companies that license Tali's brain. Their console is at talihq.com.au/brain/console.</Text>
             </>
           ) : null}
 
