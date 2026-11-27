@@ -5,6 +5,7 @@
 // phones, the phone apps and tablets held upright are untouched.
 import type { ComponentProps } from 'react';
 import type { Tabs } from 'expo-router';
+import QuietTabButton from './quietTabButton'; // ADDED (27 Nov 2026): no big grey circle on Android tab taps
 import { Platform, useWindowDimensions } from 'react-native';
 import { colours } from '@/constants/theme';
 
@@ -23,9 +24,12 @@ export function useWide(): boolean {
 
 /** Tab options for a wide web window: side menu with labels. Returns opts unchanged otherwise. */
 export function withWideTabs(wide: boolean, opts: TabOptions): TabOptions {
-  if (!wide) return opts;
+  // Every tab bar, phone or PC: no Android ripple circle (lib/quietTabButton.tsx). A screen's own
+  // tabBarButton (hidden tabs) still wins.
+  const base: TabOptions = { tabBarButton: QuietTabButton, ...opts };
+  if (!wide) return base;
   return {
-    ...opts,
+    ...base,
     tabBarPosition: 'left',
     tabBarVariant: 'uikit',
     tabBarShowLabel: true,
