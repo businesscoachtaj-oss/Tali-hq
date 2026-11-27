@@ -13,6 +13,7 @@ import { ChipPicker } from '@/components/ChipPicker';
 import { GoogleConnectCard } from '@/components/GoogleConnectCard';
 import { MicrosoftConnectCard } from '@/components/MicrosoftConnectCard';
 import { StripeConnectCard } from '@/components/StripeConnectCard';
+import { ApiKeysCard } from '@/components/ApiKeysCard';
 import { TaliAddressCard, TaliAddressNote } from '@/components/TaliAddressCard';
 import { BackLink, Body, Button, Card, ErrorText, Field, Label, Screen, Title, goBack } from '@/components/ui';
 import { SkinHeader } from '@/components/PageSkin';
@@ -150,6 +151,8 @@ export default function Settings() {
       <MicrosoftConnectCard />
       <View style={{ height: space.md }} />
       <StripeConnectCard />
+      <View style={{ height: space.md }} />
+      <ApiKeysCard />
       <View style={{ height: space.md }} />
       <TaliAddressCard />
     </>
