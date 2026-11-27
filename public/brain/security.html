@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tali Brain security</title>
+<meta name="description" content="How Tali Brain keeps each business's data private: where it is stored, who can reach it, what is never kept and how to delete it.">
+<link rel="icon" href="/brain/img/tali_head_idle.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/brain/brain.css">
+<style>
+article { max-width: 760px; padding-block: 20px 60px; } article h2 { font-size: 24px; margin: 30px 0 8px; } article p, article li { color: var(--muted); } article p { margin: 8px 0; } article ul { padding-left: 20px; margin: 8px 0; } article li { margin: 5px 0; }
+</style>
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/brain"><img src="/brain/img/tali_head_idle.png" alt="">Tali Brain</a>
+  <nav class="navlinks"><a class="hide-s" href="/brain#pricing">Pricing</a><a href="/brain/docs">Docs</a><a class="btn sm" href="/brain/console">Console</a></nav>
+</header>
+<main class="wrap"><article>
+<div class="kicker">Last updated 27 November 2026</div>
+<h1>Security and privacy</h1>
+<p class="lede">The plain facts your security and privacy people will ask for. If something you need is not here, email <a href="mailto:taj@totality360.com.au">taj@totality360.com.au</a>.</p>
+
+<h2>Where data lives</h2>
+<ul>
+<li>Every brain is stored in Sydney, Australia.</li>
+<li>Data is encrypted when stored and when it travels.</li>
+<li>To write an answer, the facts needed for that answer are sent to our AI providers, Anthropic and OpenAI, who process them outside Australia. They do not use them to train their models.</li>
+</ul>
+
+<h2>Keeping businesses apart</h2>
+<ul>
+<li>Every fact, client and event belongs to one business, and every business belongs to one licensee. Each request is checked against both.</li>
+<li>An answer for one business only ever uses that business's facts.</li>
+<li>The database cannot be reached from the internet. The API is the only way in.</li>
+</ul>
+
+<h2>Keys and tokens</h2>
+<ul>
+<li>API keys are shown once. We store only a one-way hash, so we cannot read your key back.</li>
+<li>You can have several keys, see when each was last used, and revoke one at any time.</li>
+<li>Sandbox keys work on separate sandbox brains and can never touch live data.</li>
+<li>The drop-in panel uses a short lived token your server makes. It works for one client only and runs out in 5 minutes to 12 hours, as you choose.</li>
+</ul>
+
+<h2>What Tali does and does not do</h2>
+<ul>
+<li>She never sends a message, makes a booking or spends money. She returns drafts and suggestions, and your software acts after your user says yes.</li>
+<li>She is told never to keep card numbers, bank account numbers, government ID numbers or passwords, and to keep a health, money or legal detail only if the client said it or a staff member wrote it down.</li>
+<li>Every fact shows where it came from, and your users can delete any of them.</li>
+</ul>
+
+<h2>Deleting and exporting</h2>
+<ul>
+<li>Export everything in a business's brain with one call.</li>
+<li>Delete a business's brain, or forget one client, with one call or from the console. Deletion is immediate.</li>
+<li>When a licence ends, its live brains are deleted 30 days later.</li>
+</ul>
+
+<h2>Payments</h2>
+<p>Payments are handled by Stripe. We never see or store card numbers.</p>
+
+<h2>Uptime</h2>
+<p>We check the API every 5 minutes and keep the record. We are happy to share the numbers. We do not offer a guaranteed level of uptime unless we have agreed one with you in writing.</p>
+
+<h2>If something goes wrong</h2>
+<p>If we confirm that your data was accessed by someone who should not have it, we will tell you within 72 hours, with what happened and what we have done about it.</p>
+
+<h2>Certifications</h2>
+<p>Tali Brain does not hold SOC 2 or ISO 27001 certification yet. The services it runs on do: our database and hosting providers hold SOC 2 Type 2 reports, Stripe is a PCI Level 1 service provider, and Anthropic and OpenAI hold SOC 2 Type 2 reports. We can complete your security questionnaire.</p>
+</article></main>
+<footer class="wrap foot"><span>Totality 360 Pty Ltd, ABN 58 698 902 975</span><span><a href="/brain">Home</a> · <a href="/brain/docs">Docs</a> · <a href="/brain/terms">Licence terms</a></span></footer>
+</body>
+</html>

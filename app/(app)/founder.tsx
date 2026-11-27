@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusLoad } from '@/lib/useFocusLoad';
-import { founderLicences, founderMail, founderStats, founderTopups, type FounderLicence, type FounderMail, type FounderStats, type FounderTopups } from '@/lib/data';
+import { founderLicences, founderLicenceUptime, founderMail, founderStats, founderTopups, type FounderLicence, type FounderLicenceUptime, type FounderMail, type FounderStats, type FounderTopups } from '@/lib/data';
 import { BackLink, Body, Card, ErrorText, Label, Screen, TaliSays, Title } from '@/components/ui';
 import { FounderOps } from '@/components/FounderOps';
 import { SkinHeader } from '@/components/PageSkin';
@@ -47,6 +47,7 @@ export default function Founder() {
   const [topups, setTopups] = useState<FounderTopups | null>(null);
   const [mail, setMail] = useState<FounderMail | null>(null);
   const [licences, setLicences] = useState<FounderLicence[] | null>(null); // 27 Nov 2026: Tali Brain licences
+  const [uptime, setUptime] = useState<FounderLicenceUptime | null>(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -56,6 +57,7 @@ export default function Founder() {
       setTopups(tu);
       founderMail().then(setMail).catch(() => setMail(null));
       founderLicences().then(setLicences).catch(() => setLicences(null));
+      founderLicenceUptime().then(setUptime).catch(() => setUptime(null));
     } catch (e: any) {
       setError(e?.message ?? 'Could not load.');
     }
@@ -121,7 +123,8 @@ export default function Founder() {
               <Card>
                 <Row k="On a paid plan" v={n(licences.filter((l) => l.status === 'active' || l.status === 'past_due').length)} />
                 <Row k="Licence income a month (before GST)" v={`A$${n(licences.reduce((a, l) => a + (l.status === 'active' || l.status === 'past_due' ? LICENCE_PRICE[l.plan ?? ''] ?? 0 : 0), 0))}`} />
-                <Row k="In the free sandbox" v={n(licences.filter((l) => l.status === 'sandbox').length)} last={licences.length === 0} />
+                <Row k="In the free sandbox" v={n(licences.filter((l) => l.status === 'sandbox').length)} />
+                <Row k="Brain API uptime, last 30 days" v={uptime?.percent != null ? `${uptime.percent}% of ${n(uptime.checks)} checks` : 'Measuring'} last={licences.length === 0} />
                 {licences.map((l, i) => (
                   <Row key={l.id} k={`${l.name} (${l.status === 'sandbox' ? 'sandbox' : `${l.plan ?? 'no plan'}${l.status === 'active' ? '' : `, ${l.status.replace('_', ' ')}`}`})`}
                     v={l.status === 'sandbox' ? `${n(l.test_answers)} test answers` : `${n(l.businesses)} businesses, ${n(l.answers)} answers`} last={i === licences.length - 1} />

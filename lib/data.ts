@@ -945,6 +945,13 @@ export async function founderLicences(): Promise<FounderLicence[] | null> {
   return data as FounderLicence[];
 }
 
+export type FounderLicenceUptime = { since: string | null; checks: number; up: number; percent: number | null };
+export async function founderLicenceUptime(): Promise<FounderLicenceUptime | null> {
+  const { data, error } = await supabase.rpc('licence_uptime_stats');
+  if (error || !data) return null;
+  return data as FounderLicenceUptime;
+}
+
 // ---------- Talk back to a draft (2 Nov 2026) ----------
 // instruction: 'shorter' | 'warmer' | 'formal' | 'casual' or anything in the user's words.
 export async function editDraft(approvalId: string, instruction: string): Promise<{ ok: true; body: string; subject: string | null } | { ok: false; message: string }> {

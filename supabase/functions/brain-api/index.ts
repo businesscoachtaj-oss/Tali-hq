@@ -53,6 +53,11 @@ const PLANS: Record<string, Plan> = {
 };
 const PRICE_SETUP = 'price_1UgFnrPy9YlWBZ02tBREnVsW'; // A$3,000 one-off
 const SETUP_PRICE = 3000;
+// Stripe billing portal set ups (made 27 Nov 2026). Inside a plan's minimum term the portal has no cancel button.
+const PORTAL_LOCKED = 'bpc_1UgGHjPy9YlWBZ02fVjFw5W2';
+const PORTAL_OPEN = 'bpc_1UgGHkPy9YlWBZ02qafzL4PZ';
+// How Stripe Checkout looks for a licence, so it says Tali Brain and not Totality.
+const CHECKOUT_LOOK = { display_name: 'Tali Brain', background_color: '#F5F0E6', button_color: '#3B3F9E', border_style: 'rectangular', icon: { type: 'url', url: 'https://talihq.com.au/icon-512.png' }, logo: { type: 'url', url: 'https://talihq.com.au/icon-512.png' } };
 const SANDBOX = { businesses: 5, answers: 300 }; // test keys, each calendar month, free
 const EVERYTHING = { own_name: true, colours: true, white: true, actions: true };
 
@@ -612,6 +617,14 @@ async function gstRate(): Promise<string> {
   if (had) return had.id;
   return (await stripe('POST', 'tax_rates', { display_name: 'GST', percentage: 10, inclusive: false, country: 'AU', description: 'Australian GST', metadata: { tali: 'licence_gst' } })).id;
 }
+// When the plan's minimum term ends, or null if it has none or has passed.
+function minimumUntil(lic: any): Date | null {
+  const months = PLANS[lic.plan]?.months ?? 1;
+  if (!lic.term_start || months <= 1 || !['active', 'past_due'].includes(lic.status)) return null;
+  const d = new Date(lic.term_start);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d.getTime() > Date.now() ? d : null;
+}
 const planForPrice = (id: string) => Object.keys(PLANS).find((k) => PLANS[k].price_id === id) ?? null;
 
 // Brings a licence in line with Stripe, and bills answers over the plan for a period that has ended.
@@ -645,7 +658,7 @@ async function syncBilling(lic: any): Promise<any> {
       }
     }
     set = {
-      plan, stripe_subscription_id: sub.id, period_start: ps, period_end: pe,
+      plan, stripe_subscription_id: sub.id, period_start: ps, period_end: pe, term_start: new Date(sub.start_date * 1000).toISOString(),
       status: ['active', 'trialing'].includes(sub.status) ? 'active' : 'past_due',
       ...(sub.metadata?.setup === '1' && !lic.setup_paid_at && ['active', 'trialing'].includes(sub.status) ? { setup_paid_at: new Date().toISOString() } : {}),
     };
@@ -670,7 +683,7 @@ async function consoleState(lic: any) {
     admin.rpc('licence_stats', { p_licensee: lic.id, p_mode: 'test', p_from: monthStart() }),
   ]);
   return {
-    licensee: { id: lic.id, name: lic.name, country: lic.country, plan: lic.plan, status: lic.status, period_start: lic.period_start, period_end: lic.period_end, settings: tidySettings(lic.settings ?? {}) },
+    licensee: { id: lic.id, name: lic.name, country: lic.country, plan: lic.plan, status: lic.status, period_start: lic.period_start, period_end: lic.period_end, minimum_until: minimumUntil(lic)?.toISOString() ?? null, settings: tidySettings(lic.settings ?? {}) },
     keys: keys.data ?? [], stats: { live: live.data, test: test.data }, ...publicPlans(), voice_notes: !!OPENAI, billing_ready: !!STRIPE,
   };
 }
@@ -740,6 +753,8 @@ async function consoleApi(req: Request, token: string): Promise<Response> {
       lic = await syncBilling(lic);
       if (lic.stripe_subscription_id && ['active', 'past_due'].includes(lic.status)) {
         // Already on a plan: move it to the new price. Stripe works out the difference.
+        const until = minimumUntil(lic);
+        if (until && plan.price < (PLANS[lic.plan]?.price ?? 0)) return fail(400, 'minimum_term', `You can move down a plan after ${until.toISOString().slice(0, 10)}, when your minimum term ends.`);
         const sub = await stripe('GET', `subscriptions/${lic.stripe_subscription_id}`);
         await stripe('POST', `subscriptions/${sub.id}`, { items: [{ id: sub.items.data[0].id, price: plan.price_id }], proration_behavior: 'create_prorations', metadata: { ...sub.metadata, licence_plan: body.plan } });
         await syncBilling(lic);
@@ -752,7 +767,7 @@ async function consoleApi(req: Request, token: string): Promise<Response> {
       }
       const tax = lic.country === 'AU' ? [await gstRate()] : undefined;
       const setup = body.setup === true && !lic.setup_paid_at;
-      const session = await stripe('POST', 'checkout/sessions', {
+      const params = {
         mode: 'subscription', customer,
         line_items: [{ price: plan.price_id, quantity: 1, tax_rates: tax }, ...(setup ? [{ price: PRICE_SETUP, quantity: 1, tax_rates: tax }] : [])],
         subscription_data: { metadata: { tali_licensee_id: lic.id, licence_plan: body.plan, setup: setup ? '1' : '0' } },
@@ -760,12 +775,14 @@ async function consoleApi(req: Request, token: string): Promise<Response> {
         billing_address_collection: 'required', tax_id_collection: { enabled: true }, customer_update: { name: 'auto', address: 'auto' },
         custom_text: { submit: { message: `By subscribing you agree to the Tali Brain licence terms at ${SITE.replace(/^https?:\/\//, '')}/brain/terms.${plan.months > 1 ? ` This plan has a ${plan.months} month minimum.` : ''}` } },
         success_url: `${origin}/brain/console?paid=1`, cancel_url: `${origin}/brain/console?tab=billing`,
-      });
+      };
+      // Older Stripe API versions do not know branding_settings: fall back to the account's look.
+      const session = await stripe('POST', 'checkout/sessions', { ...params, branding_settings: CHECKOUT_LOOK }).catch(() => stripe('POST', 'checkout/sessions', params));
       return json({ url: session.url });
     }
     if (action === 'portal') {
       if (!lic.stripe_customer_id) return fail(400, 'no_billing', 'There is no billing to manage yet.');
-      const s = await stripe('POST', 'billing_portal/sessions', { customer: lic.stripe_customer_id, return_url: `${origin}/brain/console?tab=billing` });
+      const s = await stripe('POST', 'billing_portal/sessions', { customer: lic.stripe_customer_id, configuration: minimumUntil(lic) ? PORTAL_LOCKED : PORTAL_OPEN, return_url: `${origin}/brain/console?tab=billing` });
       return json({ url: s.url });
     }
   } catch (e) {

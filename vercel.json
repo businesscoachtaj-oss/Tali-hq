@@ -15,7 +15,7 @@
       "destination": "/brain/index.html"
     },
     {
-      "source": "/brain/:page(console|docs|terms|panel)",
+      "source": "/brain/:page(console|docs|terms|panel|security)",
       "destination": "/brain/:page.html"
     },
     {
