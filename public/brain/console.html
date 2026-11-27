@@ -118,8 +118,9 @@ function viewStart() {
 var TABS = [['overview', 'Overview'], ['businesses', 'Businesses'], ['customise', 'Customise'], ['keys', 'Keys'], ['billing', 'Usage and billing']];
 function plan() { var l = S.data.licensee; return S.data.plans.find(function (p) { return p.id === l.plan; }) || null; }
 function isLive() { return ['active', 'past_due'].indexOf(S.data.licensee.status) >= 0; }
+function payg() { return S.data.licensee.plan === 'payg' && isLive(); }
 function included() { return S.mode === 'test' ? S.data.sandbox.answers : (plan() ? plan().answers : 0); }
-function bizMax() { return S.mode === 'test' ? S.data.sandbox.businesses : (plan() ? plan().businesses : 0); }
+function bizMax() { return S.mode === 'test' ? S.data.sandbox.businesses : payg() ? S.data.payg.businesses : (plan() ? plan().businesses : 0); }
 
 function render() {
   if (!S.session) return viewAuth();
@@ -130,7 +131,7 @@ function render() {
   app.innerHTML = '<div class="shell"><aside class="nav"><a class="brand" href="/brain" style="margin-bottom:18px"><img src="/brain/img/tali_head_idle.png" alt="">Tali Brain</a>' +
     TABS.map(function (t) { return '<button class="t' + (S.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('') +
     '<a class="t" href="/brain/docs" target="_blank" style="display:block;font-size:14px;font-weight:600;color:var(--muted);padding:9px 10px">Docs</a>' +
-    '<div class="org">' + esc(l.name) + '<br>' + (isLive() && p ? esc(p.name) + ' licence' : l.status === 'cancelled' ? 'Licence ended' : 'Sandbox') + (l.period_end && isLive() ? '<br>Renews ' + day(l.period_end) : '') + '<br><a href="#" id="out">Sign out</a></div></aside>' +
+    '<div class="org">' + esc(l.name) + '<br>' + (isLive() && p ? esc(p.name) + ' licence' : payg() ? 'Pay as you go<br>' + n(S.data.credits.balance) + ' credits left' : l.status === 'cancelled' ? 'Licence ended' : 'Sandbox') + (l.period_end && isLive() ? '<br>Renews ' + day(l.period_end) : '') + '<br><a href="#" id="out">Sign out</a></div></aside>' +
     '<main class="main"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px"><h2>' + esc(TABS.find(function (t) { return t[0] === S.tab; })[1]) + '</h2>' +
     (S.tab === 'customise' || S.tab === 'billing' ? '' : '<div class="mode"><button data-mode="test" class="' + (S.mode === 'test' ? 'on' : '') + '">Sandbox</button><button data-mode="live" class="' + (S.mode === 'live' ? 'on' : '') + '">Live</button></div>') + '</div>' +
     (l.status === 'past_due' ? '<div class="banner">Your last payment did not go through. Update your card under Usage and billing to keep Tali running.</div>' : '') +
@@ -152,7 +153,8 @@ function tabOverview(el) {
   el.innerHTML = '<div class="grid g4">' +
     '<div class="stat"><div class="v">' + n(st.businesses) + '</div><div class="l">Businesses with a brain<br><span class="faint">' + (max ? 'of ' + n(max) + (S.mode === 'test' ? ' in the sandbox' : ' on your licence') : 'no limit on your licence') + '</span></div></div>' +
     '<div class="stat"><div class="v">' + n(st.clients) + '</div><div class="l">Clients Tali knows<br><span class="faint">' + n(st.memories) + ' facts kept</span></div></div>' +
-    '<div class="stat"><div class="v">' + n(st.answers) + '</div><div class="l">Answers ' + (S.mode === 'test' ? 'this month' : 'this period') + '<br><span class="faint">of ' + n(inc) + ' included</span></div><div class="meter"><i style="width:' + Math.min(100, inc ? (st.answers / inc) * 100 : 0) + '%"></i></div></div>' +
+    (S.mode === 'live' && payg() ? '<div class="stat"><div class="v">' + n(S.data.credits.balance) + '</div><div class="l">Answer credits left<br><span class="faint">' + n(st.answers) + ' answers this month</span></div></div>'
+    : '<div class="stat"><div class="v">' + n(st.answers) + '</div><div class="l">Answers ' + (S.mode === 'test' ? 'this month' : 'this period') + '<br><span class="faint">of ' + n(inc) + ' included</span></div><div class="meter"><i style="width:' + Math.min(100, inc ? (st.answers / inc) * 100 : 0) + '%"></i></div></div>') +
     '<div class="stat"><div class="v" style="' + (st.decided ? '' : 'font-size:20px;padding-top:8px') + '">' + rate + '</div><div class="l">Answers approved<br><span class="faint">as written or edited, from the outcomes you report</span></div></div></div>' +
     '<div class="row" style="margin-top:14px"><div class="card" style="flex:1.4 1 360px"><h3>Answers, last 30 days</h3><div class="bars">' + daily.map(function (d) { return '<i title="' + esc(d.day) + ': ' + d.answers + '" style="height:' + Math.round((d.answers / top) * 100) + '%"></i>'; }).join('') + '</div>' +
     '<div class="small faint" style="margin-top:6px">' + (total ? Object.keys(kinds).filter(function (k) { return k !== 'learn' && kinds[k]; }).map(function (k) { return esc(k.replace('_', ' ')) + ' ' + Math.round((kinds[k] / total) * 100) + '%'; }).join(' · ') : 'Nothing yet') + '</div></div>' +
@@ -230,25 +232,36 @@ function tabKeys(el) {
 }
 
 function tabBilling(el) {
-  var l = S.data.licensee, p = plan(), live = isLive(), st = S.data.stats.live || {};
+  var l = S.data.licensee, p = plan(), live = isLive(), st = S.data.stats.live || {}, cr = S.data.credits || { balance: 0, bought: 0, used: 0 };
   var over = live && p ? Math.max(0, st.answers - p.answers) : 0, cap = live && p ? (l.settings.cap || p.answers * 3) : 0;
-  el.innerHTML = (live && p ? '<div class="grid g3"><div class="stat"><div class="v">' + esc(p.name) + '</div><div class="l">A$' + n(p.price) + ' a month plus GST where it applies<br><span class="faint">' + day(l.period_start) + ' to ' + day(l.period_end) + '</span></div></div>' +
+  el.innerHTML = (live && p ? '<div class="grid g3"><div class="stat"><div class="v">' + esc(p.name) + '</div><div class="l">A$' + n(p.price) + ' a month plus GST where it applies<br><span class="faint">' + day(l.period_start) + ' to ' + day(l.period_end) + (l.minimum_until ? '. Minimum term ends ' + day(l.minimum_until) : '') + '</span></div></div>' +
       '<div class="stat"><div class="v">' + n(st.answers) + '</div><div class="l">Answers this period<br><span class="faint">of ' + n(p.answers) + ' included</span></div><div class="meter"><i style="width:' + Math.min(100, (st.answers / p.answers) * 100) + '%"></i></div></div>' +
       '<div class="stat"><div class="v">A$' + n(Math.round((over * p.over) / 1000)) + '</div><div class="l">Extra answers so far<br><span class="faint">' + n(over) + ' over, at A$' + p.over + ' per 1,000, billed after the period ends</span></div></div></div>' +
       '<div class="card" style="margin-top:14px"><h3>Your cap</h3><p class="muted small" style="margin:6px 0 10px">Tali stops answering at this many answers in a period, so a bill never surprises you. Remembering keeps working.</p><div class="row" style="align-items:center"><input id="cap" type="number" min="' + p.answers + '" step="1000" value="' + cap + '" style="width:180px"><button class="btn ghost" id="capSave">Save cap</button><button class="btn ghost" id="portal">Invoices and card</button></div><div class="err" id="capErr"></div></div>'
-    : '<div class="card"><h3>' + (l.status === 'cancelled' ? 'Your licence has ended' : 'You are in the free sandbox') + '</h3><p class="muted" style="margin-top:6px">' + n(S.data.sandbox.answers) + ' answers a month and ' + S.data.sandbox.businesses + ' businesses with test keys. Pick a plan to go live.</p></div>') +
-    '<h3 style="margin:22px 0 10px">' + (live ? 'Change plan' : 'Plans') + '</h3><div class="grid g4">' + S.data.plans.map(function (x) {
-      var cur = live && p && p.id === x.id;
+    : payg() ? '<div class="grid g3"><div class="stat"><div class="v">' + n(cr.balance) + '</div><div class="l">Answer credits left<br><span class="faint">' + (cr.expires_at ? 'Usable until ' + day(cr.expires_at) + ', 12 months from your last top up' : '') + '</span></div></div>' +
+      '<div class="stat"><div class="v">' + n(st.answers) + '</div><div class="l">Answers this month<br><span class="faint">Pay as you go, up to ' + S.data.payg.businesses + ' businesses</span></div></div>' +
+      '<div class="stat"><div class="v">' + n(cr.bought) + '</div><div class="l">Credits bought so far<br><span class="faint">' + n(cr.used) + ' used</span></div></div></div>' +
+      '<div class="row" style="margin-top:12px"><button class="btn ghost" id="portal">Invoices and card</button></div><div class="err" id="capErr"></div>'
+    : '<div class="card"><h3>' + (l.status === 'cancelled' ? 'Your licence has ended' : 'You are in the free sandbox') + '</h3><p class="muted" style="margin-top:6px">' + n(S.data.sandbox.answers) + ' answers a month and ' + S.data.sandbox.businesses + ' businesses with test keys. To go live, buy answer credits or pick a plan.</p></div>') +
+    '<h3 style="margin:22px 0 10px">Pay as you go</h3><div class="card"><p class="muted small" style="margin-bottom:12px">' + (live && p ? 'Credits you buy are used before extra answers are billed on your plan.' : 'No monthly fee. Up to ' + S.data.payg.businesses + ' businesses. Remembering costs 1 credit for every ' + S.data.payg.learn_per_credit + ' notes Tali learns from. Credits last ' + S.data.payg.months_valid + ' months from your last top up.') + (live && p && cr.balance ? ' You have ' + n(cr.balance) + ' left.' : '') + '</p>' +
+      '<div class="row">' + S.data.payg.packs.map(function (k) { return '<button class="btn' + (k.id === 'p5' ? '' : ' ghost') + '" data-pack="' + k.id + '">' + n(k.answers) + ' answers, A$' + n(k.price) + '</button>'; }).join('') + '</div></div>' +
+    '<h3 style="margin:22px 0 10px">' + (live && p ? 'Change plan' : 'Monthly plans') + '</h3><div class="grid g3">' + S.data.plans.map(function (x) {
+      var cur = live && p && p.id === x.id, held = live && p && l.minimum_until && x.price < p.price;
       return '<div class="card tier' + (cur ? ' cur' : '') + '"><h3>' + esc(x.name) + '</h3><div class="price">A$' + n(x.price) + '<small> a month</small></div><div class="small muted">' + (x.months > 1 ? x.months + ' month minimum' : 'No lock-in') + '</div>' +
         '<ul class="plain" style="margin-top:8px"><li>' + (x.businesses ? 'Up to ' + n(x.businesses) + ' businesses' : 'Unlimited businesses') + '</li><li>' + n(x.answers) + ' answers a month</li><li>Then A$' + x.over + ' per 1,000</li><li>' + (x.white ? 'Fully your brand' : x.own_name ? 'Your own name for her' : "She's called Tali") + '</li></ul>' +
-        (cur ? '<span class="pill g" style="margin-top:12px">Your plan</span>' : '<button class="btn' + (x.id === 'growth' ? '' : ' ghost') + '" style="margin-top:12px;width:100%" data-plan="' + x.id + '">' + (live ? 'Move to ' + esc(x.name) : 'Choose ' + esc(x.name)) + '</button>') + '</div>'; }).join('') + '</div>' +
-    (live ? '' : '<label style="display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:14px"><input type="checkbox" id="setup" style="width:auto;margin-top:4px"><span><b>Add setup with us, A$' + n(S.data.setup) + ' once.</b><br><span class="muted">We shape what she remembers, her rules and her actions for your industry, and help your developers wire her in.</span></span></label>') +
-    '<div class="err" id="err"></div><p class="small muted" style="margin-top:8px">Prices are in Australian dollars. GST is added for Australian companies. By choosing a plan you agree to the <a href="/brain/terms" target="_blank">licence terms</a>.' + (S.data.billing_ready ? '' : ' Billing opens soon.') + '</p>';
+        (cur ? '<span class="pill g" style="margin-top:12px">Your plan</span>' : held ? '<p class="small muted" style="margin-top:12px">Open to you after ' + day(l.minimum_until) + ', when your minimum term ends.</p>' : '<button class="btn' + (x.id === 'growth' ? '' : ' ghost') + '" style="margin-top:12px;width:100%" data-plan="' + x.id + '">' + (live && p ? 'Move to ' + esc(x.name) : 'Choose ' + esc(x.name)) + '</button>') + '</div>'; }).join('') + '</div>' +
+    (live && p ? '' : '<label style="display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:14px"><input type="checkbox" id="setup" style="width:auto;margin-top:4px"><span><b>Add setup with us, A$' + n(S.data.setup) + ' once.</b><br><span class="muted">We shape what she remembers, her rules and her actions for your industry, and help your developers wire her in.</span></span></label>') +
+    '<div class="err" id="err"></div><p class="small muted" style="margin-top:8px">Prices are in Australian dollars. GST is added for Australian companies. By buying credits or choosing a plan you agree to the <a href="/brain/terms" target="_blank">licence terms</a>.' + (S.data.billing_ready ? '' : ' Billing opens soon.') + '</p>';
   var back = location.origin + '/brain/console';
   el.querySelectorAll('[data-plan]').forEach(function (b) { b.onclick = async function () {
-    if (live && !b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sure? Click again'; return; }
+    if (live && p && !b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sure? Click again'; return; }
     b.disabled = true; $('err').textContent = '';
     try { var r = await call('checkout', { plan: b.dataset.plan, setup: $('setup') ? $('setup').checked : false, returnUrl: back }); if (r.url) location.href = r.url; else load(true); }
+    catch (e) { $('err').textContent = e.message; b.disabled = false; }
+  }; });
+  el.querySelectorAll('[data-pack]').forEach(function (b) { b.onclick = async function () {
+    b.disabled = true; $('err').textContent = '';
+    try { var r = await call('buy_credits', { pack: b.dataset.pack, returnUrl: back }); location.href = r.url; }
     catch (e) { $('err').textContent = e.message; b.disabled = false; }
   }; });
   if ($('portal')) $('portal').onclick = async function () { try { var r = await call('portal', { returnUrl: back }); location.href = r.url; } catch (e) { $('capErr').textContent = e.message; } };
@@ -263,7 +276,7 @@ SB.auth.onAuthStateChange(function (_e, session) {
   var had = S.session && S.session.user.id;
   S.session = session;
   if (!session) { S.data = null; viewAuth(); return; }
-  if (had !== session.user.id) load(new URLSearchParams(location.search).get('paid') ? true : false).catch(function (e) { app.innerHTML = '<div class="wrap" style="padding-block:60px"><p class="err">' + esc(e.message) + '</p></div>'; });
+  if (had !== session.user.id) load(/[?&](paid|credits)=/.test(location.search)).catch(function (e) { app.innerHTML = '<div class="wrap" style="padding-block:60px"><p class="err">' + esc(e.message) + '</p></div>'; });
 });
 </script>
 </body>

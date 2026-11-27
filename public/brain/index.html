@@ -133,12 +133,12 @@ details { border-top: 1px solid var(--border); padding: 14px 0; } summary { font
 
 <section class="wrap" id="pricing">
   <div class="kicker">Pricing</div>
-  <h2>A monthly licence, with answers included</h2>
-  <p class="lede">An answer is one draft, briefing, summary, booking suggestion or question. Remembering is free. Prices are in Australian dollars, plus GST for Australian companies.</p>
+  <h2>Pay as you go, or a monthly licence</h2>
+  <p class="lede" id="pricingLede">An answer is one draft, briefing, summary, booking suggestion or question. Remembering is free. Prices are in Australian dollars, plus GST for Australian companies.</p>
   <div class="grid g4" id="tiers" style="margin-top:22px"></div>
   <div class="grid g3" style="margin-top:16px">
     <div class="card"><h3>Free sandbox</h3><ul class="plain" style="margin-top:6px"><li id="sandboxLine">Test keys, 5 businesses and 300 answers a month</li><li>Every feature switched on so you can try it</li><li>No card needed</li></ul></div>
-    <div class="card"><h3>In every licence</h3><ul class="plain" style="margin-top:6px"><li>Memory and memory search, no limit on facts</li><li>The API and the drop-in panel</li><li>A cap you set, so a bill never surprises you</li><li>Export and delete</li></ul></div>
+    <div class="card"><h3>In every licence</h3><ul class="plain" style="margin-top:6px"><li>Memory and memory search, no limit on facts</li><li>The API and the drop-in panel</li><li>On a plan, a cap you set, so a bill never surprises you</li><li>Export and delete</li></ul></div>
     <div class="card"><h3>Counted as extra answers</h3><ul class="plain" style="margin-top:6px"><li>Voice notes: 1 answer a minute</li><li>Documents (PDF): 2 answers each</li><li>Images: 2 answers each</li><li id="setupLine">Optional setup with us: A$3,000 once</li></ul></div>
   </div>
 </section>
@@ -149,8 +149,9 @@ details { border-top: 1px solid var(--border); padding: 14px 0; } summary { font
   <div style="margin-top:14px">
     <details><summary>Do my customers deal with you?</summary><p>No. Tali lives inside your product under the name you choose. Your customers deal with you. You pay us the licence, and what you charge your customers for it is up to you.</p></details>
     <details><summary>Can we pass the licence on to other companies?</summary><p>No. The licence covers Tali inside your own software, for the businesses on your platform.</p></details>
-    <details><summary>What happens if we go over our answers?</summary><p>Extra answers are billed per 1,000 at your plan's rate, after the month ends. You set a cap in the console, and Tali stops at the cap until you raise it.</p></details>
-    <details><summary>Where is the data?</summary><p>Each brain is stored in Sydney, Australia. To write an answer, the facts needed for that answer are sent to our AI providers, who do not use them to train their models. You can export or delete a brain at any time.</p></details>
+    <details><summary>Can we start without a monthly plan?</summary><p>Yes. Pay as you go has no monthly fee. Buy answer credits when you need them, for up to 10 businesses. Credits last 12 months from your last top up. When you outgrow it, move to a plan and any credits left are used before extra answers are billed.</p></details>
+    <details><summary>What happens if we go over our answers?</summary><p>On a plan, extra answers are billed per 1,000 at your plan's rate after the month ends. You set a cap in the console, and Tali stops at the cap until you raise it. On Pay as you go, Tali stops when your credits run out, until you top up.</p></details>
+    <details><summary>Where is the data?</summary><p>Each brain is stored in Sydney, Australia. To write an answer, the facts needed for that answer are sent to our AI providers, who do not use them to train their models. You can export or delete a brain at any time. More on the <a href="/brain/security">security page</a>.</p></details>
     <details><summary>Can Tali send messages or make bookings herself?</summary><p>No. She writes drafts and suggestions. Your software sends or books only after your user says yes.</p></details>
   </div>
   <div class="card" style="margin-top:28px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap">
@@ -162,21 +163,28 @@ details { border-top: 1px solid var(--border); padding: 14px 0; } summary { font
 
 <footer class="wrap foot">
   <span>Tali Brain is made by Totality 360 Pty Ltd, Australia.</span>
-  <span><a href="/brain/docs">Docs</a> · <a href="/brain/terms">Licence terms</a> · <a href="mailto:taj@totality360.com.au">taj@totality360.com.au</a></span>
+  <span><a href="/brain/docs">Docs</a> · <a href="/brain/security">Security</a> · <a href="/brain/terms">Licence terms</a> · <a href="mailto:taj@totality360.com.au">taj@totality360.com.au</a></span>
 </footer>
 
 <script>
 // Prices come from the API so they live in one place. These are shown until it answers.
 var FALLBACK = { plans: [
-  { id: 'starter', name: 'Starter', price: 290, businesses: 10, answers: 2000, over: 70, months: 1, own_name: false, white: false, actions: false },
   { id: 'pilot', name: 'Pilot', price: 990, businesses: 50, answers: 10000, over: 60, months: 3, own_name: false, white: false, actions: false },
   { id: 'growth', name: 'Growth', price: 2990, businesses: 500, answers: 50000, over: 50, months: 12, own_name: true, white: false, actions: false },
   { id: 'platform', name: 'Platform', price: 7500, businesses: null, answers: 100000, over: 40, months: 12, own_name: true, white: true, actions: true } ],
-  setup: 3000, sandbox: { businesses: 5, answers: 300 } };
-var TAG = { starter: ['Small platforms', ''], pilot: ['To start', ''], growth: ['Most will pick', 'o'], platform: ['Big platforms', 'g'] };
+  setup: 3000, sandbox: { businesses: 5, answers: 300 },
+  payg: { name: 'Pay as you go', businesses: 10, learn_per_credit: 5, months_valid: 12, packs: [{ id: 'p1', answers: 1000, price: 80 }, { id: 'p5', answers: 5000, price: 375 }, { id: 'p20', answers: 20000, price: 1400 }] } };
+var TAG = { pilot: ['Small platforms', ''], growth: ['Most will pick', 'o'], platform: ['Big platforms', 'g'] };
 function n(x) { return Number(x).toLocaleString('en-AU'); }
+function paygCard(g) {
+  var lines = ['No monthly fee', 'Up to ' + g.businesses + ' businesses'].concat(g.packs.map(function (k) { return n(k.answers) + ' answers for A$' + n(k.price); }))
+    .concat(['Remembering: 1 credit for every ' + g.learn_per_credit + ' notes learned', 'Credits last ' + g.months_valid + ' months', "She's called Tali"]);
+  return '<div class="card tier"><span class="pill">Start small</span><h2 style="margin-top:10px">' + g.name + '</h2>' +
+    '<div class="price">A$' + g.packs[0].price + '<small> per 1,000 answers</small></div><div class="small muted">Buy credits when you need them</div>' +
+    '<ul class="plain" style="margin-top:12px">' + lines.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul></div>';
+}
 function render(d) {
-  document.getElementById('tiers').innerHTML = d.plans.map(function (p) {
+  document.getElementById('tiers').innerHTML = (d.payg ? paygCard(d.payg) : '') + d.plans.map(function (p) {
     var lines = [
       p.businesses ? 'Up to ' + n(p.businesses) + ' businesses' : 'Unlimited businesses',
       n(p.answers) + ' answers a month', 'Then A$' + p.over + ' per 1,000',
@@ -187,6 +195,7 @@ function render(d) {
       '<div class="price">A$' + n(p.price) + '<small> a month</small></div><div class="small muted">' + (p.months > 1 ? p.months + ' month minimum' : 'No lock-in') + '</div>' +
       '<ul class="plain" style="margin-top:12px">' + lines.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul></div>';
   }).join('');
+  document.getElementById('pricingLede').textContent = 'Start with Pay as you go and no monthly fee, or take a monthly licence with answers included. An answer is one draft, briefing, summary, booking suggestion or question. Prices are in Australian dollars, plus GST for Australian companies.';
   document.getElementById('sandboxLine').textContent = 'Test keys, ' + d.sandbox.businesses + ' businesses and ' + n(d.sandbox.answers) + ' answers a month';
   document.getElementById('setupLine').textContent = 'Optional setup with us: A$' + n(d.setup) + ' once';
 }

@@ -597,3 +597,16 @@ Software companies can now license Tali's brain for their own product. Each busi
 - **Not built**: Tali on the phone (Twilio), web search and video inside licence answers.
 - **Before the first paying licensee**: have a lawyer read `/brain/terms`.
 
+
+## Tali Brain licence: Pay as you go and the gap fixes (27 Nov 2026)
+
+Taj's call: Pay as you go replaces the Starter plan, and the gaps found after the first licence PR are fixed.
+
+- **Pay as you go**: no monthly fee, up to 10 businesses. Licensees buy answer credits in the console: 1,000 for A$80, 5,000 for A$375, 20,000 for A$1,400 (plus GST for Australian companies). Remembering costs 1 credit for every 5 learning calls. Credits last 12 months from the last top up. A licensee on a monthly plan who has credits left uses them before extra answers are billed. Stripe product `prod_VhfkUzloG7cJCi`, price ids in `brain-api`. Starter's Stripe price is archived.
+- **Database**: migration `20261127000101_brain_licence_terms_uptime.sql` (`licensees.term_start`, `licence_uptime`, cron `licence-uptime` every 5 minutes) and `20261127000102_brain_licence_payg.sql` (`licence_credits` ledger, `licence_answers.payg`, `licence_credit_balance()`, credits on the founder card). Both applied.
+- **Function**: `brain-api` version 3. Credits are claimed from paid Checkout sessions (metadata `kind = brain_credits`), so there is still no webhook. Out of credits returns 402 `no_credits`; learning is skipped with `learning_skipped: no_credits`.
+- **Minimum terms**: moving down a plan is refused until the minimum ends, and the Stripe billing portal has no cancel button until then (portal set ups `bpc_1UgGHjPy9YlWBZ02fVjFw5W2` locked, `bpc_1UgGHkPy9YlWBZ02qafzL4PZ` open).
+- **Checkout** says Tali Brain, in the licence colours.
+- **Pages**: new `/brain/security`. Pricing, console, docs and terms updated for Pay as you go and minimum terms.
+- **Founder screen**: monthly plans and Pay as you go counted apart, credit sales for the last 30 days, credits left per licensee, and uptime for the last 30 days.
+- **Still needs Taj**: a lawyer to read `/brain/terms`; an outside auditor if a licensee needs SOC 2 or ISO 27001; delete the renamed test customer in the Stripe dashboard.
