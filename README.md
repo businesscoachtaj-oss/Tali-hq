@@ -577,3 +577,9 @@ Ponder is a separate brain games app (its own repo). Its sign in is a normal Tal
 - `tali-brief` adds the last 7 days in Ponder (games, brain habits, sleep from Wind Down, lessons) to the brief context. Tali uses it at most once and only when it helps. Nothing changes for people who don't play.
 - New `ponder-weekly-note` (verify_jwt false, it checks for the service role itself): the Sunday note to the family member a Gentle player chose to share with, sent with Resend. Not scheduled yet.
 - Ponder's Delete my account calls `delete-account` (same account). Deleting the auth user cascades every `ponder_` row, so nothing else is needed.
+
+## 27 Nov 2026: Zapier and the Tali HQ API
+- Settings, Connections has a "Zapier and the Tali HQ API" card (`components/ApiKeysCard.tsx`). HQ, Pro and Max can make up to 5 keys. A key shows once; only its sha256 hash is stored (`api_keys`, migration `20261127000099_api_keys.sql`).
+- `supabase/functions/tali-api`: read clients and leads (never family or friends), website enquiries, bookings, paid invoices and accepted quotes; add a client or lead, a reminder or a note. Nothing sends, spends or deletes.
+- Zapier app in `integrations/zapier-tali-hq` (6 polling triggers, 4 actions, 1 search). Passes `zapier validate`. Publish steps in its README.
+- To go live: `npx supabase functions deploy tali-api --no-verify-jwt --project-ref jbyzblwrywgxilhmfyjt`.
