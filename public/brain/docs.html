@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tali Brain docs</title>
+<meta name="description" content="How to put Tali's brain inside your software: the API, the drop-in panel, limits and errors.">
+<link rel="icon" href="/brain/img/tali_head_idle.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/brain/brain.css">
+<style>
+.docs { display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; }
+.toc { position: sticky; top: 16px; font-size: 13.5px; } .toc a { display: block; padding: 5px 0; color: var(--muted); font-weight: 600; }
+article { min-width: 0; max-width: 780px; } article h2 { margin: 40px 0 10px; scroll-margin-top: 16px; } article h2:first-child { margin-top: 0; }
+article h3 { margin: 22px 0 8px; } article p, article li { color: var(--muted); } article p { margin: 8px 0; } article ul { padding-left: 20px; margin: 8px 0; }
+article pre { margin: 10px 0; }
+.ep { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 24px 0 6px; } .ep b { font-family: ui-monospace, Menlo, monospace; font-size: 13.5px; color: var(--text); overflow-wrap: anywhere; }
+.m { font-size: 11px; font-weight: 800; padding: 3px 7px; border-radius: 3px; background: var(--purpleSoft); color: var(--purpleInk); }
+.m.g { background: rgba(46,125,79,0.12); color: var(--good); } .m.r { background: rgba(179,57,47,0.1); color: var(--danger); } .m.o { background: var(--orangeSoft); color: var(--orange); }
+@media (max-width: 800px) { .docs { grid-template-columns: 1fr; } .toc { position: static; display: flex; flex-wrap: wrap; gap: 4px 14px; } }
+</style>
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/brain"><img src="/brain/img/tali_head_idle.png" alt="">Tali Brain</a>
+  <nav class="navlinks"><a class="hide-s" href="/brain#pricing">Pricing</a><a href="/brain/docs">Docs</a><a class="btn sm" href="/brain/console">Console</a></nav>
+</header>
+<main class="wrap docs" style="padding-block:20px 60px">
+<nav class="toc"><a href="#start">Quick start</a><a href="#ideas">The ideas</a><a href="#events">Events</a><a href="#answers">Answers</a><a href="#memories">Memories</a><a href="#businesses">Businesses and clients</a><a href="#panel">The drop-in panel</a><a href="#limits">Limits and errors</a><a href="#privacy">Privacy rules</a></nav>
+<article>
+<h2 id="start">Quick start</h2>
+<p>Make a sandbox key in the <a href="/brain/console">console</a>, under Keys. Keys go on your servers only, never in a web page or an app.</p>
+<p>Base address: <code>https://talihq.com.au/brain/api/v1</code>. Send your key as a Bearer token. Everything is JSON.</p>
+<h3>1. Tell Tali what happened</h3>
+<pre><code>curl https://talihq.com.au/brain/api/v1/events \
+  -H "Authorization: Bearer thb_test_..." -H "Content-Type: application/json" \
+  -d '{
+    "business_id": "biz-1", "business_name": "Coastline Realty",
+    "client_id": "client-1", "client_name": "Priya Shah",
+    "type": "note",
+    "text": "Loved the light at Bower St, hated the road noise. Budget up to $1.25m."
+  }'</code></pre>
+<p>Tali makes a brain for <code>biz-1</code> the first time she sees it, and keeps the facts that will still matter in a month.</p>
+<h3>2. Ask for an answer</h3>
+<pre><code>curl https://talihq.com.au/brain/api/v1/answers \
+  -H "Authorization: Bearer thb_test_..." -H "Content-Type: application/json" \
+  -d '{
+    "business_id": "biz-1", "client_id": "client-1",
+    "kind": "draft",
+    "message": "Can we see Lauderdale Ave this Saturday? What are the strata fees?",
+    "context": "22 Lauderdale Ave: quiet street, strata $1,150 a quarter, open Saturday 10:30am"
+  }'</code></pre>
+<pre><code>{
+  "id": "70015d2c-...",
+  "kind": "draft",
+  "text": "Hi Priya, Saturday at 10:30 works for 22 Lauderdale Ave ...",
+  "used": [{ "id": "91e7...", "fact": "Wants to be able to walk to the beach. Dislikes road noise." }],
+  "noticed": [],
+  "booking": null,
+  "actions": [],
+  "answers_charged": 1
+}</code></pre>
+<h3>3. Tell Tali what the person did with it</h3>
+<pre><code>curl -X POST https://talihq.com.au/brain/api/v1/answers/70015d2c-.../outcome \
+  -H "Authorization: Bearer thb_test_..." -H "Content-Type: application/json" \
+  -d '{ "outcome": "approved" }'</code></pre>
+<p>Outcomes are <code>approved</code>, <code>edited</code> or <code>rejected</code>. They power the approval numbers in your console.</p>
+
+<h2 id="ideas">The ideas</h2>
+<ul>
+<li><b>Business.</b> One of your customers. You send your own ID for it as <code>business_id</code>. Each business has its own private brain.</li>
+<li><b>Client.</b> A person that business looks after. You send your own ID as <code>client_id</code>.</li>
+<li><b>Memory.</b> One short fact Tali keeps, about a client or about the business itself. A memory is either <code>kept</code>, or <code>suggested</code> when Tali noticed it herself and a person has not said yes yet.</li>
+<li><b>Event.</b> Something that happened: a note, a message, a booking. Sending events is how Tali learns. It is free.</li>
+<li><b>Answer.</b> Something Tali writes for a person to approve. Each one counts as 1 answer on your plan.</li>
+<li><b>Sandbox and live.</b> Test keys (<code>thb_test_</code>) work on separate sandbox brains and never bill. Live keys (<code>thb_live_</code>) come with a plan.</li>
+</ul>
+<p>Tali never sends, books or spends. She returns drafts and suggestions. Your software acts after your user says yes.</p>
+
+<h2 id="events">Events</h2>
+<div class="ep"><span class="m g">POST</span><b>/v1/events</b></div>
+<p>Send one event, or up to 20 in <code>events</code>. Fields on the request: <code>business_id</code> (needed), <code>business_name</code>, <code>client_id</code>, <code>client_name</code>, <code>learn</code> (send <code>false</code> to store without learning).</p>
+<p>Fields on each event: <code>type</code> (<code>note</code>, <code>message</code>, <code>email</code>, <code>call</code>, <code>booking</code>, <code>form</code>, <code>other</code>), <code>text</code>, <code>direction</code> (<code>in</code> from the client, <code>out</code> to the client, or leave it out for internal), <code>at</code> (when it happened), and <code>id</code> (your own ID for it, so the same event sent twice is only stored once).</p>
+<pre><code>{
+  "business_id": "biz-1", "client_id": "client-1",
+  "events": [
+    { "id": "email-881", "type": "email", "direction": "in", "at": "2026-11-27T21:12:00Z",
+      "text": "Can we see Lauderdale Ave this Saturday?" },
+    { "id": "note-42", "type": "note", "text": "Two kids starting school in February." }
+  ]
+}</code></pre>
+<p>The reply tells you what was stored and what Tali learned. Leave <code>client_id</code> out to teach Tali about the business itself, such as prices, opening hours and policies.</p>
+<h3>Voice notes, documents and images</h3>
+<p>Add <code>media</code> to an event. Tali turns it into text first, then learns from it. These count as answers: voice notes 1 a minute, documents and images 2 each.</p>
+<pre><code>{ "business_id": "biz-1", "client_id": "client-1",
+  "type": "voice_note",
+  "media": { "kind": "audio", "media_type": "audio/mp4", "data": "BASE64..." } }</code></pre>
+<p><code>kind</code> is <code>audio</code>, <code>document</code> (PDF) or <code>image</code> (png, jpeg, webp, gif). Up to 8 MB each.</p>
+
+<h2 id="answers">Answers</h2>
+<div class="ep"><span class="m g">POST</span><b>/v1/answers</b></div>
+<p>Needs <code>business_id</code> and <code>kind</code>. Send <code>client_id</code> for anything about a client.</p>
+<div class="scroll"><table>
+<tr><th>kind</th><th>What you get</th><th>Also send</th></tr>
+<tr><td><code>draft</code></td><td>A reply to the client, ready to send</td><td><code>message</code>, or Tali uses the last event from the client. <code>channel</code> if you like (email, sms).</td></tr>
+<tr><td><code>brief</code></td><td>A short briefing before a call or meeting</td><td></td></tr>
+<tr><td><code>summary</code></td><td>Where things stand with the client</td><td></td></tr>
+<tr><td><code>booking</code></td><td>The best time, picked from the ones you say are free</td><td><code>free_slots</code>: a list of open times, written however you show them</td></tr>
+<tr><td><code>ask</code></td><td>An answer to a staff question</td><td><code>question</code></td></tr>
+</table></div>
+<p>Any kind can take <code>context</code> (text or JSON from your software that Tali should use, such as the listing or the invoice in front of the user), <code>from_name</code> (the staff member), and <code>free_slots</code>. When you send <code>free_slots</code> the reply has a <code>booking</code> with the <code>slot</code> she picked, a <code>title</code> and <code>why</code>.</p>
+<p>In the reply, <code>used</code> lists the facts Tali relied on, and <code>noticed</code> lists new facts she spotted. Noticed facts are saved as <code>suggested</code> until a person keeps them. On Platform, <code>actions</code> can name one of your own actions for the user to approve.</p>
+<div class="ep"><span class="m g">POST</span><b>/v1/answers/{id}/outcome</b></div>
+<p><code>{ "outcome": "approved" | "edited" | "rejected" }</code></p>
+
+<h2 id="memories">Memories</h2>
+<div class="ep"><span class="m">GET</span><b>/v1/memories?business_id=&amp;client_id=&amp;q=</b></div>
+<p>What Tali knows. With <code>client_id</code> you get that client's facts. Without it you get the business's own facts, or everything with <code>scope=all</code>. <code>q</code> searches by words.</p>
+<div class="ep"><span class="m g">POST</span><b>/v1/memories</b></div>
+<p><code>{ "business_id", "client_id", "fact", "kind", "until" }</code>. Tell Tali a fact directly. <code>until</code> is a date (YYYY-MM-DD) after which the fact is no longer used.</p>
+<div class="ep"><span class="m o">PATCH</span><b>/v1/memories/{id}</b></div>
+<p><code>{ "status": "kept" }</code> keeps something Tali noticed. You can also change <code>fact</code> or <code>until</code>.</p>
+<div class="ep"><span class="m r">DELETE</span><b>/v1/memories/{id}</b></div>
+
+<h2 id="businesses">Businesses and clients</h2>
+<div class="ep"><span class="m">GET</span><b>/v1/businesses</b></div>
+<div class="ep"><span class="m o">PUT</span><b>/v1/businesses/{business_id}</b></div>
+<p><code>{ "name" }</code>. Makes or renames a business. You do not have to call this: a brain is made the first time you send its ID anywhere.</p>
+<div class="ep"><span class="m">GET</span><b>/v1/businesses/{business_id}/export</b></div>
+<p>Everything in that brain: clients, memories and events.</p>
+<div class="ep"><span class="m r">DELETE</span><b>/v1/businesses/{business_id}</b></div>
+<p>Deletes the brain and everything in it. Use this when a customer leaves you.</p>
+<div class="ep"><span class="m o">PUT</span><b>/v1/businesses/{business_id}/clients/{client_id}</b></div>
+<div class="ep"><span class="m r">DELETE</span><b>/v1/businesses/{business_id}/clients/{client_id}</b></div>
+<p>Forgets one client: their facts and events. Use this when a person asks to be forgotten.</p>
+<div class="ep"><span class="m">GET</span><b>/v1/me</b></div>
+<p>Your plan, mode and answers used this period.</p>
+
+<h2 id="panel">The drop-in panel</h2>
+<p>The panel is a ready-made Tali for a client's page in your product: what she knows, things she noticed, and buttons to draft a reply, brief the user or suggest a time. It carries your name for her and your colour.</p>
+<h3>1. Your server makes a short lived token</h3>
+<pre><code>curl https://talihq.com.au/brain/api/v1/panel-tokens \
+  -H "Authorization: Bearer thb_test_..." -H "Content-Type: application/json" \
+  -d '{ "business_id": "biz-1", "client_id": "client-1", "user_name": "Sam", "minutes": 60 }'</code></pre>
+<p>You get back <code>url</code>. The token only works for that one client, and runs out after <code>minutes</code> (5 to 720).</p>
+<h3>2. Your page shows it</h3>
+<pre><code>&lt;iframe id="tali" src="URL_FROM_STEP_1" style="width:380px;height:640px;border:0"&gt;&lt;/iframe&gt;
+&lt;script&gt;
+  const frame = document.getElementById('tali');
+  window.addEventListener('message', (e) =&gt; {
+    if (e.source !== frame.contentWindow) return;
+    if (e.data.type === 'tali:ready') frame.contentWindow.postMessage({
+      type: 'tali:context',
+      message: 'The message your user is replying to',
+      free_slots: ['Sat 28 Nov 10:30am', 'Sat 28 Nov 2:00pm'],
+      context: 'Anything on screen Tali should know'
+    }, '*');
+    if (e.data.type === 'tali:send') putInMessageBox(e.data.text);      // your user still presses send
+    if (e.data.type === 'tali:book') openBooking(e.data.slot, e.data.title);
+  });
+&lt;/script&gt;</code></pre>
+<p>The panel reports outcomes for you.</p>
+
+<h2 id="limits">Limits and errors</h2>
+<ul>
+<li><b>Sandbox.</b> 5 businesses and 300 answers a month, free.</li>
+<li><b>Your cap.</b> On a plan, answers past the included ones are billed per 1,000 after the period ends. Tali stops at your cap, which starts at three times your included answers. Change it in the console.</li>
+<li><b>Speed.</b> 120 requests a minute.</li>
+<li><b>Remembering is free</b> within fair use: learning from events up to ten times your plan's answers each period. Past that, events are still stored.</li>
+</ul>
+<p>Errors come back as <code>{ "error": { "code", "message" } }</code>.</p>
+<div class="scroll"><table>
+<tr><th>Status</th><th>code</th><th>Meaning</th></tr>
+<tr><td>400</td><td>various</td><td>Something is missing or not right. The message says what.</td></tr>
+<tr><td>401</td><td><code>bad_key</code>, <code>bad_token</code>, <code>expired</code></td><td>The key or panel token is not valid.</td></tr>
+<tr><td>402</td><td><code>not_active</code>, <code>business_limit</code></td><td>The licence is not active, or the plan's businesses are all used.</td></tr>
+<tr><td>403</td><td><code>switched_off</code></td><td>That kind of answer is switched off under Customise.</td></tr>
+<tr><td>429</td><td><code>slow_down</code>, <code>sandbox_limit</code>, <code>cap_reached</code></td><td>Too fast, or a limit was reached.</td></tr>
+<tr><td>502</td><td><code>try_again</code></td><td>Tali could not answer just now. Nothing was charged.</td></tr>
+</table></div>
+
+<h2 id="privacy">Privacy rules</h2>
+<ul>
+<li>Each business's brain is separate. A key or token can never read another licensee's data, and an answer for one business never uses another business's facts.</li>
+<li>Tali never keeps card, bank account or government ID numbers, or passwords.</li>
+<li>She keeps a health, money or legal detail only if the client said it or a staff member wrote it down.</li>
+<li>Brains are stored in Sydney, Australia. To write an answer, the facts needed are sent to our AI providers, who do not train on them.</li>
+<li>You can export or delete a brain, or forget one client, at any time. When a licence ends we delete its brains within 30 days.</li>
+</ul>
+<p>Questions: <a href="mailto:taj@totality360.com.au">taj@totality360.com.au</a></p>
+</article>
+</main>
+<footer class="wrap foot"><span>Tali Brain is made by Totality 360 Pty Ltd, Australia.</span><span><a href="/brain">Home</a> · <a href="/brain/terms">Licence terms</a></span></footer>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tali Brain console</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/brain/img/tali_head_idle.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/brain/brain.css">
+<style>
+.authbox { max-width: 420px; margin: 8vh auto; }
+.shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+.nav { background: var(--sunk); padding: 18px 14px; border-right: 1px solid var(--border); }
+.nav button.t { display: block; width: 100%; text-align: left; font: inherit; font-size: 14px; font-weight: 600; color: var(--muted); padding: 9px 10px; border-radius: 4px; margin-bottom: 2px; background: none; border: 1px solid transparent; cursor: pointer; }
+.nav button.t.on { background: var(--surface); color: var(--text); border-color: var(--border); }
+.nav .org { margin-top: 22px; font-size: 12px; color: var(--faint); line-height: 1.6; overflow-wrap: anywhere; }
+.main { padding: 22px 24px 60px; min-width: 0; }
+.mode { display: inline-flex; border: 1px solid var(--borderS); border-radius: 4px; overflow: hidden; }
+.mode button { font: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 12px; border: 0; background: var(--surface); color: var(--muted); cursor: pointer; }
+.mode button.on { background: var(--text); color: var(--bg); }
+.stat { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.stat .v { font-family: 'EB Garamond', Georgia, serif; font-size: 32px; line-height: 1.05; } .stat .l { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.meter { height: 6px; background: var(--sunk); border-radius: 3px; margin-top: 8px; overflow: hidden; } .meter i { display: block; height: 100%; background: var(--purple); }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 120px; margin-top: 12px; } .bars i { flex: 1; background: var(--purple); opacity: 0.85; border-radius: 2px 2px 0 0; min-height: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; } .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--text); }
+.chip.on { background: var(--purple); color: #F5F0E6; border-color: var(--purple); }
+.tog { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.sw { width: 38px; height: 22px; border-radius: 11px; background: #CFC8BA; position: relative; border: 0; cursor: pointer; flex: none; } .sw::after { content: ''; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 9px; background: #fff; transition: left .12s; }
+.sw.on { background: var(--purple); } .sw.on::after { left: 18px; }
+.lock { font-size: 11px; font-weight: 800; color: var(--orange); text-transform: uppercase; }
+.sws { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .sws button { width: 28px; height: 28px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; } .sws button.on { border-color: var(--text); }
+.cust { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+.preview { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; position: sticky; top: 16px; }
+.ph { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; } .ph img { width: 34px; } .ph small { display: block; font-size: 11px; color: var(--faint); }
+.keyonce { background: var(--orangeSoft); border: 1px solid rgba(168,86,26,0.3); border-radius: 6px; padding: 14px; margin-bottom: 14px; }
+.tier.cur { border: 2px solid var(--purple); }
+.price { font-family: 'EB Garamond', Georgia, serif; font-size: 30px; line-height: 1; margin: 8px 0 2px; } .price small { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12.5px; color: var(--muted); }
+.banner { background: var(--orangeSoft); border: 1px solid rgba(168,86,26,0.3); border-radius: 6px; padding: 12px 14px; margin-bottom: 16px; font-size: 14px; }
+@media (max-width: 860px) { .shell { grid-template-columns: 1fr; } .nav { border-right: 0; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; } .nav .brand { width: 100%; margin-bottom: 6px; } .nav button.t { width: auto; margin: 0; } .nav .org { display: none; } .cust { grid-template-columns: 1fr; } .main { padding: 18px 16px 60px; } }
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap" style="padding-block:60px"><p class="muted">Loading...</p></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+// Tali Brain console (27 Nov 2026). Signs in with the Tali HQ Supabase project and talks to the
+// brain-api edge function through /brain/api (see vercel.json). The key below is the public one.
+var SB = window.supabase.createClient('https://jbyzblwrywgxilhmfyjt.supabase.co', 'sb_publishable_6boNZk1eRN8-7Z4PIbxB3w_n4VDXf51');
+var API = '/brain/api';
+var S = { session: null, data: null, tab: new URLSearchParams(location.search).get('tab') || 'overview', mode: 'test', biz: null, newKey: null, draft: null, authMode: 'in', sent: false };
+var app = document.getElementById('app');
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function n(x) { return Number(x || 0).toLocaleString('en-AU'); }
+function day(d) { return d ? new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; }
+function ago(d) { if (!d) return 'Never'; var m = (Date.now() - new Date(d).getTime()) / 60000; return m < 2 ? 'Just now' : m < 60 ? Math.round(m) + ' min ago' : m < 1440 ? Math.round(m / 60) + ' hours ago' : day(d); }
+function $(id) { return document.getElementById(id); }
+
+async function call(action, extra) {
+  var res = await fetch(API + '/console', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + S.session.access_token }, body: JSON.stringify(Object.assign({ action: action }, extra || {})) });
+  var out = await res.json().catch(function () { return {}; });
+  if (!res.ok) throw new Error((out.error && out.error.message) || 'Something went wrong. Please try again.');
+  return out;
+}
+async function load(sync) {
+  S.data = await call('state', sync ? { sync: true } : {});
+  if (S.data.licensee && ['active', 'past_due'].indexOf(S.data.licensee.status) >= 0 && !S.modeTouched) S.mode = 'live';
+  S.draft = S.data.licensee ? JSON.parse(JSON.stringify(S.data.licensee.settings)) : null;
+  render();
+}
+
+// ── Sign in ──────────────────────────────────────────────────────────────────────────────────────
+function viewAuth() {
+  var up = S.authMode === 'up';
+  app.innerHTML = '<div class="wrap"><div class="authbox card">' +
+    '<a class="brand" href="/brain"><img src="/brain/img/tali_head_idle.png" alt="">Tali Brain</a>' +
+    (S.sent ? '<h2 style="margin-top:14px">Check your email</h2><p class="muted" style="margin-top:8px">Tap the link we just sent, then come back here and sign in.</p><button class="btn" style="margin-top:16px" id="toIn">Sign in</button>'
+    : '<h2 style="margin-top:14px">' + (up ? 'Make your account' : 'Sign in to the console') + '</h2>' +
+      (up ? '<label class="f">Your first name</label><input id="fn" autocomplete="given-name">' : '') +
+      '<label class="f">Work email</label><input id="em" type="email" autocomplete="email">' +
+      '<label class="f">Password</label><input id="pw" type="password" autocomplete="' + (up ? 'new-password' : 'current-password') + '">' +
+      '<div class="err" id="err"></div><button class="btn" id="go" style="width:100%">' + (up ? 'Make my account' : 'Sign in') + '</button>' +
+      '<p class="small muted" style="margin-top:14px">' + (up ? 'Already have one? <a href="#" id="swap">Sign in</a>' : 'New here? <a href="#" id="swap">Make an account</a>. Starting is free.') + '</p>') +
+    '</div></div>';
+  if (S.sent) { $('toIn').onclick = function () { S.sent = false; S.authMode = 'in'; viewAuth(); }; return; }
+  $('swap').onclick = function (e) { e.preventDefault(); S.authMode = up ? 'in' : 'up'; viewAuth(); };
+  $('go').onclick = async function () {
+    var em = $('em').value.trim(), pw = $('pw').value;
+    if (!em || pw.length < 8) { $('err').textContent = 'Enter your email and a password of at least 8 characters.'; return; }
+    $('go').disabled = true;
+    var r = up ? await SB.auth.signUp({ email: em, password: pw, options: { data: { first_name: ($('fn').value || '').trim(), source: 'brain_console' }, emailRedirectTo: location.origin + '/brain/console' } })
+               : await SB.auth.signInWithPassword({ email: em, password: pw });
+    $('go').disabled = false;
+    if (r.error) { $('err').textContent = r.error.message; return; }
+    if (up && !r.data.session) { S.sent = true; viewAuth(); }
+  };
+}
+
+// ── First time: the company ──────────────────────────────────────────────────────────────────────
+function viewStart() {
+  app.innerHTML = '<div class="wrap"><div class="authbox card"><a class="brand" href="/brain"><img src="/brain/img/tali_head_idle.png" alt="">Tali Brain</a>' +
+    '<h2 style="margin-top:14px">Tell us about your company</h2><p class="muted small" style="margin-top:6px">You get a free sandbox straight away. No card needed.</p>' +
+    '<label class="f">Company or product name</label><input id="cn" placeholder="e.g. Harbourline CRM">' +
+    '<label class="f">Where the company is based</label><select id="cc"><option value="AU">Australia</option><option value="NZ">New Zealand</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="IE">Ireland</option><option value="SG">Singapore</option><option value="ZZ">Somewhere else</option></select>' +
+    '<div class="err" id="err"></div><button class="btn" id="go" style="width:100%">Open my console</button>' +
+    '<p class="small muted" style="margin-top:14px"><a href="#" id="out">Sign out</a></p></div></div>';
+  $('out').onclick = function (e) { e.preventDefault(); SB.auth.signOut(); };
+  $('go').onclick = async function () {
+    $('go').disabled = true;
+    try { S.data = await call('start', { name: $('cn').value, country: $('cc').value }); S.draft = JSON.parse(JSON.stringify(S.data.licensee.settings)); render(); }
+    catch (e) { $('err').textContent = e.message; $('go').disabled = false; }
+  };
+}
+
+// ── The console ──────────────────────────────────────────────────────────────────────────────────
+var TABS = [['overview', 'Overview'], ['businesses', 'Businesses'], ['customise', 'Customise'], ['keys', 'Keys'], ['billing', 'Usage and billing']];
+function plan() { var l = S.data.licensee; return S.data.plans.find(function (p) { return p.id === l.plan; }) || null; }
+function isLive() { return ['active', 'past_due'].indexOf(S.data.licensee.status) >= 0; }
+function included() { return S.mode === 'test' ? S.data.sandbox.answers : (plan() ? plan().answers : 0); }
+function bizMax() { return S.mode === 'test' ? S.data.sandbox.businesses : (plan() ? plan().businesses : 0); }
+
+function render() {
+  if (!S.session) return viewAuth();
+  if (!S.data) return;
+  if (!S.data.licensee) return viewStart();
+  var l = S.data.licensee, p = plan();
+  var body = { overview: tabOverview, businesses: tabBusinesses, customise: tabCustomise, keys: tabKeys, billing: tabBilling }[S.tab] || tabOverview;
+  app.innerHTML = '<div class="shell"><aside class="nav"><a class="brand" href="/brain" style="margin-bottom:18px"><img src="/brain/img/tali_head_idle.png" alt="">Tali Brain</a>' +
+    TABS.map(function (t) { return '<button class="t' + (S.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('') +
+    '<a class="t" href="/brain/docs" target="_blank" style="display:block;font-size:14px;font-weight:600;color:var(--muted);padding:9px 10px">Docs</a>' +
+    '<div class="org">' + esc(l.name) + '<br>' + (isLive() && p ? esc(p.name) + ' licence' : l.status === 'cancelled' ? 'Licence ended' : 'Sandbox') + (l.period_end && isLive() ? '<br>Renews ' + day(l.period_end) : '') + '<br><a href="#" id="out">Sign out</a></div></aside>' +
+    '<main class="main"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px"><h2>' + esc(TABS.find(function (t) { return t[0] === S.tab; })[1]) + '</h2>' +
+    (S.tab === 'customise' || S.tab === 'billing' ? '' : '<div class="mode"><button data-mode="test" class="' + (S.mode === 'test' ? 'on' : '') + '">Sandbox</button><button data-mode="live" class="' + (S.mode === 'live' ? 'on' : '') + '">Live</button></div>') + '</div>' +
+    (l.status === 'past_due' ? '<div class="banner">Your last payment did not go through. Update your card under Usage and billing to keep Tali running.</div>' : '') +
+    (new URLSearchParams(location.search).get('paid') && isLive() ? '<div class="banner" style="background:rgba(46,125,79,0.10);border-color:rgba(46,125,79,0.3)">You are live. Make a live key under Keys to switch your product over.</div>' : '') +
+    '<div id="tab"></div></main></div>';
+  app.querySelectorAll('[data-tab]').forEach(function (b) { b.onclick = function () { S.tab = b.dataset.tab; S.newKey = null; history.replaceState(null, '', '/brain/console?tab=' + S.tab); render(); }; });
+  app.querySelectorAll('[data-mode]').forEach(function (b) { b.onclick = function () { S.mode = b.dataset.mode; S.modeTouched = true; S.biz = null; render(); }; });
+  $('out').onclick = function (e) { e.preventDefault(); SB.auth.signOut(); };
+  body($('tab'));
+}
+
+function tabOverview(el) {
+  var st = S.data.stats[S.mode] || {}, inc = included(), max = bizMax();
+  if (S.mode === 'live' && !isLive()) { el.innerHTML = '<div class="card"><h3>You are in the sandbox</h3><p class="muted" style="margin-top:6px">Live numbers show here once you pick a plan. Everything works in the sandbox with test keys.</p><button class="btn" style="margin-top:12px" id="toBill">See plans</button></div>'; $('toBill').onclick = function () { S.tab = 'billing'; render(); }; return; }
+  var daily = st.daily || [], top = Math.max.apply(null, daily.map(function (d) { return d.answers; }).concat([1]));
+  var kinds = st.by_kind || {}, total = Object.keys(kinds).reduce(function (a, k) { return a + (k === 'learn' ? 0 : kinds[k]); }, 0);
+  var rate = st.decided ? Math.round((st.approved / st.decided) * 100) + '%' : 'No data yet';
+  var testKey = S.data.keys.find(function (k) { return k.mode === 'test' && !k.revoked_at; });
+  el.innerHTML = '<div class="grid g4">' +
+    '<div class="stat"><div class="v">' + n(st.businesses) + '</div><div class="l">Businesses with a brain<br><span class="faint">' + (max ? 'of ' + n(max) + (S.mode === 'test' ? ' in the sandbox' : ' on your licence') : 'no limit on your licence') + '</span></div></div>' +
+    '<div class="stat"><div class="v">' + n(st.clients) + '</div><div class="l">Clients Tali knows<br><span class="faint">' + n(st.memories) + ' facts kept</span></div></div>' +
+    '<div class="stat"><div class="v">' + n(st.answers) + '</div><div class="l">Answers ' + (S.mode === 'test' ? 'this month' : 'this period') + '<br><span class="faint">of ' + n(inc) + ' included</span></div><div class="meter"><i style="width:' + Math.min(100, inc ? (st.answers / inc) * 100 : 0) + '%"></i></div></div>' +
+    '<div class="stat"><div class="v" style="' + (st.decided ? '' : 'font-size:20px;padding-top:8px') + '">' + rate + '</div><div class="l">Answers approved<br><span class="faint">as written or edited, from the outcomes you report</span></div></div></div>' +
+    '<div class="row" style="margin-top:14px"><div class="card" style="flex:1.4 1 360px"><h3>Answers, last 30 days</h3><div class="bars">' + daily.map(function (d) { return '<i title="' + esc(d.day) + ': ' + d.answers + '" style="height:' + Math.round((d.answers / top) * 100) + '%"></i>'; }).join('') + '</div>' +
+    '<div class="small faint" style="margin-top:6px">' + (total ? Object.keys(kinds).filter(function (k) { return k !== 'learn' && kinds[k]; }).map(function (k) { return esc(k.replace('_', ' ')) + ' ' + Math.round((kinds[k] / total) * 100) + '%'; }).join(' · ') : 'Nothing yet') + '</div></div>' +
+    '<div class="card" style="flex:1 1 280px"><h3>Busiest businesses</h3>' + ((st.top || []).length ? '<div class="scroll"><table><tr><th>Business</th><th>Answers</th><th>Approved</th></tr>' + st.top.map(function (t) { return '<tr><td>' + esc(t.name) + '</td><td>' + n(t.answers) + '</td><td>' + (t.decided ? Math.round((t.approved / t.decided) * 100) + '%' : '') + '</td></tr>'; }).join('') + '</table></div>' : '<p class="muted small" style="margin-top:8px">Nothing yet.</p>') + '</div></div>' +
+    (st.answers || st.businesses ? '' : '<div class="card" style="margin-top:14px"><h3>Send your first note</h3><p class="muted small" style="margin:6px 0 10px">' + (testKey ? 'Use your sandbox key ending ' + esc(testKey.last4) + '.' : 'Make a sandbox key under Keys, then run this.') + ' Tali makes the brain the first time she sees the business.</p><pre><code>curl ' + location.origin + '/brain/api/v1/events \\\n  -H "Authorization: Bearer YOUR_TEST_KEY" -H "Content-Type: application/json" \\\n  -d \'{"business_id":"biz-1","business_name":"Coastline Realty",\n       "client_id":"client-1","client_name":"Priya Shah",\n       "type":"note","text":"Wants to walk to the beach. Budget up to $1.25m."}\'</code></pre></div>');
+}
+
+function tabBusinesses(el) {
+  if (!S.biz) { el.innerHTML = '<p class="muted">Loading...</p>'; call('businesses', { mode: S.mode }).then(function (r) { S.biz = r.businesses; if (S.tab === 'businesses') tabBusinesses(el); }); return; }
+  el.innerHTML = S.biz.length ? '<div class="card scroll"><table><tr><th>Business</th><th>Your ID</th><th>Clients</th><th>Facts</th><th>Last seen</th><th></th></tr>' +
+    S.biz.map(function (b) { return '<tr><td>' + esc(b.name || 'No name yet') + '</td><td><code>' + esc(b.external_id) + '</code></td><td>' + n(b.clients) + '</td><td>' + n(b.memories) + '</td><td>' + ago(b.last_seen_at) + '</td><td style="text-align:right"><button class="btn sm danger" data-del="' + b.id + '">Delete brain</button></td></tr>'; }).join('') + '</table></div><p class="small muted" style="margin-top:10px">Deleting a brain removes everything Tali knows about that business and its clients. It cannot be undone.</p>'
+    : '<div class="card"><p class="muted">No businesses in ' + (S.mode === 'test' ? 'the sandbox' : 'live') + ' yet. A brain is made the first time you send a business ID.</p></div>';
+  el.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = async function () { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sure? Click again'; return; } b.disabled = true; await call('delete_business', { id: b.dataset.del }); S.biz = null; load(); }; });
+}
+
+var TONES = [['warm', 'Warm'], ['plain', 'Plain and friendly'], ['formal', 'Formal'], ['short', 'Short']];
+var SAMPLE = { warm: "Hi Priya, lovely to hear from you. Saturday at 10:30 works well for Lauderdale Ave, and I think you'll like how quiet the street is. See you then. Sam", plain: 'Hi Priya, Saturday at 10:30 works for Lauderdale Ave. The strata fees are $1,150 a quarter. See you there. Sam', formal: 'Dear Priya, thank you for your email. I can confirm an inspection of Lauderdale Ave on Saturday at 10:30am. The strata fees are $1,150 per quarter. Kind regards, Sam', short: 'Hi Priya, Saturday 10:30 works. Strata is $1,150 a quarter. Sam' };
+var COLOURS = ['#3B3F9E', '#0F3B57', '#2E7D4F', '#A8561A', '#1C1A17', '#B3392F'];
+function tabCustomise(el) {
+  var d = S.draft, p = plan(), live = isLive();
+  var can = function (f) { return !live || (p && p[f]); };
+  var lockNote = function (f, label) { return can(f) ? '' : ' <span class="lock">' + label + '</span>'; };
+  var abil = [['draft', 'Draft replies to clients'], ['brief', 'Brief staff before a call or meeting'], ['summary', 'Summarise where things stand'], ['booking', 'Suggest the best time to book'], ['ask', 'Answer staff questions about a client']];
+  el.innerHTML = '<div class="cust"><div class="card">' +
+    '<label class="f" style="margin-top:0">Her name in your product' + lockNote('own_name', 'Growth and Platform') + '</label><input id="aname" maxlength="30" value="' + esc(d.assistant_name) + '"><p class="small muted" style="margin-top:6px">With your own name she shows "powered by Tali" underneath. Platform can switch that off.</p>' +
+    (p && p.white || !live ? '<div class="tog" style="border:0"><span>Show "powered by Tali"' + (live ? '' : ' <span class="lock">Platform can switch off</span>') + '</span><button class="sw' + (d.powered_by ? ' on' : '') + '" id="pby" aria-label="Powered by Tali"></button></div>' : '') +
+    '<label class="f">How she sounds</label><div class="chips">' + TONES.map(function (t) { return '<button class="chip' + (d.tone === t[0] ? ' on' : '') + '" data-tone="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+    '<label class="f">Spelling</label><select id="spell" style="max-width:240px"><option value="au">Australian</option><option value="uk">British</option><option value="us">American</option></select>' +
+    '<label class="f">Your house rules, one per line</label><textarea id="rules" rows="4" placeholder="Always say inspection, never viewing.&#10;Never guess a price.">' + esc(d.rules.join('\n')) + '</textarea>' +
+    '<label class="f">What she remembers about each client, one per line</label><textarea id="kinds" rows="6">' + esc(d.kinds.map(function (k) { return k.label; }).join('\n')) + '</textarea><p class="small muted" style="margin-top:6px">These are the groups her facts are filed under. Up to 12.</p>' +
+    '<label class="f">What she can do</label>' + abil.map(function (a) { return '<div class="tog"><span>' + a[1] + '</span><button class="sw' + (d.abilities[a[0]] ? ' on' : '') + '" data-ab="' + a[0] + '" aria-label="' + a[1] + '"></button></div>'; }).join('') +
+    '<div class="tog"><span>Send messages or make bookings herself</span><span class="lock">Always needs a yes</span></div>' +
+    '<label class="f">Your own actions, one per line as name: what it does' + lockNote('actions', 'Platform') + '</label><textarea id="actions" rows="3" placeholder="create_listing_alert: Set up an alert for new listings that match this buyer">' + esc(d.actions.map(function (a) { return a.name + ': ' + a.description; }).join('\n')) + '</textarea><p class="small muted" style="margin-top:6px">Tali can suggest these with an answer. Your software runs them after your user says yes.</p>' +
+    '<label class="f">Panel colour' + lockNote('colours', 'Growth and Platform') + '</label><div class="sws">' + COLOURS.map(function (c) { return '<button style="background:' + c + '" class="' + (d.colour.toLowerCase() === c.toLowerCase() ? 'on' : '') + '" data-col="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '<input id="hex" value="' + esc(d.colour) + '" style="width:110px" maxlength="7"></div>' +
+    '<div class="err" id="err"></div><button class="btn" id="save">Save</button> <span class="small muted" id="saved"></span>' +
+    (live ? '' : '<p class="small muted" style="margin-top:10px">Everything here works in the sandbox. On a plan, the locked ones follow your plan.</p>') +
+    '</div><div class="preview"><div class="kicker" style="margin-bottom:10px">Preview</div><div id="pv"></div>' +
+    '<div class="line"></div><div class="kicker o">Never changes</div><ul class="plain" style="margin-top:4px"><li>A person says yes before anything is sent or booked</li><li>Each business\'s brain stays private</li><li>No card, bank or ID numbers kept</li><li>Clients\' facts can be deleted any time</li></ul></div></div>';
+  $('spell').value = d.spelling;
+  function pv() {
+    var name = $('aname').value.trim() || 'Tali', col = /^#[0-9a-fA-F]{6}$/.test($('hex').value) ? $('hex').value : d.colour;
+    $('pv').innerHTML = '<div class="ph"><img src="/brain/img/tali_head_idle.png" alt=""><div><b>' + esc(name) + '</b>' + (name !== 'Tali' && d.powered_by ? '<small>powered by Tali</small>' : '') + '</div></div>' +
+      '<div class="card" style="padding:13px;font-size:13px"><div class="kicker" style="color:' + col + ';margin-bottom:6px">Drafted reply</div>' + esc(SAMPLE[d.tone]) + '<div class="row" style="gap:8px;margin-top:10px"><span class="btn sm" style="background:' + col + ';border-color:' + col + '">Send</span><span class="btn sm ghost">Edit</span></div></div>';
+  }
+  pv();
+  $('aname').oninput = pv; $('hex').oninput = function () { if (/^#[0-9a-fA-F]{6}$/.test($('hex').value)) { d.colour = $('hex').value; pv(); } };
+  el.querySelectorAll('[data-tone]').forEach(function (b) { b.onclick = function () { keep(); d.tone = b.dataset.tone; tabCustomise(el); }; });
+  el.querySelectorAll('[data-ab]').forEach(function (b) { b.onclick = function () { d.abilities[b.dataset.ab] = !d.abilities[b.dataset.ab]; b.classList.toggle('on'); }; });
+  el.querySelectorAll('[data-col]').forEach(function (b) { b.onclick = function () { keep(); d.colour = b.dataset.col; tabCustomise(el); }; });
+  if ($('pby')) $('pby').onclick = function () { d.powered_by = !d.powered_by; $('pby').classList.toggle('on'); pv(); };
+  function lines(id) { return $(id).value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean); }
+  function keep() {
+    d.assistant_name = $('aname').value.trim() || 'Tali'; d.spelling = $('spell').value; d.rules = lines('rules');
+    d.kinds = lines('kinds').map(function (l) { return { label: l }; });
+    d.actions = lines('actions').map(function (l) { var i = l.indexOf(':'); return i > 0 ? { name: l.slice(0, i).trim(), description: l.slice(i + 1).trim() } : { name: l, description: l }; });
+  }
+  $('save').onclick = async function () {
+    keep(); $('save').disabled = true; $('err').textContent = '';
+    try { var r = await call('save_settings', { settings: d }); S.draft = r.settings; S.data.licensee.settings = JSON.parse(JSON.stringify(r.settings)); tabCustomise(el); $('saved').textContent = 'Saved.'; }
+    catch (e) { $('err').textContent = e.message; $('save').disabled = false; }
+  };
+}
+
+function tabKeys(el) {
+  var keys = S.data.keys.filter(function (k) { return k.mode === S.mode; }), liveOff = S.mode === 'live' && !isLive();
+  el.innerHTML = (S.newKey ? '<div class="keyonce"><b>Your new key. Copy it now, it is only shown once.</b><div class="row" style="margin-top:8px;align-items:center"><code id="kv" style="flex:1 1 300px;padding:8px">' + esc(S.newKey) + '</code><button class="btn sm" id="copy">Copy</button></div></div>' : '') +
+    '<div class="card">' + (keys.length ? '<div class="scroll"><table><tr><th>Name</th><th>Key</th><th>Made</th><th>Last used</th><th></th></tr>' + keys.map(function (k) {
+      return '<tr><td>' + esc(k.name) + '</td><td><code>thb_' + k.mode + '_…' + esc(k.last4) + '</code></td><td>' + day(k.created_at) + '</td><td>' + (k.revoked_at ? '<span class="pill r">Revoked</span>' : ago(k.last_used_at)) + '</td><td style="text-align:right">' + (k.revoked_at ? '' : '<button class="btn sm danger" data-rev="' + k.id + '">Revoke</button>') + '</td></tr>'; }).join('') + '</table></div>' : '<p class="muted">No ' + (S.mode === 'test' ? 'sandbox' : 'live') + ' keys yet.</p>') +
+    '<div class="line"></div>' + (liveOff ? '<p class="muted">Live keys come with a plan. <a href="#" id="toBill">See plans</a></p>' : '<div class="row" style="align-items:center"><input id="kn" placeholder="Name, e.g. ' + (S.mode === 'live' ? 'Production' : 'Sandbox') + '" style="flex:1 1 220px;max-width:320px"><button class="btn" id="mk">Make a ' + (S.mode === 'test' ? 'sandbox' : 'live') + ' key</button></div><div class="err" id="err"></div>') +
+    '</div><p class="small muted" style="margin-top:10px">Keys belong on your servers. Never put one in a web page or an app. For the drop-in panel, your server makes a short lived panel token instead.</p>';
+  if ($('toBill')) $('toBill').onclick = function (e) { e.preventDefault(); S.tab = 'billing'; render(); };
+  if ($('copy')) $('copy').onclick = function () { navigator.clipboard.writeText(S.newKey).then(function () { $('copy').textContent = 'Copied'; }).catch(function () { var r = document.createRange(); r.selectNodeContents($('kv')); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }); };
+  if ($('mk')) $('mk').onclick = async function () { $('mk').disabled = true; try { var r = await call('create_key', { mode: S.mode, name: $('kn').value }); S.newKey = r.key; S.data.keys.unshift(r.row); tabKeys(el); } catch (e) { $('err').textContent = e.message; $('mk').disabled = false; } };
+  el.querySelectorAll('[data-rev]').forEach(function (b) { b.onclick = async function () { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sure? Click again'; return; } b.disabled = true; await call('revoke_key', { id: b.dataset.rev }); S.newKey = null; load(); }; });
+}
+
+function tabBilling(el) {
+  var l = S.data.licensee, p = plan(), live = isLive(), st = S.data.stats.live || {};
+  var over = live && p ? Math.max(0, st.answers - p.answers) : 0, cap = live && p ? (l.settings.cap || p.answers * 3) : 0;
+  el.innerHTML = (live && p ? '<div class="grid g3"><div class="stat"><div class="v">' + esc(p.name) + '</div><div class="l">A$' + n(p.price) + ' a month plus GST where it applies<br><span class="faint">' + day(l.period_start) + ' to ' + day(l.period_end) + '</span></div></div>' +
+      '<div class="stat"><div class="v">' + n(st.answers) + '</div><div class="l">Answers this period<br><span class="faint">of ' + n(p.answers) + ' included</span></div><div class="meter"><i style="width:' + Math.min(100, (st.answers / p.answers) * 100) + '%"></i></div></div>' +
+      '<div class="stat"><div class="v">A$' + n(Math.round((over * p.over) / 1000)) + '</div><div class="l">Extra answers so far<br><span class="faint">' + n(over) + ' over, at A$' + p.over + ' per 1,000, billed after the period ends</span></div></div></div>' +
+      '<div class="card" style="margin-top:14px"><h3>Your cap</h3><p class="muted small" style="margin:6px 0 10px">Tali stops answering at this many answers in a period, so a bill never surprises you. Remembering keeps working.</p><div class="row" style="align-items:center"><input id="cap" type="number" min="' + p.answers + '" step="1000" value="' + cap + '" style="width:180px"><button class="btn ghost" id="capSave">Save cap</button><button class="btn ghost" id="portal">Invoices and card</button></div><div class="err" id="capErr"></div></div>'
+    : '<div class="card"><h3>' + (l.status === 'cancelled' ? 'Your licence has ended' : 'You are in the free sandbox') + '</h3><p class="muted" style="margin-top:6px">' + n(S.data.sandbox.answers) + ' answers a month and ' + S.data.sandbox.businesses + ' businesses with test keys. Pick a plan to go live.</p></div>') +
+    '<h3 style="margin:22px 0 10px">' + (live ? 'Change plan' : 'Plans') + '</h3><div class="grid g4">' + S.data.plans.map(function (x) {
+      var cur = live && p && p.id === x.id;
+      return '<div class="card tier' + (cur ? ' cur' : '') + '"><h3>' + esc(x.name) + '</h3><div class="price">A$' + n(x.price) + '<small> a month</small></div><div class="small muted">' + (x.months > 1 ? x.months + ' month minimum' : 'No lock-in') + '</div>' +
+        '<ul class="plain" style="margin-top:8px"><li>' + (x.businesses ? 'Up to ' + n(x.businesses) + ' businesses' : 'Unlimited businesses') + '</li><li>' + n(x.answers) + ' answers a month</li><li>Then A$' + x.over + ' per 1,000</li><li>' + (x.white ? 'Fully your brand' : x.own_name ? 'Your own name for her' : "She's called Tali") + '</li></ul>' +
+        (cur ? '<span class="pill g" style="margin-top:12px">Your plan</span>' : '<button class="btn' + (x.id === 'growth' ? '' : ' ghost') + '" style="margin-top:12px;width:100%" data-plan="' + x.id + '">' + (live ? 'Move to ' + esc(x.name) : 'Choose ' + esc(x.name)) + '</button>') + '</div>'; }).join('') + '</div>' +
+    (live ? '' : '<label style="display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:14px"><input type="checkbox" id="setup" style="width:auto;margin-top:4px"><span><b>Add setup with us, A$' + n(S.data.setup) + ' once.</b><br><span class="muted">We shape what she remembers, her rules and her actions for your industry, and help your developers wire her in.</span></span></label>') +
+    '<div class="err" id="err"></div><p class="small muted" style="margin-top:8px">Prices are in Australian dollars. GST is added for Australian companies. By choosing a plan you agree to the <a href="/brain/terms" target="_blank">licence terms</a>.' + (S.data.billing_ready ? '' : ' Billing opens soon.') + '</p>';
+  var back = location.origin + '/brain/console';
+  el.querySelectorAll('[data-plan]').forEach(function (b) { b.onclick = async function () {
+    if (live && !b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sure? Click again'; return; }
+    b.disabled = true; $('err').textContent = '';
+    try { var r = await call('checkout', { plan: b.dataset.plan, setup: $('setup') ? $('setup').checked : false, returnUrl: back }); if (r.url) location.href = r.url; else load(true); }
+    catch (e) { $('err').textContent = e.message; b.disabled = false; }
+  }; });
+  if ($('portal')) $('portal').onclick = async function () { try { var r = await call('portal', { returnUrl: back }); location.href = r.url; } catch (e) { $('capErr').textContent = e.message; } };
+  if ($('capSave')) $('capSave').onclick = async function () {
+    var v = Math.round(Number($('cap').value)); if (!(v >= p.answers)) { $('capErr').textContent = 'The cap cannot be below the ' + n(p.answers) + ' answers your plan includes.'; return; }
+    var s = JSON.parse(JSON.stringify(l.settings)); s.cap = v;
+    try { var r = await call('save_settings', { settings: s }); l.settings = r.settings; S.draft = JSON.parse(JSON.stringify(r.settings)); $('capErr').style.color = 'var(--good)'; $('capErr').textContent = 'Saved.'; } catch (e) { $('capErr').textContent = e.message; }
+  };
+}
+
+SB.auth.onAuthStateChange(function (_e, session) {
+  var had = S.session && S.session.user.id;
+  S.session = session;
+  if (!session) { S.data = null; viewAuth(); return; }
+  if (had !== session.user.id) load(new URLSearchParams(location.search).get('paid') ? true : false).catch(function (e) { app.innerHTML = '<div class="wrap" style="padding-block:60px"><p class="err">' + esc(e.message) + '</p></div>'; });
+});
+</script>
+</body>
+</html>
