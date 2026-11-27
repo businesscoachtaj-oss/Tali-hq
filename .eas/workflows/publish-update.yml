@@ -1,10 +1,10 @@
 # OTA publish to the production channel (JavaScript-only changes).
-# Runs when triggered by hand on expo.dev, or when the ota-publish branch is pushed.
+# Runs when triggered by hand on expo.dev.
+# 27 Nov 2026: the ota-publish push now runs .github/workflows/ota.yml on GitHub instead (no Expo
+# minutes used). The push trigger came off here so the two never publish the same update twice.
 name: Publish OTA update
 on:
   workflow_dispatch: {}
-  push:
-    branches: ['ota-publish']
 jobs:
   update:
     type: update

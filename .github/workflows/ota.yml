@@ -1,0 +1,67 @@
+# Phone update (OTA) for Tali HQ, run on GitHub's machines.
+# ADDED (27 Nov 2026). Expo's own workflow minutes ran out for November (they reset 1 Dec), so the
+# Tali HQ phone updates since PR #96 never went out. This runs the same `eas update` here, where it
+# uses no Expo minutes, signed in with one repository secret: EXPO_TOKEN (the same Expo token
+# Taj saved on the livewell repo on 25 Nov works here, since both apps are on the livewellpt account).
+#
+#   push to ota-publish            -> Tali HQ phones (production channel)
+#   Actions > Phone update > Run workflow -> write the message
+#
+# JavaScript only. runtimeVersion follows the app version, so the update only reaches store builds
+# with the same version. A native change still needs a store build.
+name: Phone update
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'What changed (shows on expo.dev)'
+        type: string
+        required: true
+  push:
+    branches: ['ota-publish']
+concurrency:
+  group: ota-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_SUPABASE_URL: https://jbyzblwrywgxilhmfyjt.supabase.co
+      EXPO_PUBLIC_SUPABASE_KEY: sb_publishable_6boNZk1eRN8-7Z4PIbxB3w_n4VDXf51
+      EXPO_PUBLIC_INBOUND_DOMAIN: tali.totality360.com.au
+      CI: 'true'
+      SHARP_IGNORE_GLOBAL_LIBVIPS: '1'
+    steps:
+      - name: Check the key is saved
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "The EXPO_TOKEN repository secret is missing. Add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Check it goes to the right Expo project
+        run: |
+          ID=$(npx expo config --json --type public | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).extra.eas.projectId))")
+          echo "Expo project: $ID"
+          if [ "$ID" != "4fcc84f2-1512-4bdb-a354-80b468efd453" ]; then echo "Wrong project ($ID). Stopping."; exit 1; fi
+      - name: Publish the update
+        env:
+          TYPED: ${{ inputs.message }}
+          COMMIT: ${{ github.event.head_commit.message }}
+        run: |
+          MSG="$TYPED"
+          if [ -z "$MSG" ]; then MSG="$(printf '%s' "$COMMIT" | head -n 1)"; fi
+          if [ -z "$MSG" ]; then MSG="Tali HQ update"; fi
+          eas update --channel production --environment production --message "$MSG" --non-interactive
