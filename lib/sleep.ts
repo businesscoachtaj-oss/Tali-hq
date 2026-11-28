@@ -447,7 +447,7 @@ export async function start() {
     if (first && Platform.OS !== 'web') {
       try {
         const names = state.picks.map((p) => SOUNDS.find((s) => s.id === p.id)?.name).filter(Boolean).join(' + ');
-        v.a.setActiveForLockScreen(true, { title: names || 'Sleep sounds', artist: 'Tali HQ', albumTitle: 'Sleep' });
+        v.a.setActiveForLockScreen(true, { title: names || 'Sleep sounds', artist: 'Learnéd', albumTitle: 'Sleep' });
       } catch {}
       first = false;
     }

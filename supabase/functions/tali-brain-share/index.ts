@@ -23,8 +23,8 @@ const MAX_BATCHES = 8; // up to 320 a week
 const strip = (s: unknown) => String(s ?? '').replace(/\s*[–—]\s*/g, ', ').trim();
 
 const SYSTEM = [
-  'You decide what goes into the shared brain that every copy of Tali (an AI teammate for small business owners in Australia) learns from.',
-  'You get lessons one owner’s Tali learnt. For each, either rewrite it as a general lesson any small business owner could use, or drop it.',
+  'You decide what goes into the shared brain that every copy of Tali (an AI for everyday life and learning in Australia) learns from.',
+  'You get lessons one owner’s Tali learnt. For each, either rewrite it as a general lesson anyone could use, or drop it.',
   'A general lesson has NO names of people, businesses, brands they own, clients, staff, suppliers, apps they build, places more specific than a country or state, email addresses, phone numbers, account details, their own prices, revenue or numbers about their business, dates of their own events, or anything that could identify them or anyone they deal with.',
   'Public facts from public sources are fine to keep with the source named (for example a platform’s published rule or an industry survey), as long as nothing about the owner is in it.',
   'Drop it (general: null) when it only makes sense for that one business, is about a specific person, is a to-do or idea for their own product, is unsure or out of date, or cannot be made general without losing the point.',

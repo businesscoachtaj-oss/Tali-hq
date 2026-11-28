@@ -59,7 +59,7 @@ export function AiConsent({ onDone, gate }: { onDone: () => void; gate: boolean 
         {gate ? 'Before we start, a yes from you.' : 'How Tali uses AI'}
       </Text>
       <Text style={{ color: 'rgba(28,26,23,0.75)', fontSize: 15, lineHeight: 21, marginTop: 8, marginBottom: space.lg }}>
-        {"I'm an AI. To think, write and remember for you, Tali HQ sends some of your information to the AI companies that run my thinking. Nothing goes to them until you say yes."}
+        {"I'm an AI. To think, write and remember for you, Learnéd sends some of your information to the AI companies that run my thinking. Nothing goes to them until you say yes."}
       </Text>
 
       <View style={box}>

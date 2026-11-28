@@ -103,7 +103,7 @@ export function packHtml(p: Pack, businessName: string) {
   <h2>Still owed to you: invoices sent this quarter and not paid</h2>
   <table><tr><th>Sent</th><th>Invoice</th><th>Customer</th><th class="n">Due</th><th class="n">Total</th></tr>
   ${p.owed.length ? p.owed.map((i) => row([esc(day(i.issue_date)), esc(i.number), esc(i.client_name), esc(day(i.due_date)), aud2(i.total)])).join('') : none(5, 'Nothing outstanding from this quarter.')}</table>
-  <div class="foot">Made from the invoices and receipts saved in Tali HQ. Amounts include GST. Paid invoices are counted in the quarter they were paid. This is a summary for your records and your accountant. It is not tax advice and it is not a BAS.</div>
+  <div class="foot">Made from the invoices and receipts saved in Learnéd. Amounts include GST. Paid invoices are counted in the quarter they were paid. This is a summary for your records and your accountant. It is not tax advice and it is not a BAS.</div>
   </body></html>`;
 }
 

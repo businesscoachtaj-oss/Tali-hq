@@ -4,14 +4,14 @@
 module.exports = {
   expo: {
     owner: 'livewellpt',
-    name: 'Tali HQ',
+    name: 'Learnéd',
     slug: 'tali-hq',
     // 1.0.3 (22 Nov 2026): SDK 58 needs a new store build, and phone updates only reach builds of the
     // same version, so the version moves on with it.
     version: '1.0.3',
     scheme: 'talihq',
     orientation: 'portrait',
-    // Tali's own icon art (Tali_icon_1024). Swap for a dedicated Tali HQ icon if Taj wants one.
+    // CHANGED (28 Nov 2026, Taj): Learnéd's icon is the é carved in marble with a gold accent, on old paper.
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     // CHANGED (22 Nov 2026, Expo SDK 58): the splash is set by the expo-splash-screen plugin below.
@@ -42,10 +42,11 @@ module.exports = {
       'expo-font',
       'expo-sharing',
       'expo-web-browser',
-      // ADDED (22 Nov 2026, Expo SDK 58): light status bar icons on her dark sky, and the splash, which
-      // SDK 58 only takes from these plugins. iPhone keeps the full screen picture (legacy option).
-      ['expo-status-bar', { style: 'light' }],
-      ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#272626', resizeMode: 'contain', imageWidth: 200, enableFullScreenImage_legacy: true }],
+      // ADDED (22 Nov 2026, Expo SDK 58): the status bar and the splash, which SDK 58 only takes from
+      // these plugins. iPhone keeps the full screen picture (legacy option).
+      // CHANGED (28 Nov 2026, Learnéd): dark status bar icons on paper, and the splash is the marble bust with the name.
+      ['expo-status-bar', { style: 'dark' }],
+      ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#F5F0E6', resizeMode: 'contain', imageWidth: 260, enableFullScreenImage_legacy: true }],
       // Voice notes record only while Talk is open, so no background recording service (Google Play
       // flags it). Sleep sounds keep playing with the screen locked.
       ['expo-audio', { microphonePermission: 'Tali uses the microphone when you tap the mic in Talk to send her a voice note.', recordAudioAndroid: true, enableBackgroundRecording: false, enableBackgroundPlayback: true }],

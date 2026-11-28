@@ -135,7 +135,7 @@ export default function Person() {
       <Label>What Tali knows</Label>
       {!paid ? (
         <Card>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>People memory is part of Tali HQ</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>People memory is part of Learnéd</Text>
           <Body muted>Everything Tali has picked up about {person.name.split(' ')[0]} from your chats, in one place, with a nudge before you meet.</Body>
           <Button title="See plans" kind="ghost" onPress={() => router.navigate('/plans')} />
         </Card>

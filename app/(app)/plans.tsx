@@ -24,10 +24,11 @@ const FOUNDING_OFF = 0.425; // founding members: 42.5% off for life
 const money = (n: number) => `A$${n.toFixed(2)}`;
 
 // 12 Nov 2026 (Taj): the Business plans. Only what is built is listed. The price charged comes from Stripe.
+const SHOW_BUSINESS = false;
 const BIZ_BLUE = '#3B3F9E';
 const BIZ_PRICE = 199.99;
 const BIZ_FEATURES = [
-  'Everything in Tali HQ Max, with the same 10,000 credits and 300 images a month',
+  'Everything in Learnéd Max, with the same 10,000 credits and 300 images a month',
   'Jobs and quotes: quote, job and invoice in one line',
   'Pipeline: who to chase next and what it could be worth',
   'Bookings: your week, and one link your customers book from',
@@ -41,8 +42,8 @@ const BIZ_FEATURES = [
   'A team layout you set and push to every seat, and team trackers everyone logs to',
 ];
 const BIZ_SOON = [
-  { name: 'Tali HQ Business Pro', price: 389.99, what: 'For a small team. Seats for your staff, text messages to customers and Tali answering your phone.' },
-  { name: 'Tali HQ Business Max', price: 649.99, what: 'For a bigger team or more than one business. More seats, more texts and more call minutes.' },
+  { name: 'Learnéd Business Pro', price: 389.99, what: 'For a small team. Seats for your staff, text messages to customers and Tali answering your phone.' },
+  { name: 'Learnéd Business Max', price: 649.99, what: 'For a bigger team or more than one business. More seats, more texts and more call minutes.' },
 ];
 
 export default function Plans() {
@@ -119,7 +120,7 @@ export default function Plans() {
     setBusy('restore');
     try {
       const r = await AppleIap.restore();
-      if (!r) setNote('No Tali HQ subscription was found for this Apple ID.');
+      if (!r) setNote('No Learnéd subscription was found for this Apple ID.');
       else if (r.error) setError(r.error);
       else { setNote(r.active ? 'Restored. Your plan is on.' : 'Your App Store subscription has ended.'); await load(); }
     } catch {
@@ -165,7 +166,7 @@ export default function Plans() {
 
   return (
     <Screen skin="plans" onRefresh={load}>
-      <SkinHeader id="plans" title="Plans" sub={founding ? 'You are a founding member: 42.5% off every paid plan for as long as you stay.' : 'Start free. Upgrade when Tali is pulling her weight.'} onBack={() => goBack('/me')} />
+      <SkinHeader id="plans" title="Plans" sub={founding ? 'You are a founding member: 42.5% off every paid plan for as long as you stay.' : 'Start free. The daily games, the lesson library and your reminders are free for everyone.'} onBack={() => goBack('/me')} />
 
       {/* 23 Nov 2026 (Taj): yearly stays an option, with no "save" or "months free" line on it. */}
       <View style={{ flexDirection: 'row', alignSelf: 'flex-start', borderWidth: 1, borderColor: colours.ink, borderRadius: radius.pill, overflow: 'hidden', marginBottom: space.md }}>
@@ -236,7 +237,7 @@ export default function Plans() {
             {p.id === 'max' && paying && !IS_IOS && credits?.plan !== 'max' ? (
               <>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
-                  You're on {credits?.plan === 'pro' ? 'Tali HQ Pro' : 'Tali HQ'}. Switching to Max happens in Manage billing, where your card already is.
+                  You're on {credits?.plan === 'pro' ? 'Learnéd Pro' : 'Learnéd'}. Switching to Max happens in Manage billing, where your card already is.
                 </Text>
                 <Button title="Switch to Max in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
               </>
@@ -244,7 +245,7 @@ export default function Plans() {
             {p.id === 'pro' && paying && !IS_IOS && credits?.plan === 'hq' ? (
               <>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
-                  You're on Tali HQ. Switching to Pro happens in Manage billing, where your card already is.
+                  You're on Learnéd. Switching to Pro happens in Manage billing, where your card already is.
                 </Text>
                 <Button title="Switch to Pro in Manage billing" kind="ghost" onPress={manage} busy={busy === 'portal'} disabled={!!busy} />
               </>
@@ -260,13 +261,15 @@ export default function Plans() {
         );
       })}
 
-      {loaded && !IS_IOS ? (
+      {/* 28 Nov 2026 (Learnéd): no Business plans. Anyone already on one keeps it until they change it
+          in Manage billing. */}
+      {SHOW_BUSINESS && loaded && !IS_IOS ? (
         <>
           <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: colours.muted, marginTop: space.lg, marginBottom: space.sm }}>FOR YOUR BUSINESS</Text>
           <Card>
             <Text style={{ color: BIZ_BLUE, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 4 }}>THE BUSINESS TOOLS</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' }}>
-              <Text style={{ fontSize: 25, color: colours.text, fontFamily: 'EBGaramond_500Medium' }}>Tali HQ Business</Text>
+              <Text style={{ fontSize: 25, color: colours.text, fontFamily: 'EBGaramond_500Medium' }}>Learnéd Business</Text>
               <Text style={{ fontSize: 17, fontWeight: '700', color: colours.text }}>{money(BIZ_PRICE)} a month</Text>
             </View>
             <Text style={{ color: colours.muted, fontSize: 13 }}>Billed monthly.</Text>
@@ -278,7 +281,7 @@ export default function Plans() {
             <View style={{ marginTop: space.sm, gap: 4 }}>
               {BIZ_FEATURES.map((f) => <Text key={f} style={{ fontSize: 14, color: colours.text, lineHeight: 20 }}>{'✓'} {f}</Text>)}
             </View>
-            {!paying && !appleBilled ? <Button title="Choose Tali HQ Business" onPress={() => go('biz')} busy={busy === 'biz'} disabled={!!busy} kind="ghost" /> : null}
+            {!paying && !appleBilled ? <Button title="Choose Learnéd Business" onPress={() => go('biz')} busy={busy === 'biz'} disabled={!!busy} kind="ghost" /> : null}
             {paying && !onBiz ? (
               <>
                 <Text style={{ color: colours.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>Switching to Business happens in Manage billing, where your card already is.</Text>
@@ -311,7 +314,7 @@ export default function Plans() {
           {appleBilled ? <Button title="Manage subscription" kind="ghost" onPress={() => AppleIap.openManageSubscriptions()} /> : null}
           <Button title="Restore purchases" kind="ghost" onPress={appleRestore} busy={busy === 'restore'} disabled={!!busy && busy !== 'restore'} />
           <Text style={{ color: colours.faint, fontSize: 12, marginTop: space.md, lineHeight: 18 }}>
-            Tali HQ, Pro and Max are auto-renewing subscriptions, monthly or yearly, at the price shown. Payment is charged to your Apple ID account at confirmation of purchase. The subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period, and your account is charged for renewal within 24 hours before the end of the current period. You can manage and cancel it in your App Store account settings. Credits reset each month, on yearly plans too.
+            Learnéd, Pro and Max are auto-renewing subscriptions, monthly or yearly, at the price shown. Payment is charged to your Apple ID account at confirmation of purchase. The subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period, and your account is charged for renewal within 24 hours before the end of the current period. You can manage and cancel it in your App Store account settings. Credits reset each month, on yearly plans too.
           </Text>
           <View style={{ flexDirection: 'row', gap: space.md, marginTop: space.sm }}>
             <Text style={{ color: colours.purpleInk, fontWeight: '700', fontSize: 13 }} onPress={() => Linking.openURL(APPLE_EULA_URL)}>Terms of Use</Text>
@@ -339,7 +342,7 @@ const EXTRAS: { icon: string; name: string; what: string; cost: string; needs?: 
   { icon: '⚖️', name: 'Second opinion', what: 'A second AI checks her answer and says where it would change it.', cost: `${COST.secondOpinion} credits`, needs: 'second_opinion' },
   { icon: '🧠', name: 'Deep think', what: 'A smarter Tali with more of her memory.', cost: '20 credits' },
   { icon: '🚀', name: 'Big brain (Pro)', what: 'Her strongest thinking, for the big calls.', cost: '40 credits' },
-  { icon: '🔎', name: 'Web search', what: 'Looks it up now, with sources you can tap. Up to 150 searches a month on Tali HQ, 400 on Pro and 1,000 on Max.', cost: `${COST.webSearch} credits a search` },
+  { icon: '🔎', name: 'Web search', what: 'Looks it up now, with sources you can tap. Up to 150 searches a month on Learnéd, 400 on Pro and 1,000 on Max.', cost: `${COST.webSearch} credits a search` },
   { icon: '📄', name: 'Reads long documents', what: 'Contracts, statements and scans, read properly page by page.', cost: 'Coming soon', needs: 'documents' },
 ];
 
@@ -375,7 +378,7 @@ function ExtrasCard() {
           <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>{money(VOICE_ADDON.price)} a month</Text>
         </View>
         <View style={{ marginTop: space.sm, gap: 4 }}>
-          {[`She reads her replies out loud: ${VOICE_ADDON.speakMinutes} minutes a month`, `Talk to her hands free: up to ${VOICE_ADDON.listenHours} hours of listening`, `Need more? ${VOICE_ADDON.packMinutes} more minutes for ${money(VOICE_ADDON.packPrice)}`, 'Works with Tali HQ and Pro'].map((f) => (
+          {[`She reads her replies out loud: ${VOICE_ADDON.speakMinutes} minutes a month`, `Talk to her hands free: up to ${VOICE_ADDON.listenHours} hours of listening`, `Need more? ${VOICE_ADDON.packMinutes} more minutes for ${money(VOICE_ADDON.packPrice)}`, 'Works with Learnéd and Pro'].map((f) => (
             <Text key={f} style={{ fontSize: 14, color: colours.text, lineHeight: 20 }}>{'✓'} {f}</Text>
           ))}
         </View>

@@ -115,7 +115,7 @@ async function disconnect(userId: string) {
 // ---------- Send ----------
 async function send(userId: string, invoiceId: string) {
   if (!stripeReady()) return fail('not_ready', 'Stripe sending switches on soon.', 503);
-  if (!(await isPaid(userId))) return fail('no_access', 'Sending through Stripe is part of Tali HQ and Pro.', 402);
+  if (!(await isPaid(userId))) return fail('no_access', 'Sending through Stripe is part of Learnéd and Pro.', 402);
   const { data: conn } = await admin.from('stripe_connections').select('account_id').eq('user_id', userId).maybeSingle();
   if (!conn) return fail('not_connected', 'Connect your Stripe first, in Settings.');
   const { data: inv } = await admin.from('invoices').select('*').eq('id', invoiceId).eq('user_id', userId).maybeSingle();
@@ -197,7 +197,7 @@ function monthStartEpoch(tz: string) {
 }
 
 async function moneyPicture(userId: string) {
-  if (!(await isPaid(userId))) return fail('no_access', 'The money picture is part of Tali HQ and Pro.', 402);
+  if (!(await isPaid(userId))) return fail('no_access', 'The money picture is part of Learnéd and Pro.', 402);
   const { data: conn } = await admin.from('stripe_connections').select('account_id').eq('user_id', userId).maybeSingle();
   if (!conn || !stripeReady()) return json({ ok: true, connected: false });
   const { data: prof } = await admin.from('profiles').select('timezone').eq('id', userId).maybeSingle();

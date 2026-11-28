@@ -141,7 +141,7 @@ export default function Book() {
                 ) : null}
               </>
             )}
-            <Text style={{ color: colours.faint, fontSize: 12, marginTop: 30 }}>Bookings by Tali HQ</Text>
+            <Text style={{ color: colours.faint, fontSize: 12, marginTop: 30 }}>Bookings by Learnéd</Text>
           </>
         ) : null}
       </ScrollView>

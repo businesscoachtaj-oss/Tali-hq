@@ -75,7 +75,7 @@ export default function Founder() {
 
   return (
     <Screen skin="founder">
-      <SkinHeader id="founder" title="Founder" sub="How Tali HQ and the apps are going." onBack={() => router.back()} />
+      <SkinHeader id="founder" title="Founder" sub="How Learnéd and the apps are going." onBack={() => router.back()} />
       <ErrorText>{error}</ErrorText>
       {/* 9 Nov 2026 (Tuesday list): what needs Taj across all three apps, first. */}
       <FounderOps />

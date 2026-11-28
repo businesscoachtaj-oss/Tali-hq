@@ -120,7 +120,7 @@ export function PublicSiteView({ slug, preview }: { slug: string; preview?: Publ
                 )}
               </>
             ) : null}
-            <Text style={{ color: colours.faint, fontSize: 12, marginTop: 36 }}>Made with Tali HQ</Text>
+            <Text style={{ color: colours.faint, fontSize: 12, marginTop: 36 }}>Made with Learnéd</Text>
           </>
         ) : null}
       </ScrollView>

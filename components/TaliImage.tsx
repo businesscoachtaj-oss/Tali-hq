@@ -54,7 +54,7 @@ export function TaliImage({ a, drawing, stale, onRetry }: { a: Attachment; drawi
   }
 
   const reason = a.failed || "That image didn't finish. It wasn't counted.";
-  const canRetry = !/part of Tali HQ|top up|trial|not switched on|knocked back/i.test(reason);
+  const canRetry = !/part of Learnéd|top up|trial|not switched on|knocked back/i.test(reason);
   return (
     <View style={{ width: W, maxWidth: '100%', borderRadius: 14, backgroundColor: colours.sunk, padding: 14, gap: 8 }}>
       <Text style={{ color: colours.text, fontSize: 13, lineHeight: 19 }}>{reason}</Text>

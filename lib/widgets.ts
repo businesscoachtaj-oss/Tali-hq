@@ -99,7 +99,7 @@ export const COLOURS = ['#3B3F9E', '#A8561A', '#2E8A63', '#2C7FA8', '#B8487A', '
 type Meta = { title: string; sub: string; modes: Mode[]; group: string; plan?: 'paid' | 'biz'; hint: string; wide?: boolean };
 export const BUILTINS: Record<BuiltIn, Meta> = {
   needs_you:  { title: 'Needs you',          sub: 'Drafts waiting for your yes and emails to answer', modes: ['business', 'life'], group: 'Tali', hint: 'Nothing is waiting on your yes.' },
-  due:        { title: 'Due today',          sub: 'Reminders and follow-ups',                         modes: ['business', 'life'], group: 'Tali', hint: "Nothing due. Add a reminder and I'll nudge you when it's time." },
+  due:        { title: 'Reminders',          sub: 'Mind, body, people, money and home, due today',                         modes: ['business', 'life'], group: 'Tali', hint: "Nothing due. Add a reminder and I'll nudge you when it's time." },
   brief:      { title: 'Morning brief',      sub: 'Her read of your day',                             modes: ['business', 'life'], group: 'Tali', hint: 'Your first brief lands tomorrow morning.' },
   night_idea: { title: 'Idea from night school', sub: 'What she studied last night',                  modes: ['business', 'life'], group: 'Tali', hint: 'She studies while you sleep. Her first idea shows here.' },
   tali_pick:  { title: "Tali's pick",        sub: 'The one thing she would do today',                 modes: ['business', 'life'], group: 'Tali', plan: 'paid', hint: 'Her pick for the day lands with your morning brief.' },
@@ -213,9 +213,11 @@ export const sideOfHome = (homeKey: string): Mode => (homeKey.startsWith('busine
 export function defaultLayout(homeKey: string, hasBusiness: boolean, plan: Plan): Block[] {
   const b = (k: BuiltIn, size: Size = 'wide'): Block => ({ id: `d-${k}`, kind: 'builtin', builtin: k, size });
   let list: Block[];
+  // 28 Nov 2026 (Learnéd): reminders first, then her habits, night school idea, the week and goals.
+  // Today's lesson and games sit above these on Today, under her brain.
   if (!hasBusiness) list = plan === 'free'
-    ? [b('needs_you'), b('due'), b('night_idea'), b('your_day'), b('journal'), b('sleep')]
-    : [b('night_idea'), b('needs_you'), b('due'), b('money'), b('week'), b('goals'), b('your_day'), b('journal'), b('sleep')];
+    ? [b('due'), b('needs_you'), b('habits'), b('night_idea'), b('journal'), b('sleep')]
+    : [b('due'), b('needs_you'), b('habits'), b('night_idea'), b('money'), b('week'), b('goals'), b('people'), b('journal'), b('sleep')];
   else if (sideOfHome(homeKey) === 'business') list = plan === 'free'
     ? [b('pipeline'), b('night_idea'), b('needs_you'), b('due'), b('goals')]
     : [b('money'), b('pipeline'), b('night_idea'), b('needs_you'), b('due'), b('week'), b('goals')];

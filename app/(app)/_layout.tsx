@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,6 +8,8 @@ import { HIDDEN_TAB } from '@/lib/hiddenTab';
 import { useWide, withWideTabs } from '@/lib/wideWeb';
 import { WideSideBrand } from '@/components/WideSideBrand';
 import type { ColorValue, ViewInstance } from 'react-native';
+import { useAuth } from '@/lib/auth';
+import { syncGames } from '@/games/lib/cloud';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -33,9 +35,14 @@ function makeIcon(wide: boolean) {
 }
 
 export default function AppTabs() {
-  // 22 Nov 2026: on a PC the tabs become a side menu with Tali HQ's name and Tali (lib/wideWeb.ts).
+  // 22 Nov 2026: on a PC the tabs become a side menu with Learnéd's name and Tali (lib/wideWeb.ts).
   const wide = useWide();
   const icon = makeIcon(wide);
+  // 28 Nov 2026 (Learnéd): the brain games' results follow you to every device.
+  const { session, profile } = useAuth();
+  useEffect(() => {
+    if (session?.user.id) syncGames(session.user.id, profile?.first_name ?? null);
+  }, [session?.user.id, profile?.first_name]);
   return (
     <>
     <Tabs
@@ -52,14 +59,22 @@ export default function AppTabs() {
       })}>
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 0) }} />
       <Tabs.Screen name="talk" options={{ title: 'Talk', tabBarIcon: icon('chatbubble-ellipses-outline', 1) }} />
+      {/* Learnéd (28 Nov 2026, Taj): Learn gets a tab of its own, next to Talk. */}
+      <Tabs.Screen name="learn" options={{ title: 'Learn', tabBarIcon: icon('school-outline', 2) }} />
       {/* 9 Nov 2026 look refresh: her brain gets a tab of its own, in the middle. Clients moves into Me. */}
-      <Tabs.Screen name="brain" options={{ title: 'Her brain', tabBarIcon: icon('sparkles-outline', 2) }} />
-      <Tabs.Screen name="world" options={{ title: 'Your world', tabBarIcon: icon('planet-outline', 3) }} />
+      <Tabs.Screen name="brain" options={{ title: 'Her brain', tabBarIcon: icon('sparkles-outline', 3) }} />
+      <Tabs.Screen name="world" options={{ title: 'Your life', tabBarIcon: icon('planet-outline', 4) }} />
+      <Tabs.Screen name="path" options={{ ...HIDDEN_TAB, title: 'Path' }} />
+      <Tabs.Screen name="lesson" options={{ ...HIDDEN_TAB, title: 'Lesson' }} />
+      <Tabs.Screen name="game" options={{ ...HIDDEN_TAB, title: 'Game' }} />
+      <Tabs.Screen name="reminders" options={{ ...HIDDEN_TAB, title: 'Reminders' }} />
+      <Tabs.Screen name="courses" options={{ ...HIDDEN_TAB, title: 'Everything to learn' }} />
+      <Tabs.Screen name="games" options={{ ...HIDDEN_TAB, title: 'Brain games' }} />
       <Tabs.Screen name="journal" options={{ ...HIDDEN_TAB, title: 'Journal' }} />
       <Tabs.Screen name="time" options={{ ...HIDDEN_TAB, title: 'Your time' }} />
       <Tabs.Screen name="philosophy" options={{ ...HIDDEN_TAB, title: 'Your philosophy' }} />
       <Tabs.Screen name="notes" options={{ ...HIDDEN_TAB, title: 'Notes' }} />
-      <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline', 4) }} />
+      <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('person-circle-outline', 5) }} />
       <Tabs.Screen name="settings" options={{ ...HIDDEN_TAB, title: 'Settings' }} />
       <Tabs.Screen name="ai-data" options={{ ...HIDDEN_TAB, title: 'Tali and your data' }} />
       <Tabs.Screen name="home-edit" options={{ ...HIDDEN_TAB, title: 'Edit home' }} />

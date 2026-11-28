@@ -286,7 +286,7 @@ export function ExtraTile({ w, onChange }: { w: Widget; onChange?: (extra: Extra
 export function HomeHeader({ mode, editRef }: { mode: string; editRef?: any }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: space.md, marginBottom: space.sm }}>
-      <Text style={{ flex: 1, color: colours.faint, fontSize: 12, fontWeight: '800', letterSpacing: 1.6 }}>YOUR HQ</Text>
+      <Text style={{ flex: 1, color: colours.faint, fontSize: 12, fontWeight: '800', letterSpacing: 1.6 }}>YOUR DAY</Text>
       <View ref={editRef} collapsable={false}>
         <Pressable onPress={() => router.navigate(`/home-edit?mode=${mode}` as any)} accessibilityRole="button" hitSlop={8}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colours.purpleSoft, borderWidth: 1, borderColor: colours.border }}>

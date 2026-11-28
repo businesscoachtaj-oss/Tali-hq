@@ -52,7 +52,7 @@ export default function World() {
   const stale = p?.stale ? (p.stale.days >= 14 ? `${Math.floor(p.stale.days / 7)} weeks` : `${p.stale.days} days`) : '';
   const left = pm && pm.weeklyAmount != null ? pm.weeklyAmount - pm.weekSpent : null;
 
-  const areas: Area[] = [
+  const areas: (Area | null)[] = [
     { title: 'People', line: hasBusiness ? 'Family, friends, clients and everyone who matters' : 'Family, friends and everyone who matters', colour: '#2E7D4F',
       now: [
         p?.next_birthday && p.next_birthday.days <= 30 ? `${p.next_birthday.name}'s birthday is ${inDays(p.next_birthday.days)}` : null,
@@ -91,16 +91,7 @@ export default function World() {
         { icon: 'file-tray-full-outline', title: 'Receipts', sub: 'Ready for tax time', to: '/receipts', locked: !paid },
         { icon: 'checkbox-outline', title: 'To do', sub: 'What is on your plate', to: '/list', params: { kind: 'todo' }, live: n(k?.todo_open, 'open thing', 'open things') },
         { icon: 'flash-outline', title: 'Rules', sub: 'What she does on her own', to: '/rules', locked: !pro, pro: true },
-      ] } : { title: 'Work', line: 'Your job, your inbox, your list', colour: '#9FB7FF',
-      now: [
-        paid && k?.emails_need ? `${n(k.emails_need, 'email')} ${k.emails_need === 1 ? 'needs' : 'need'} you` : null,
-        k?.todo_today ? `${n(k.todo_today, 'thing')} to do ${k.todo_today === 1 ? 'is' : 'are'} due today` : null,
-      ],
-      rows: [
-        { icon: 'mail-outline', title: 'Email', sub: 'Sorted, replies drafted', to: '/inbox', locked: !paid },
-        { icon: 'checkbox-outline', title: 'To do', sub: 'What is on your plate', to: '/list', params: { kind: 'todo' }, live: n(k?.todo_open, 'open thing', 'open things') },
-        { icon: 'briefcase-outline', title: 'Run a business?', sub: 'Add it in Settings for invoices, clients and receipts', to: '/settings' },
-      ] },
+      ] } : null,
     { title: 'Health', line: 'Body, food, sleep and headspace', colour: '#B8487A',
       now: [
         life?.sessions_planned ? `Trained ${life.sessions_done_this_week} of ${life.sessions_planned} sessions this week` : null,
@@ -113,7 +104,7 @@ export default function World() {
         { icon: 'partly-sunny-outline', title: 'Headspace', sub: 'Your mood across the fortnight, from your journal', to: '/headspace', live: h?.moods_7 ? `${n(h.moods_7, 'mood')} logged this week` : null },
         { icon: 'medkit-outline', title: 'Check ups', sub: 'Doctor, dentist, scripts and when they are due', to: '/list', params: { kind: 'checkup' }, live: n(h?.checkups, 'check up') },
       ] },
-    { title: 'Home and money', line: 'Your own money and the life admin', colour: '#9FE8FF',
+    { title: 'Home and money', line: 'Your money, your savings and the life admin', colour: '#9FE8FF',
       now: [
         left !== null ? (left < 0 ? `${dollars(-left)} over for the week` : `${dollars(left)} left to spend this week`) : null,
         dueLine(hm?.admin_next),
@@ -122,6 +113,10 @@ export default function World() {
         { icon: 'cash-outline', title: 'Personal money', sub: 'Spending, budget and bills', to: '/money', params: { side: 'personal' }, locked: !paid },
         { icon: 'folder-open-outline', title: 'Life admin', sub: 'Rego, insurance, renewals, warranties', to: '/list', params: { kind: 'admin' }, live: n(hm?.admin_open, 'thing') ? `${n(hm?.admin_open, 'thing')} tracked` : null },
         { icon: 'home-outline', title: 'Home', sub: 'Jobs around the house and who to call', to: '/list', params: { kind: 'home' }, live: n(hm?.home_open, 'job') ? `${n(hm?.home_open, 'job')} to do` : null },
+        // 28 Nov 2026 (Learnéd): savings, your list and Tali's email live here now the Work part is gone.
+        { icon: 'trending-up-outline', title: 'Savings', sub: 'What you are saving for, and how close you are', to: '/goals', locked: !paid },
+        { icon: 'checkbox-outline', title: 'To do', sub: 'What is on your plate', to: '/list', params: { kind: 'todo' }, live: n(k?.todo_open, 'open thing', 'open things') },
+        { icon: 'mail-outline', title: "Tali's email", sub: 'Forward your mail, she sorts it and drafts replies', to: '/inbox', locked: !paid },
       ] },
     { title: 'Growth', line: 'Where you are heading, and who you are becoming', colour: '#FFE38A',
       now: [
@@ -129,10 +124,12 @@ export default function World() {
         g?.wins_month ? `${n(g.wins_month, 'win')} this month` : null,
       ],
       rows: [
+        { icon: 'notifications-outline', title: 'Reminders', sub: 'Mind, body, people, money and home', to: '/reminders' },
         { icon: 'flag-outline', title: 'Goals', sub: hasBusiness ? 'Business and personal' : 'Work and personal', to: '/goals', locked: !paid,
           live: paid && g && g.goals_business + g.goals_personal ? [g.goals_business ? `${g.goals_business} ${hasBusiness ? 'business' : 'work'}` : null, g.goals_personal ? `${g.goals_personal} personal` : null].filter(Boolean).join(', ') : null },
         { icon: 'repeat-outline', title: 'Habits', sub: 'Small things you are building', to: '/list', params: { kind: 'habit' }, live: n(g?.habits, 'habit') },
-        { icon: 'library-outline', title: 'Learning', sub: 'What you are reading, watching or studying', to: '/list', params: { kind: 'learning' }, live: n(g?.learning, 'thing') ? `${n(g?.learning, 'thing')} on the go` : null },
+        { icon: 'school-outline', title: 'Learning', sub: 'Your paths, lessons and games', to: '/learn' },
+        { icon: 'library-outline', title: 'Reading list', sub: 'Books, courses and things you are studying', to: '/list', params: { kind: 'learning' }, live: n(g?.learning, 'thing') ? `${n(g?.learning, 'thing')} on the go` : null },
         { icon: 'trophy-outline', title: 'Wins', sub: 'The good stuff, kept so you can look back', to: '/list', params: { kind: 'win' }, live: g?.wins_month ? `${g.wins_month} this month` : null },
         { icon: 'airplane-outline', title: 'Someday', sub: 'Trips, dreams and things you want to do one day', to: '/list', params: { kind: 'someday' }, live: n(g?.someday, 'dream') },
         { icon: 'calendar-outline', title: 'Weekly review', sub: "What moved and what's next", to: '/review', locked: !paid },
@@ -155,7 +152,7 @@ export default function World() {
   const split = hasBusiness;
   const PARTS = { business: ['People', 'Work', 'Growth'], life: ['People', 'Health', 'Home and money', 'Growth', 'Your words'] };
   const GROWTH = { business: ['Goals', 'Weekly review', 'Decisions'], life: ['Goals', 'Habits', 'Learning', 'Wins', 'Someday', 'Shut down'] };
-  const shown = !split ? areas : areas.filter((a) => PARTS[mode].includes(a.title)).map((a) => {
+  const shown = !split ? (areas.filter(Boolean) as Area[]) : (areas.filter(Boolean) as Area[]).filter((a) => PARTS[mode].includes(a.title)).map((a) => {
     if (a.title === 'Growth') return { ...a, line: mode === 'business' ? 'Where the business is heading' : 'Who you are becoming', rows: a.rows.filter((r) => GROWTH[mode].includes(r.title)), now: mode === 'business' ? [] : a.now };
     if (a.title === 'People') return { ...a, now: a.now.filter((l) => (mode === 'business' ? !/birthday|caught up/.test(String(l)) : !/lead/.test(String(l)))) };
     return a;
@@ -163,9 +160,9 @@ export default function World() {
   return (
     <Screen>
       {split ? <View style={{ marginBottom: 14 }}><ModeSwitch /></View> : null}
-      <SkinHeader id="brain" title={split ? (mode === 'business' ? 'Your business' : 'Your life') : 'Your world'} sub={split ? (mode === 'business' ? 'The business side of your world. Your people are on both sides. Tap a part to step into it.' : 'The life side of your world. Your people are on both sides. Tap a part to step into it.') : 'Everything she looks after. Tap a part of your life to step into it.'} />
+      <SkinHeader id="brain" title={split ? (mode === 'business' ? 'Your business' : 'Your life') : 'Your life'} sub={split ? (mode === 'business' ? 'The business side of your world. Your people are on both sides. Tap a part to step into it.' : 'The life side of your world. Your people are on both sides. Tap a part to step into it.') : 'Everything she looks after. Tap a part of your life to step into it.'} />
       <View style={{ marginHorizontal: -space.lg, marginBottom: space.xl }}>
-        <WorldMap homeCount={(hm?.admin_open ?? 0) + (hm?.home_open ?? 0) + (pm?.repeats.length ?? 0)} workTo={hasBusiness ? undefined : '/list?kind=todo'} show={split ? PARTS[mode] : undefined} lines={split ? (mode === 'business' ? { People: 'Clients, leads, family, friends', Growth: 'Goals, weekly review, decisions' } : { Growth: 'Habits, learning, wins, someday' }) : undefined} />
+        <WorldMap homeCount={(hm?.admin_open ?? 0) + (hm?.home_open ?? 0) + (pm?.repeats.length ?? 0)} workTo={hasBusiness ? undefined : '/list?kind=todo'} show={split ? PARTS[mode] : PARTS.life} lines={split ? (mode === 'business' ? { People: 'Clients, leads, family, friends', Growth: 'Goals, weekly review, decisions' } : { Growth: 'Habits, learning, wins, someday' }) : { People: 'Family, friends, the ones you love', 'Home and money': 'Savings, spending, life admin', Growth: 'Reminders, goals, habits, learning' }} />
       </View>
       <Text style={{ color: colours.muted, fontSize: 12, fontWeight: '800', letterSpacing: 2, marginBottom: space.md }}>EVERYTHING, AS A LIST</Text>
       {shown.map((a) => {

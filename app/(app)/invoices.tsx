@@ -355,7 +355,7 @@ export default function Invoices() {
     return (
       <Screen skin="receipt">
         <SkinHeader id="receipt" title="Invoices" onBack={() => goBack('/me')} backLabel="Back" />
-        <TaliSays pose="wave">Invoices are part of Tali HQ. I'll draft them for you, keep track of who's paid and nudge you when one's overdue.</TaliSays>
+        <TaliSays pose="wave">Invoices are part of Learnéd. I'll draft them for you, keep track of who's paid and nudge you when one's overdue.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );

@@ -111,6 +111,6 @@ Deno.serve(async (req) => {
     console.error('tali-link-app: save failed', error.message);
     return sorry('I could not save that. Try again in a minute.');
   }
-  if (saved?.ok !== true) return sorry(saved?.why === 'taken' ? 'That Totality account is already linked to another Tali HQ account.' : 'I could not save that. Try again in a minute.');
+  if (saved?.ok !== true) return sorry(saved?.why === 'taken' ? 'That Totality account is already linked to another Learnéd account.' : 'I could not save that. Try again in a minute.');
   return json({ ok: true, brought: Number(saved.brought ?? 0) });
 });

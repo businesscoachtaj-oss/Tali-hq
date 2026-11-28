@@ -135,7 +135,7 @@ export function MicrosoftConnectCard() {
               <Button title="Connect Outlook mail and calendar" onPress={() => connect('both')} busy={busy} />
               <Button title="Just the calendar" kind="ghost" onPress={() => connect('calendar')} busy={busy} />
               <Text style={{ color: colours.faint, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
-                Work accounts: your IT admin may need to approve Tali HQ the first time.
+                Work accounts: your IT admin may need to approve Learnéd the first time.
               </Text>
             </>
           )}

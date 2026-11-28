@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
   // A live Stripe subscription would keep billing after deletion. Block until it is cancelled.
   const { data: sub } = await admin.from('subscriptions').select('status, stripe_subscription_id').eq('user_id', user.id).maybeSingle();
   if (sub?.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(sub.status)) {
-    return json({ ok: false, code: 'active_subscription', message: 'Cancel your Tali HQ subscription first, then delete your account.' }, 409);
+    return json({ ok: false, code: 'active_subscription', message: 'Cancel your Learnéd subscription first, then delete your account.' }, 409);
   }
 
   // 12 Nov 2026: their files go too (chat uploads, receipts, exports, voice, profile photo). Deleting

@@ -65,7 +65,7 @@ export function WeekCardView({ paid, commitments, reviewDue, onTick }: { paid: b
   if (!paid) {
     return (
       <Card>
-        <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Weekly review is part of Tali HQ</Text>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Weekly review is part of Learnéd</Text>
         <Text style={{ fontSize: 13, color: colours.muted, marginTop: 2, lineHeight: 18 }}>Ten minutes a week: what moved, the money, who went quiet, and your three for next week.</Text>
         <Pressable onPress={() => router.navigate('/plans')} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colours.borderStrong, paddingVertical: 8, paddingHorizontal: 14 }}>
           <Text style={{ color: colours.text, fontWeight: '700' }}>Plans</Text>

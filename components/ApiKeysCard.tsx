@@ -17,7 +17,7 @@ const when = (s: string | null) => (s ? new Date(s).toLocaleDateString('en-AU', 
 
 async function call(body: Record<string, unknown>): Promise<any> {
   const { data, error } = await supabase.functions.invoke('tali-api', { body });
-  if (error) return { ok: false, message: 'Could not reach Tali HQ. Please try again.' };
+  if (error) return { ok: false, message: 'Could not reach Learnéd. Please try again.' };
   return data;
 }
 
@@ -62,7 +62,7 @@ export function ApiKeysCard() {
 
   return (
     <Card>
-      <Text style={{ fontWeight: '700', color: colours.text, fontSize: 16 }}>Zapier and the Tali HQ API</Text>
+      <Text style={{ fontWeight: '700', color: colours.text, fontSize: 16 }}>Zapier and the Learnéd API</Text>
       <Text style={{ color: colours.muted, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
         Link me to thousands of apps through Zapier. New leads, enquiries, bookings, paid invoices and accepted quotes can start a Zap, and a Zap can add a lead, a reminder or a note for me. A key can never send, spend or delete anything.
       </Text>

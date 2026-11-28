@@ -265,7 +265,7 @@ export function JournalScreen({ mode }: { mode: 'journal' | 'notes' }) {
         <>
           {!paid ? (
             <>
-              <TaliSays pose="wave">My weekly journal is part of Tali HQ. Every Sunday I write up what we worked on, what I noticed and what I'm keeping an eye on.</TaliSays>
+              <TaliSays pose="wave">My weekly journal is part of Learnéd. Every Sunday I write up what we worked on, what I noticed and what I'm keeping an eye on.</TaliSays>
               <Button title="See plans" onPress={() => router.navigate('/plans')} />
             </>
           ) : null}

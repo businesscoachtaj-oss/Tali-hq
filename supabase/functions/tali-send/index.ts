@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
 
   // 3. Neither connected: from the Tali address itself, so the reply comes back to Tali.
   if (!RESEND_KEY) return fail('copy_only', 'Copy the reply and send it from your own email for now.', 503);
-  const name = headerName(String(prof?.business_name || prof?.first_name || 'Tali HQ'));
+  const name = headerName(String(prof?.business_name || prof?.first_name || 'Learnéd'));
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },

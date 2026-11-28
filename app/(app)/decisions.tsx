@@ -120,7 +120,7 @@ export default function Decisions() {
       <Button title="Log a decision" onPress={() => setDraft({ decision: '', reasoning: '', decided_at: today() })} />
       {planHint ? (
         <Card style={{ backgroundColor: colours.purpleSoft, borderColor: colours.purpleSoft }}>
-          <Text style={{ color: colours.purpleInk, fontWeight: '700' }}>Ask Tali why is part of Tali HQ</Text>
+          <Text style={{ color: colours.purpleInk, fontWeight: '700' }}>Ask Tali why is part of Learnéd</Text>
           <Text style={{ color: colours.purpleInk, fontSize: 13, marginTop: 2 }}>She'll remind you of your reasoning and tell you whether it still holds.</Text>
           <Button title="See plans" kind="ghost" onPress={() => router.navigate('/plans')} />
         </Card>
@@ -146,13 +146,13 @@ export default function Decisions() {
             <Pressable onPress={() => askWhy(d)} accessibilityRole="button" accessibilityState={{ disabled: !paid }}
               style={{ alignSelf: 'flex-start', marginTop: space.md, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1,
                 borderColor: paid ? colours.purple : colours.border, backgroundColor: paid ? colours.purpleSoft : colours.sunk, opacity: paid ? 1 : 0.7 }}>
-              <Text style={{ color: paid ? colours.purpleInk : colours.faint, fontWeight: '700', fontSize: 13 }}>Ask Tali why{paid ? '' : ' · Tali HQ'}</Text>
+              <Text style={{ color: paid ? colours.purpleInk : colours.faint, fontWeight: '700', fontSize: 13 }}>Ask Tali why{paid ? '' : ' · Learnéd'}</Text>
             </Pressable>
           </Card>
           </Pressable>
         ))
       )}
-      {!paid && list.length ? <Body muted>Logging is free. Ask Tali why is part of Tali HQ.</Body> : null}
+      {!paid && list.length ? <Body muted>Logging is free. Ask Tali why is part of Learnéd.</Body> : null}
     </Screen>
   );
 }

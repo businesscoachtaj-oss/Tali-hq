@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
     const { data: sub } = await admin.from('subscriptions').select('plan_id, status, business_tier').eq('user_id', user.id).maybeSingle();
     const allowed = user.id === FOUNDER || (!!sub?.business_tier && sub.plan_id === 'max' && ['active', 'past_due'].includes(String(sub.status)));
-    if (!allowed) return json({ ok: false, code: 'no_plan', message: 'This comes with Tali HQ Business.' }, 403);
+    if (!allowed) return json({ ok: false, code: 'no_plan', message: 'This comes with Learnéd Business.' }, 403);
     if (!ANTHROPIC_KEY) return json({ ok: false, code: 'not_ready', message: 'Tali cannot write right now. Try again soon.' }, 503);
 
     const since = new Date(Date.now() - 86400_000).toISOString();

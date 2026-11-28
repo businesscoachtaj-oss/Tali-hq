@@ -142,7 +142,7 @@ export default function BrainScreen() {
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colours.surface, borderWidth: 1, borderColor: colours.border, borderRadius: radius.pill, paddingHorizontal: 14, marginBottom: space.md }}>
         <Ionicons name="search" size={17} color={colours.muted} />
-        <TextInput value={q} onChangeText={setQ} placeholder="Search her brain: a name, a client, a topic" placeholderTextColor={colours.faint} style={{ flex: 1, paddingVertical: 11, fontSize: 15, color: colours.text }} accessibilityLabel="Search Tali's brain" returnKeyType="search" />
+        <TextInput value={q} onChangeText={setQ} placeholder="Search her brain: a name, a book, a topic" placeholderTextColor={colours.faint} style={{ flex: 1, paddingVertical: 11, fontSize: 15, color: colours.text }} accessibilityLabel="Search Tali's brain" returnKeyType="search" />
         {q ? (
           <Pressable onPress={() => setQ('')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search">
             <Ionicons name="close-circle" size={18} color={colours.faint} />

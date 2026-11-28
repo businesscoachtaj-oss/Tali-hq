@@ -34,7 +34,7 @@ export function MoneyCard({ credits }: { credits: Credits | null }) {
   if (!paid) {
     return (
       <Card>
-        <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Money picture is part of Tali HQ</Text>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Money picture is part of Learnéd</Text>
         <Body muted>Cash in, owed, overdue and runway, read by Tali each morning.</Body>
         <Button title="See plans" kind="ghost" onPress={() => router.navigate('/plans')} />
       </Card>

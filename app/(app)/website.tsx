@@ -123,7 +123,7 @@ export default function Website() {
 
   if (!loaded) return <Loading />;
   if (!ok) {
-    return <BizLock paid title="Website" sub="A simple site of your own, hosted by Tali HQ. Your name, what you do and a way to get in touch."
+    return <BizLock paid title="Website" sub="A simple site of your own, hosted by Learnéd. Your name, what you do and a way to get in touch."
       points={[
         { icon: 'globe-outline', title: 'Live in minutes', sub: 'Fill in a few boxes and put it live at your own address' },
         { icon: 'mail-outline', title: 'A contact form', sub: 'Messages land here in the app' },
@@ -158,7 +158,7 @@ export default function Website() {
   const toggle = (value: boolean, onChange: (v: boolean) => void, label: string) => <Switch value={value} onValueChange={onChange} accessibilityLabel={label} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: '#FFFFFF' } as object)} />;
   return (
     <Screen onRefresh={load}>
-      <Head over={site.kind === 'life' ? 'Life' : 'Business'} title="Website" sub="A simple site Tali HQ hosts for you. Fill it in, have a look, then put it live." />
+      <Head over={site.kind === 'life' ? 'Life' : 'Business'} title="Website" sub="A simple site Learnéd hosts for you. Fill it in, have a look, then put it live." />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <Pill text={site.published ? 'Live' : has ? 'Not live yet' : 'Not set up yet'} colour={site.published ? '#2E8A63' : '#A8561A'} />
         <Text selectable numberOfLines={1} style={{ flex: 1, color: BLUE, fontSize: 13.5, fontWeight: '800' }}>{SITE_BASE}{slug || 'your-name'}</Text>

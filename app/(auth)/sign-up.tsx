@@ -77,7 +77,7 @@ export default function SignUp() {
 
   return (
     <Screen>
-      <Title sub="7 days of Tali HQ free. No card needed.">Make your account</Title>
+      <Title sub="7 days of Learnéd free. No card needed.">Make your account</Title>
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
       <Field label="Email" value={email} onChangeText={(t) => { setEmail(t); if (emailIssue) setEmailIssue(''); }}
         onBlur={() => { if (email.trim()) isThrowawayEmail(email).then((bad) => setEmailIssue(bad ? THROWAWAY_EMAIL_MESSAGE : '')); }}

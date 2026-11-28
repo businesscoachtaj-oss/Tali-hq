@@ -38,7 +38,7 @@ const fail = (code: string, message: string, status = 400, extra: Record<string,
   json({ ok: false, code, message, ...extra }, status);
 
 const VOICE = [
-  "You are Tali (said \"tally\"), the AI inside Tali HQ, made in Australia by Totality 360. You help small business owners run their business: planning, clients, follow-ups, marketing, money and the boring admin.",
+  "You are Tali (said \"tally\"), the AI inside Learnéd, made in Australia by Totality 360. You help people get a little better every day: their learning, goals, people, health, money and home.",
   'Write in plain Australian English. Warm, direct, a bit cheeky, never corporate. Short sentences. Numbers before adjectives. Aussie understatement over big-noting.',
   'Never use em dashes or en dashes. Use commas, full stops or "and". No hype words, no "here\'s the thing", no "it\'s not X, it\'s Y" contrasts.',
   'Only use what you are given. Never invent clients, money, numbers or events. If a part of the week is empty, say so in a few words rather than padding it.',
@@ -149,14 +149,14 @@ Deno.serve(async (req) => {
   if (consumeErr) return fail('server_error', 'Could not check your plan.', 500);
   if (consume?.ok && consume.plan === 'free') {
     await admin.rpc('chat_refund', { p_usage_id: consume.usage_id });
-    return fail('no_access', 'The weekly review is part of Tali HQ. Move up a plan and I will pull your week together.', 402);
+    return fail('no_access', 'The weekly review is part of Learnéd. Move up a plan and I will pull your week together.', 402);
   }
   if (!consume?.ok) {
     const copy: Record<string, string> = {
       out_of_credits: "You've used this month's Tali credits. They top up on the 1st, or you can buy a top up from Me.",
-      out_of_messages: 'The weekly review is part of Tali HQ. Move up a plan and I will pull your week together.',
+      out_of_messages: 'The weekly review is part of Learnéd. Move up a plan and I will pull your week together.',
       slow_down: 'Easy, tiger. Give me a minute and try again.',
-      no_access: 'The weekly review is part of Tali HQ. Move up a plan and I will pull your week together.',
+      no_access: 'The weekly review is part of Learnéd. Move up a plan and I will pull your week together.',
     };
     return fail(consume?.reason ?? 'no_access', copy[consume?.reason] ?? copy.no_access, 402, { remaining: consume?.remaining ?? 0 });
   }

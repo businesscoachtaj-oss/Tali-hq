@@ -163,8 +163,8 @@ Deno.serve(async (req) => {
     // An API key.
     if (token.startsWith(PREFIX)) {
       const { data: key } = await admin.from('api_keys').select('id, user_id, revoked_at, last_used_at').eq('key_hash', await sha256(token)).maybeSingle();
-      if (!key || key.revoked_at) return fail(401, 'That API key is not working. Make a new one in Tali HQ, Settings, Connections.');
-      if (!(await paid(key.user_id))) return fail(402, 'The Tali HQ API comes with HQ, Pro and Max.');
+      if (!key || key.revoked_at) return fail(401, 'That API key is not working. Make a new one in Learnéd, Settings, Connections.');
+      if (!(await paid(key.user_id))) return fail(402, 'The Learnéd API comes with HQ, Pro and Max.');
       // Mark it used, at most once a minute.
       if (!key.last_used_at || Date.now() - new Date(key.last_used_at).getTime() > 60_000) {
         await admin.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', key.id);
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     if (body.action === 'create_key') {
-      if (!(await paid(me.id))) return json({ ok: false, message: 'The Tali HQ API and Zapier come with HQ, Pro and Max.' });
+      if (!(await paid(me.id))) return json({ ok: false, message: 'The Learnéd API and Zapier come with HQ, Pro and Max.' });
       const { count } = await admin.from('api_keys').select('id', { count: 'exact', head: true }).eq('user_id', me.id).is('revoked_at', null);
       if ((count ?? 0) >= 5) return json({ ok: false, message: 'You have 5 keys. Revoke one you no longer use first.' });
       const key = newKey();

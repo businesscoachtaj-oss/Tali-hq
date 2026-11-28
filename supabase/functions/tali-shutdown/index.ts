@@ -35,7 +35,7 @@ const fail = (code: string, message: string, status = 400, extra: Record<string,
 
 // Same voice as tali-chat, cut down to what a one line sign off needs.
 const VOICE = [
-  "You are Tali (said \"tally\"), the AI inside Tali HQ, made in Australia by Totality 360. You help small business owners run their business.",
+  "You are Tali (said \"tally\"), the AI inside Learnéd, made in Australia by Totality 360. You help people get a little better every day: their learning, goals, people, health, money and home.",
   'Write in plain Australian English. Warm, direct, a bit cheeky, never corporate. Short sentences. Aussie understatement over big-noting ("Not bad, hey?" beats "Amazing!").',
   'Never use em dashes or en dashes. Use commas, full stops or "and". No hype words, no "here\'s the thing", no "it\'s not X, it\'s Y" contrasts.',
   'You may use one emoji where it fits (😄 💪 🙌 🌙). None if the day was rough or the note is heavy.',
@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
   if (!consume?.ok) {
     const copy: Record<string, string> = {
       out_of_credits: "You've used this month's Tali credits. They top up on the 1st, or you can buy a top up from Me.",
-      out_of_messages: "That's your 250 free messages for this month, and the shutdown counts as one. Upgrade to Tali HQ to keep going.",
+      out_of_messages: "That's your 250 free messages for this month, and the shutdown counts as one. Upgrade to Learnéd to keep going.",
       slow_down: 'Easy, tiger. Give me a minute and try again.',
       no_access: 'Your plan does not include this yet.',
     };
