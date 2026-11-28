@@ -28,7 +28,8 @@ export function NightIdeaCard() {
 
   return (
     <View style={{ borderRadius: radius.card, overflow: 'hidden', marginBottom: space.md }}>
-      <LinearGradient colors={['#2A1F4F', '#1B2450']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: space.md }}>
+      {/* 28 Nov 2026: paper card. Since the paper and ink look the idea was ink text on the old night gradient, so it could not be read. */}
+      <LinearGradient colors={['#FFFDF8', '#FBF7EE']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: space.md, borderWidth: 1, borderColor: '#1C1A17', borderRadius: radius.card }}>
         <View style={{ flexDirection: 'row', gap: space.md }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: night.accent, fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>AN IDEA FROM NIGHT SCHOOL</Text>
