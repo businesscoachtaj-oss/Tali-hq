@@ -93,7 +93,7 @@ export default function ReviewScreen() {
     return (
       <Screen skin="planner" onRefresh={load}>
         <SkinHeader id="planner" title="Weekly review" sub="Ten minutes a week with Tali on what moved, what slipped and what's next." onBack={() => router.navigate('/')} backLabel="Today" />
-        <TaliSays pose="think">The weekly review is part of Tali HQ. I pull your week together, money and quiet clients included, and we set your three for next week.</TaliSays>
+        <TaliSays pose="think">The weekly review is part of Learnéd. I pull your week together, money and quiet clients included, and we set your three for next week.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );

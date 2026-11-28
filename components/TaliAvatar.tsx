@@ -4,6 +4,8 @@
 // pose every 7 seconds or so (peek, wink, giggle...) for a couple of seconds
 // and smoothly fades back. The extra poses come from Tali's 100 pose set,
 // lined up to the same frame as the app sprites so the fade has no jump.
+// 28 Nov 2026 (Taj, Learnéd): same sprites and poses, carved in marble with her colours faded back in,
+// so this Tali looks her own next to the one in Totality, Training and Nutrition.
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Platform, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 

@@ -6,10 +6,12 @@ import { completeReminder, deleteReminder, rescheduleReminder, saveClient, type 
 import { addDays, friendlyDate, friendlyTime, today } from '@/lib/dates';
 import { Card, ErrorText, useConfirm } from '@/components/ui';
 import { colours, space } from '@/constants/theme';
+import { AREAS, repeatLabel } from '@/lib/areas';
 
 // Reminders and client follow-ups due today or overdue, each with a tick.
 // 4 Nov 2026: errors show under the list instead of vanishing, follow-ups open the person, and each
 // reminder has two small actions: Tomorrow (9am) and Delete (two taps).
+// 28 Nov 2026 (Learnéd): each line says which part of life it is for, how often it repeats and the streak.
 export function DueList({ reminders, followUps, onChange }: { reminders: Reminder[]; followUps: Client[]; onChange: () => void }) {
   const biz = useHasBusiness(); // with no business these are people to check in with, not follow-ups
   const [busy, setBusy] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function DueList({ reminders, followUps, onChange }: { reminders: Reminde
     }
   }
 
-  const tickReminder = (id: string) => run(id, () => completeReminder(id), "Couldn't tick that off.");
+  const tickReminder = (id: string) => run(id, () => completeReminder(id).then(() => {}), "Couldn't tick that off.");
   // Following up clears the date and stamps today as last contact.
   const tickFollowUp = (c: Client) => run(c.id, () => saveClient({ ...c, next_follow_up: null, last_contact_at: today() }), "Couldn't mark that follow-up done.");
   const snooze = (id: string) => {
@@ -42,7 +44,7 @@ export function DueList({ reminders, followUps, onChange }: { reminders: Reminde
   return (
     <Card>
       {reminders.map((r, i) => (
-        <Row key={r.id} first={i === 0} busy={busy === r.id} onTick={() => tickReminder(r.id)} title={r.text} meta={friendlyTime(r.due_at)} late={new Date(r.due_at) < new Date()}>
+        <Row key={r.id} first={i === 0} busy={busy === r.id} onTick={() => tickReminder(r.id)} title={r.text} meta={`${r.area ? `${AREAS[r.area].name} · ` : ''}${friendlyTime(r.due_at)}${r.repeat ? ` · ${repeatLabel(r.repeat)}` : ''}${r.streak && r.streak > 1 ? ` · ${r.streak} in a row` : ''}`} late={new Date(r.due_at) < new Date()}>
           <View style={{ flexDirection: 'row', gap: space.md, marginTop: 4 }}>
             <Action label="Tomorrow" onPress={() => snooze(r.id)} disabled={busy === r.id} />
             <Action label={armed === r.id ? 'Sure?' : 'Delete'} danger={armed === r.id} onPress={() => confirm(r.id, () => remove(r.id))} disabled={busy === r.id} />

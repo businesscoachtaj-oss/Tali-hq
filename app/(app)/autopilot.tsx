@@ -79,7 +79,7 @@ export default function Autopilot() {
         <Line first icon="chatbubble-ellipses-outline" colour={colours.muted} title="Text messages" sub="Reminders and follow ups by text, sent on your yes" right={<Pill text="Coming soon" colour={colours.muted} />} />
         <Line icon="call-outline" colour={colours.muted} title="Tali answers your phone" sub="She takes the details when you miss a call" right={<Pill text="Coming soon" colour={colours.muted} />} />
       </View>
-      <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 12, lineHeight: 18 }}>Rules are checked when you open Tali HQ.</Text>
+      <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 12, lineHeight: 18 }}>Rules are checked when you open Learnéd.</Text>
     </Screen>
   );
 }

@@ -16,8 +16,8 @@ import { colours, elevation, radius, space } from '@/constants/theme';
 import { FOUNDER_USER_ID } from '@/constants/business';
 import { RoomSwitch, type Room } from '@/components/RoomSwitch';
 
-const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Tali HQ', pro: 'Tali HQ Pro', max: 'Tali HQ Max' };
-const BIZ_NAMES: Record<string, string> = { biz: 'Tali HQ Business', biz_pro: 'Tali HQ Business Pro', biz_max: 'Tali HQ Business Max' };
+const PLAN_NAMES: Record<string, string> = { free: 'Free', hq: 'Learnéd', pro: 'Learnéd Pro', max: 'Learnéd Max' };
+const BIZ_NAMES: Record<string, string> = { biz: 'Learnéd Business', biz_pro: 'Learnéd Business Pro', biz_max: 'Learnéd Business Max' };
 
 export default function Me() {
   const { profile, session, signOut, refreshProfile } = useAuth();
@@ -251,7 +251,7 @@ export default function Me() {
         <MenuRow title="Settings" sub="Your details, rhythm, notifications" onPress={() => router.navigate('/settings')} />
         {/* 22 Nov 2026: what goes to the AI companies, and the yes or no for it. */}
         <MenuRow title="Tali and your data" sub={profile?.ai_consent_at ? 'What she sends to AI companies. Turn it off here' : 'Tali is off. Say yes here to use her'} onPress={() => router.navigate('/ai-data' as any)} />
-        <MenuRow title="Show me around again" sub="The quick tour of Tali HQ" onPress={async () => {
+        <MenuRow title="Show me around again" sub="The quick tour of Learnéd" onPress={async () => {
           if (!session) return;
           try { await resetTour(session.user.id); await refreshProfile(); router.navigate('/'); } catch (e: any) { setError(e?.message ?? 'Could not restart the tour.'); }
         }} />
@@ -259,7 +259,7 @@ export default function Me() {
           <Text style={{ fontSize: 16, fontWeight: '700', color: colours.danger }}>{armed === 'signout' ? 'Sure? Tap again to sign out' : 'Sign out'}</Text>
         </Pressable>
       </Card>
-      <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: space.lg }}>Tali HQ by Totality 360. Made in Australia.</Text>
+      <Text style={{ color: colours.faint, fontSize: 12, textAlign: 'center', marginTop: space.lg }}>Learnéd by Totality 360. Made in Australia.</Text>
     </Screen>
   );
 }

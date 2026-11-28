@@ -220,7 +220,7 @@ export function useVoiceNote({ onText, onNotice, plan }: { onText: (text: string
 
   const start = useCallback(async () => {
     if (busy || rec.current) return;
-    if (plan === 'free') { onNotice('Voice notes are part of Tali HQ. See plans on Me.'); return; }
+    if (plan === 'free') { onNotice('Voice notes are part of Learnéd. See plans on Me.'); return; }
     onNotice('');
     try {
       const r = await startRecording();

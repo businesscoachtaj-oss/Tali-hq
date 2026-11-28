@@ -175,7 +175,7 @@ export async function brainExport(): Promise<BrainExport> {
 // The export as a plain text file anyone can read.
 export function exportAsText(e: BrainExport): string {
   const when = new Date(e.exported_at || Date.now()).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
-  const lines = [`Everything Tali knows about ${e.person?.first_name || 'you'}`, `Downloaded ${when} from Tali HQ. ${e.memories.length} memories${e.truncated ? ' (the newest 5,000)' : ''}.`, ''];
+  const lines = [`Everything Tali knows about ${e.person?.first_name || 'you'}`, `Downloaded ${when} from Learnéd. ${e.memories.length} memories${e.truncated ? ' (the newest 5,000)' : ''}.`, ''];
   const groups = new Map<string, string[]>();
   for (const m of e.memories) {
     const g = m.part || m.kind || 'Other';

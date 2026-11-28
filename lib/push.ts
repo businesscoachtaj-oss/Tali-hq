@@ -31,14 +31,14 @@ function b64ToBytes(b64: string) {
 
 async function enableWebPush(): Promise<PushResult> {
   if (iosNeedsInstall()) {
-    return { ok: false, reason: 'install_first', message: 'On iPhone, add Tali HQ to your Home Screen first (Share, then "Add to Home Screen"), open it from there and turn notifications on.' };
+    return { ok: false, reason: 'install_first', message: 'On iPhone, add Learnéd to your Home Screen first (Share, then "Add to Home Screen"), open it from there and turn notifications on.' };
   }
   if (!webPushAvailable()) return { ok: false, reason: 'unsupported', message: 'This browser does not support notifications.' };
   try {
     const { data: publicKey, error: keyErr } = await supabase.rpc('vapid_public_key');
     if (keyErr || !publicKey) return { ok: false, reason: 'not_set_up', message: 'Notifications switch on shortly. Try again in a minute.' };
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return { ok: false, reason: 'denied', message: 'Notifications are blocked for Tali HQ in your browser settings.' };
+    if (permission !== 'granted') return { ok: false, reason: 'denied', message: 'Notifications are blocked for Learnéd in your browser settings.' };
     const reg = await navigator.serviceWorker.register('/sw.js');
     await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
@@ -63,7 +63,7 @@ export async function enablePush(): Promise<PushResult> {
     }
     let { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') status = (await Notifications.requestPermissionsAsync()).status;
-    if (status !== 'granted') return { ok: false, reason: 'denied', message: 'Notifications are off for Tali HQ in your phone settings.' };
+    if (status !== 'granted') return { ok: false, reason: 'denied', message: 'Notifications are off for Learnéd in your phone settings.' };
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     const { error } = await supabase.from('push_tokens').upsert({ token, platform: Platform.OS as 'ios' | 'android', updated_at: new Date().toISOString() });
     if (error) return { ok: false, reason: 'error', message: error.message };

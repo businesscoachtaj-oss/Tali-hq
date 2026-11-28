@@ -13,7 +13,7 @@ export function BizLock({ title, sub, points, paid }: { title: string; sub: stri
       <Head over={paid ? 'Your world' : 'Business'} title={title} sub={sub} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start', borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: BLUE + '80', marginBottom: 14 }}>
         <Ionicons name="lock-closed-outline" size={16} color={BLUE} />
-        <Text style={{ color: BLUE, fontWeight: '800', fontSize: 13 }}>{paid ? 'Comes with any paid plan' : 'Comes with Tali HQ Business'}</Text>
+        <Text style={{ color: BLUE, fontWeight: '800', fontSize: 13 }}>{paid ? 'Comes with any paid plan' : 'Comes with Learnéd Business'}</Text>
       </View>
       <View style={{ backgroundColor: colours.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colours.border, paddingHorizontal: 14 }}>
         {points.map((p, i) => <Line key={p.title} first={!i} icon={p.icon} title={p.title} sub={p.sub} />)}

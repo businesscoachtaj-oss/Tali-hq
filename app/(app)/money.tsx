@@ -77,7 +77,7 @@ export default function Money() {
         <SkinHeader id="banknote" title="Money" onBack={() => goBack('/')} backLabel="Back" />
         <TaliSays pose="wave">Cash in, owed, overdue, what goes out and your runway, in one glance each morning. I read it before your brief.</TaliSays>
         <Card>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Money picture is part of Tali HQ</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: colours.text }}>Money picture is part of Learnéd</Text>
           <Body muted>Five numbers, read by Tali, no spreadsheets.</Body>
           <Button title="See plans" onPress={() => router.navigate('/plans')} />
         </Card>

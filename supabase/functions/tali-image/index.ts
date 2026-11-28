@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
   if (consumeErr || !consume?.ok) {
     const reason = consume?.reason ?? 'no_access';
     const copy: Record<string, string> = {
-      no_access: 'Images are part of Tali HQ. Move up a plan and Tali can make them for you.',
+      no_access: 'Images are part of Learnéd. Move up a plan and Tali can make them for you.',
       out_of_images: consume?.trial
         ? "You've made the 5 images that come with the trial. Pick a plan for 30 or 100 a month."
         : `You've made all ${consume?.allowance ?? 'of'} this month's images. They top up on the 1st, or you can buy more from Top up on Me.`,

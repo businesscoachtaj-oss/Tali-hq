@@ -79,7 +79,7 @@ export default function Team() {
     setBusy(false);
     if (!res.ok) { setError(res.message ?? 'Could not send that invite.'); return; }
     const first = draft.name.trim().split(/\s+/)[0];
-    setNotice(res.joined ? `${first} already has Tali HQ, so they are on the team now.` : res.emailed ? `Invite sent. ${first} joins when they sign in with that email.` : `${first} is added. The email did not go out, so tell them to sign in to Tali HQ with that email.`);
+    setNotice(res.joined ? `${first} already has Learnéd, so they are on the team now.` : res.emailed ? `Invite sent. ${first} joins when they sign in with that email.` : `${first} is added. The email did not go out, so tell them to sign in to Learnéd with that email.`);
     setDraft(null);
     load();
   }
@@ -130,7 +130,7 @@ export default function Team() {
     return (
       <Screen>
         <Head back="Your team" to="/team" over={[person.role_title, person.status === 'active' ? 'On the team' : 'Invite sent'].filter(Boolean).join(' · ')} title={person.name}
-          sub={person.status === 'active' ? `${first} sees their own jobs and tasks, plus what you switch on below.` : `${first} joins when they sign in to Tali HQ with ${person.email}.`} />
+          sub={person.status === 'active' ? `${first} sees their own jobs and tasks, plus what you switch on below.` : `${first} joins when they sign in to Learnéd with ${person.email}.`} />
         <Stats items={[{ label: 'jobs on now', value: String(person.jobs), colour: BLUE }, { label: 'tasks open', value: String(person.tasks_open), colour: ORANGE }, { label: 'done this month', value: String(person.tasks_done), colour: GREEN }]} />
         <Label>Their seat</Label>
         <SeatPick value={person.seat} onChange={changeSeat} disabled={busy} />
@@ -147,7 +147,7 @@ export default function Team() {
         <ErrorText>{error}</ErrorText>
         <Button title={`Give ${first} a job`} onPress={() => router.navigate('/jobs')} />
         <Button title={armed === 'remove' ? 'Tap again to remove them' : 'Remove from the team'} kind="danger" disabled={busy} onPress={() => confirm('remove', remove)} />
-        <Note icon="information-circle-outline">Removing {first} frees the seat from your next bill. Their own Tali HQ account stays theirs, on the Free plan.</Note>
+        <Note icon="information-circle-outline">Removing {first} frees the seat from your next bill. Their own Learnéd account stays theirs, on the Free plan.</Note>
       </Screen>
     );
   }

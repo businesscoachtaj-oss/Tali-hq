@@ -11,6 +11,7 @@ import { BUSINESS_TYPES } from '@/constants/business';
 import { ChipPicker } from '@/components/ChipPicker';
 import { enablePush, pushSupported } from '@/lib/push';
 import { TRACKER_PRESETS, goalLine, loadHq, hqState, materialise, saveLayout, useHq, type Block, type TrackerSpec } from '@/lib/widgets';
+import { enrol, learnHome } from '@/lib/learn';
 import { DIFFERENCE, PLATE, TEAM_SIZE, TEMPLATES, guessTracker, mergeBlocks, offeredTrackers, startingLayout, templateBlocks, type Answers } from '@/lib/hqTemplates';
 import { MiniLayout } from '@/components/Widgets';
 import { Sheet } from '@/components/Sheet';
@@ -24,10 +25,22 @@ import { TextInput } from 'react-native';
 // biggest difference, and is it just you), anyone who picks a tracker sets its target, the about-me
 // question moves to just before the preview, and "Looks good" saves both homes. Every screen after
 // the name can be skipped. Building the home here never uses credits or counts as a message.
-type StepId = 'name' | 'plate' | 'work' | 'difference' | 'team' | 'count' | 'targets' | 'about' | 'hq' | 'push';
+type StepId = 'name' | 'plate' | 'learn' | 'work' | 'difference' | 'team' | 'count' | 'targets' | 'about' | 'hq' | 'push';
 const chip = (on: boolean, colour = '#3B3F9E') => ({ paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? colour : 'rgba(28,26,23,0.30)', backgroundColor: on ? colour : 'rgba(28,26,23,0.07)' });
-const chipText = (on: boolean) => ({ color: on ? '#F5F0E6' : '#FFFFFF', fontWeight: '700' as const, fontSize: 15 });
+// 28 Nov 2026: unpicked chips were white text on paper (unreadable). Ink now.
+const chipText = (on: boolean) => ({ color: on ? '#F5F0E6' : '#1C1A17', fontWeight: '700' as const, fontSize: 15 });
 const field = { backgroundColor: 'rgba(28,26,23,0.08)', borderWidth: 1, borderColor: 'rgba(28,26,23,0.30)', borderRadius: 12, color: '#1C1A17', fontSize: 16, paddingHorizontal: 14, paddingVertical: 11 } as const;
+
+// The first path on offer at sign up, each one a part of the lesson library (null: they pick later).
+const FIRST_PATHS: [string | null, string, string][] = [
+  ['philosophy', 'Philosophy', 'How to live, from the people who thought hardest about it'],
+  ['mind', 'How the mind works', 'Memory, habits and why we do what we do'],
+  ['money', 'Money', 'Saving, spending, debt and making it grow'],
+  ['history', 'History', 'What happened, and what it still tells us'],
+  ['science', 'Science and nature', 'How the universe, life and the planet work'],
+  ['health', 'Health and the body', 'Sleep, food, movement and the body you live in'],
+  [null, 'Something else', 'Pick later in Learn, or ask Tali to build you one'],
+];
 
 export default function Onboarding() {
   const { session, profile, refreshProfile, signOut } = useAuth();
@@ -37,7 +50,10 @@ export default function Onboarding() {
   const [businessType, setBusinessType] = useState('');
   const [aboutMe, setAboutMe] = useState('');
   const [plate, setPlate] = useState<string[]>([]);
-  const [hasBusiness, setHasBusiness] = useState<boolean | null>(null);
+  // 28 Nov 2026 (Learnéd): no business side, so nobody is asked. Always false.
+  const [hasBusiness, setHasBusiness] = useState<boolean | null>(false);
+  // Their first learning path: a category in the lesson library, or null for "something else".
+  const [firstPath, setFirstPath] = useState<string | null>('philosophy');
   const [difference, setDifference] = useState<string[]>([]);
   const [teamSize, setTeamSize] = useState('');
   const [step, setStep] = useState(0);
@@ -54,7 +70,7 @@ export default function Onboarding() {
   const [tplKeys, setTplKeys] = useState<string[]>([]);
 
   const biz = !!hasBusiness;
-  const steps: StepId[] = ['name', 'plate', 'work', ...(biz ? (['difference', 'team'] as StepId[]) : []), 'count', ...(tracks.length || custom.length ? (['targets'] as StepId[]) : []), 'about', 'hq', ...(pushSupported ? (['push'] as StepId[]) : [])];
+  const steps: StepId[] = ['name', 'plate', 'learn', ...(biz ? (['difference', 'team'] as StepId[]) : []), 'count', ...(tracks.length || custom.length ? (['targets'] as StepId[]) : []), 'about', 'hq', ...(pushSupported ? (['push'] as StepId[]) : [])];
   const id = steps[Math.min(step, steps.length - 1)];
   const last = step >= steps.length - 1;
   // Trackers to offer, from what they want a hand with (and the business ones if they run one).
@@ -133,6 +149,14 @@ export default function Onboarding() {
       setBusy(false);
       return setError(err.message);
     }
+    // Start them on their first path (the first course in that part of the library). Never blocks getting in.
+    if (firstPath) {
+      try {
+        const h = await learnHome();
+        const first = h.categories.find((c) => c.id === firstPath)?.courses[0];
+        if (first) await enrol(first.id);
+      } catch { /* they can pick one in Learn */ }
+    }
     await refreshProfile();
   }
 
@@ -149,6 +173,7 @@ export default function Onboarding() {
   const Q = ({
     name: { kicker: 'FIRST THINGS FIRST', q: "G'day. What should I call you?", sub: "I'm Tali. I'm an AI with a brain that grows with you." },
     plate: { kicker: 'YOUR PLATE', q: `Nice to meet you${name ? `, ${name}` : ''}. What would you like a hand with?`, sub: 'Pick as many as you like. You can change it later.' },
+    learn: { kicker: 'YOUR FIRST PATH', q: 'What would you like to learn first?', sub: 'Pick one. A short lesson a day, from the books in my library. Start more any time.' },
     work: { kicker: 'YOUR WORK', q: 'Do you run a business?', sub: 'Either is fine. I look after your whole life, work included.' },
     difference: { kicker: 'YOUR BUSINESS', q: 'What would make the biggest difference right now?', sub: 'Pick up to two. They go at the top of your Business home.' },
     team: { kicker: 'YOUR TEAM', q: 'Is it just you, or do you have people?', sub: 'So your home fits how you work.' },
@@ -187,6 +212,27 @@ export default function Onboarding() {
               <Pressable key={o} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setPlate((p) => (on ? p.filter((x) => x !== o) : [...p, o]))}
                 style={{ paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? '#3B3F9E' : 'rgba(28,26,23,0.30)', backgroundColor: on ? '#3B3F9E' : 'rgba(28,26,23,0.07)' }}>
                 <Text style={{ color: on ? '#F5F0E6' : '#FFFFFF', fontWeight: '700', fontSize: 15 }}>{o}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {/* 28 Nov 2026 (Learnéd): their first learning path, in place of "Do you run a business?". */}
+      {id === 'learn' ? (
+        <View style={{ gap: space.sm, marginBottom: space.md }}>
+          {FIRST_PATHS.map(([cat, t, sub]) => {
+            const on = firstPath === cat;
+            return (
+              <Pressable key={t} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => setFirstPath(cat)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.card, borderWidth: 1, borderColor: on ? '#3B3F9E' : 'rgba(28,26,23,0.25)', backgroundColor: on ? 'rgba(59,63,158,0.08)' : '#FFFDF8' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#1C1A17', fontSize: 20, fontFamily: 'EBGaramond_500Medium' }}>{t}</Text>
+                  <Text style={{ color: '#5E574E', fontSize: 13 }}>{sub}</Text>
+                </View>
+                <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: on ? '#3B3F9E' : 'rgba(28,26,23,0.35)', alignItems: 'center', justifyContent: 'center' }}>
+                  {on ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#3B3F9E' }} /> : null}
+                </View>
               </Pressable>
             );
           })}

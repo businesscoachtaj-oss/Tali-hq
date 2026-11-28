@@ -610,3 +610,16 @@ Taj's call: Pay as you go replaces the Starter plan, and the gaps found after th
 - **Pages**: new `/brain/security`. Pricing, console, docs and terms updated for Pay as you go and minimum terms.
 - **Founder screen**: monthly plans and Pay as you go counted apart, credit sales for the last 30 days, credits left per licensee, and uptime for the last 30 days.
 - **Still needs Taj**: a lawyer to read `/brain/terms`; an outside auditor if a licensee needs SOC 2 or ISO 27001; delete the renamed test customer in the Stripe dashboard.
+
+
+## Learnéd (28 Nov 2026)
+
+Taj's call: Tali HQ becomes Learnéd, an app for life and learning (no business tools in the pitch). Same Supabase project (`jbyzblwrywgxilhmfyjt`), same Tali.
+
+- **Lessons**: ten categories, a shared course in each that Tali writes one lesson a night for (always at least a day ahead of the fastest person), and personal "learn anything" paths on paid plans and the trial (up to 3 at once). Recall cards bring a lesson back later. Quotes are only ever word for word from a book in Tali's library.
+- **Brain games**: five games, new every day (`games/`).
+- **Reminders**: mind, body, people, money and home, with repeats, streaks and a 7pm check-in.
+- **Screens**: Learn, Path, Lesson, Courses, Games, Game and Reminders, plus the Learnéd home card. Wording across the app and the functions says Learnéd instead of Tali HQ.
+- **Database**: `20261128000103_learned_lessons_reminders.sql` (lesson library, progress, recall cards, reminders, crons `tali-learn-writer`, `tali-learn-personal`, `learned-evening`) and `20261128000104_learned_plans.sql` (plan names and what each plan lists; prices and credits unchanged).
+- **Function**: `tali-learn` writes and checks lessons (service role and signed-in create only).
+- **Go-live order**: 103 and `tali-learn` can go first (they only add things). 104 and the renamed functions go with the app update, so the plans and emails never say Learnéd before the app does.

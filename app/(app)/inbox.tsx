@@ -101,7 +101,7 @@ export default function Inbox() {
     return (
       <Screen skin="airmail" onRefresh={load}>
         <SkinHeader id="airmail" title="Email" onBack={() => goBack('/me')} backLabel="Back" />
-        <TaliSays pose="wave">On Tali HQ you can send your Gmail to me, or connect Outlook, and I'll sort it for you: what needs you, what's just FYI, what's junk. I draft the replies and you tap send. On Pro I get my own address for your enquiries too.</TaliSays>
+        <TaliSays pose="wave">On Learnéd you can send your Gmail to me, or connect Outlook, and I'll sort it for you: what needs you, what's just FYI, what's junk. I draft the replies and you tap send. On Pro I get my own address for your enquiries too.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );

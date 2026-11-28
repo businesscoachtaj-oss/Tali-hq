@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
   if (consumeErr || !consume?.ok) {
     await removeClip();
     const reason = consume?.reason ?? 'no_access';
-    if (reason === 'no_access') return fail('no_access', 'Voice notes are part of Tali HQ.', 402);
+    if (reason === 'no_access') return fail('no_access', 'Voice notes are part of Learnéd.', 402);
     if (reason === 'slow_down') return fail('slow_down', 'Easy, one at a time. Give it a minute.', 429);
     return fail(reason, "You've used this month's Tali credits.", 402);
   }

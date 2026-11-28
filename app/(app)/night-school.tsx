@@ -77,7 +77,7 @@ export default function NightSchoolScreen() {
     return (
       <Screen skin="nightschool">
         <SkinHeader id="nightschool" title="Night school" onBack={() => goBack('/me')} backLabel="Me" />
-        <TaliSays pose="think">Night school is part of Tali HQ Pro. You pick what I study, I research it late at night and tell you what I learnt in the morning.</TaliSays>
+        <TaliSays pose="think">Night school is part of Learnéd Pro. You pick what I study, I research it late at night and tell you what I learnt in the morning.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );

@@ -93,7 +93,7 @@ export default function SharedLayout() {
               <>
                 <Button title={session ? 'Use this layout' : 'Start free and use this layout'} onPress={use} busy={busy} />
                 {session ? <Text style={{ color: colours.faint, fontSize: 12.5, textAlign: 'center' }}>Adds what you do not have yet. What is on your home stays.</Text> : (
-                  <Button kind="ghost" title="I already have Tali HQ" onPress={async () => { await AsyncStorage.setItem(PENDING_LAYOUT, layout.slug).catch(() => {}); router.navigate('/sign-in' as any); }} />
+                  <Button kind="ghost" title="I already have Learnéd" onPress={async () => { await AsyncStorage.setItem(PENDING_LAYOUT, layout.slug).catch(() => {}); router.navigate('/sign-in' as any); }} />
                 )}
               </>
             )}

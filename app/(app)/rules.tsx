@@ -98,7 +98,7 @@ export default function Rules() {
     return (
       <Screen skin="control">
         <SkinHeader id="control" title="Rules" onBack={() => router.navigate('/me')} backLabel="Back" />
-        <TaliSays pose="think">Rules are part of Tali HQ Pro. You set the rule once and I handle it automatically, like flagging quiet clients or drafting reminders for overdue invoices.</TaliSays>
+        <TaliSays pose="think">Rules are part of Learnéd Pro. You set the rule once and I handle it automatically, like flagging quiet clients or drafting reminders for overdue invoices.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );
@@ -106,7 +106,7 @@ export default function Rules() {
 
   return (
     <Screen skin="control">
-      <SkinHeader id="control" title="Rules" sub="Set a rule once and Tali handles it automatically. Rules only change things inside Tali HQ. Anything that goes to another person still waits for your yes." onBack={() => router.navigate('/me')} backLabel="Back" />
+      <SkinHeader id="control" title="Rules" sub="Set a rule once and Tali handles it automatically. Rules only change things inside Learnéd. Anything that goes to another person still waits for your yes." onBack={() => router.navigate('/me')} backLabel="Back" />
       <ErrorText>{error}</ErrorText>
       {ideas.length ? (
         <>

@@ -136,7 +136,7 @@ export default function GoalsScreen() {
     return (
       <Screen skin="finish" onRefresh={load}>
         <SkinHeader id="finish" title="Goals" sub="The numbers you're chasing, and Tali holding you to them." onBack={() => router.navigate('/')} backLabel="Today" />
-        <TaliSays pose="think">Goals are part of Tali HQ. Tell me what you're chasing, I'll track it on Today, mention it in your brief when you're behind pace, and ask about it in your weekly review.</TaliSays>
+        <TaliSays pose="think">Goals are part of Learnéd. Tell me what you're chasing, I'll track it on Today, mention it in your brief when you're behind pace, and ask about it in your weekly review.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );

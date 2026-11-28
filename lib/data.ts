@@ -441,12 +441,13 @@ export async function followUpsDue(localDate: string): Promise<Client[]> {
 }
 
 // ---------- Reminders ----------
-export type Reminder = { id: string; text: string; due_at: string; done_at: string | null; client_id: string | null; created_by: string; side?: 'life' | 'business' | null };
+// 28 Nov 2026 (Learnéd): reminders across every part of life (area), with repeats and a streak.
+export type Reminder = { id: string; text: string; due_at: string; done_at: string | null; client_id: string | null; created_by: string; side?: 'life' | 'business' | null; area?: 'mind' | 'body' | 'people' | 'money' | 'home' | null; repeat?: string | null; streak?: number };
 
 export async function openReminders(untilIso: string): Promise<Reminder[]> {
   const { data, error } = await supabase
     .from('reminders')
-    .select('id, text, due_at, done_at, client_id, created_by, side')
+    .select('id, text, due_at, done_at, client_id, created_by, side, area, repeat, streak')
     .is('done_at', null)
     .lte('due_at', untilIso)
     .order('due_at');
@@ -454,9 +455,36 @@ export async function openReminders(untilIso: string): Promise<Reminder[]> {
   return (data as Reminder[]) ?? [];
 }
 
-export async function completeReminder(id: string) {
-  const { error } = await supabase.from('reminders').update({ done_at: new Date().toISOString() }).eq('id', id);
+// 28 Nov 2026 (Learnéd): reminder_done also puts the next one in for a repeating reminder and keeps the
+// streak. Falls back to a plain tick if the database function isn't there yet.
+export async function completeReminder(id: string): Promise<{ streak?: number }> {
+  const { data, error } = await supabase.rpc('reminder_done', { p_id: id });
+  if (!error && (data as any)?.ok) return { streak: (data as any).streak };
+  const { error: e2 } = await supabase.from('reminders').update({ done_at: new Date().toISOString() }).eq('id', id);
+  if (e2) throw e2;
+  return {};
+}
+
+/** Every reminder from the start of this week to a month out, done ones included, for the Reminders screen. */
+export async function remindersAround(fromIso: string, untilIso: string): Promise<Reminder[]> {
+  const { data, error } = await supabase
+    .from('reminders')
+    .select('id, text, due_at, done_at, client_id, created_by, side, area, repeat, streak')
+    .gte('due_at', fromIso)
+    .lte('due_at', untilIso)
+    .order('due_at');
   if (error) throw error;
+  return (data as Reminder[]) ?? [];
+}
+export async function overdueReminders(beforeIso: string): Promise<Reminder[]> {
+  const { data, error } = await supabase
+    .from('reminders')
+    .select('id, text, due_at, done_at, client_id, created_by, side, area, repeat, streak')
+    .is('done_at', null)
+    .lt('due_at', beforeIso)
+    .order('due_at');
+  if (error) throw error;
+  return (data as Reminder[]) ?? [];
 }
 
 // 4 Nov 2026: snooze and delete from Today's Due list.
@@ -470,8 +498,11 @@ export async function deleteReminder(id: string) {
   if (error) throw error;
 }
 
-export async function addReminder(text: string, dueAt: Date, side?: 'life' | 'business') {
-  const { error } = await supabase.from('reminders').insert({ text: text.trim(), due_at: dueAt.toISOString(), ...(side ? { side } : null) });
+export async function addReminder(text: string, dueAt: Date, side?: 'life' | 'business', opts?: { area?: string | null; repeat?: string | null }) {
+  const row: Record<string, unknown> = { text: text.trim(), due_at: dueAt.toISOString(), ...(side ? { side } : null) };
+  if (opts?.area) row.area = opts.area;
+  if (opts?.repeat) row.repeat = opts.repeat;
+  const { error } = await supabase.from('reminders').insert(row);
   if (error) throw error;
 }
 

@@ -32,7 +32,7 @@ function kindOf(u: FounderUser): 'trial' | 'paying' | 'free' {
 }
 
 function planLine(u: FounderUser) {
-  const plan = u.plan_id === 'max' ? 'Max' : u.plan_id === 'pro' ? 'Pro' : u.plan_id === 'hq' ? 'Tali HQ' : 'Free';
+  const plan = u.plan_id === 'max' ? 'Max' : u.plan_id === 'pro' ? 'Pro' : u.plan_id === 'hq' ? 'Learnéd' : 'Free';
   const k = kindOf(u);
   if (k === 'trial') {
     const left = Math.ceil((new Date(u.trial_ends_at!).getTime() - Date.now()) / DAY);
@@ -76,7 +76,7 @@ export default function FounderUsers() {
 
   return (
     <Screen skin="founder">
-      <SkinHeader id="founder" title="Users" sub="Every Tali HQ account." onBack={() => router.back()} />
+      <SkinHeader id="founder" title="Users" sub="Every Learnéd account." onBack={() => router.back()} />
       <ErrorText>{error}</ErrorText>
 
       <TextInput

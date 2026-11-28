@@ -140,7 +140,7 @@ export default function Receipts() {
     return (
       <Screen skin="shoebox">
         <SkinHeader id="shoebox" title="Receipts" onBack={() => goBack('/me')} backLabel="Back" />
-        <TaliSays pose="think">Receipts are part of Tali HQ. Snap a receipt, I read it and file it, and at tax time it's one download for your accountant.</TaliSays>
+        <TaliSays pose="think">Receipts are part of Learnéd. Snap a receipt, I read it and file it, and at tax time it's one download for your accountant.</TaliSays>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );

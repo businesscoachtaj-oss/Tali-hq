@@ -127,7 +127,7 @@ export default function Quote() {
             <Pressable onPress={send} disabled={busy} accessibilityRole="button" style={{ alignItems: 'center', paddingVertical: 15, borderRadius: radius.pill, backgroundColor: colours.purple, opacity: busy ? 0.6 : 1 }}>
               <Text style={{ color: colours.onPurple, fontSize: 16, fontWeight: '800' }}>{busy ? 'Sending...' : 'Send my request'}</Text>
             </Pressable>
-            <Text style={{ color: colours.faint, fontSize: 12, marginTop: 30 }}>Quotes by Tali HQ</Text>
+            <Text style={{ color: colours.faint, fontSize: 12, marginTop: 30 }}>Quotes by Learnéd</Text>
           </>
         ) : null}
       </ScrollView>

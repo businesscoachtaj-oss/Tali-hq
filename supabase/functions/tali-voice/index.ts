@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
   if (!(await hasAiConsent(admin, user.id))) return fail(AI_CONSENT_CODE, AI_CONSENT_MESSAGE, 403);
 
   const { data: pro } = await admin.rpc('has_pro', { p_user_id: user.id });
-  if (pro !== true) return fail('not_pro', 'Tali reading her replies out loud is part of Tali HQ Pro.', 402);
+  if (pro !== true) return fail('not_pro', 'Tali reading her replies out loud is part of Learnéd Pro.', 402);
   if (!VOICE_URL || !VOICE_KEY) return fail('not_configured', "My voice switches on very soon. Hang tight.", 503);
 
   let body: { messageId?: string };

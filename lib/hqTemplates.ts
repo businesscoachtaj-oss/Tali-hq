@@ -91,7 +91,8 @@ export function mergeBlocks(current: Block[], add: Block[], names: (b: Block) =>
 }
 
 // ── Onboarding ──────────────────────────────────────────────────────────────────────────
-export const PLATE = ['My week and to-dos', 'My business', 'Money', 'Health and habits', 'The people in my life', 'Big goals'] as const;
+// 28 Nov 2026 (Learnéd): no business. Learning, philosophy and a sharper mind come first.
+export const PLATE = ['Learning something new', 'Philosophy and how to live', 'A sharper mind', 'Health and habits', 'The people in my life', 'Money and saving', 'My week and to-dos', 'Big goals'] as const;
 export const DIFFERENCE = ['More customers', 'Getting paid on time', 'Keeping on top of jobs', 'Filling my diary', 'Running my team', 'Growing online'] as const;
 export const TEAM_SIZE = ['Just me', '2 to 5', '6 or more'] as const;
 
@@ -100,6 +101,10 @@ const OFFER: Record<string, string[]> = {
   'My week and to-dos': ['deepwork'],
   'My business': ['revenue', 'quotes', 'calls'],
   Money: ['spend', 'savings'],
+  'Money and saving': ['spend', 'savings'],
+  'Learning something new': ['read'],
+  'Philosophy and how to live': ['read', 'meditate'],
+  'A sharper mind': ['read', 'meditate'],
   'Health and habits': ['water', 'steps', 'sleep', 'gym', 'meditate'],
   'The people in my life': ['family'],
   'Big goals': ['read', 'savings'],
@@ -138,6 +143,10 @@ const BY_DIFFERENCE: Record<string, [BuiltIn | 'checklist', Size?][]> = {
 const BY_PLATE_LIFE: Record<string, (BuiltIn | 'countdown')[]> = {
   'My week and to-dos': ['week', 'calendar'],
   Money: ['money', 'bills'],
+  'Money and saving': ['money', 'bills'],
+  'Learning something new': ['habits'],
+  'Philosophy and how to live': ['journal'],
+  'A sharper mind': ['habits'],
   'Health and habits': ['your_day', 'habits'],
   'The people in my life': ['people'],
   'Big goals': ['goals', 'countdown'],

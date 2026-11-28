@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return fail('bad_request', 'POST only', 405);
   const { user, paid } = await paidUser(req);
   if (!user) return fail('unauthorized', 'Please sign in again.', 401);
-  if (!paid) return fail('no_plan', 'Receipts are part of Tali HQ and Pro.', 403);
+  if (!paid) return fail('no_plan', 'Receipts are part of Learnéd and Pro.', 403);
   const body = await req.json().catch(() => ({}));
   try {
     if (body.action === 'read') {

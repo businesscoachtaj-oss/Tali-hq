@@ -136,7 +136,7 @@ export function GoogleConnectCard() {
               <Button title="Connect Google" onPress={() => connect('both')} busy={busy} />
               <Button title="Just the calendar" kind="ghost" onPress={() => connect('calendar')} busy={busy} />
               <Text style={{ color: colours.faint, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
-                Until Google finishes checking Tali HQ, it may show a "Google hasn't verified this app" page. Tap Advanced, then Continue.
+                Until Google finishes checking Learnéd, it may show a "Google hasn't verified this app" page. Tap Advanced, then Continue.
               </Text>
             </>
           )}

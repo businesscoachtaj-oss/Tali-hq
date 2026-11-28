@@ -31,7 +31,7 @@ const strip = (s: unknown) => String(s ?? '').replace(/\s*[–—]\s*/g, ', ').r
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9$%. ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 const INSTRUCTIONS = [
-  'You are checking the work of an assistant called Tali, who helps one person with their life and their small business in Australia.',
+  'You are checking the work of an assistant called Tali, who helps one person with their whole life in Australia.',
   'Below is what that person and Tali said to each other. Find places where Tali got something WRONG and the person had to correct her or push back: a wrong fact about them, a wrong number, date or name, something she said she did but had not, ignoring an instruction they had already given, or advice they showed was mistaken.',
   'The bar is high. A change of mind, a new request, a follow up question, or the person simply wanting something different is NOT a mistake. If you are not sure, it is not a mistake. Most nights there are none, and an empty list is the right answer then.',
   'For each real mistake give: what_went_wrong (one plain sentence about what Tali did), lesson (one plain sentence telling Tali what to do next time, starting with a verb), and evidence (the exact words the person used when they corrected her, copied word for word from one of their messages, at least 8 words where the message allows).',

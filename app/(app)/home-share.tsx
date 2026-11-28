@@ -84,14 +84,14 @@ export default function HomeShare() {
   async function copy() { await Clipboard.setStringAsync(link); setNote('Link copied.'); }
   async function share() {
     if (Platform.OS === 'web' && !(navigator as any).share) return copy();
-    try { await Share.share(Platform.OS === 'ios' ? { url: link, message: `My Tali HQ layout: ${row!.name}` } : { message: `My Tali HQ layout: ${row!.name} ${link}` }); } catch {}
+    try { await Share.share(Platform.OS === 'ios' ? { url: link, message: `My Learnéd layout: ${row!.name}` } : { message: `My Learnéd layout: ${row!.name} ${link}` }); } catch {}
   }
 
   if (free) {
     return (
       <Screen>
         <BackLink onPress={() => router.navigate(`/home-edit?mode=${mode}` as any)} label="Edit home" />
-        <Title sub="Sharing your layout by link comes with Tali HQ and up.">Share your layout</Title>
+        <Title sub="Sharing your layout by link comes with Learnéd and up.">Share your layout</Title>
         <Button title="See plans" onPress={() => router.navigate('/plans')} />
       </Screen>
     );

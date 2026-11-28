@@ -53,6 +53,9 @@ import { ExtraTile, HomeHeader, TrackerTile } from '@/components/Widgets';
 import { BUILTINS, TRACKER_PRESETS, homeKeyFor, reloadHq, saveLayout, useHome, useHq, type BuiltIn, type Extra, type Tracker, type Widget } from '@/lib/widgets';
 import { BillsBlock, BlockLabel, BookingsBlock, CashflowBlock, HappinessBlock, InvoicesBlock, JobsBlock, LeadsBlock, NoteStrip, QuoteRateBlock, StartHint, TaliPickBlock, TeamBlock, VisitsBlock } from '@/components/HqBlocks';
 import { TeamHomeSection } from '@/components/TeamHome';
+// 28 Nov 2026 (Learnéd): today's lesson and today's games sit under her brain on Today.
+import { LessonCard, LessonDone, SectionHead, TodaysGames } from '@/components/Learned';
+import { learnHome, todaysPath, type LearnHome } from '@/lib/learn';
 import { useBoard } from '@/lib/hqBoard';
 import { useBusinesses } from '@/lib/businesses';
 import { behind } from '@/lib/trackerMath';
@@ -71,7 +74,7 @@ function trialLine(c: Credits | null) {
     const days = Math.max(0, Math.ceil((new Date(c.trialEndsAt).getTime() - Date.now()) / 86400000));
     // Only worth saying in the last month (founding and comped trials can run for a year or more).
     if (days > 30) return null;
-    return `${days} day${days === 1 ? '' : 's'} left of your ${c.plan === 'max' ? 'Tali HQ Max' : c.plan === 'pro' ? 'Tali HQ Pro' : 'Tali HQ'} trial`;
+    return `${days} day${days === 1 ? '' : 's'} left of your ${c.plan === 'max' ? 'Learnéd Max' : c.plan === 'pro' ? 'Learnéd Pro' : 'Learnéd'} trial`;
   }
   return null;
 }
@@ -121,6 +124,7 @@ export default function Today() {
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [credits, setCredits] = useState<Credits | null>(null);
+  const [learn, setLearn] = useState<LearnHome | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [followUps, setFollowUps] = useState<Client[]>([]);
   const [health, setHealth] = useState<Health | null>(null);
@@ -170,6 +174,7 @@ export default function Today() {
     setLoadError('');
     reloadHq().catch(() => {});
     setTick((t) => t + 1);
+    learnHome().then(setLearn).catch(() => {});
     try {
       const endOfToday = addDays(new Date(new Date().setHours(0, 0, 0, 0)), 1).toISOString();
       const [b, a, c, r, f, sd] = await Promise.all([recentBriefs(5), pendingApprovals(), myCredits(), openReminders(endOfToday), followUpsDue(today()), todaysShutdown().catch(() => null)]);
@@ -346,6 +351,9 @@ export default function Today() {
               <Card><ActivityIndicator color={colours.purple} /></Card>
             )}
             <AddReminder onAdded={load} side={biz ? mode : undefined} />
+            <Pressable onPress={() => router.navigate('/reminders' as any)} accessibilityRole="button" style={{ paddingVertical: 4 }}>
+              <Text style={{ color: colours.purple, fontWeight: '700', fontSize: 14 }}>All reminders: mind, body, people, money, home ›</Text>
+            </Pressable>
             {biz && theirs > 0 ? <Text style={{ color: colours.faint, fontSize: 12.5, marginTop: 6 }}>{theirs} more due on the {bizMode ? 'Life' : 'Business'} side.</Text> : null}
           </>
         );
@@ -485,6 +493,16 @@ export default function Today() {
         ) : null}
         {/* 9 Nov 2026 "life with a growing brain": work and life together, the way a day really is. */}
         {bizMode ? null : <View style={hide()}><SheNoticed /></View>}
+        {/* 28 Nov 2026 (Learnéd): the day's learning sits straight under her brain. */}
+        {bizMode ? null : (
+          <View style={hide()}>
+            <SectionHead right="Learn" onRight={() => router.navigate('/learn' as any)}>TODAY'S LESSON</SectionHead>
+            {learn ? (todaysPath(learn) ? <LessonCard path={todaysPath(learn)!} /> : <LessonDone path={learn.paths[0]?.done_today ? learn.paths[0] : null} />) : null}
+            <SectionHead right="All games" onRight={() => router.navigate('/games' as any)}>TODAY'S GAMES</SectionHead>
+            <TodaysGames />
+            <View style={{ height: space.md }} />
+          </View>
+        )}
 
         {morning && briefOpen && !home.shown.some((w) => w.builtin === 'brief') ? (
           <BriefCard brief={morning} open onToggle={() => setBriefOpen(false)} onRead={() => { setBriefOpen(false); markBriefRead(morning.id).then(load); }} />

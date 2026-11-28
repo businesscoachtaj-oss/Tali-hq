@@ -115,7 +115,7 @@ async function topup(user: { id: string; email?: string }, body: any) {
 
   const { data: sub } = await admin.from('subscriptions').select('plan_id, status, trial_ends_at, stripe_customer_id').eq('user_id', user.id).maybeSingle();
   const paid = sub && ((sub.status === 'trialing' && sub.trial_ends_at && new Date(sub.trial_ends_at).getTime() > Date.now()) || (['active', 'past_due'].includes(sub.status) && ['hq', 'pro', 'max'].includes(sub.plan_id)));
-  if (!paid) return json({ ok: false, code: 'no_plan', message: isDomain ? 'Your own domain comes with any paid plan. Pick a plan first.' : 'Top ups are for Tali HQ and Pro. Pick a plan first.' }, 403);
+  if (!paid) return json({ ok: false, code: 'no_plan', message: isDomain ? 'Your own domain comes with any paid plan. Pick a plan first.' : 'Top ups are for Learnéd and Pro. Pick a plan first.' }, 403);
 
   try {
     let customer = sub?.stripe_customer_id ?? null;

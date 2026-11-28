@@ -20,7 +20,7 @@ import type { ViewInstance } from 'react-native';
 // for the closed day, when Today goes back into her night sky.
 const AREA = {
   people: { name: 'People', colour: '#2E8A63' },
-  work: { name: 'Work', colour: '#3B3F9E' },
+  work: { name: 'Mind', colour: '#3B3F9E' }, // Learnéd mockup: the Work lens becomes Mind
   money: { name: 'Money', colour: '#A8561A' },
   health: { name: 'Health', colour: '#B8487A' },
   growth: { name: 'Growth', colour: '#A8841C' },

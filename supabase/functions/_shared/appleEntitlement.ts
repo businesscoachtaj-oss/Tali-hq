@@ -29,13 +29,13 @@ export async function applyAppleTransaction(
 
   if (opts.userId) {
     if (ownerId && ownerId.toLowerCase() !== opts.userId.toLowerCase()) {
-      return { ok: false, reason: 'This App Store subscription belongs to a different Tali HQ account.', status: 409 };
+      return { ok: false, reason: 'This App Store subscription belongs to a different Learnéd account.', status: 409 };
     }
     ownerId = opts.userId;
   }
   if (!ownerId) return { ok: false, reason: 'No matching account for this subscription', status: 404 };
   if (holder && holder.user_id !== ownerId) {
-    return { ok: false, reason: 'This App Store subscription is already linked to a different Tali HQ account.', status: 409 };
+    return { ok: false, reason: 'This App Store subscription is already linked to a different Learnéd account.', status: 409 };
   }
 
   const { data: sub } = await admin

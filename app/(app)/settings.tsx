@@ -92,7 +92,7 @@ export default function Settings() {
         first_name: firstName.trim(),
         business_name: businessName.trim() || null,
         business_type: businessType,
-        has_business: biz,
+        // has_business is left as it was (Learnéd never shows the business side).
         about_me: aboutMe.trim() || null,
         brief_time: `${briefTime}:00`,
         brief_push: briefPush,
@@ -149,10 +149,7 @@ export default function Settings() {
       <GoogleConnectCard />
       <View style={{ height: space.md }} />
       <MicrosoftConnectCard />
-      <View style={{ height: space.md }} />
-      <StripeConnectCard />
-      <View style={{ height: space.md }} />
-      <ApiKeysCard />
+      {/* 28 Nov 2026 (Learnéd): no business side, so no Stripe invoicing or brain API keys here. */}
       <View style={{ height: space.md }} />
       <TaliAddressCard />
     </>
@@ -171,8 +168,9 @@ export default function Settings() {
       ) : null}
 
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
-      {/* 10 Nov 2026: the business switch. Off, the app drops invoices, clients and leads, receipts and
-          rules, and Work means your job. Nothing is deleted, so switching back on brings it all back. */}
+      {/* 10 Nov 2026: the business switch. 28 Nov 2026 (Learnéd): gone, the app is life only. Business
+          details already saved are kept in the database and never shown. */}
+      {false ? <>
       <Label>Do you run a business?</Label>
       <ChipPicker options={['Yes', 'No, just me'] as const} value={biz ? 'Yes' : 'No, just me'} onChange={(v) => setBiz(v === 'Yes')} />
       <Text style={{ color: colours.muted, fontSize: 13, marginTop: -4, marginBottom: space.md }}>
@@ -186,6 +184,7 @@ export default function Settings() {
           <ChipPicker options={BUSINESS_TYPES} value={businessType} onChange={setBusinessType} />
         </>
       ) : null}
+      </> : null}
       <Field
         label="About you"
         value={aboutMe}
@@ -253,7 +252,7 @@ export default function Settings() {
       <Label>Weekly review time</Label>
       <ChipPicker options={REVIEW_TIMES} value={reviewTime} onChange={setReviewTime} label={prettyTime} />
       <Text style={{ color: colours.muted, fontSize: 13, marginTop: -4, marginBottom: space.md }}>
-        Tali nudges you then, and the review looks back at the week that ended the day before. Part of Tali HQ.
+        Tali nudges you then, and the review looks back at the week that ended the day before. Part of Learnéd.
       </Text>
 
       <ErrorText>{error}</ErrorText>
@@ -271,11 +270,11 @@ export default function Settings() {
       {session ? <ShareLearningCard userId={session.user.id} /> : null}
       {/* 12 Nov 2026 (Taj): the guides on the website. The tour ends by pointing here. */}
       <Label>How to use</Label>
-      <Pressable accessibilityRole="link" accessibilityLabel="How to use Tali HQ. Opens the guides on our website"
+      <Pressable accessibilityRole="link" accessibilityLabel="How to use Learnéd. Opens the guides on our website"
         onPress={() => { const url = 'https://totality360.com.au/help/tali-hq/'; if (Platform.OS === 'web') window.open(url, '_blank'); else Linking.openURL(url).catch(() => {}); }}>
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '700', color: colours.text }}>How to use Tali HQ</Text>
+            <Text style={{ fontWeight: '700', color: colours.text }}>How to use Learnéd</Text>
             <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>Step by step guides for every screen, on our website</Text>
           </View>
           <Text style={{ color: colours.muted, fontSize: 18 }}>›</Text>
@@ -328,7 +327,7 @@ function ShareLearningCard({ userId }: { userId: string }) {
         <View style={{ flex: 1 }}>
           <Text style={{ fontWeight: '700', color: colours.text }}>Help every Tali learn</Text>
           <Text style={{ color: colours.muted, fontSize: 13, marginTop: 2 }}>
-            Lessons that would help any small business are shared with every Tali, rewritten with no names, clients or numbers. Your facts, people and journal are never shared.
+            Lessons that would help anyone are shared with every Tali, rewritten with no names or numbers. Your facts, people and journal are never shared.
           </Text>
         </View>
         <Switch value={on ?? true} disabled={on === null} onValueChange={flip} trackColor={{ true: colours.purple, false: colours.borderStrong }} thumbColor="#FFFFFF" {...({ activeThumbColor: '#FFFFFF' } as object)} />
